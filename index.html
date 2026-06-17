@@ -3,95 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>수도권 지리 마스터 (NAVER 지도 API 공식 실측 버전)</title>
-    
-    <!-- 네이버 지도 API v3 호출 (Client ID 연동 완료) -->
+    <title>수도권 지리 마스터 퀴즈</title>
+    <!-- NAVER Maps API v3 최신 공식 규격 적용 -->
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=kizfnbhv3q&submodules=geocoder"></script>
-    
     <style>
         * {
             box-sizing: border-box;
+            font-family: 'Pretendard', -apple-system, sans-serif;
             margin: 0;
             padding: 0;
-            -webkit-tap-highlight-color: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         body, html {
             width: 100%;
             height: 100%;
-            background-color: #1a1a24;
             overflow: hidden;
+            background-color: #f5f6f7;
+        }
+        #container {
             display: flex;
             flex-direction: column;
+            width: 100%;
+            height: 100%;
+            position: relative;
         }
-        #header-bar {
-            height: 50px;
-            background-color: #111216;
-            color: white;
+        /* 헤더 영역 */
+        #header {
+            height: 60px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e8eb;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 15px;
+            padding: 0 20px;
+            z-index: 10;
+        }
+        #logo {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1e2022;
+        }
+        #score-board {
+            font-size: 16px;
+            font-weight: 700;
+            color: #007aff;
+            background-color: #f0f7ff;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        /* 지도 영역 */
+        #map {
+            flex: 1;
+            width: 100%;
+            position: relative;
+        }
+        /* 지도 타입 토글 버튼 */
+        #map-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            z-index: 5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+        }
+        #map-toggle:hover {
+            background-color: #ffffff;
+            transform: translateY(-1px);
+        }
+        /* 하단 퀴즈 패널 */
+        #quiz-panel {
+            background-color: #ffffff;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
+            z-index: 10;
+            max-height: 45%;
+            display: flex;
+            flex-direction: column;
+            transition: max-height 0.3s ease;
+        }
+        #question-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #question-number {
             font-size: 14px;
-            font-weight: bold;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-            z-index: 1000;
+            color: #8a8f98;
+            font-weight: 600;
         }
         #progress-container {
-            flex-grow: 1;
-            margin: 0 15px;
-            height: 8px;
-            background-color: #34495e;
-            border-radius: 4px;
+            width: 100px;
+            height: 6px;
+            background-color: #e5e8eb;
+            border-radius: 3px;
             overflow: hidden;
         }
         #progress-bar {
             width: 10%;
             height: 100%;
-            background-color: #2ecc71;
-            transition: width 0.3s ease;
+            background-color: #007aff;
+            border-radius: 3px;
+            transition: width 0.3s;
         }
-        #map-container {
-            flex-grow: 1;
-            position: relative;
-            background-color: #0b0c10;
+        #question-text {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1e2022;
+            line-height: 1.4;
+            margin-bottom: 15px;
         }
-        #map {
-            width: 100%;
-            height: 100%;
+        /* 옵션 영역 */
+        #options-container {
+            overflow-y: auto;
+            flex: 1;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
         }
-        #map-toggle-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 1001;
-            background-color: rgba(17, 18, 22, 0.85);
-            color: white;
-            border: 1px solid #2ecc71;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 8px;
+        .option-btn {
+            background-color: #f5f6f7;
+            border: 1.5px solid transparent;
+            padding: 12px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #4e5968;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            backdrop-filter: blur(4px);
+            text-align: center;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        #loading-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #111216;
-            z-index: 9999;
+        .option-btn.selected {
+            background-color: #eaf2ff;
+            border-color: #007aff;
+            color: #007aff;
+        }
+        .option-btn.correct {
+            background-color: #e8f7ec !important;
+            border-color: #2da44e !important;
+            color: #2da44e !important;
+        }
+        .option-btn.wrong {
+            background-color: #ffebe9 !important;
+            border-color: #cf222e !important;
+            color: #cf222e !important;
+        }
+        /* 피드백 배너 및 확인 버튼 */
+        #action-container {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            gap: 10px;
+        }
+        #feedback-message {
+            font-size: 14px;
+            font-weight: 700;
+            text-align: center;
+            min-height: 20px;
+        }
+        #submit-btn {
+            width: 100%;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #submit-btn:disabled {
+            background-color: #cacdd2;
+            cursor: not-allowed;
+        }
+        /* 로딩 쉴드 */
+        #loading-shield {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
             justify-content: center;
-            transition: opacity 0.5s ease;
+            align-items: center;
+            z-index: 1000;
         }
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #2c3e50;
-            border-top: 5px solid #2ecc71;
+            width: 40px; height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007aff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 15px;
@@ -100,583 +211,552 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        #quiz-control-panel {
-            background-color: #1e2029;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
-            padding: 15px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        #question-box {
-            text-align: center;
-        }
-        #quiz-type-badge {
-            display: inline-block;
-            background-color: #2ecc71;
-            color: white;
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 12px;
-            margin-bottom: 5px;
-            font-weight: 800;
-        }
-        #question-text {
+        #loading-text {
             font-size: 15px;
-            font-weight: 800;
-            color: #ecf0f1;
-            line-height: 1.4;
+            font-weight: 600;
+            color: #4e5968;
         }
-        #options-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        .option-btn {
-            background-color: #2a2e3d;
-            border: 2px solid #3e445b;
-            border-radius: 10px;
-            padding: 12px 8px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #dfe4ea;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            min-height: 48px;
-        }
-        .option-btn:active {
-            transform: scale(0.97);
-        }
-        .option-btn.selected {
-            background-color: #2980b9;
-            border-color: #3498db;
-            color: white;
-        }
-        .option-btn.correct-ans {
-            background-color: #2ecc71 !important;
-            border-color: #27ae60 !important;
-            color: white !important;
-        }
-        .option-btn.wrong-ans {
-            background-color: #e74c3c !important;
-            border-color: #c0392b !important;
-            color: white !important;
-        }
-        #submit-btn {
-            width: 100%;
-            background-color: #2ecc71;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 14px;
-            font-size: 15px;
-            font-weight: 900;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2);
-        }
-        #submit-btn:disabled {
-            background-color: #4b4f5d;
-            color: #7f8c8d;
-            cursor: not-allowed;
-        }
+        /* 최종 결과 모달 */
         #result-modal {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 10000;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
             display: none;
-            align-items: center;
             justify-content: center;
+            align-items: center;
+            z-index: 2000;
             padding: 20px;
         }
         #modal-content {
-            background: #1e2029;
-            border: 2px solid #2ecc71;
-            border-radius: 20px;
+            background-color: white;
             width: 100%;
-            max-width: 360px;
+            max-width: 400px;
+            border-radius: 24px;
             padding: 30px 20px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            box-shadow: 0 12px 36px rgba(0,0,0,0.25);
+        }
+        #modal-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1e2022;
+            margin-bottom: 15px;
         }
         #modal-score {
             font-size: 48px;
-            font-weight: 950;
-            color: #2ecc71;
-            margin: 15px 0;
+            font-weight: 800;
+            color: #007aff;
+            margin-bottom: 10px;
         }
-        #modal-msg {
-            font-size: 14px;
-            color: #bdc3c7;
-            margin-bottom: 20px;
+        #modal-desc {
+            font-size: 15px;
+            color: #606873;
+            line-height: 1.5;
+            margin-bottom: 25px;
         }
-        .restart-btn {
-            background-color: #2ecc71;
+        #restart-btn {
+            background-color: #007aff;
             color: white;
             border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 700;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-
-    <div id="header-bar">
-        <span id="quiz-index">문제: 1/10</span>
-        <div id="progress-container">
-            <div id="progress-bar"></div>
-        </div>
-        <span id="quiz-score">점수: 0점</span>
-    </div>
-
-    <div id="map-container">
-        <div id="map"></div>
-        <button id="map-toggle-btn" onclick="toggleMapStyle()">📷 네이버 위성 지도로 전환</button>
-        <div id="loading-overlay">
+    <div id="container">
+        <!-- 로딩 인디케이터 -->
+        <div id="loading-shield">
             <div class="spinner"></div>
-            <h3 style="color:#ffffff; margin-bottom:5px;">지도를 그리는 중입니다...</h3>
-            <p style="color:#7f8c8d; font-size:12px;">네이버 고정밀 실측 데이터 환경을 구성하고 있습니다.</p>
+            <div id="loading-text">지리 데이터를 불러오는 중입니다...</div>
+        </div>
+
+        <!-- 헤더 -->
+        <div id="header">
+            <span id="logo">수도권 지리 퀴즈</span>
+            <span id="score-board">점수: 0점</span>
+        </div>
+
+        <!-- 네이버 지도 -->
+        <div id="map">
+            <button id="map-toggle">위성 지도 전환</button>
+        </div>
+
+        <!-- 퀴즈 패널 -->
+        <div id="quiz-panel">
+            <div id="question-meta">
+                <span id="question-number">문제 1 / 10</span>
+                <div id="progress-container">
+                    <div id="progress-bar"></div>
+                </div>
+            </div>
+            <div id="question-text">문제를 불러오는 중입니다...</div>
+            <div id="options-container"></div>
+            <div id="action-container">
+                <div id="feedback-message"></div>
+                <button id="submit-btn" disabled>정답 제출하기</button>
+            </div>
         </div>
     </div>
 
-    <div id="quiz-control-panel">
-        <div id="question-box">
-            <span id="quiz-type-badge">유형 1: 단일 구역 맞추기</span>
-            <p id="question-text">지도의 표시된 읍·면·동의 이름은 무엇일까요?</p>
-        </div>
-        <div id="options-container"></div>
-        <button id="submit-btn" onclick="handleSubmit()">정답 확인</button>
-    </div>
-
+    <!-- 최종 결과 모달 -->
     <div id="result-modal">
         <div id="modal-content">
-            <h2 style="color:#ffffff;">퀴즈 종료!</h2>
+            <div id="modal-title">🎉 퀴즈가 종료되었습니다!</div>
             <div id="modal-score">0점</div>
-            <p id="modal-msg">수고하셨습니다!</p>
-            <button class="restart-btn" onclick="resetGame()">다시 도전하기</button>
+            <div id="modal-desc">훌륭한 도전이었습니다!</div>
+            <button id="restart-btn" onclick="restartQuiz()">다시 시작하기</button>
         </div>
     </div>
 
     <script>
-        // 고해상도 행정구역 실측 경계선 데이터셋
+        // 고해상도 행정구역 GeoJSON 실측 데이터 (서울 및 수도권 전용)
         const HIGH_DEF_SEOUL_URL = 'https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json';
         const HIGH_DEF_NATION_URL = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/gadm/json/skorea-municipalities-geo.json';
 
-        let map;
-        let naverPolygons = []; // 현재 네이버 지도에 그려진 실측 폴리곤 객체 배열
-        let naverCircle = null;   // 중심부 표식용 붉은 점 마커
-        
-        let seoulGeoJson = null;
-        let nationGeoJson = null;
-        let currentMapStyle = 'normal'; // normal or satellite
+        let map, currentMarker;
+        let geojsonLayer = null;
+        let seoulGeoJSON = null;
+        let nationGeoJSON = null;
+        let isSatellite = false; // 최초 지도는 실측 지형 판독을 위해 위성 지도로 설정 가능 (정상 지도)
 
-        // 전체 14개 문제 데이터 풀
+        // 퀴즈 상태 변수
+        let quizPool = [];
+        let currentIdx = 0;
+        let totalScore = 0;
+        let selectedAnswers = [];
+        let hasSubmitted = false;
+
+        // 원본 문제 뱅크 (12개 문항 중 무작위 10개 추출)
         const originalQuizPool = [
             {
-                type: 'single',
-                districtName: '영등포구',
-                correct: '여의도동 (서울 영등포구)',
-                lat: 37.5255, lng: 126.9245,
-                options: ['여의도동 (서울 영등포구)', '목동 (서울 양천구)', '신도림동 (서울 구로구)', '공덕동 (서울 마포구)'],
-                desc: '네이버 실측 지형 위에 칠해진, 영등포구 동쪽에 둘러싸인 거대한 여의도 섬 지역은 어디일까요?'
+                type: "single",
+                districtName: "영등포구",
+                lat: 37.5255, lng: 126.8965,
+                options: ["영등포구", "마포구", "동작구", "강서구"],
+                correct: "영등포구",
+                desc: "국회의사당과 여의도가 위치한 수도권 중심부의 행정구역입니다."
             },
             {
-                type: 'single',
-                districtName: '연수구',
-                correct: '송도동 (인천 연수구)',
-                lat: 37.3850, lng: 126.6540,
-                options: ['송도동 (인천 연수구)', '구월동 (인천 남동구)', '연수동 (인천 연수구)', '영종동 (인천 중구)'],
-                desc: '인천 앞바다 매립지에 세워진 마천루 가득한 국제 신도시는 어디일까요?'
+                type: "single",
+                districtName: "연수구",
+                lat: 37.4087, lng: 126.6570,
+                options: ["연수구", "남동구", "미추홀구", "중구"],
+                correct: "연수구",
+                desc: "인천광역시의 구역으로, 송도국제도시와 인천신항이 포함된 지역입니다."
             },
             {
-                type: 'single',
-                districtName: '분당구',
-                correct: '정자동 (경기 성남시 분당구)',
-                lat: 37.3650, lng: 127.1120,
-                options: ['정자동 (경기 성남시 분당구)', '야탑동 (경기 성남시 분당구)', '수내동 (경기 성남시 분당구)', '서현동 (경기 성남시 분당구)'],
-                desc: '경부고속도로 우측, 탄천이 정중앙을 가로지르는 성남시 분당구의 중심 상권은 어디일까요?'
+                type: "single",
+                districtName: "분당구",
+                lat: 37.3827, lng: 127.1189,
+                options: ["분당구", "수지구", "기흥구", "정원구"],
+                correct: "분당구",
+                desc: "경기도 성남시 남부에 위치하며, 판교테크노밸리가 핵심인 구역입니다."
             },
             {
-                type: 'single',
-                districtName: '마포구',
-                correct: '상암동 (서울 마포구)',
-                lat: 37.5795, lng: 126.8890,
-                options: ['상암동 (서울 마포구)', '수색동 (서울 은평구)', '망원동 (서울 마포구)', '성산동 (서울 마포구)'],
-                desc: '수색 차량기지 남단이자 한강공원과 인접해 디지털 미디어가 발달한 이곳은 어디일까요?'
+                type: "single",
+                districtName: "마포구",
+                lat: 37.5621, lng: 126.9085,
+                options: ["마포구", "서대문구", "용산구", "은평구"],
+                correct: "마포구",
+                desc: "상암DMC와 홍대거리, 망원시장 등이 자리 잡은 문화의 허브입니다."
             },
             {
-                type: 'single',
-                districtName: '강남구',
-                correct: '압구정동 (서울 강남구)',
-                lat: 37.5300, lng: 127.0310,
-                options: ['압구정동 (서울 강남구)', '신사동 (서울 강남구)', '청담동 (서울 강남구)', '논현동 (서울 강남구)'],
-                desc: '한강 수로가 구부러지는 성수대교 남단의 초고가 아파트 단지 지역은 어디일까요?'
+                type: "single",
+                districtName: "강남구",
+                lat: 37.4959, lng: 127.0664,
+                options: ["강남구", "서초구", "송파구", "성동구"],
+                correct: "강남구",
+                desc: "테헤란로와 코엑스, 압구정동 등 대한민국 트렌드의 중심지입니다."
             },
             {
-                type: 'single',
-                districtName: '동안구',
-                correct: '범계동 (경기 안양시 동안구)',
-                lat: 37.3897, lng: 126.9508,
-                options: ['범계동 (경기 안양시 동안구)', '평촌동 (경기 안양시 동안구)', '호계동 (경기 안양시 동안구)', '비산동 (경기 안양시 동안구)'],
-                desc: '안양 평촌 신도시 중심에 위치하여 롯데백화점과 거대 상권을 이루는 상업 지구는?'
+                type: "single",
+                districtName: "동안구",
+                lat: 37.3916, lng: 126.9602,
+                options: ["동안구", "만안구", "단원구", "상록구"],
+                correct: "동안구",
+                desc: "경기도 안양시의 구역으로, 범계역과 평촌신도시가 위치한 곳입니다."
             },
             {
-                type: 'single',
-                districtName: '일산동구',
-                correct: '장항동 (경기 고양시 일산동구)',
-                lat: 37.6585, lng: 126.7710,
-                options: ['장항동 (경기 고양시 일산동구)', '마두동 (경기 고양시 일산동구)', '대화동 (경기 고양시 일산서구)', '백석동 (경기 고양시 일산동구)'],
-                desc: '일산 중앙에 자리하고 있으며, 아시아 최대 규모의 정교한 인공 호수공원을 품은 동네는?'
+                type: "single",
+                districtName: "일산동구",
+                lat: 37.6622, lng: 126.7972,
+                options: ["일산동구", "일산서구", "덕양구", "파주시"],
+                correct: "일산동구",
+                desc: "경기도 고양시의 행정구역으로, 일산호수공원과 정발산역 등이 중심입니다."
             },
             {
-                type: 'multi',
-                districtName: '마포구',
-                lat: 37.5615, lng: 126.9080,
-                correct: ['상암동', '망원동', '공덕동'],
-                wrong: ['여의도동', '목동', '화곡동', '서교동', '가산동', '수색동', '등촌동'],
-                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [서울 마포구]에 속한 법정동 3개를 고르세요!'
+                type: "multi",
+                districtName: "마포구",
+                lat: 37.5621, lng: 126.9085,
+                options: ["공덕동", "망원동", "연남동", "목동", "신도림동", "화곡동", "상도동", "역삼동", "서초동", "삼성동"],
+                correct: ["공덕동", "망원동", "연남동"],
+                desc: "마포구 소속 법정동(공덕, 망원, 연남) 3개를 모두 올바르게 고르셔야 합니다."
             },
             {
-                type: 'multi',
-                districtName: '연수구',
-                lat: 37.4010, lng: 126.6660,
-                correct: ['송도동', '옥련동', '선학동'],
-                wrong: ['구월동', '주안동', '숭의동', '학익동', '논현동', '만수동', '용현동'],
-                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [인천 연수구]에 속한 법정동 3개를 고르세요!'
+                type: "multi",
+                districtName: "연수구",
+                lat: 37.4087, lng: 126.6570,
+                options: ["송도동", "연수동", "동춘동", "논현동", "구월동", "주안동", "부평동", "계산동", "학익동", "숭의동"],
+                correct: ["송도동", "연수동", "동춘동"],
+                desc: "인천 연수구 소속 법정동(송도, 연수, 동춘) 3개를 골라 주세요."
             },
             {
-                type: 'multi',
-                districtName: '분당구',
-                lat: 37.3825, lng: 127.1189,
-                correct: ['정자동', '판교동', '야탑동'],
-                wrong: ['수정동', '단대동', '구성동', '기흥동', '신갈동', '모란동', '상현동'],
-                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [경기 성남시 분당구]에 속한 법정동 3개를 고르세요!'
+                type: "multi",
+                districtName: "분당구",
+                lat: 37.3827, lng: 127.1189,
+                options: ["삼평동", "서현동", "정자동", "신갈동", "풍덕천동", "상현동", "정릉동", "미아동", "방학동", "성북동"],
+                correct: ["삼평동", "서현동", "정자동"],
+                desc: "성남 분당구 소속 핵심 법정동(삼평, 서현, 정자) 3개를 선택하는 문제입니다."
             },
             {
-                type: 'multi',
-                districtName: '강남구',
-                lat: 37.4965, lng: 127.0630,
-                correct: ['역삼동', '압구정동', '개포동'],
-                wrong: ['잠실동', '방이동', '한남동', '반포동', '서초동', '사당동', '석촌동'],
-                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [서울 강남구]에 속한 법정동 3개를 고르세요!'
+                type: "multi",
+                districtName: "강남구",
+                lat: 37.4959, lng: 127.0664,
+                options: ["역삼동", "삼성동", "압구정동", "잠실동", "신천동", "반포동", "방배동", "한남동", "이태원동", "방이동"],
+                correct: ["역삼동", "삼성동", "압구정동"],
+                desc: "서울 강남구에 소속된 법정동 3가지를 올바르게 골라 주세요."
             },
             {
-                type: 'multi',
-                districtName: '팔달구',
-                lat: 37.2825, lng: 127.0200,
-                correct: ['인계동', '우만동', '행궁동'],
-                wrong: ['매탄동', '영통동', '곡반정동', '세류동', '광교동', '망포동', '정자동'],
-                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [경기 수원시 팔달구]에 속한 법정동 3개를 고르세요!'
-            },
-            {
-                type: 'multi',
-                districtName: '남동구',
-                lat: 37.4470, lng: 126.7315,
-                correct: ['구월동', '간석동', '논현동'],
-                wrong: ['선학동', '연수동', '부평동', '연안동', '송림동', '동인천동', '관교동'],
-                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [인천 남동구]에 속한 법정동 3개를 고르세요!'
-            },
-            {
-                type: 'multi',
-                districtName: '종로구',
-                lat: 37.5830, lng: 126.9840,
-                correct: ['혜화동', '사직동', '인사동'],
-                wrong: ['명동', '회현동', '을지로동', '충무로동', '약수동', '신당동', '신촌동'],
-                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [서울 종로구]에 속한 법정동 3개를 고르세요!'
+                type: "multi",
+                districtName: "강서구",
+                lat: 37.5612, lng: 126.8228,
+                options: ["화곡동", "가양동", "마곡동", "신정동", "신월동", "당산동", "문래동", "목동", "양평동", "대림동"],
+                correct: ["화곡동", "가양동", "마곡동"],
+                desc: "서울 강서구 소속 법정동(화곡, 가양, 마곡)을 선택해 주세요."
             }
         ];
 
-        let activeQuizList = [];
-        let currentIdx = 0;
-        let score = 0;
-        let selectedOptions = [];
+        // 페이지가 완전히 로딩된 후 시작
+        window.addEventListener('DOMContentLoaded', () => {
+            initNaverMap();
+            loadGeoJSONData();
+        });
 
-        function initMap() {
-            // [오류 수정]: MapTypeStyle -> MapTypeId 로 명칭 전면 교정 완료!
-            map = new naver.maps.Map('map', {
-                center: new naver.maps.LatLng(37.53, 126.96),
-                zoom: 11,
-                mapTypeId: naver.maps.MapTypeId.NORMAL,
-                logoControl: false,
-                mapDataControl: false,
-                scaleControl: false,
-                zoomControl: false
-            });
+        // 네이버 지도 v3 초기화
+        function initNaverMap() {
+            try {
+                const mapOptions = {
+                    center: new naver.maps.LatLng(37.5502, 126.982), // 서울 남산 중심
+                    zoom: 11,
+                    mapTypeId: naver.maps.MapTypeId.NORMAL,
+                    zoomControl: true,
+                    zoomControlOptions: {
+                        position: naver.maps.Position.RIGHT_CENTER
+                    },
+                    logoControl: false,
+                    scaleControl: true,
+                    mapDataControl: false
+                };
 
-            // 데이터 취득
+                map = new naver.maps.Map('map', mapOptions);
+
+                // 지도 유형(위성/일반) 전환 토글 설정
+                const toggleBtn = document.getElementById('map-toggle');
+                toggleBtn.addEventListener('click', () => {
+                    isSatellite = !isSatellite;
+                    if (isSatellite) {
+                        map.setMapTypeId(naver.maps.MapTypeId.SATELLITE);
+                        toggleBtn.textContent = "일반 지도 전환";
+                    } else {
+                        map.setMapTypeId(naver.maps.MapTypeId.NORMAL);
+                        toggleBtn.textContent = "위성 지도 전환";
+                    }
+                });
+
+                // 문제 지정용 붉은색 타깃 마커 인스턴스 미리 생성
+                currentMarker = new naver.maps.Marker({
+                    position: new naver.maps.LatLng(37.5502, 126.982),
+                    map: map,
+                    icon: {
+                        content: `<div style="background-color: #cf222e; width: 16px; height: 16px; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+                        anchor: new naver.maps.Point(8, 8)
+                    },
+                    visible: false
+                });
+
+            } catch (e) {
+                alert("네이버 지도 API 라이브러리를 정상적으로 로딩하지 못했습니다. 도메인 설정과 Client ID를 다시 확인해 주세요.");
+                console.error(e);
+            }
+        }
+
+        // 서울 및 경기도/인천 경계 GeoJSON 로딩
+        function loadGeoJSONData() {
             Promise.all([
-                fetch(HIGH_DEF_SEOUL_URL).then(res => res.json()),
-                fetch(HIGH_DEF_NATION_URL).then(res => res.json())
-            ]).then(([seoulData, nationData]) => {
-                seoulGeoJson = seoulData;
-                nationGeoJson = nationData;
-                
-                document.getElementById('loading-overlay').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('loading-overlay').style.display = 'none';
-                }, 500);
-                startGame();
+                fetch(HIGH_DEF_SEOUL_URL).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+                fetch(HIGH_DEF_NATION_URL).then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            ]).then(([seoul, nation]) => {
+                seoulGeoJSON = seoul;
+                nationGeoJSON = nation;
+                document.getElementById('loading-shield').style.display = 'none';
+                startNewGame();
             }).catch(err => {
-                console.error(err);
-                alert('행정구역 데이터 수신 중 오류가 발생했습니다.');
+                console.error("GeoJSON 데이터 다운로드 오류:", err);
+                document.getElementById('loading-text').innerHTML = 
+                    `<span style="color:#cf222e;">필요한 경계 데이터를 다운로드하지 못했습니다. 인터넷망을 확인해 주세요.</span>`;
             });
         }
 
-        function toggleMapStyle() {
-            const btn = document.getElementById('map-toggle-btn');
-            if (currentMapStyle === 'normal') {
-                map.setMapTypeId(naver.maps.MapTypeId.SATELLITE);
-                btn.innerText = '🗺️ 네이버 일반 지도로 전환';
-                currentMapStyle = 'satellite';
-            } else {
-                map.setMapTypeId(naver.maps.MapTypeId.NORMAL);
-                btn.innerText = '📷 네이버 위성 지도로 전환';
-                currentMapStyle = 'normal';
-            }
-        }
-
-        function startGame() {
-            const shuffled = [...originalQuizPool].sort(() => 0.5 - Math.random());
-            activeQuizList = shuffled.slice(0, 10);
+        // 게임 초기화 및 무작위 10문항 조합
+        function startNewGame() {
+            totalScore = 0;
             currentIdx = 0;
-            score = 0;
-            loadQuestion();
+            document.getElementById('score-board').textContent = `점수: 0점`;
+            
+            // 문제 은행 무작위 섞기 후 10문제 추출
+            quizPool = [...originalQuizPool].sort(() => Math.random() - 0.5).slice(0, 10);
+            document.getElementById('result-modal').style.display = 'none';
+            
+            loadQuestion(currentIdx);
         }
 
-        function loadQuestion() {
-            if (currentIdx >= 10) {
-                showFinalResult();
-                return;
-            }
-
-            const data = activeQuizList[currentIdx];
-            selectedOptions = [];
-
-            document.getElementById('quiz-index').innerText = `문제: ${currentIdx + 1}/10`;
-            document.getElementById('quiz-score').innerText = `점수: ${score}점`;
-            document.getElementById('progress-bar').style.width = `${(currentIdx + 1) * 10}%`;
-
-            const badge = document.getElementById('quiz-type-badge');
-            const qText = document.getElementById('question-text');
-            const optionsContainer = document.getElementById('options-container');
-            const submitBtn = document.getElementById('submit-btn');
-
-            optionsContainer.innerHTML = '';
-            submitBtn.disabled = false;
-            submitBtn.innerText = '정답 확인';
-
-            drawNaverDistrict(data);
-
-            if (data.type === 'single') {
-                badge.innerText = '유형 1: 단일 구역 맞추기';
-                badge.style.backgroundColor = '#2ecc71';
-                qText.innerText = data.desc;
-
-                const list = [...data.options].sort(() => 0.5 - Math.random());
-                list.forEach(opt => {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-btn';
-                    btn.innerText = opt;
-                    btn.onclick = () => selectSingleOption(btn, opt);
-                    optionsContainer.appendChild(btn);
-                });
-                submitBtn.style.display = 'none';
+        // 문제 로딩 및 지도 갱신
+        function loadQuestion(idx) {
+            hasSubmitted = false;
+            selectedAnswers = [];
+            
+            const q = quizPool[idx];
+            
+            // UI 진행 상태 표시 업데이트
+            document.getElementById('question-number').textContent = `문제 ${idx + 1} / 10`;
+            document.getElementById('progress-bar').style.width = `${(idx + 1) * 10}%`;
+            
+            // 텍스트 정의
+            if (q.type === 'single') {
+                document.getElementById('question-text').textContent = `[단일선택] 지도에 하이라이트된 주황색 영역과 빨간 점이 가리키는 "구"는 어디일까요?`;
             } else {
-                badge.innerText = '유형 2: 구 소속 법정동 찾기';
-                badge.style.backgroundColor = '#e67e22';
-                qText.innerText = data.desc;
-
-                const randWrongs = [...data.wrong].sort(() => 0.5 - Math.random()).slice(0, 7);
-                const combined = [...data.correct, ...randWrongs].sort(() => 0.5 - Math.random());
-
-                combined.forEach(opt => {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-btn';
-                    btn.innerText = opt;
-                    btn.onclick = () => toggleMultiOption(btn, opt);
-                    optionsContainer.appendChild(btn);
-                });
-                submitBtn.style.display = 'block';
-                submitBtn.disabled = true;
+                document.getElementById('question-text').textContent = `[다중선택] 지도에 표시된 "${q.districtName}"에 소속된 법정동 3가지를 모두 골라주세요.`;
             }
-        }
-
-        // --- 네이버 지도 API 전용 고해상도 행정구역 렌더링 함수 ---
-        function drawNaverDistrict(data) {
-            naverPolygons.forEach(p => p.setMap(null));
-            naverPolygons = [];
-
-            if (naverCircle) {
-                naverCircle.setMap(null);
-                naverCircle = null;
-            }
-
-            const targetName = data.districtName.replace(/\s+/g, '');
-            let matchedGeoJson = seoulGeoJson;
-
-            if (data.districtName !== '영등포구' && data.districtName !== '마포구' && data.districtName !== '강남구' && data.districtName !== '종로구') {
-                matchedGeoJson = nationGeoJson;
-            }
-
-            if (matchedGeoJson) {
-                matchedGeoJson.features.forEach(feature => {
-                    const prop = feature.properties;
-                    const geoName = (prop.name || prop.NAME_2 || prop.NL_NAME_2 || "").replace(/\s+/g, '');
-                    
-                    if (geoName.includes(targetName)) {
-                        const geom = feature.geometry;
-                        if (geom.type === "Polygon") {
-                            drawSinglePolygon(geom.coordinates);
-                        } else if (geom.type === "MultiPolygon") {
-                            geom.coordinates.forEach(coords => {
-                                drawSinglePolygon(coords);
-                            });
-                        }
-                    }
-                });
-            }
-
-            map.morph(new naver.maps.LatLng(data.lat, data.lng), data.type === 'single' ? 13 : 11.5);
-
-            naverCircle = new naver.maps.Circle({
-                map: map,
-                center: new naver.maps.LatLng(data.lat, data.lng),
-                radius: data.type === 'single' ? 250 : 150,
-                fillColor: '#e74c3c',
-                fillOpacity: 0.9,
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-                strokeOpacity: 0.8
-            });
-        }
-
-        function drawSinglePolygon(coordinates) {
-            const paths = [];
-            coordinates[0].forEach(coord => {
-                paths.push(new naver.maps.LatLng(coord[1], coord[0]));
-            });
-
-            const poly = new naver.maps.Polygon({
-                map: map,
-                paths: paths,
-                fillColor: '#f1c40f',
-                fillOpacity: 0.35,      
-                strokeColor: '#f1c40f',    
-                strokeWeight: 4,
-                strokeOpacity: 0.95
-            });
-            naverPolygons.push(poly);
-        }
-
-        function selectSingleOption(btn, selected) {
-            const data = activeQuizList[currentIdx];
-            const allBtns = document.querySelectorAll('.option-btn');
-
-            allBtns.forEach(b => b.removeAttribute('onclick'));
-
-            if (selected === data.correct) {
-                btn.classList.add('correct-ans');
-                score += 10;
-            } else {
-                btn.classList.add('wrong-ans');
-                allBtns.forEach(b => {
-                    if (b.innerText === data.correct) {
-                        b.classList.add('correct-ans');
-                    }
-                });
-            }
-
-            document.getElementById('quiz-score').innerText = `점수: ${score}점`;
-
-            setTimeout(() => {
-                currentIdx++;
-                loadQuestion();
-            }, 1800);
-        }
-
-        function toggleMultiOption(btn, option) {
-            const index = selectedOptions.indexOf(option);
-            if (index > -1) {
-                selectedOptions.splice(index, 1);
-                btn.classList.remove('selected');
-            } else {
-                if (selectedOptions.length >= 3) {
-                    alert('최대 3개 동까지만 선택 가능합니다!');
-                    return;
-                }
-                selectedOptions.push(option);
-                btn.classList.add('selected');
-            }
-
+            
+            // 제출 버튼 리셋
             const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = (selectedOptions.length !== 3);
-        }
-
-        function handleSubmit() {
-            const data = activeQuizList[currentIdx];
-            const allBtns = document.querySelectorAll('.option-btn');
-            const submitBtn = document.getElementById('submit-btn');
-
             submitBtn.disabled = true;
-            allBtns.forEach(b => b.removeAttribute('onclick'));
+            submitBtn.textContent = q.type === 'single' ? "선택 즉시 정답 확인" : "정답 제출하기 (0 / 3 선택됨)";
+            document.getElementById('feedback-message').textContent = "";
+            document.getElementById('feedback-message').style.color = "#4e5968";
 
+            // 옵션 버튼 렌더링
+            const optionsBox = document.getElementById('options-container');
+            optionsBox.innerHTML = "";
+            
+            const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
+            shuffledOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => handleOptionClick(btn, opt, q);
+                optionsBox.appendChild(btn);
+            });
+
+            // 지도 카메라를 문제 좌표로 비행(이동) 및 마커 표시
+            const targetLatLng = new naver.maps.LatLng(q.lat, q.lng);
+            map.panTo(targetLatLng);
+            map.setZoom(12);
+            
+            currentMarker.setPosition(targetLatLng);
+            currentMarker.setVisible(true);
+
+            // 해당 구역의 100% 정합 경계선 그리기
+            drawDistrictGeometry(q.districtName);
+        }
+
+        // 실측 경계선 매핑 드로잉 로직
+        function drawDistrictGeometry(targetName) {
+            if (geojsonLayer) {
+                geojsonLayer.setMap(null);
+                geojsonLayer = null;
+            }
+
+            // 서울 데이터셋 혹은 전국 데이터셋에서 정밀 도형 필터링
+            let matchedFeature = null;
+            
+            // 1순위: 서울시
+            if (seoulGeoJSON) {
+                matchedFeature = seoulGeoJSON.features.find(f => {
+                    const name = f.properties.name || f.properties.NAME_2 || "";
+                    return name.replace(/\s+/g, '') === targetName;
+                });
+            }
+            
+            // 2순위: 전국 (경기도/인천)
+            if (!matchedFeature && nationGeoJSON) {
+                matchedFeature = nationGeoJSON.features.find(f => {
+                    const name = f.properties.name || f.properties.NAME_2 || "";
+                    return name.replace(/\s+/g, '') === targetName;
+                });
+            }
+
+            // 정확한 경계 폴리곤 오버레이 렌더링
+            if (matchedFeature) {
+                geojsonLayer = new naver.maps.Data();
+                geojsonLayer.addGeoJson({
+                    type: "FeatureCollection",
+                    features: [matchedFeature]
+                });
+                
+                geojsonLayer.setStyle({
+                    fillColor: '#ff9500', // 구역은 눈에 띄는 주황색으로 채움
+                    fillOpacity: 0.25,
+                    strokeColor: '#ff9500',
+                    strokeWeight: 3,
+                    strokeOpacity: 0.8
+                });
+                
+                geojsonLayer.setMap(map);
+            }
+        }
+
+        // 옵션 클릭 제어
+        function handleOptionClick(btn, val, q) {
+            if (hasSubmitted) return;
+
+            if (q.type === 'single') {
+                // 단일 선택의 경우 즉시 단판 판정
+                hasSubmitted = true;
+                selectedAnswers = [val];
+                evaluateSingleChoice(btn, val, q);
+            } else {
+                // 다중 선택의 경우 (최대 3개 고르기)
+                if (selectedAnswers.includes(val)) {
+                    selectedAnswers = selectedAnswers.filter(v => v !== val);
+                    btn.classList.remove('selected');
+                } else {
+                    if (selectedAnswers.length >= 3) {
+                        alert("최대 3개 동까지만 선택할 수 있습니다.");
+                        return;
+                    }
+                    selectedAnswers.push(val);
+                    btn.classList.add('selected');
+                }
+                
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.textContent = `정답 제출하기 (${selectedAnswers.length} / 3 선택됨)`;
+                submitBtn.disabled = (selectedAnswers.length !== 3);
+                
+                submitBtn.onclick = () => {
+                    if (!hasSubmitted && selectedAnswers.length === 3) {
+                        hasSubmitted = true;
+                        evaluateMultiChoice(q);
+                    }
+                };
+            }
+        }
+
+        // 단일 선택 문제 채점
+        function evaluateSingleChoice(clickedBtn, selectedVal, q) {
+            const isCorrect = (selectedVal === q.correct);
+            const feedback = document.getElementById('feedback-message');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (isCorrect) {
+                clickedBtn.classList.add('correct');
+                totalScore += 10;
+                feedback.textContent = `정답입니다! 🎉 (+10점)`;
+                feedback.style.color = "#2da44e";
+            } else {
+                clickedBtn.classList.add('wrong');
+                // 실제 정답을 표시해 줍니다.
+                const btns = document.querySelectorAll('.option-btn');
+                btns.forEach(b => {
+                    if (b.textContent === q.correct) b.classList.add('correct');
+                });
+                feedback.textContent = `오답입니다. 정답은 [${q.correct}]입니다.`;
+                feedback.style.color = "#cf222e";
+            }
+
+            document.getElementById('score-board').textContent = `점수: ${totalScore}점`;
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = currentIdx < 9 ? "다음 문제 풀기 ➔" : "최종 결과 확인 ➔";
+            submitBtn.onclick = nextQuestion;
+        }
+
+        // 다중 선택 문제 채점 (+10 / +6 / +3 가중 점수제)
+        function evaluateMultiChoice(q) {
+            const feedback = document.getElementById('feedback-message');
+            const submitBtn = document.getElementById('submit-btn');
+            
             let matchedCount = 0;
+            const btns = document.querySelectorAll('.option-btn');
 
-            allBtns.forEach(b => {
-                const optText = b.innerText;
-                const isSelected = selectedOptions.includes(optText);
-                const isCorrect = data.correct.includes(optText);
+            btns.forEach(b => {
+                const val = b.textContent;
+                const isCollectItem = q.correct.includes(val);
+                const isSelected = selectedAnswers.includes(val);
 
-                if (isCorrect) {
-                    b.classList.add('correct-ans');
+                if (isCollectItem) {
+                    b.classList.add('correct'); // 정답인 동은 녹색 하이라이트
                     if (isSelected) matchedCount++;
-                } else if (isSelected && !isCorrect) {
-                    b.classList.add('wrong-ans');
+                } else if (isSelected && !isCollectItem) {
+                    b.classList.add('wrong'); // 선택했으나 정답이 아닌 동은 적색 표시
                 }
             });
 
+            // 정답 가짓수에 따른 차등 점수 책정
             let earned = 0;
-            if (matchedCount === 3) earned = 10;
-            else if (matchedCount === 2) earned = 6;
-            else if (matchedCount === 1) earned = 3;
+            if (matchedCount === 3) { earned = 10; }
+            else if (matchedCount === 2) { earned = 6; }
+            else if (matchedCount === 1) { earned = 3; }
 
-            score += earned;
-            document.getElementById('quiz-score').innerText = `점수: ${score}점`;
+            totalScore += earned;
+            document.getElementById('score-board').textContent = `점수: ${totalScore}점`;
 
-            setTimeout(() => {
-                currentIdx++;
-                loadQuestion();
-            }, 2300);
+            if (earned === 10) {
+                feedback.textContent = `퍼펙트! 3개 구역을 모두 맞췄습니다! 🎉 (+10점)`;
+                feedback.style.color = "#2da44e";
+            } else if (earned > 0) {
+                feedback.textContent = `${matchedCount}개 구역을 맞췄습니다. (+${earned}점)`;
+                feedback.style.color = "#ff9500";
+            } else {
+                feedback.textContent = `모두 오답입니다. 정답은 [${q.correct.join(', ')}]입니다.`;
+                feedback.style.color = "#cf222e";
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = currentIdx < 9 ? "다음 문제 풀기 ➔" : "최종 결과 확인 ➔";
+            submitBtn.onclick = nextQuestion;
         }
 
-        function showFinalResult() {
+        // 다음 단계 진행 제어
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx < 10) {
+                loadQuestion(currentIdx);
+            } else {
+                showFinalResults();
+            }
+        }
+
+        // 결과 모달 창 전시
+        function showFinalResults() {
             const modal = document.getElementById('result-modal');
-            const modalScore = document.getElementById('modal-score');
-            modalScore.innerText = `${score}점 / 100점`;
+            const scoreText = document.getElementById('modal-score');
+            const descText = document.getElementById('modal-desc');
+
+            scoreText.textContent = `${totalScore}점`;
+
+            if (totalScore >= 90) {
+                descText.textContent = "🏅 대단합니다! 당신은 진정한 수도권 지리 1% 마스터입니다.";
+            } else if (totalScore >= 70) {
+                descText.textContent = "👍 훌륭합니다! 웬만한 지역 지리는 훤히 꿰뚫고 계시군요.";
+            } else if (totalScore >= 40) {
+                descText.textContent = "😀 분발해 봅시다! 지도를 보고 동네 위치를 좀 더 파악해 보세요.";
+            } else {
+                descText.textContent = "🗺️ 아쉽군요! 지도를 보면서 다양한 구와 법정동의 위치를 복습해 보세요.";
+            }
+
             modal.style.display = 'flex';
         }
 
-        function resetGame() {
-            document.getElementById('result-modal').style.display = 'none';
-            startGame();
+        // 게임 재시작
+        function restartQuiz() {
+            startNewGame();
         }
-
-        window.onload = function() {
-            if (typeof naver !== 'undefined') {
-                initMap();
-            } else {
-                alert("네이버 지도 API 연동에 장애가 발생했습니다. Client ID 및 콘솔 도메인 등록을 재차 점검해 주세요!");
-            }
-        };
     </script>
 </body>
 </html>
