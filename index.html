@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>수도권 지리 마스터 (100% 실제 실측 경계 일치 버전)</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>수도권 지리 마스터 (NAVER 지도 API 공식 실측 버전)</title>
+    
+    <!-- 네이버 지도 API v3 및 지오코더 서브모듈 호출 (Client ID 연동 완료) -->
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=kizfnbhv3q&submodules=geocoder"></script>
+    
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         body, html {
             width: 100%;
@@ -65,7 +67,7 @@
             z-index: 1001;
             background-color: rgba(17, 18, 22, 0.85);
             color: white;
-            border: 1px solid #f1c40f;
+            border: 1px solid #2ecc71;
             padding: 8px 12px;
             font-size: 12px;
             font-weight: bold;
@@ -89,7 +91,7 @@
             width: 50px;
             height: 50px;
             border: 5px solid #2c3e50;
-            border-top: 5px solid #f1c40f;
+            border-top: 5px solid #2ecc71;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 15px;
@@ -114,8 +116,8 @@
         }
         #quiz-type-badge {
             display: inline-block;
-            background-color: #f1c40f;
-            color: black;
+            background-color: #2ecc71;
+            color: white;
             font-size: 11px;
             padding: 3px 8px;
             border-radius: 12px;
@@ -149,6 +151,9 @@
             text-align: center;
             min-height: 48px;
         }
+        .option-btn:active {
+            transform: scale(0.97);
+        }
         .option-btn.selected {
             background-color: #2980b9;
             border-color: #3498db;
@@ -166,15 +171,15 @@
         }
         #submit-btn {
             width: 100%;
-            background-color: #f1c40f;
-            color: #111216;
+            background-color: #2ecc71;
+            color: white;
             border: none;
             border-radius: 10px;
             padding: 14px;
             font-size: 15px;
             font-weight: 900;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(241, 196, 15, 0.2);
+            box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2);
         }
         #submit-btn:disabled {
             background-color: #4b4f5d;
@@ -193,7 +198,7 @@
         }
         #modal-content {
             background: #1e2029;
-            border: 2px solid #f1c40f;
+            border: 2px solid #2ecc71;
             border-radius: 20px;
             width: 100%;
             max-width: 360px;
@@ -204,7 +209,7 @@
         #modal-score {
             font-size: 48px;
             font-weight: 950;
-            color: #f1c40f;
+            color: #2ecc71;
             margin: 15px 0;
         }
         #modal-msg {
@@ -235,11 +240,11 @@
 
     <div id="map-container">
         <div id="map"></div>
-        <button id="map-toggle-btn" onclick="toggleMapStyle()">🗺️ 일반 지형지도로 전환</button>
+        <button id="map-toggle-btn" onclick="toggleMapStyle()">📷 네이버 위성 지도로 전환</button>
         <div id="loading-overlay">
             <div class="spinner"></div>
             <h3 style="color:#ffffff; margin-bottom:5px;">지도를 그리는 중입니다...</h3>
-            <p style="color:#7f8c8d; font-size:12px;">고해상도 행정 경계를 동기화하고 있습니다.</p>
+            <p style="color:#7f8c8d; font-size:12px;">네이버 고정밀 실측 데이터 환경을 구성하고 있습니다.</p>
         </div>
     </div>
 
@@ -256,28 +261,25 @@
         <div id="modal-content">
             <h2 style="color:#ffffff;">퀴즈 종료!</h2>
             <div id="modal-score">0점</div>
-            <p id="modal-msg">지리 실력이 아주 대단하십니다!</p>
+            <p id="modal-msg">수고하셨습니다!</p>
             <button class="restart-btn" onclick="resetGame()">다시 도전하기</button>
         </div>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- [핵심 변경] 서울시 및 경기도 고정밀(HD) 실측 구 경계선 파일로 교체 ---
+        // 고해상도 행정구역 실측 경계선 데이터셋
         const HIGH_DEF_SEOUL_URL = 'https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json';
         const HIGH_DEF_NATION_URL = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/gadm/json/skorea-municipalities-geo.json';
 
         let map;
-        let geojsonLayer = null;
-        let activeMarker = null;
+        let naverPolygons = []; // 현재 네이버 지도에 그려진 실측 폴리곤 객체 배열
+        let naverCircle = null;   // 중심부 표식용 붉은 점 마커
+        
         let seoulGeoJson = null;
         let nationGeoJson = null;
+        let currentMapStyle = 'normal'; // normal or satellite
 
-        let satelliteLayer;
-        let terrainLayer;
-        let currentMapStyle = 'satellite';
-
+        // 전체 14개 문제 데이터 풀
         const originalQuizPool = [
             {
                 type: 'single',
@@ -285,7 +287,7 @@
                 correct: '여의도동 (서울 영등포구)',
                 lat: 37.5255, lng: 126.9245,
                 options: ['여의도동 (서울 영등포구)', '목동 (서울 양천구)', '신도림동 (서울 구로구)', '공덕동 (서울 마포구)'],
-                desc: '노란 경계로 표시된 한강 안쪽의 금융 허브 섬 지역은 어디일까요?'
+                desc: '네이버 실측 지형 위에 칠해진, 영등포구 동쪽에 둘러싸인 거대한 여의도 섬 지역은 어디일까요?'
             },
             {
                 type: 'single',
@@ -301,7 +303,7 @@
                 correct: '정자동 (경기 성남시 분당구)',
                 lat: 37.3650, lng: 127.1120,
                 options: ['정자동 (경기 성남시 분당구)', '야탑동 (경기 성남시 분당구)', '수내동 (경기 성남시 분당구)', '서현동 (경기 성남시 분당구)'],
-                desc: '경부고속도로 동쪽, 탄천이 정중앙을 가로지르는 성남시 분당구의 핵심 생활권은 어디일까요?'
+                desc: '경부고속도로 우측, 탄천이 정중앙을 가로지르는 성남시 분당구의 중심 상권은 어디일까요?'
             },
             {
                 type: 'single',
@@ -309,7 +311,7 @@
                 correct: '상암동 (서울 마포구)',
                 lat: 37.5795, lng: 126.8890,
                 options: ['상암동 (서울 마포구)', '수색동 (서울 은평구)', '망원동 (서울 마포구)', '성산동 (서울 마포구)'],
-                desc: '난지도 쓰레기 매립지에서 생태 공원과 첨단 IT 단지로 탈바꿈한 이곳은 어디일까요?'
+                desc: '수색 차량기지 남단이자 한강공원과 인접해 디지털 미디어가 발달한 이곳은 어디일까요?'
             },
             {
                 type: 'single',
@@ -317,7 +319,7 @@
                 correct: '압구정동 (서울 강남구)',
                 lat: 37.5300, lng: 127.0310,
                 options: ['압구정동 (서울 강남구)', '신사동 (서울 강남구)', '청담동 (서울 강남구)', '논현동 (서울 강남구)'],
-                desc: '한강 변에 맞닿아 있는 강남구 북단 최요지의 부촌 아파트 단지 지역은 어디일까요?'
+                desc: '한강 수로가 구부러지는 성수대교 남단의 초고가 아파트 단지 지역은 어디일까요?'
             },
             {
                 type: 'single',
@@ -333,7 +335,7 @@
                 correct: '장항동 (경기 고양시 일산동구)',
                 lat: 37.6585, lng: 126.7710,
                 options: ['장항동 (경기 고양시 일산동구)', '마두동 (경기 고양시 일산동구)', '대화동 (경기 고양시 일산서구)', '백석동 (경기 고양시 일산동구)'],
-                desc: '지하철 정발산역 역세권에 걸쳐있으며 동양 최대의 인공호수공원을 품고 있는 일산의 동네는?'
+                desc: '일산 중앙에 자리하고 있으며, 아시아 최대 규모의 정교한 인공 호수공원을 품은 동네는?'
             },
             {
                 type: 'multi',
@@ -341,7 +343,7 @@
                 lat: 37.5615, lng: 126.9080,
                 correct: ['상암동', '망원동', '공덕동'],
                 wrong: ['여의도동', '목동', '화곡동', '서교동', '가산동', '수색동', '등촌동'],
-                desc: '실측 노란색 영역으로 표시된 [서울 마포구]에 소속된 법정동 3개를 고르세요!'
+                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [서울 마포구]에 속한 법정동 3개를 고르세요!'
             },
             {
                 type: 'multi',
@@ -349,7 +351,7 @@
                 lat: 37.4010, lng: 126.6660,
                 correct: ['송도동', '옥련동', '선학동'],
                 wrong: ['구월동', '주안동', '숭의동', '학익동', '논현동', '만수동', '용현동'],
-                desc: '실측 노란색 영역으로 표시된 [인천 연수구]에 소속된 법정동 3개를 고르세요!'
+                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [인천 연수구]에 속한 법정동 3개를 고르세요!'
             },
             {
                 type: 'multi',
@@ -357,7 +359,7 @@
                 lat: 37.3825, lng: 127.1189,
                 correct: ['정자동', '판교동', '야탑동'],
                 wrong: ['수정동', '단대동', '구성동', '기흥동', '신갈동', '모란동', '상현동'],
-                desc: '실측 노란색 영역으로 표시된 [경기 성남시 분당구]에 소속된 법정동 3개를 고르세요!'
+                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [경기 성남시 분당구]에 속한 법정동 3개를 고르세요!'
             },
             {
                 type: 'multi',
@@ -365,7 +367,7 @@
                 lat: 37.4965, lng: 127.0630,
                 correct: ['역삼동', '압구정동', '개포동'],
                 wrong: ['잠실동', '방이동', '한남동', '반포동', '서초동', '사당동', '석촌동'],
-                desc: '실측 노란색 영역으로 표시된 [서울 강남구]에 소속된 법정동 3개를 고르세요!'
+                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [서울 강남구]에 속한 법정동 3개를 고르세요!'
             },
             {
                 type: 'multi',
@@ -373,7 +375,7 @@
                 lat: 37.2825, lng: 127.0200,
                 correct: ['인계동', '우만동', '행궁동'],
                 wrong: ['매탄동', '영통동', '곡반정동', '세류동', '광교동', '망포동', '정자동'],
-                desc: '실측 노란색 영역으로 표시된 [경기 수원시 팔달구]에 소속된 법정동 3개를 고르세요!'
+                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [경기 수원시 팔달구]에 속한 법정동 3개를 고르세요!'
             },
             {
                 type: 'multi',
@@ -381,7 +383,7 @@
                 lat: 37.4470, lng: 126.7315,
                 correct: ['구월동', '간석동', '논현동'],
                 wrong: ['선학동', '연수동', '부평동', '연안동', '송림동', '동인천동', '관교동'],
-                desc: '실측 노란색 영역으로 표시된 [인천 남동구]에 소속된 법정동 3개를 고르세요!'
+                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [인천 남동구]에 속한 법정동 3개를 고르세요!'
             },
             {
                 type: 'multi',
@@ -389,7 +391,7 @@
                 lat: 37.5830, lng: 126.9840,
                 correct: ['혜화동', '사직동', '인사동'],
                 wrong: ['명동', '회현동', '을지로동', '충무로동', '약수동', '신당동', '신촌동'],
-                desc: '실측 노란색 영역으로 표시된 [서울 종로구]에 소속된 법정동 3개를 고르세요!'
+                desc: '네이버 지도상 노란색으로 정밀하게 칠해진 [서울 종로구]에 속한 법정동 3개를 고르세요!'
             }
         ];
 
@@ -399,24 +401,18 @@
         let selectedOptions = [];
 
         function initMap() {
-            // 1. 위성 지도
-            satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 16, minZoom: 9
-            });
-
-            // 2. 무라벨 텍스트 지도
-            terrainLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-                subdomains: 'abcd', maxZoom: 16, minZoom: 9
-            });
-
-            map = L.map('map', {
-                center: [37.53, 126.96],
+            // 네이버 지도 초기화 설정
+            map = new naver.maps.Map('map', {
+                center: new naver.maps.LatLng(37.53, 126.96),
                 zoom: 11,
-                zoomControl: false,
-                layers: [satelliteLayer]
+                mapTypeId: naver.maps.MapTypeStyle.NORMAL,
+                logoControl: false,
+                mapDataControl: false,
+                scaleControl: false,
+                zoomControl: false
             });
 
-            // 병렬로 서울 및 전국 고정밀 경계 파일 두 가지 모두 가져와 정확도 100% 대응
+            // 데이터 취득
             Promise.all([
                 fetch(HIGH_DEF_SEOUL_URL).then(res => res.json()),
                 fetch(HIGH_DEF_NATION_URL).then(res => res.json())
@@ -430,23 +426,21 @@
                 }, 500);
                 startGame();
             }).catch(err => {
-                console.error('고정밀 경계 데이터 패치 실패:', err);
-                alert('경계 데이터를 불러오지 못했습니다. 새로고침 해주세요.');
+                console.error(err);
+                alert('행정구역 데이터 수신 중 오류가 발생했습니다.');
             });
         }
 
         function toggleMapStyle() {
             const btn = document.getElementById('map-toggle-btn');
-            if (currentMapStyle === 'satellite') {
-                map.removeLayer(satelliteLayer);
-                map.addLayer(terrainLayer);
-                btn.innerText = '📷 실시간 위성 지도로 전환';
-                currentMapStyle = 'terrain';
-            } else {
-                map.removeLayer(terrainLayer);
-                map.addLayer(satelliteLayer);
-                btn.innerText = '🗺️ 일반 지형지도로 전환';
+            if (currentMapStyle === 'normal') {
+                map.setMapTypeId(naver.maps.MapTypeId.SATELLITE);
+                btn.innerText = '🗺️ 네이버 일반 지도로 전환';
                 currentMapStyle = 'satellite';
+            } else {
+                map.setMapTypeId(naver.maps.MapTypeId.NORMAL);
+                btn.innerText = '📷 네이버 위성 지도로 전환';
+                currentMapStyle = 'normal';
             }
         }
 
@@ -480,12 +474,11 @@
             submitBtn.disabled = false;
             submitBtn.innerText = '정답 확인';
 
-            drawDistrictGeometry(data);
+            drawNaverDistrict(data);
 
             if (data.type === 'single') {
                 badge.innerText = '유형 1: 단일 구역 맞추기';
-                badge.style.backgroundColor = '#f1c40f';
-                badge.style.color = '#111216';
+                badge.style.backgroundColor = '#2ecc71';
                 qText.innerText = data.desc;
 
                 const list = [...data.options].sort(() => 0.5 - Math.random());
@@ -500,7 +493,6 @@
             } else {
                 badge.innerText = '유형 2: 구 소속 법정동 찾기';
                 badge.style.backgroundColor = '#e67e22';
-                badge.style.color = 'white';
                 qText.innerText = data.desc;
 
                 const randWrongs = [...data.wrong].sort(() => 0.5 - Math.random()).slice(0, 7);
@@ -518,65 +510,76 @@
             }
         }
 
-        // --- [가장 중요한 수정]: 실제 한강과 해안선에 딱 맞게 정밀 필터링 그리기 ---
-        function drawDistrictGeometry(data) {
-            if (geojsonLayer) {
-                map.removeLayer(geojsonLayer);
-                geojsonLayer = null;
-            }
-            if (activeMarker) {
-                map.removeLayer(activeMarker);
-                activeMarker = null;
+        // --- 네이버 지도 API 전용 고해상도 행정구역 렌더링 함수 ---
+        function drawNaverDistrict(data) {
+            // 1. 기존 폴리곤 및 원 레이어 완전 초기화
+            naverPolygons.forEach(p => p.setMap(null));
+            naverPolygons = [];
+
+            if (naverCircle) {
+                naverCircle.setMap(null);
+                naverCircle = null;
             }
 
             const targetName = data.districtName.replace(/\s+/g, '');
-            let matchedGeoJson = null;
+            let matchedGeoJson = seoulGeoJson;
 
-            // 1단계: 서울 구역인지 검사하여 더 높은 정밀도의 서울 전용 데이터 적용
-            if (seoulGeoJson) {
-                const found = seoulGeoJson.features.some(f => {
-                    const name = (f.properties.name || "").replace(/\s+/g, '');
-                    return name.includes(targetName);
-                });
-                if (found) {
-                    matchedGeoJson = seoulGeoJson;
-                }
-            }
-
-            // 2단계: 서울이 아니면(인천/경기) 전국 실측 고해상도 데이터에서 검색
-            if (!matchedGeoJson && nationGeoJson) {
+            // 서울 이외 지역 구역은 전국 데이터 할당
+            if (data.districtName !== '영등포구' && data.districtName !== '마포구' && data.districtName !== '강남구' && data.districtName !== '종로구') {
                 matchedGeoJson = nationGeoJson;
             }
 
-            // 고정밀 렌더링 시작
             if (matchedGeoJson) {
-                geojsonLayer = L.geoJSON(matchedGeoJson, {
-                    filter: function(feature) {
-                        // properties 내부의 한국어 이름(name 혹은 NAME_2, NL_NAME_2) 추출
-                        const prop = feature.properties;
-                        const geoName = (prop.name || prop.NAME_2 || prop.NL_NAME_2 || "").replace(/\s+/g, '');
-                        return geoName.includes(targetName);
-                    },
-                    style: {
-                        color: '#f1c40f',      // 노란 형광 테두리선
-                        weight: 3.5,           // 실제 지형을 해치지 않을 정도의 정밀한 선 굵기
-                        fillColor: '#f1c40f',
-                        fillOpacity: 0.25      // 불투명도를 낮춰 실제 한강, 아파트, 산이 정확히 비치게 함
+                matchedGeoJson.features.forEach(feature => {
+                    const prop = feature.properties;
+                    const geoName = (prop.name || prop.NAME_2 || prop.NL_NAME_2 || "").replace(/\s+/g, '');
+                    
+                    if (geoName.includes(targetName)) {
+                        const geom = feature.geometry;
+                        if (geom.type === "Polygon") {
+                            drawSinglePolygon(geom.coordinates);
+                        } else if (geom.type === "MultiPolygon") {
+                            geom.coordinates.forEach(coords => {
+                                drawSinglePolygon(coords);
+                            });
+                        }
                     }
-                }).addTo(map);
+                });
             }
 
-            map.flyTo([data.lat, data.lng], data.type === 'single' ? 12.8 : 11.5, {
-                animate: true,
-                duration: 0.8
+            // 지도 중앙점 및 카메라 줌을 해당 구의 위치로 최적 이동
+            map.morph(new naver.maps.LatLng(data.lat, data.lng), data.type === 'single' ? 13 : 11.5);
+
+            // 타겟 구역 중심부에 붉은 네온 점 서클 설치
+            naverCircle = new naver.maps.Circle({
+                map: map,
+                center: new naver.maps.LatLng(data.lat, data.lng),
+                radius: data.type === 'single' ? 250 : 150,
+                fillColor: '#e74c3c',
+                fillOpacity: 0.9,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+                strokeOpacity: 0.8
+            });
+        }
+
+        function drawSinglePolygon(coordinates) {
+            const paths = [];
+            coordinates[0].forEach(coord => {
+                paths.push(new naver.maps.LatLng(coord[1], coord[0]));
             });
 
-            activeMarker = L.circle([data.lat, data.lng], {
-                color: '#e74c3c',
-                fillColor: '#c0392b',
-                fillOpacity: 0.9,
-                radius: data.type === 'single' ? 300 : 150
-            }).addTo(map);
+            // 네이버 지도 고유 Polygon 객체 렌더링
+            const poly = new naver.maps.Polygon({
+                map: map,
+                paths: paths,
+                fillColor: '#f1c40f',
+                fillOpacity: 0.35,      // 뒤편의 실제 아파트 단지와 해안선, 한강이 비쳐 보이도록 최적화
+                strokeColor: '#f1c40f',    // 실제 지형 경계선과 맞물리는 뚜렷한 노란색 실선
+                strokeWeight: 4,
+                strokeOpacity: 0.95
+            });
+            naverPolygons.push(poly);
         }
 
         function selectSingleOption(btn, selected) {
@@ -612,7 +615,7 @@
                 btn.classList.remove('selected');
             } else {
                 if (selectedOptions.length >= 3) {
-                    alert('최대 3개 동까지만 고르실 수 있습니다!');
+                    alert('최대 3개 동까지만 선택 가능합니다!');
                     return;
                 }
                 selectedOptions.push(option);
@@ -663,20 +666,7 @@
         function showFinalResult() {
             const modal = document.getElementById('result-modal');
             const modalScore = document.getElementById('modal-score');
-            const modalMsg = document.getElementById('modal-msg');
-
             modalScore.innerText = `${score}점 / 100점`;
-
-            if (score >= 90) {
-                modalMsg.innerText = "🥇 완벽합니다! 수도권 지리 마스터 왕좌에 오르셨습니다!";
-            } else if (score >= 70) {
-                modalMsg.innerText = "🥈 대단해요! 웬만한 지역 지리는 다 꿰고 계시네요!";
-            } else if (score >= 40) {
-                modalMsg.innerText = "🥉 조금만 더 연습하면 최고 명예를 얻으실 수 있습니다!";
-            } else {
-                modalMsg.innerText = "🗺️ 아직은 길눈이 조금 어두우시군요! 한 번 더 도전해볼까요?";
-            }
-
             modal.style.display = 'flex';
         }
 
@@ -685,7 +675,14 @@
             startGame();
         }
 
-        window.onload = initMap;
+        // 문서 전체 로드 완료 시 안전하게 네이버 지도 로딩
+        window.onload = function() {
+            if (typeof naver !== 'undefined') {
+                initMap();
+            } else {
+                alert("네이버 지도 API 연동에 장애가 발생했습니다. Client ID 및 콘솔 도메인 등록을 재차 점검해 주세요!");
+            }
+        };
     </script>
 </body>
 </html>
