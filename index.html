@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>수도권 지리 마스터 퀴즈</title>
-    <!-- NAVER Maps API v3 최신 공식 규격 적용 (ncpKeyId 필수) -->
+    <!-- NAVER Maps API v3 최신 공식 규격 적용 -->
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
     <style>
         * {
@@ -436,13 +436,25 @@
             loadGeoJSONData();
         });
 
-        // 네이버 지도 v3 초기화
+        // 네이버 지도 v3 초기화 및 지명(라벨) 숨김 처리 핵심 비즈니스 로직
         function initNaverMap() {
             try {
+                // 일반 지도와 위성 지도에서 한글 텍스트 라벨(lko)을 제외하여 지명을 가림
                 const mapOptions = {
                     center: new naver.maps.LatLng(37.5502, 126.982),
                     zoom: 11,
-                    mapTypeId: naver.maps.MapTypeId.NORMAL,
+                    // 기본 mapTypeId 설정 및 스타일링이 주입된 mapTypes 정의
+                    mapTypeId: 'normal_no_labels',
+                    mapTypes: new naver.maps.MapTypeRegistry({
+                        // 일반 지도의 경우: 배경(bg) + 도로 물리선(ol)만 표현 (텍스트 라벨 배제)
+                        'normal_no_labels': naver.maps.NaverStyleMapTypeOptions.getNormalMap({
+                            overlayType: 'bg.ol'
+                        }),
+                        // 위성 지도의 경우: 위성 전용 물리 이미지(bg)만 표현 (텍스트 오버레이 배제)
+                        'satellite_no_labels': naver.maps.NaverStyleMapTypeOptions.getSatelliteMap({
+                            overlayType: 'bg'
+                        })
+                    }),
                     zoomControl: true,
                     zoomControlOptions: {
                         position: naver.maps.Position.RIGHT_CENTER
@@ -454,15 +466,15 @@
 
                 map = new naver.maps.Map('map', mapOptions);
 
-                // 지도 유형 토글
+                // 지도 유형 토글 컨트롤 수정
                 const toggleBtn = document.getElementById('map-toggle');
                 toggleBtn.addEventListener('click', () => {
                     isSatellite = !isSatellite;
                     if (isSatellite) {
-                        map.setMapTypeId(naver.maps.MapTypeId.SATELLITE);
+                        map.setMapTypeId('satellite_no_labels');
                         toggleBtn.textContent = "일반 지도 전환";
                     } else {
-                        map.setMapTypeId(naver.maps.MapTypeId.NORMAL);
+                        map.setMapTypeId('normal_no_labels');
                         toggleBtn.textContent = "위성 지도 전환";
                     }
                 });
@@ -479,7 +491,7 @@
                 });
 
             } catch (e) {
-                alert("네이버 지도 API 라이브러리를 정상적으로 로딩하지 못했습니다. 도메인 설정과 Client ID를 다시 확인해 주세요.");
+                alert("네이버 지도 API 라이브러리를 정상적으로 로딩하지 못했습니다.");
                 console.error(e);
             }
         }
@@ -526,7 +538,7 @@
             if (q.type === 'single') {
                 document.getElementById('question-text').textContent = `[단일선택] 지도에 하이라이트된 주황색 영역과 빨간 점이 가리키는 "구"는 어디일까요?`;
             } else {
-                document.getElementById('question-text').textContent = `[다중선택] 지도에 표시된 "${q.districtName}"에 소속된 법정동 3가지를 모두 골라주세요.`;
+                document.getElementById('question-text').textContent = `[다중선택] 지도에 표시된 영역에 소속된 법정동 3가지를 모두 골라주세요.`;
             }
             
             const submitBtn = document.getElementById('submit-btn');
@@ -558,7 +570,7 @@
             drawDistrictGeometry(q.districtName);
         }
 
-        // 정밀 도형 필터링
+        // 정밀 도형 필터링 및 오차 없는 경계선 그리기
         function drawDistrictGeometry(targetName) {
             if (geojsonLayer) {
                 geojsonLayer.setMap(null);
