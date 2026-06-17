@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>수도권 지리 마스터 퀴즈</title>
-    <!-- NAVER Maps API v3 최신 공식 규격 적용 -->
-    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=kizfnbhv3q&submodules=geocoder"></script>
+    <!-- NAVER Maps API v3 최신 공식 규격 적용 (ncpKeyId 필수) -->
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -322,7 +322,7 @@
         let geojsonLayer = null;
         let seoulGeoJSON = null;
         let nationGeoJSON = null;
-        let isSatellite = false; // 최초 지도는 실측 지형 판독을 위해 위성 지도로 설정 가능 (정상 지도)
+        let isSatellite = false; 
 
         // 퀴즈 상태 변수
         let quizPool = [];
@@ -431,7 +431,6 @@
             }
         ];
 
-        // 페이지가 완전히 로딩된 후 시작
         window.addEventListener('DOMContentLoaded', () => {
             initNaverMap();
             loadGeoJSONData();
@@ -441,7 +440,7 @@
         function initNaverMap() {
             try {
                 const mapOptions = {
-                    center: new naver.maps.LatLng(37.5502, 126.982), // 서울 남산 중심
+                    center: new naver.maps.LatLng(37.5502, 126.982),
                     zoom: 11,
                     mapTypeId: naver.maps.MapTypeId.NORMAL,
                     zoomControl: true,
@@ -455,7 +454,7 @@
 
                 map = new naver.maps.Map('map', mapOptions);
 
-                // 지도 유형(위성/일반) 전환 토글 설정
+                // 지도 유형 토글
                 const toggleBtn = document.getElementById('map-toggle');
                 toggleBtn.addEventListener('click', () => {
                     isSatellite = !isSatellite;
@@ -468,7 +467,7 @@
                     }
                 });
 
-                // 문제 지정용 붉은색 타깃 마커 인스턴스 미리 생성
+                // 붉은색 타깃 마커 생성
                 currentMarker = new naver.maps.Marker({
                     position: new naver.maps.LatLng(37.5502, 126.982),
                     map: map,
@@ -502,45 +501,40 @@
             });
         }
 
-        // 게임 초기화 및 무작위 10문항 조합
+        // 게임 초기화
         function startNewGame() {
             totalScore = 0;
             currentIdx = 0;
             document.getElementById('score-board').textContent = `점수: 0점`;
             
-            // 문제 은행 무작위 섞기 후 10문제 추출
             quizPool = [...originalQuizPool].sort(() => Math.random() - 0.5).slice(0, 10);
             document.getElementById('result-modal').style.display = 'none';
             
             loadQuestion(currentIdx);
         }
 
-        // 문제 로딩 및 지도 갱신
+        // 문제 로딩
         function loadQuestion(idx) {
             hasSubmitted = false;
             selectedAnswers = [];
             
             const q = quizPool[idx];
             
-            // UI 진행 상태 표시 업데이트
             document.getElementById('question-number').textContent = `문제 ${idx + 1} / 10`;
             document.getElementById('progress-bar').style.width = `${(idx + 1) * 10}%`;
             
-            // 텍스트 정의
             if (q.type === 'single') {
                 document.getElementById('question-text').textContent = `[단일선택] 지도에 하이라이트된 주황색 영역과 빨간 점이 가리키는 "구"는 어디일까요?`;
             } else {
                 document.getElementById('question-text').textContent = `[다중선택] 지도에 표시된 "${q.districtName}"에 소속된 법정동 3가지를 모두 골라주세요.`;
             }
             
-            // 제출 버튼 리셋
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = true;
             submitBtn.textContent = q.type === 'single' ? "선택 즉시 정답 확인" : "정답 제출하기 (0 / 3 선택됨)";
             document.getElementById('feedback-message').textContent = "";
             document.getElementById('feedback-message').style.color = "#4e5968";
 
-            // 옵션 버튼 렌더링
             const optionsBox = document.getElementById('options-container');
             optionsBox.innerHTML = "";
             
@@ -553,7 +547,7 @@
                 optionsBox.appendChild(btn);
             });
 
-            // 지도 카메라를 문제 좌표로 비행(이동) 및 마커 표시
+            // 지도 카메라를 문제 좌표로 이동
             const targetLatLng = new naver.maps.LatLng(q.lat, q.lng);
             map.panTo(targetLatLng);
             map.setZoom(12);
@@ -561,21 +555,18 @@
             currentMarker.setPosition(targetLatLng);
             currentMarker.setVisible(true);
 
-            // 해당 구역의 100% 정합 경계선 그리기
             drawDistrictGeometry(q.districtName);
         }
 
-        // 실측 경계선 매핑 드로잉 로직
+        // 정밀 도형 필터링
         function drawDistrictGeometry(targetName) {
             if (geojsonLayer) {
                 geojsonLayer.setMap(null);
                 geojsonLayer = null;
             }
 
-            // 서울 데이터셋 혹은 전국 데이터셋에서 정밀 도형 필터링
             let matchedFeature = null;
             
-            // 1순위: 서울시
             if (seoulGeoJSON) {
                 matchedFeature = seoulGeoJSON.features.find(f => {
                     const name = f.properties.name || f.properties.NAME_2 || "";
@@ -583,7 +574,6 @@
                 });
             }
             
-            // 2순위: 전국 (경기도/인천)
             if (!matchedFeature && nationGeoJSON) {
                 matchedFeature = nationGeoJSON.features.find(f => {
                     const name = f.properties.name || f.properties.NAME_2 || "";
@@ -591,7 +581,6 @@
                 });
             }
 
-            // 정확한 경계 폴리곤 오버레이 렌더링
             if (matchedFeature) {
                 geojsonLayer = new naver.maps.Data();
                 geojsonLayer.addGeoJson({
@@ -600,7 +589,7 @@
                 });
                 
                 geojsonLayer.setStyle({
-                    fillColor: '#ff9500', // 구역은 눈에 띄는 주황색으로 채움
+                    fillColor: '#ff9500',
                     fillOpacity: 0.25,
                     strokeColor: '#ff9500',
                     strokeWeight: 3,
@@ -616,12 +605,10 @@
             if (hasSubmitted) return;
 
             if (q.type === 'single') {
-                // 단일 선택의 경우 즉시 단판 판정
                 hasSubmitted = true;
                 selectedAnswers = [val];
                 evaluateSingleChoice(btn, val, q);
             } else {
-                // 다중 선택의 경우 (최대 3개 고르기)
                 if (selectedAnswers.includes(val)) {
                     selectedAnswers = selectedAnswers.filter(v => v !== val);
                     btn.classList.remove('selected');
@@ -647,7 +634,7 @@
             }
         }
 
-        // 단일 선택 문제 채점
+        // 단일 선택 채점
         function evaluateSingleChoice(clickedBtn, selectedVal, q) {
             const isCorrect = (selectedVal === q.correct);
             const feedback = document.getElementById('feedback-message');
@@ -660,7 +647,6 @@
                 feedback.style.color = "#2da44e";
             } else {
                 clickedBtn.classList.add('wrong');
-                // 실제 정답을 표시해 줍니다.
                 const btns = document.querySelectorAll('.option-btn');
                 btns.forEach(b => {
                     if (b.textContent === q.correct) b.classList.add('correct');
@@ -676,7 +662,7 @@
             submitBtn.onclick = nextQuestion;
         }
 
-        // 다중 선택 문제 채점 (+10 / +6 / +3 가중 점수제)
+        // 다중 선택 채점
         function evaluateMultiChoice(q) {
             const feedback = document.getElementById('feedback-message');
             const submitBtn = document.getElementById('submit-btn');
@@ -690,14 +676,13 @@
                 const isSelected = selectedAnswers.includes(val);
 
                 if (isCollectItem) {
-                    b.classList.add('correct'); // 정답인 동은 녹색 하이라이트
+                    b.classList.add('correct');
                     if (isSelected) matchedCount++;
                 } else if (isSelected && !isCollectItem) {
-                    b.classList.add('wrong'); // 선택했으나 정답이 아닌 동은 적색 표시
+                    b.classList.add('wrong');
                 }
             });
 
-            // 정답 가짓수에 따른 차등 점수 책정
             let earned = 0;
             if (matchedCount === 3) { earned = 10; }
             else if (matchedCount === 2) { earned = 6; }
@@ -722,7 +707,6 @@
             submitBtn.onclick = nextQuestion;
         }
 
-        // 다음 단계 진행 제어
         function nextQuestion() {
             currentIdx++;
             if (currentIdx < 10) {
@@ -732,7 +716,6 @@
             }
         }
 
-        // 결과 모달 창 전시
         function showFinalResults() {
             const modal = document.getElementById('result-modal');
             const scoreText = document.getElementById('modal-score');
@@ -753,7 +736,6 @@
             modal.style.display = 'flex';
         }
 
-        // 게임 재시작
         function restartQuiz() {
             startNewGame();
         }
