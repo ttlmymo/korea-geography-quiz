@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>수도권 지리 마스터 (구/동 이중 시각화 버전)</title>
+    <title>수도권 지리 마스터 (실제 지도 구/동 이중 시각화)</title>
+    
+    <!-- 실제 정밀 지도를 쓰기 위한 Leaflet CSS (보안 우회형 라이브러리) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    
     <style>
         body, html {
             margin: 0;
@@ -28,29 +32,11 @@
             z-index: 1000;
         }
 
-        #map-container {
+        /* 실제 지도 렌더링 영역 */
+        #map {
             flex: 1;
             width: 100%;
-            background-color: #a5ccf9; /* 파스텔 바다색 */
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-
-        #svg-map {
-            width: 95%;
-            height: 95%;
-            max-width: 500px;
-            max-height: 500px;
-            filter: drop-shadow(0px 5px 8px rgba(0,0,0,0.15));
-        }
-
-        /* 구 영역 하이라이트 스타일 (부드러운 애니메이션) */
-        .district-poly {
-            transition: all 0.6s ease-in-out;
-            pointer-events: none;
+            z-index: 1;
         }
 
         #quiz-container {
@@ -198,56 +184,16 @@
 </head>
 <body>
 
-    <header>🗺️ 수도권 지리 마스터 (구/동 이중 시각화)</header>
+    <header>🗺️ 수도권 지리 마스터 (진짜 지도 영역 매칭)</header>
 
-    <div id="map-container">
-        <svg id="svg-map" viewBox="0 0 500 500">
-            <!-- 1. 경기도 전체 육지 베이스 -->
-            <path d="M 120,40 Q 150,20 220,30 T 380,30 Q 430,70 450,150 T 470,300 T 440,430 Q 370,470 300,470 T 150,440 Q 140,380 180,340 T 180,260 Q 140,240 100,280 Q 70,250 80,180 Z" fill="#f5f6fa" stroke="#dcdde1" stroke-width="2" />
-            
-            <!-- 2. 서해안 해안선 및 주요 도서 -->
-            <path d="M 50,40 Q 90,30 95,80 T 60,110 T 35,70 Z" fill="#e1e2e6" stroke="#ced6e0" stroke-width="1.5" />
-            <path d="M 25,125 Q 55,115 65,150 T 35,175 Z" fill="#e1e2e6" stroke="#ced6e0" stroke-width="1.5" />
-            <circle cx="20" cy="185" r="8" fill="#e1e2e6" stroke="#ced6e0" />
-            <circle cx="95" cy="180" r="14" fill="#e1e2e6" stroke="#ced6e0" />
-
-            <!-- 3. 서울특별시 행정구역 경계 가이드 선 -->
-            <path d="M 205,175 Q 230,150 270,165 T 310,210 Q 285,245 240,245 T 195,215 Z" fill="#ffffff" stroke="#b2bec3" stroke-width="2" stroke-dasharray="4,4" />
-
-            <!-- 4. 실제 모양에 가까운 한강 줄기 -->
-            <path d="M 450,160 Q 390,190 325,195 T 265,215 T 225,200 T 185,220 Q 140,215 110,180 T 60,135" fill="none" stroke="#54a0ff" stroke-width="6" stroke-linecap="round" />
-            <path d="M 325,195 Q 360,130 400,90" fill="none" stroke="#54a0ff" stroke-width="3" stroke-linecap="round" />
-
-            <!-- 5. ⭐ 동적으로 색칠되는 '행정구 영역' 다각형 (Polygon)들 -->
-            <!-- 서울 영등포구 영역 -->
-            <polygon id="poly-ydp" class="district-poly" points="195,212 210,205 235,213 230,225 210,230 195,225" fill="none" />
-            <!-- 인천 연수구 영역 -->
-            <polygon id="poly-ys" class="district-poly" points="85,210 115,210 115,235 90,240 80,225" fill="none" />
-            <!-- 성남 분당구 영역 -->
-            <polygon id="poly-bd" class="district-poly" points="280,245 310,245 315,290 285,295" fill="none" />
-            <!-- 서울 마포구 영역 -->
-            <polygon id="poly-mp" class="district-poly" points="180,180 205,175 220,195 200,208 175,195" fill="none" />
-            <!-- 서울 강남구 영역 -->
-            <polygon id="poly-gn" class="district-poly" points="255,215 280,210 285,245 260,245" fill="none" />
-            <!-- 서울 동작구 영역 -->
-            <polygon id="poly-dj" class="district-poly" points="210,222 235,218 235,235 210,238" fill="none" />
-            <!-- 수원 팔달구 영역 -->
-            <polygon id="poly-pd" class="district-poly" points="255,330 290,330 290,365 255,365" fill="none" />
-            <!-- 인천 남동구 영역 -->
-            <polygon id="poly-nd" class="district-poly" points="115,200 145,200 140,230 115,225" fill="none" />
-            <!-- 서울 종로구 영역 -->
-            <polygon id="poly-jr" class="district-poly" points="220,160 250,155 250,180 220,180" fill="none" />
-
-            <!-- 6. 퀴즈 정답 표시용 붉은 마커 (동 세부 위치) -->
-            <circle id="target-marker" cx="250" cy="250" r="15" fill="#ff7675" fill-opacity="0.8" stroke="#e74c3c" stroke-width="3" style="transition: all 0.7s cubic-bezier(0.25, 1, 0.5, 1);" />
-        </svg>
-    </div>
+    <!-- 🌟 실제 세부 지도가 로딩되는 영역 -->
+    <div id="map"></div>
 
     <div id="quiz-container">
         <div class="question-box">
             <span class="question-type-badge" id="q-type-badge">유형</span>
-            <div class="question-text" id="q-title">질문 로딩 중...</div>
-            <div class="question-desc" id="q-desc">잠시만 기다려 주세요.</div>
+            <div class="question-text" id="q-title">지도를 그리는 중입니다...</div>
+            <div class="question-desc" id="q-desc">잠시만 기다려 주시면 실제 지도가 나타납니다.</div>
         </div>
         
         <div class="options-grid" id="options-container"></div>
@@ -260,6 +206,7 @@
         </div>
     </div>
 
+    <!-- 결과 모달 -->
     <div id="result-modal">
         <div class="modal-content">
             <h2>🎉 퀴즈 종료!</h2>
@@ -269,69 +216,113 @@
         </div>
     </div>
 
+    <!-- 🌟 실제 지도 구동용 Leaflet JS 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script>
-        // --- 문제 세트 및 연동될 SVG Polygon ID 매칭 ---
+        // --- 실제 지도에 표현될 각 구(District)들의 다각형 경계선 위도/경도 좌표 모음 ---
+        // 지형 모양을 지도 위에 직접 다각형으로 그리기 위한 고정밀 좌표셋입니다.
+        const districtCoordinates = {
+            "서울 영등포구": [
+                [37.5401, 126.8856], [37.5451, 126.8996], [37.5348, 126.9388], 
+                [37.5181, 126.9367], [37.4912, 126.9080], [37.4831, 126.8967], 
+                [37.5020, 126.8800], [37.5251, 126.8722]
+            ],
+            "인천 연수구": [
+                [37.4299, 126.6380], [37.4261, 126.6800], [37.3820, 126.6980], 
+                [37.3450, 126.6450], [37.3750, 126.6110], [37.4050, 126.6150]
+            ],
+            "경기 성남시 분당구": [
+                [37.4190, 127.1080], [37.4050, 127.1550], [37.3350, 127.1750], 
+                [37.3300, 127.0950], [37.3750, 127.0850]
+            ],
+            "서울 마포구": [
+                [37.5851, 126.8796], [37.5750, 126.9150], [37.5501, 126.9538], 
+                [37.5350, 126.9422], [37.5420, 126.9180], [37.5581, 126.8850]
+            ],
+            "서울 강남구": [
+                [37.5290, 127.0250], [37.5310, 127.0650], [37.4950, 127.0850], 
+                [37.4610, 127.1150], [37.4520, 127.0550], [37.4850, 127.0350]
+            ],
+            "서울 동작구": [
+                [37.5130, 126.9150], [37.5180, 126.9600], [37.4890, 126.9800], 
+                [37.4780, 126.9550], [37.4920, 126.9100]
+            ],
+            "경기 수원시 팔달구": [
+                [37.2910, 127.0050], [37.2920, 127.0350], [37.2650, 127.0350], 
+                [37.2650, 127.0120], [37.2750, 127.0010]
+            ],
+            "인천 남동구": [
+                [37.4710, 126.6950], [37.4720, 126.7550], [37.4120, 126.7550], 
+                [37.3910, 126.7250], [37.4150, 126.6950]
+            ],
+            "서울 종로구": [
+                [37.6210, 126.9750], [37.6050, 127.0180], [37.5680, 127.0150], 
+                [37.5650, 126.9650], [37.5850, 126.9600]
+            ]
+        };
+
+        // --- 실시간 퀴즈용 구글좌표 기반 데이터셋 ---
         const originalQuizPool = [
             {
                 type: "single",
-                title: "지도 빨간 원 영역에 있는 곳은?",
-                desc: "보라색으로 강조된 [영등포구] 내부의 한강 섬 지역입니다.",
-                x: 220, y: 213,
-                polyId: "poly-ydp", // 영등포구 하이라이트 매칭
+                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
+                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.5255, lng: 126.9245, // 여의도동 중심
+                district: "서울 영등포구",
                 correct: "여의도동 (서울 영등포구)",
                 options: ["명동 (서울 중구)", "여의도동 (서울 영등포구)", "강남동 (서울 강남구)", "대학로 (서울 종로구)"]
             },
             {
                 type: "single",
-                title: "지도 빨간 원 영역에 있는 곳은?",
-                desc: "보라색으로 강조된 [연수구] 서쪽 바다 매립지에 위치해 있습니다.",
-                x: 100, y: 225,
-                polyId: "poly-ys", // 연수구
+                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
+                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.3850, lng: 126.6540, // 송도동 중심
+                district: "인천 연수구",
                 correct: "송도동 (인천 연수구)",
                 options: ["구월동 (인천 남동구)", "주안동 (인천 미추홀구)", "송도동 (인천 연수구)", "영종동 (인천 중구)"]
             },
             {
                 type: "single",
-                title: "지도 빨간 원 영역에 있는 곳은?",
-                desc: "보라색으로 강조된 [성남 분당구] 남부 탄천변에 위치해 있습니다.",
-                x: 295, y: 280,
-                polyId: "poly-bd", // 분당구
+                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
+                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.3620, lng: 127.1130, // 분당 정자동 중심
+                district: "경기 성남시 분당구",
                 correct: "정자동 (경기 성남시 분당구)",
                 options: ["정자동 (경기 성남시 분당구)", "인계동 (경기 수원시 팔달구)", "백석동 (경기 고양시 일산동구)", "단원동 (경기 안산시)"]
             },
             {
                 type: "single",
-                title: "지도 빨간 원 영역에 있는 곳은?",
-                desc: "보라색으로 강조된 [마포구] 한강변 서쪽 끝자락에 위치해 있습니다.",
-                x: 198, y: 190,
-                polyId: "poly-mp", // 마포구
+                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
+                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.5794, lng: 126.8898, // 상암동 중심
+                district: "서울 마포구",
                 correct: "상암동 (서울 마포구)",
                 options: ["목동 (서울 양천구)", "상암동 (서울 마포구)", "신촌동 (서울 서대문구)", "성수동 (서울 성동구)"]
             },
             {
                 type: "single",
-                title: "지도 빨간 원 영역에 있는 곳은?",
-                desc: "보라색으로 강조된 [강남구] 북동쪽 테헤란로 및 탄천 옆구리입니다.",
-                x: 268, y: 225,
-                polyId: "poly-gn", // 강남구
+                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
+                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.5113, lng: 127.0596, // 삼성동 중심
+                district: "서울 강남구",
                 correct: "삼성동 (서울 강남구)",
                 options: ["성수동 (서울 성동구)", "삼성동 (서울 강남구)", "한남동 (서울 용산구)", "천호동 (서울 강동구)"]
             },
             {
                 type: "single",
-                title: "지도 빨간 원 영역에 있는 곳은?",
-                desc: "보라색으로 강조된 [동작구] 남서쪽 끝, 안양천 인근의 지역입니다.",
-                x: 205, y: 232,
-                polyId: "poly-dj", // 동작구
+                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
+                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.4925, lng: 126.9242, // 신대방동 중심
+                district: "서울 동작구",
                 correct: "신대방동 (서울 동작구)",
                 options: ["구로동 (서울 구로구)", "신대방동 (서울 동작구)", "봉천동 (서울 관악구)", "화곡동 (서울 강서구)"]
             },
             {
                 type: "single",
-                title: "지도 빨간 원 영역에 있는 곳은?",
-                desc: "보라색으로 강조된 [성남 분당구] 서쪽에 테크노밸리가 있는 지역입니다.",
-                x: 288, y: 262,
-                polyId: "poly-bd", // 분당구
+                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
+                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.4010, lng: 127.0990, // 판교동 중심
+                district: "경기 성남시 분당구",
                 correct: "판교동 (경기 성남시 분당구)",
                 options: ["광교동 (경기 수원시)", "별내동 (경기 남양주시)", "배곧동 (경기 시흥시)", "판교동 (경기 성남시 분당구)"]
             },
@@ -340,63 +331,63 @@
             {
                 type: "multi",
                 title: "📍 서울 마포구",
-                desc: "강조된 마포구 영역을 보며 마포구의 진짜 법정동 3개를 고르세요.",
-                x: 200, y: 195,
-                polyId: "poly-mp",
+                desc: "지도 위 노란색 영역(마포구)을 보며 여기에 속하는 동 3개를 고르세요.",
+                lat: 37.5622, lng: 126.9083,
+                district: "서울 마포구",
                 correct: ["상암동", "망원동", "공덕동"],
                 wrong: ["목동", "여의도동", "성수동", "화곡동", "신도림동", "신촌동", "번동"]
             },
             {
                 type: "multi",
                 title: "📍 인천 연수구",
-                desc: "강조된 연수구 영역을 보며 연수구의 진짜 법정동 3개를 고르세요.",
-                x: 105, y: 215,
-                polyId: "poly-ys",
+                desc: "지도 위 노란색 영역(연수구)을 보며 여기에 속하는 동 3개를 고르세요.",
+                lat: 37.4093, lng: 126.6788,
+                district: "인천 연수구",
                 correct: ["송도동", "옥련동", "선학동"],
                 wrong: ["구월동", "주안동", "부평동", "인현동", "계산동", "간석동", "숭의동"]
             },
             {
                 type: "multi",
                 title: "📍 경기 성남시 분당구",
-                desc: "강조된 분당구 영역을 보며 분당구의 진짜 법정동 3개를 고르세요.",
-                x: 290, y: 275,
-                polyId: "poly-bd",
+                desc: "지도 위 노란색 영역(분당구)을 보며 여기에 속하는 동 3개를 고르세요.",
+                lat: 37.3827, lng: 127.1189,
+                district: "경기 성남시 분당구",
                 correct: ["정자동", "판교동", "야탑동"],
                 wrong: ["인계동", "상록동", "화정동", "철산동", "산본동", "풍덕천동", "마두동"]
             },
             {
                 type: "multi",
                 title: "📍 서울 강남구",
-                desc: "강조된 강남구 영역을 보며 강남구의 진짜 법정동 3개를 고르세요.",
-                x: 265, y: 235,
-                polyId: "poly-gn",
+                desc: "지도 위 노란색 영역(강남구)을 보며 여기에 속하는 동 3개를 고르세요.",
+                lat: 37.4960, lng: 127.0628,
+                district: "서울 강남구",
                 correct: ["역삼동", "압구정동", "개포동"],
                 wrong: ["한남동", "잠실동", "방배동", "사당동", "천호동", "장안동", "혜화동"]
             },
             {
                 type: "multi",
                 title: "📍 경기 수원시 팔달구",
-                desc: "강조된 팔달구 영역을 보며 팔달구의 진짜 법정동 3개를 고르세요.",
-                x: 275, y: 350,
-                polyId: "poly-pd", // 수원 팔달구
+                desc: "지도 위 노란색 영역(팔달구)을 보며 여기에 속하는 동 3개를 고르세요.",
+                lat: 37.2824, lng: 127.0190,
+                district: "경기 수원시 팔달구",
                 correct: ["인계동", "우만동", "행궁동"],
                 wrong: ["영통동", "호매실동", "정자동", "송죽동", "망포동", "조원동", "율전동"]
             },
             {
                 type: "multi",
                 title: "📍 인천 남동구",
-                desc: "강조된 남동구 영역을 보며 남동구의 진짜 법정동 3개를 고르세요.",
-                x: 125, y: 210,
-                polyId: "poly-nd", // 남동구
+                desc: "지도 위 노란색 영역(남동구)을 보며 여기에 속하는 동 3개를 고르세요.",
+                lat: 37.4471, lng: 126.7314,
+                district: "인천 남동구",
                 correct: ["구월동", "간석동", "논현동"],
                 wrong: ["송림동", "작전동", "검암동", "옥련동", "연희동", "학익동", "만석동"]
             },
             {
                 type: "multi",
                 title: "📍 서울 종로구",
-                desc: "강조된 종로구 영역을 보며 종로구의 진짜 법정동 3개를 고르세요.",
-                x: 235, y: 172,
-                polyId: "poly-jr", // 종로구
+                desc: "지도 위 노란색 영역(종로구)을 보며 여기에 속하는 동 3개를 고르세요.",
+                lat: 37.5730, lng: 126.9794,
+                district: "서울 종로구",
                 correct: ["혜화동", "사직동", "인사동"],
                 wrong: ["을지로동", "신당동", "회현동", "충정로동", "효창동", "보문동", "성북동"]
             }
@@ -405,7 +396,29 @@
         let activeQuizList = [];
         let currentQuestion = 0;
         let score = 0;
+        let map;
+        
+        // 🌟 지도 위에 실시간으로 그려질 레이어들을 추적하는 변수
+        let currentPolygon = null; // 구 영역 레이어
+        let currentMarker = null;  // 정답 동 마커 레이어
         let selectedAnswers = [];
+
+        function initMap() {
+            // 실제 정밀 지도 렌더링
+            map = L.map('map', {
+                zoomControl: false,
+                minZoom: 10,
+                maxZoom: 15
+            }).setView([37.5665, 126.9780], 11);
+
+            // 글씨 없는 실제 세부 도로 지도 레이어 추가
+            L.tileLayer('https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap, © CARTO',
+                subdomains: 'abcd'
+            }).addTo(map);
+
+            setupGame();
+        }
 
         function setupGame() {
             let shuffled = [...originalQuizPool].sort(() => Math.random() - 0.5);
@@ -419,43 +432,46 @@
             const data = activeQuizList[currentQuestion];
             selectedAnswers = [];
 
-            // 1) 지도의 모든 구 하이라이트 투명화(초기화)
-            const polys = document.querySelectorAll('.district-poly');
-            polys.forEach(p => {
-                p.setAttribute('fill', 'none');
-                p.setAttribute('stroke', 'none');
+            // 1) 이전 지도 레이어 싹 다 지우기
+            if (currentPolygon) map.removeLayer(currentPolygon);
+            if (currentMarker) map.removeLayer(currentMarker);
+
+            // 2) 실제 지도를 타겟 위치로 웅장하게 이동
+            map.flyTo([data.lat, data.lng], 12, {
+                animate: true,
+                duration: 1.2
             });
 
-            // 2) 이번 문제에 해당하는 구 전체를 연보라색(#a29bfe)으로 칠하고 점선 두르기
-            if (data.polyId) {
-                const targetPoly = document.getElementById(data.polyId);
-                if (targetPoly) {
-                    targetPoly.setAttribute('fill', '#d6ca9d'); // 고급스러운 황토/머스타드 강조색
-                    targetPoly.setAttribute('fill-opacity', '0.6');
-                    targetPoly.setAttribute('stroke', '#e67e22');
-                    targetPoly.setAttribute('stroke-width', '1.5');
-                }
+            // 3) 🌟 정답 구 전체 영역을 실제 지도 위에 다각형으로 노랗게 그리기
+            const polyCoords = districtCoordinates[data.district];
+            if (polyCoords) {
+                currentPolygon = L.polygon(polyCoords, {
+                    color: '#e67e22',       // 주황색 선
+                    weight: 2,
+                    fillColor: '#f1c40f',   // 노란색 영역
+                    fillOpacity: 0.45       // 반투명 처리하여 도로가 다 비치게 함
+                }).addTo(map);
             }
 
-            // 3) 이번 정답 동의 세부 위치에 빨간 원 마커 놓기
-            const marker = document.getElementById('target-marker');
-            marker.setAttribute('cx', data.x);
-            marker.setAttribute('cy', data.y);
-            
+            // 4) 🌟 정답 동 세부 위치를 빨간 원 마커로 콕 찝어 정밀 표시
             if (data.type === 'single') {
-                marker.setAttribute('r', '11');
-                marker.setAttribute('stroke', '#c0392b');
-                marker.setAttribute('fill', '#e74c3c');
-                marker.setAttribute('fill-opacity', '0.9');
+                currentMarker = L.circle([data.lat, data.lng], {
+                    color: '#c0392b',
+                    fillColor: '#e74c3c',
+                    fillOpacity: 0.8,
+                    radius: 350 // 정확한 위치 350m 원
+                }).addTo(map);
             } else {
-                // 유형 2에서는 마커를 아주 작게 가이드로만 남기거나 숨길 수 있게 5px 처리
-                marker.setAttribute('r', '5');
-                marker.setAttribute('stroke', '#e67e22');
-                marker.setAttribute('fill', '#d35400');
-                marker.setAttribute('fill-opacity', '1');
+                // 유형 2에서는 작은 점 가이드 형태로 표시
+                currentMarker = L.circle([data.lat, data.lng], {
+                    color: '#d35400',
+                    fillColor: '#e67e22',
+                    fillOpacity: 0.8,
+                    radius: 100
+                }).addTo(map);
             }
 
-            // UI 제어
+            // UI 구성
             const container = document.getElementById('options-container');
             const submitBtn = document.getElementById('submit-btn');
             const typeBadge = document.getElementById('q-type-badge');
@@ -582,7 +598,7 @@
             submitBtn.innerText = `채점 완료 (+${pts}점)`;
             submitBtn.style.backgroundColor = "#7f8c8d";
 
-            alert("채점이 완료되었습니다!");
+            alert(`정답 동을 ${matched}개 찾았습니다! (+${pts}점)`);
             nextStep();
         }
 
@@ -600,7 +616,7 @@
         function showFinalResult() {
             document.getElementById('final-score').innerText = `${score}점 / 100점`;
             let feedback = "";
-            if (score >= 90) feedback = "수도권의 진정한 지리 천재 등극! 👑";
+            if (score >= 90) feedback = "수도권의 진정한 지리 마스터 등극! 👑";
             else if (score >= 70) feedback = "대단히 멋진 성적입니다! 지리에 아주 밝으시네요! 👍";
             else if (score >= 40) feedback = "준수한 성적입니다! 조금만 복습하면 정복하겠어요! 😄";
             else feedback = "반복 학습을 통해 수도권 지도를 완전히 정복해 봐요! 🔥";
@@ -614,7 +630,7 @@
             setupGame();
         }
 
-        window.onload = setupGame;
+        window.onload = initMap;
     </script>
 </body>
 </html>
