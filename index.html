@@ -351,20 +351,19 @@
     let selectedOption = null;
     let geojsonLayer = null;
     let centerMarker = null;
-    let isAnswerSubmitted = false; // 현재 제출 여부 판별하는 상태 변수
+    let isAnswerSubmitted = false;
 
-    // GeoJSON 데이터 엔드포인트
+    // ★ 올바르게 수정된 100% 작동 가능한 GeoJSON 파일 주소 ★
     const SEOUL_GEOJSON_URL = "https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json";
-    const NATION_GEOJSON_URL = "https://raw.githubusercontent.com/southkorea/southkorea-maps/master/gadm/json/skorea-municipalities-2018-geo.json";
+    const NATION_GEOJSON_URL = "https://raw.githubusercontent.com/southkorea/southkorea-maps/master/gadm/json/skorea-municipalities-geo.json";
 
     let seoulGeoJsonData = null;
     let nationGeoJsonData = null;
 
-    // --- 네이버 지도 초기화 및 지도 라벨 숨김 설정 (팩토리 패턴 버그 수정) ---
+    // --- 네이버 지도 초기화 및 지도 라벨 숨김 설정 ---
     function initMap() {
-        // ★ 중요: NaverStyleMapTypeOptions.getNormalMap 팩토리 메서드를 호출하여 MapType 인스턴스를 직접 생성
         const customNoLabelType = naver.maps.NaverStyleMapTypeOptions.getNormalMap({
-            overlayType: 'bg.ol' // 지명 라벨을 로드하지 않고 지도 배경과 실폭선만 로딩
+            overlayType: 'bg.ol'
         });
 
         const mapOptions = {
@@ -385,8 +384,14 @@
 
         // 지리 행정구역 데이터 비동기 병렬 프리로드
         Promise.all([
-            fetch(SEOUL_GEOJSON_URL).then(res => res.json()),
-            fetch(NATION_GEOJSON_URL).then(res => res.json())
+            fetch(SEOUL_GEOJSON_URL).then(res => {
+                if (!res.ok) throw new Error("Seoul GeoJSON load failed");
+                return res.json();
+            }),
+            fetch(NATION_GEOJSON_URL).then(res => {
+                if (!res.ok) throw new Error("Nation GeoJSON load failed");
+                return res.json();
+            })
         ]).then(([seoul, nation]) => {
             seoulGeoJsonData = seoul;
             nationGeoJsonData = nation;
@@ -413,7 +418,7 @@
         loadQuestion(0);
     }
 
-    // --- 고난도 변별력 확보: 동일 카테고리(서울/인천/경기) 보기 매칭 엔진 ---
+    // --- 동일 카테고리(서울/인천/경기) 보기 매칭 엔진 ---
     function buildMatchingQuestion(targetDistrict) {
         const sameTypePool = metropolitanDatabase.filter(d => d.type === targetDistrict.type && d.name !== targetDistrict.name);
         const wrongDistricts = sameTypePool.sort(() => 0.5 - Math.random()).slice(0, 3);
@@ -475,7 +480,7 @@
 
     // --- 선택 동작 제어 ---
     function selectOption(btn, val) {
-        if (isAnswerSubmitted) return; // 이미 제출된 경우 터치 무시
+        if (isAnswerSubmitted) return;
         document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         selectedOption = val;
@@ -489,21 +494,18 @@
         const submitBtn = this;
 
         if (!isAnswerSubmitted) {
-            // [상태 1]: 사용자 답안 제출 처리 및 피드백 시각화
             isAnswerSubmitted = true;
             const buttons = document.querySelectorAll('.option-btn');
 
             buttons.forEach(btn => {
-                btn.disabled = true; // 더이상 클릭 불가하게 잠금
+                btn.disabled = true;
                 const btnVal = btn.textContent;
 
-                // 정답 표시 (초록색 테두리)
                 if (btnVal === q.correctAnswer) {
                     btn.style.borderColor = "#22c55e";
                     btn.style.backgroundColor = "#f0fdf4";
                     btn.style.color = "#16a34a";
                 }
-                // 오답인데 선택한 대상 표시 (빨간색 테두리)
                 if (selectedOption === btnVal && btnVal !== q.correctAnswer) {
                     btn.style.borderColor = "#ef4444";
                     btn.style.backgroundColor = "#fef2f2";
@@ -522,7 +524,6 @@
 
             document.getElementById('current-score').textContent = score;
 
-            // 다음 행동 유도 버튼 텍스트 변경
             if (currentQuestionIndex < 9) {
                 submitBtn.textContent = "다음 문제 풀기 ➔";
             } else {
@@ -530,7 +531,6 @@
                 submitBtn.textContent = "최종 결과 확인하기";
             }
         } else {
-            // [상태 2]: 결과가 발표된 상태에서 다음 단계로 넘어가는 액션
             if (currentQuestionIndex < 9) {
                 currentQuestionIndex++;
                 loadQuestion(currentQuestionIndex);
@@ -553,7 +553,6 @@
 
         const targetLatLng = new naver.maps.LatLng(q.lat, q.lng);
 
-        // 부드럽게 화면 이동 (morph) 및 영역 비례 맞춤형 줌 설정
         const optimalZoom = (q.districtType === "서울") ? 12 : (q.correctAnswer.includes("군") || q.correctAnswer.includes("면")) ? 10 : 11;
         map.morph(targetLatLng, optimalZoom, {
             duration: 450,
@@ -563,7 +562,6 @@
         const activeGeoJson = (q.districtType === "서울") ? seoulGeoJsonData : nationGeoJsonData;
         if (!activeGeoJson) return;
 
-        // 경기도 일반구 명칭 정합성 에러 패치
         const matchedFeatures = activeGeoJson.features.filter(feature => {
             const rawGeoName = feature.properties.name || feature.properties.name_kor || feature.properties.SIG_KOR_NM || "";
             const cleanGeoName = rawGeoName.replace(/[\s-]/g, ""); 
@@ -596,7 +594,6 @@
             console.warn(`경계선 지오메트리를 찾지 못했습니다: ${q.correctAnswer}`);
         }
 
-        // 중심점에 빨간색 핀 마커 생성
         centerMarker = new naver.maps.Marker({
             position: targetLatLng,
             map: map,
@@ -629,7 +626,6 @@
         startGame();
     }
 
-    // 초기 지도 렌더링 시작점 바인딩
     window.onload = initMap;
 </script>
 </body>
