@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>수도권 지리 마스터 퀴즈</title>
-    <!-- NAVER 지도 API v3 (최신 ncpKeyId 인증 방식 적용) -->
+    <!-- NAVER 지도 API v3 (최신 ncpKeyId 기반 클라이언트 보안 접속 적용) -->
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
     <style>
         body {
@@ -50,6 +50,7 @@
             flex: 1;
             height: 100%;
             position: relative;
+            background-color: #e5e7eb;
         }
         #quiz-panel {
             width: 420px;
@@ -148,7 +149,6 @@
             cursor: not-allowed;
             box-shadow: none;
         }
-        /* 피드백 메시지 스타일 */
         #feedback-message {
             margin-top: 15px;
             font-size: 1.1rem;
@@ -156,7 +156,6 @@
             text-align: center;
             min-height: 27px;
         }
-        /* 결과 화면 팝업 */
         #result-overlay {
             position: absolute;
             top: 0;
@@ -299,7 +298,7 @@
         { name: "강화군", type: "인천", lat: 37.7461, lng: 126.4880 },
         { name: "옹진군", type: "인천", lat: 37.4465, lng: 126.6370 },
 
-        // 경기도 (31개 시·군 / 일반 행정동급 구 포함 43개)
+        // 경기도 (43개)
         { name: "수원시 장안구", type: "경기", lat: 37.3012, lng: 127.0173 },
         { name: "수원시 권선구", type: "경기", lat: 37.2576, lng: 126.9722 },
         { name: "수원시 팔달구", type: "경기", lat: 37.2823, lng: 127.0190 },
@@ -352,6 +351,7 @@
     let selectedOption = null;
     let geojsonLayer = null;
     let centerMarker = null;
+    let isAnswerSubmitted = false; // 현재 제출 여부 판별하는 상태 변수
 
     // GeoJSON 데이터 엔드포인트
     const SEOUL_GEOJSON_URL = "https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json";
@@ -360,12 +360,10 @@
     let seoulGeoJsonData = null;
     let nationGeoJsonData = null;
 
-    // --- 네이버 지도 초기화 및 지도 라벨 숨김 설정 ---
+    // --- 네이버 지도 초기화 및 지도 라벨 숨김 설정 (팩토리 패턴 버그 수정) ---
     function initMap() {
-        const customNoLabelType = new naver.maps.NaverStyleMapTypeOptions({
-            opacity: 1,
-            projection: naver.maps.TM128,
-            mapTypeId: 'normal_no_labels',
+        // ★ 중요: NaverStyleMapTypeOptions.getNormalMap 팩토리 메서드를 호출하여 MapType 인스턴스를 직접 생성
+        const customNoLabelType = naver.maps.NaverStyleMapTypeOptions.getNormalMap({
             overlayType: 'bg.ol' // 지명 라벨을 로드하지 않고 지도 배경과 실폭선만 로딩
         });
 
@@ -378,7 +376,7 @@
             },
             mapTypeControl: false,
             mapTypes: new naver.maps.MapTypeRegistry({
-                'normal_no_labels': new naver.maps.NaverStyleMapType(customNoLabelType)
+                'normal_no_labels': customNoLabelType
             }),
             mapTypeId: 'normal_no_labels'
         };
@@ -415,15 +413,10 @@
         loadQuestion(0);
     }
 
-    // --- ★ 고난도 변별력 확보: 동일 카테고리(서울/인천/경기) 보기 매칭 엔진 ---
+    // --- 고난도 변별력 확보: 동일 카테고리(서울/인천/경기) 보기 매칭 엔진 ---
     function buildMatchingQuestion(targetDistrict) {
-        // 동일한 지역 타입(서울/인천/경기)을 가진 행정구역들을 모읍니다.
         const sameTypePool = metropolitanDatabase.filter(d => d.type === targetDistrict.type && d.name !== targetDistrict.name);
-        
-        // 셔플하여 3개의 오답을 동일 지역 그룹에서만 추출
         const wrongDistricts = sameTypePool.sort(() => 0.5 - Math.random()).slice(0, 3);
-        
-        // 보기 4개 구성 (정답 1개 + 동그룹 오답 3개)
         const options = [targetDistrict.name, ...wrongDistricts.map(d => d.name)].sort(() => 0.5 - Math.random());
 
         return {
@@ -439,13 +432,15 @@
     // --- 개별 문제 및 지도 맞춤형 카메라 렌더링 ---
     function loadQuestion(index) {
         selectedOption = null;
-        document.getElementById('submit-btn').disabled = true;
-        document.getElementById('submit-btn').textContent = "선택 즉시 정답 확인";
+        isAnswerSubmitted = false;
+        
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = "정답 제출하기";
         document.getElementById('feedback-message').textContent = "";
-        document.getElementById('feedback-message').style.color = "inherit";
 
         // 상단 스코어보드 및 프로그레스바 갱신
-        const progressPercent = ((index) / 10) * 100;
+        const progressPercent = (index / 10) * 100;
         document.getElementById('progress-bar').style.width = progressPercent + "%";
         document.getElementById('current-q-num').textContent = index + 1;
 
@@ -459,11 +454,10 @@
         typeBadge.style.backgroundColor = "#eff6ff";
         typeBadge.style.color = "#1d4ed8";
         
-        // 지시 대상에 맞춘 텍스트 표현
         const regionCategory = q.districtType === "서울" ? "서울특별시의 자치구" : q.districtType === "인천" ? "인천광역시의 군·구" : "경기도의 시·군·일반구";
         qText.innerHTML = `지도에 하이라이트된 주황색 영역과 빨간 점이 가리키는 <strong style="color: #2563eb;">"${regionCategory}"</strong>는 어디일까요?`;
 
-        // 보기 동적 랜더링
+        // 보기 동적 렌더링
         const optionsContainer = document.getElementById('options-container');
         optionsContainer.innerHTML = '';
 
@@ -481,82 +475,73 @@
 
     // --- 선택 동작 제어 ---
     function selectOption(btn, val) {
+        if (isAnswerSubmitted) return; // 이미 제출된 경우 터치 무시
         document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         selectedOption = val;
         document.getElementById('submit-btn').disabled = false;
     }
 
-    // --- 정답 확인 및 시각 피드백 ---
-    document.getElementById('submit-btn').onclick = () => {
+    // --- 제출 및 다음 문제 이동 통합 단일 버튼 로직 ---
+    document.getElementById('submit-btn').onclick = function() {
         const q = currentQuizPool[currentQuestionIndex];
-        const buttons = document.querySelectorAll('.option-btn');
         const feedback = document.getElementById('feedback-message');
-        let pointsEarned = 0;
+        const submitBtn = this;
 
-        buttons.forEach(btn => {
-            btn.disabled = true;
-            const btnVal = btn.textContent;
+        if (!isAnswerSubmitted) {
+            // [상태 1]: 사용자 답안 제출 처리 및 피드백 시각화
+            isAnswerSubmitted = true;
+            const buttons = document.querySelectorAll('.option-btn');
 
-            // 정답 표시
-            if (btnVal === q.correctAnswer) {
-                btn.style.borderColor = "#22c55e";
-                btn.style.backgroundColor = "#f0fdf4";
-                btn.style.color = "#16a34a";
+            buttons.forEach(btn => {
+                btn.disabled = true; // 더이상 클릭 불가하게 잠금
+                const btnVal = btn.textContent;
+
+                // 정답 표시 (초록색 테두리)
+                if (btnVal === q.correctAnswer) {
+                    btn.style.borderColor = "#22c55e";
+                    btn.style.backgroundColor = "#f0fdf4";
+                    btn.style.color = "#16a34a";
+                }
+                // 오답인데 선택한 대상 표시 (빨간색 테두리)
+                if (selectedOption === btnVal && btnVal !== q.correctAnswer) {
+                    btn.style.borderColor = "#ef4444";
+                    btn.style.backgroundColor = "#fef2f2";
+                    btn.style.color = "#dc2626";
+                }
+            });
+
+            if (selectedOption === q.correctAnswer) {
+                score += 10;
+                feedback.innerHTML = "정답입니다! 🎉 (+10점)";
+                feedback.style.color = "#16a34a";
+            } else {
+                feedback.innerHTML = `아쉽습니다. 오답입니다. (정답: <strong>${q.correctAnswer}</strong>)`;
+                feedback.style.color = "#ef4444";
             }
-            // 오답인데 선택한 대상 표시
-            if (selectedOption === btnVal && btnVal !== q.correctAnswer) {
-                btn.style.borderColor = "#ef4444";
-                btn.style.backgroundColor = "#fef2f2";
-                btn.style.color = "#dc2626";
-            }
-        });
 
-        if (selectedOption === q.correctAnswer) {
-            pointsEarned = 10;
-            score += pointsEarned;
-            feedback.innerHTML = "정답입니다! 🎉 (+10점)";
-            feedback.style.color = "#16a34a";
+            document.getElementById('current-score').textContent = score;
+
+            // 다음 행동 유도 버튼 텍스트 변경
+            if (currentQuestionIndex < 9) {
+                submitBtn.textContent = "다음 문제 풀기 ➔";
+            } else {
+                document.getElementById('progress-bar').style.width = "100%";
+                submitBtn.textContent = "최종 결과 확인하기";
+            }
         } else {
-            feedback.innerHTML = `아쉽습니다. 오답입니다. (정답: <strong>${q.correctAnswer}</strong>)`;
-            feedback.style.color = "#ef4444";
-        }
-
-        document.getElementById('current-score').textContent = score;
-
-        // 제출 버튼 인터페이스 상태 머신 전환
-        const submitBtn = document.getElementById('submit-btn');
-        if (currentQuestionIndex < 9) {
-            submitBtn.textContent = "다음 문제 풀기 ➔";
-            submitBtn.onclick = () => {
+            // [상태 2]: 결과가 발표된 상태에서 다음 단계로 넘어가는 액션
+            if (currentQuestionIndex < 9) {
                 currentQuestionIndex++;
                 loadQuestion(currentQuestionIndex);
-                restoreSubmitBtnState();
-            };
-        } else {
-            // 프로그레스바 100% 완료로 조정
-            document.getElementById('progress-bar').style.width = "100%";
-            submitBtn.textContent = "최종 결과 확인하기";
-            submitBtn.onclick = () => {
+            } else {
                 showFinalResults();
-            };
+            }
         }
     };
 
-    function restoreSubmitBtnState() {
-        const btn = document.getElementById('submit-btn');
-        btn.textContent = "선택 즉시 정답 확인";
-        btn.disabled = true;
-        btn.onclick = () => {
-            document.getElementById('submit-btn').click();
-        };
-        // 동적 갱신 바인딩 복원
-        location.reload;
-    }
-
-    // --- ★ 주황 하이라이트 경계선 누락 전면 해결: 정규화 매칭 & 부드러운 자동 줌 카메라 무빙 ---
+    // --- 주황 하이라이트 경계선 매칭 및 부드러운 자동 줌 카메라 무빙 ---
     function renderMapHighlight(q) {
-        // 1. 기존 오버레이와 마커 깨끗이 청소
         if (geojsonLayer) {
             geojsonLayer.setMap(null);
             geojsonLayer = null;
@@ -568,29 +553,25 @@
 
         const targetLatLng = new naver.maps.LatLng(q.lat, q.lng);
 
-        // 2. 부드럽고 우아한 지도 초점 이동 (map.morph) 및 정밀한 줌 자동 연동
+        // 부드럽게 화면 이동 (morph) 및 영역 비례 맞춤형 줌 설정
         const optimalZoom = (q.districtType === "서울") ? 12 : (q.correctAnswer.includes("군") || q.correctAnswer.includes("면")) ? 10 : 11;
         map.morph(targetLatLng, optimalZoom, {
             duration: 450,
             easing: 'easeOutCubic'
         });
 
-        // 3. 지형 타입에 따른 GeoJSON 데이터 분기
         const activeGeoJson = (q.districtType === "서울") ? seoulGeoJsonData : nationGeoJsonData;
         if (!activeGeoJson) return;
 
-        // 4. 유연하고 견고한 행정구역 매칭 (공백, 하이픈, 중복 명칭 완벽 대응)
+        // 경기도 일반구 명칭 정합성 에러 패치
         const matchedFeatures = activeGeoJson.features.filter(feature => {
-            // GeoJSON의 이름 포맷을 가공
             const rawGeoName = feature.properties.name || feature.properties.name_kor || feature.properties.SIG_KOR_NM || "";
-            const cleanGeoName = rawGeoName.replace(/[\s-]/g, ""); // 공백 및 대시 제거
+            const cleanGeoName = rawGeoName.replace(/[\s-]/g, ""); 
             const cleanQuizName = q.correctAnswer.replace(/[\s-]/g, "");
 
-            // 1:1 체크 및 부분 일치 유연도 대입
             return (cleanGeoName.includes(cleanQuizName) || cleanQuizName.includes(cleanGeoName));
         });
 
-        // 5. 영역 경계선 그리기
         if (matchedFeatures.length > 0) {
             const finalGeoJson = {
                 type: "FeatureCollection",
@@ -600,7 +581,6 @@
             geojsonLayer = new naver.maps.Data();
             geojsonLayer.addGeoJson(finalGeoJson);
 
-            // 주황색 스타일 설정
             geojsonLayer.setStyle(feature => {
                 return {
                     fillColor: '#f97316',
@@ -616,18 +596,18 @@
             console.warn(`경계선 지오메트리를 찾지 못했습니다: ${q.correctAnswer}`);
         }
 
-        // 6. 빨간색 식별 점(마커)을 지도 중심에 생성
+        // 중심점에 빨간색 핀 마커 생성
         centerMarker = new naver.maps.Marker({
             position: targetLatLng,
             map: map,
             icon: {
-                content: '<div style="width: 16px; height: 14px; background-color: #ef4444; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.3);"></div>',
-                anchor: new naver.maps.Point(8, 7)
+                content: '<div style="width: 16px; height: 16px; background-color: #ef4444; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.3);"></div>',
+                anchor: new naver.maps.Point(8, 8)
             }
         });
     }
 
-    // --- 최종 종합 평가 성적표 출력 ---
+    // --- 최종 종합 평가 결과표 출력 ---
     function showFinalResults() {
         document.getElementById('final-score').textContent = score;
         const evaluation = document.getElementById('result-evaluation');
@@ -639,7 +619,7 @@
         } else if (score >= 50) {
             evaluation.innerHTML = "😊 보통 실력입니다.<br>동일 그룹 퀴즈를 반복하며 눈에 구역 형태를 익히면 고수가 될 수 있습니다.";
         } else {
-            evaluation.innerHTML = "✏️ 아쉬운 결과지만 포기하지 마세요!<br>지도를 직접 클릭하고 탐색해 보며 공간 감각을 천천히 깨워봅시다.";
+            evaluation.innerHTML = "✏️ 아쉬운 결과지만 포기하지 마세요!<br>반복 도전해 보며 지형 감각을 천천히 깨워봅시다.";
         }
 
         document.getElementById('result-overlay').style.display = 'flex';
