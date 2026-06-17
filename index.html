@@ -346,14 +346,12 @@
     let centerMarker = null;
     let isAnswerSubmitted = false;
 
-    // CDN 분산 서버 경로
     const SEOUL_GEOJSON_URL = "https://cdn.jsdelivr.net/gh/southkorea/seoul-maps@master/kostat/2013/json/seoul_municipalities_geo_simple.json";
     const NATION_GEOJSON_URL = "https://cdn.jsdelivr.net/gh/southkorea/southkorea-maps@master/gadm/json/skorea-municipalities-geo.json";
 
     let seoulGeoJsonData = null;
     let nationGeoJsonData = null;
 
-    // --- [안전 가동 장치] 퀴즈 생성 원천 우선 보장 ---
     function prebuildQuiz() {
         const shuffled = [...metropolitanDatabase].sort(() => 0.5 - Math.random());
         currentQuizPool = shuffled.slice(0, 10).map(targetDistrict => {
@@ -361,28 +359,23 @@
         });
     }
 
-    // --- [핵심 수정] 네이버 지도 객체 결함 검출 및 무조건 로드 기법 ---
     function initMap() {
-        // 문제 풀을 가장 먼저 조립 (지도 로드 실패 대비)
         prebuildQuiz();
 
-        // 1. 네이버 지도 API 스크립트 자체가 누락/차단되었는지 초정밀 검사
         if (typeof naver === 'undefined' || !naver.maps) {
-            console.error("NAVER 지도 엔진 객체를 전혀 찾을 수 없습니다. 퀴즈 우선 모드로 강제 진입합니다.");
-            startGame(); // 지도는 안 나오더라도 퀴즈 패널은 즉시 가동시킴
+            console.error("NAVER 지도 엔진 로드 불가. 퀴즈 긴급 활성화.");
+            startGame();
             return;
         }
 
-        // 2. 지도 초기화 진행 (try-catch 안에서 2차 크래시가 전혀 없도록 완전히 분리)
         try {
-            // 커스텀 스타일맵 적용 시도
             let customMapType = null;
             try {
                 customMapType = naver.maps.NaverStyleMapTypeOptions.getNormalMap({
                     overlayType: 'bg.ol'
                 });
             } catch (styleMapError) {
-                console.warn("오버레이 스타일맵 생성 실패. 표준 모드로 우회합니다.", styleMapError);
+                console.warn("오버레이 스타일맵 생성 무시.", styleMapError);
             }
 
             const mapOptions = {
@@ -395,7 +388,6 @@
                 mapTypeControl: false
             };
 
-            // 스타일맵 적용이 성공했다면 스타일맵을 세팅하고, 실패했다면 일반형(NORMAL) 세팅
             if (customMapType) {
                 mapOptions.mapTypes = new naver.maps.MapTypeRegistry({ 'normal_no_labels': customMapType });
                 mapOptions.mapTypeId = 'normal_no_labels';
@@ -406,10 +398,9 @@
             map = new naver.maps.Map('map-container', mapOptions);
 
         } catch (mapLoadError) {
-            console.error("지도 캔버스 그리기에 실패했습니다.", mapLoadError);
+            console.error("지도 그리기 에러 격리.", mapLoadError);
         }
 
-        // 3. 지형 데이터 로딩 (에러 발생 시 무소속 데이터로 자동 격리)
         Promise.all([
             fetch(SEOUL_GEOJSON_URL).then(res => res.ok ? res.json() : null).catch(() => null),
             fetch(NATION_GEOJSON_URL).then(res => res.ok ? res.json() : null).catch(() => null)
@@ -418,7 +409,7 @@
             nationGeoJsonData = nation;
             startGame();
         }).catch(err => {
-            console.warn("데이터 연동 지연 발생. 퀴즈 긴급 활성화.", err);
+            console.warn("데이터 지연. 즉시 실행.", err);
             startGame();
         });
     }
@@ -482,13 +473,12 @@
             optionsContainer.appendChild(btn);
         });
 
-        // 지도 표시는 메인 스레드에 어떠한 악영향도 주지 않도록 개별 샌드박스로 안전 구동
         try {
             if (map) {
                 renderMapHighlight(q);
             }
         } catch (mapRenderError) {
-            console.warn("지도 그래픽 갱신 중 무해한 오류 격리 처리:", mapRenderError);
+            console.warn("지도 렌더 오류 무해 조치:", mapRenderError);
         }
     }
 
@@ -576,10 +566,14 @@
         const activeGeoJson = (q.districtType === "서울") ? seoulGeoJsonData : nationGeoJsonData;
         if (!activeGeoJson) return;
 
+        // ★ [대형 패치] 빈 데이터 매칭 가드 코드 작성 완료 (전국 주황색 칠해짐 및 렉 발생 철저하게 해결) ★
         const matchedFeatures = activeGeoJson.features.filter(feature => {
             const rawGeoName = feature.properties.name || feature.properties.name_kor || feature.properties.SIG_KOR_NM || "";
-            const cleanGeoName = rawGeoName.replace(/[\s-]/g, ""); 
-            const cleanQuizName = q.correctAnswer.replace(/[\s-]/g, "");
+            const cleanGeoName = rawGeoName.replace(/[\s-]/g, "").trim(); 
+            const cleanQuizName = q.correctAnswer.replace(/[\s-]/g, "").trim();
+
+            // 만약 이름이 비어 있는 데이터가 들어온다면 연산을 무시하고 패스시킵니다.
+            if (!cleanGeoName) return false;
 
             return (cleanGeoName.includes(cleanQuizName) || cleanQuizName.includes(cleanGeoName));
         });
