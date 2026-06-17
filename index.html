@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>수도권 지리 마스터 (실제 지도 구/동 이중 시각화)</title>
+    <title>수도권 지리 마스터 (수도권 전역 고정밀 퀴즈)</title>
     
-    <!-- 실제 정밀 지도를 쓰기 위한 Leaflet CSS (보안 우회형 라이브러리) -->
+    <!-- 실시간 정밀 지도용 Leaflet CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     
     <style>
@@ -32,7 +32,6 @@
             z-index: 1000;
         }
 
-        /* 실제 지도 렌더링 영역 */
         #map {
             flex: 1;
             width: 100%;
@@ -184,16 +183,15 @@
 </head>
 <body>
 
-    <header>🗺️ 수도권 지리 마스터 (진짜 지도 영역 매칭)</header>
+    <header>🗺️ 수도권 지리 마스터 (수도권 전역 실측 경계 퀴즈)</header>
 
-    <!-- 🌟 실제 세부 지도가 로딩되는 영역 -->
     <div id="map"></div>
 
     <div id="quiz-container">
         <div class="question-box">
             <span class="question-type-badge" id="q-type-badge">유형</span>
-            <div class="question-text" id="q-title">지도를 그리는 중입니다...</div>
-            <div class="question-desc" id="q-desc">잠시만 기다려 주시면 실제 지도가 나타납니다.</div>
+            <div class="question-text" id="q-title">지도를 실시간으로 그리는 중입니다...</div>
+            <div class="question-desc" id="q-desc">고정밀 행정구역 경계망 데이터를 준비 중입니다.</div>
         </div>
         
         <div class="options-grid" id="options-container"></div>
@@ -209,122 +207,105 @@
     <!-- 결과 모달 -->
     <div id="result-modal">
         <div class="modal-content">
-            <h2>🎉 퀴즈 종료!</h2>
+            <h2>🎉 퀴즈 대종료!</h2>
             <div class="score-text" id="final-score">0점 / 100점</div>
             <p id="feedback-msg">참 잘하셨어요!</p>
             <button class="restart-btn" onclick="restartQuiz()">다시 하기</button>
         </div>
     </div>
 
-    <!-- 🌟 실제 지도 구동용 Leaflet JS 라이브러리 -->
+    <!-- 실제 지도 구동 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script>
-        // --- 실제 지도에 표현될 각 구(District)들의 다각형 경계선 위도/경도 좌표 모음 ---
-        // 지형 모양을 지도 위에 직접 다각형으로 그리기 위한 고정밀 좌표셋입니다.
-        const districtCoordinates = {
-            "서울 영등포구": [
-                [37.5401, 126.8856], [37.5451, 126.8996], [37.5348, 126.9388], 
-                [37.5181, 126.9367], [37.4912, 126.9080], [37.4831, 126.8967], 
-                [37.5020, 126.8800], [37.5251, 126.8722]
-            ],
-            "인천 연수구": [
-                [37.4299, 126.6380], [37.4261, 126.6800], [37.3820, 126.6980], 
-                [37.3450, 126.6450], [37.3750, 126.6110], [37.4050, 126.6150]
-            ],
-            "경기 성남시 분당구": [
-                [37.4190, 127.1080], [37.4050, 127.1550], [37.3350, 127.1750], 
-                [37.3300, 127.0950], [37.3750, 127.0850]
-            ],
-            "서울 마포구": [
-                [37.5851, 126.8796], [37.5750, 126.9150], [37.5501, 126.9538], 
-                [37.5350, 126.9422], [37.5420, 126.9180], [37.5581, 126.8850]
-            ],
-            "서울 강남구": [
-                [37.5290, 127.0250], [37.5310, 127.0650], [37.4950, 127.0850], 
-                [37.4610, 127.1150], [37.4520, 127.0550], [37.4850, 127.0350]
-            ],
-            "서울 동작구": [
-                [37.5130, 126.9150], [37.5180, 126.9600], [37.4890, 126.9800], 
-                [37.4780, 126.9550], [37.4920, 126.9100]
-            ],
-            "경기 수원시 팔달구": [
-                [37.2910, 127.0050], [37.2920, 127.0350], [37.2650, 127.0350], 
-                [37.2650, 127.0120], [37.2750, 127.0010]
-            ],
-            "인천 남동구": [
-                [37.4710, 126.6950], [37.4720, 126.7550], [37.4120, 126.7550], 
-                [37.3910, 126.7250], [37.4150, 126.6950]
-            ],
-            "서울 종로구": [
-                [37.6210, 126.9750], [37.6050, 127.0180], [37.5680, 127.0150], 
-                [37.5650, 126.9650], [37.5850, 126.9600]
-            ]
+        let map;
+        let activeQuizList = [];
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedAnswers = [];
+
+        let currentGeoJSONLayer = null; 
+        let currentMarker = null;       
+
+        // 🌟 수도권 전역(서울, 인천, 경기 전체 시군구) 행정구역 데이터
+        const GEOJSON_URLS = {
+            seoul: "https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json",
+            incheon: "https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2013/json/skorea_municipalities_geo_simple.json" 
         };
 
-        // --- 실시간 퀴즈용 구글좌표 기반 데이터셋 ---
+        let geoJsonCache = { seoul: null, incheon: null };
+
+        // 🌟 [수도권 전역] 퀴즈 데이터셋 전면 확장! (기존 서울/인천 외 경기 파주, 안양, 부천, 고양 등 광범위 추가)
         const originalQuizPool = [
+            // 유형 1: 지도 단일 지점 맞추기 (single)
             {
                 type: "single",
                 title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
-                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
-                lat: 37.5255, lng: 126.9245, // 여의도동 중심
-                district: "서울 영등포구",
+                desc: "실제 정밀 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.5255, lng: 126.9245, 
+                districtName: "영등포구", 
+                dbType: "seoul",
                 correct: "여의도동 (서울 영등포구)",
                 options: ["명동 (서울 중구)", "여의도동 (서울 영등포구)", "강남동 (서울 강남구)", "대학로 (서울 종로구)"]
             },
             {
                 type: "single",
                 title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
-                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
-                lat: 37.3850, lng: 126.6540, // 송도동 중심
-                district: "인천 연수구",
+                desc: "실제 정밀 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.3850, lng: 126.6540, 
+                districtName: "연수구",
+                dbType: "incheon",
                 correct: "송도동 (인천 연수구)",
                 options: ["구월동 (인천 남동구)", "주안동 (인천 미추홀구)", "송도동 (인천 연수구)", "영종동 (인천 중구)"]
             },
             {
                 type: "single",
-                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
-                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
-                lat: 37.3620, lng: 127.1130, // 분당 정자동 중심
-                district: "경기 성남시 분당구",
-                correct: "정자동 (경기 성남시 분당구)",
-                options: ["정자동 (경기 성남시 분당구)", "인계동 (경기 수원시 팔달구)", "백석동 (경기 고양시 일산동구)", "단원동 (경기 안산시)"]
+                title: "지도에 노란 영역으로 표시된 '시'는 어디일까요?",
+                desc: "경기 남부, 1호선 안양역 및 평촌신도시가 속해 있는 도시입니다.",
+                lat: 37.3943, lng: 126.9568, // 안양시 동안구 부근
+                districtName: "안양시 동안구",
+                dbType: "incheon",
+                correct: "범계동 (경기 안양시)",
+                options: ["정자동 (경기 성남시)", "범계동 (경기 안양시)", "철산동 (경기 광명시)", "원당동 (경기 고양시)"]
             },
             {
                 type: "single",
                 title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
-                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
-                lat: 37.5794, lng: 126.8898, // 상암동 중심
-                district: "서울 마포구",
-                correct: "상암동 (서울 마포구)",
-                options: ["목동 (서울 양천구)", "상암동 (서울 마포구)", "신촌동 (서울 서대문구)", "성수동 (서울 성동구)"]
+                desc: "경기 북부 고양시의 랜드마크인 호수공원과 일산동구 지역입니다.",
+                lat: 37.6625, lng: 126.7908, 
+                districtName: "고양시 일산동구",
+                dbType: "incheon",
+                correct: "백석동 (경기 고양시 일산동구)",
+                options: ["화정동 (경기 덕양구)", "백석동 (경기 고양시 일산동구)", "운정동 (경기 파주시)", "풍무동 (경기 김포시)"]
             },
             {
                 type: "single",
                 title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
-                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
-                lat: 37.5113, lng: 127.0596, // 삼성동 중심
-                district: "서울 강남구",
+                desc: "실제 정밀 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
+                lat: 37.5113, lng: 127.0596, 
+                districtName: "강남구",
+                dbType: "seoul",
                 correct: "삼성동 (서울 강남구)",
                 options: ["성수동 (서울 성동구)", "삼성동 (서울 강남구)", "한남동 (서울 용산구)", "천호동 (서울 강동구)"]
             },
             {
                 type: "single",
                 title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
-                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
-                lat: 37.4925, lng: 126.9242, // 신대방동 중심
-                district: "서울 동작구",
+                desc: "서울 서남부 관악산 인근 동작대교 하단 주거밀집 구역입니다.",
+                lat: 37.4925, lng: 126.9242, 
+                districtName: "동작구",
+                dbType: "seoul",
                 correct: "신대방동 (서울 동작구)",
                 options: ["구로동 (서울 구로구)", "신대방동 (서울 동작구)", "봉천동 (서울 관악구)", "화곡동 (서울 강서구)"]
             },
             {
                 type: "single",
-                title: "지도에 노란 영역으로 표시된 '구'는 어디일까요?",
-                desc: "실제 정밀 도로와 지형을 보고 4지선다 보기 중 알맞은 동이 속한 구를 고르세요.",
-                lat: 37.4010, lng: 127.0990, // 판교동 중심
-                district: "경기 성남시 분당구",
-                correct: "판교동 (경기 성남시 분당구)",
-                options: ["광교동 (경기 수원시)", "별내동 (경기 남양주시)", "배곧동 (경기 시흥시)", "판교동 (경기 성남시 분당구)"]
+                title: "지도에 노란 영역으로 표시된 '시'는 어디일까요?",
+                desc: "인천과 인접한 경기 서부권 핵심 도시로, 부천 상동/중동이 있는 곳입니다.",
+                lat: 37.5034, lng: 126.7660, 
+                districtName: "부천시",
+                dbType: "incheon",
+                correct: "상동 (경기 부천시)",
+                options: ["상동 (경기 부천시)", "구월동 (인천 남동구)", "철산동 (경기 광명시)", "시흥동 (서울 금천구)"]
             },
 
             // 유형 2: 구에 속하는 동 3개 찾기 (multi)
@@ -333,25 +314,28 @@
                 title: "📍 서울 마포구",
                 desc: "지도 위 노란색 영역(마포구)을 보며 여기에 속하는 동 3개를 고르세요.",
                 lat: 37.5622, lng: 126.9083,
-                district: "서울 마포구",
+                districtName: "마포구",
+                dbType: "seoul",
                 correct: ["상암동", "망원동", "공덕동"],
                 wrong: ["목동", "여의도동", "성수동", "화곡동", "신도림동", "신촌동", "번동"]
             },
             {
                 type: "multi",
-                title: "📍 인천 연수구",
-                desc: "지도 위 노란색 영역(연수구)을 보며 여기에 속하는 동 3개를 고르세요.",
-                lat: 37.4093, lng: 126.6788,
-                district: "인천 연수구",
-                correct: ["송도동", "옥련동", "선학동"],
-                wrong: ["구월동", "주안동", "부평동", "인현동", "계산동", "간석동", "숭의동"]
+                title: "📍 인천 부평구",
+                desc: "지도 위 노란색 영역(부평구)을 보며 부평구에 속하는 동 3개를 골라보세요.",
+                lat: 37.5073, lng: 126.7219,
+                districtName: "부평구",
+                dbType: "incheon",
+                correct: ["갈산동", "부개동", "청천동"],
+                wrong: ["송도동", "구월동", "주안동", "계산동", "옥련동", "논현동", "석남동"]
             },
             {
                 type: "multi",
                 title: "📍 경기 성남시 분당구",
                 desc: "지도 위 노란색 영역(분당구)을 보며 여기에 속하는 동 3개를 고르세요.",
                 lat: 37.3827, lng: 127.1189,
-                district: "경기 성남시 분당구",
+                districtName: "분당구",
+                dbType: "incheon",
                 correct: ["정자동", "판교동", "야탑동"],
                 wrong: ["인계동", "상록동", "화정동", "철산동", "산본동", "풍덕천동", "마두동"]
             },
@@ -360,7 +344,8 @@
                 title: "📍 서울 강남구",
                 desc: "지도 위 노란색 영역(강남구)을 보며 여기에 속하는 동 3개를 고르세요.",
                 lat: 37.4960, lng: 127.0628,
-                district: "서울 강남구",
+                districtName: "강남구",
+                dbType: "seoul",
                 correct: ["역삼동", "압구정동", "개포동"],
                 wrong: ["한남동", "잠실동", "방배동", "사당동", "천호동", "장안동", "혜화동"]
             },
@@ -369,55 +354,56 @@
                 title: "📍 경기 수원시 팔달구",
                 desc: "지도 위 노란색 영역(팔달구)을 보며 여기에 속하는 동 3개를 고르세요.",
                 lat: 37.2824, lng: 127.0190,
-                district: "경기 수원시 팔달구",
+                districtName: "팔달구",
+                dbType: "incheon",
                 correct: ["인계동", "우만동", "행궁동"],
                 wrong: ["영통동", "호매실동", "정자동", "송죽동", "망포동", "조원동", "율전동"]
             },
             {
                 type: "multi",
-                title: "📍 인천 남동구",
-                desc: "지도 위 노란색 영역(남동구)을 보며 여기에 속하는 동 3개를 고르세요.",
-                lat: 37.4471, lng: 126.7314,
-                district: "인천 남동구",
-                correct: ["구월동", "간석동", "논현동"],
-                wrong: ["송림동", "작전동", "검암동", "옥련동", "연희동", "학익동", "만석동"]
+                title: "📍 경기 파주시",
+                desc: "경기 북부 임진강 하류와 운정신도시가 있는 파주시에 속한 동 3개를 고르세요.",
+                lat: 37.7594, lng: 126.7801,
+                districtName: "파주시",
+                dbType: "incheon",
+                correct: ["야당동", "금촌동", "문산읍"],
+                wrong: ["대화동", "장항동", "식사동", "화정동", "행신동", "정발산동", "백석동"]
             },
             {
                 type: "multi",
                 title: "📍 서울 종로구",
                 desc: "지도 위 노란색 영역(종로구)을 보며 여기에 속하는 동 3개를 고르세요.",
                 lat: 37.5730, lng: 126.9794,
-                district: "서울 종로구",
+                districtName: "종로구",
+                dbType: "seoul",
                 correct: ["혜화동", "사직동", "인사동"],
                 wrong: ["을지로동", "신당동", "회현동", "충정로동", "효창동", "보문동", "성북동"]
             }
         ];
 
-        let activeQuizList = [];
-        let currentQuestion = 0;
-        let score = 0;
-        let map;
-        
-        // 🌟 지도 위에 실시간으로 그려질 레이어들을 추적하는 변수
-        let currentPolygon = null; // 구 영역 레이어
-        let currentMarker = null;  // 정답 동 마커 레이어
-        let selectedAnswers = [];
-
         function initMap() {
-            // 실제 정밀 지도 렌더링
             map = L.map('map', {
                 zoomControl: false,
                 minZoom: 10,
                 maxZoom: 15
             }).setView([37.5665, 126.9780], 11);
 
-            // 글씨 없는 실제 세부 도로 지도 레이어 추가
             L.tileLayer('https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
                 attribution: '© OpenStreetMap, © CARTO',
                 subdomains: 'abcd'
             }).addTo(map);
 
-            setupGame();
+            Promise.all([
+                fetch(GEOJSON_URLS.seoul).then(res => res.json()),
+                fetch(GEOJSON_URLS.incheon).then(res => res.json())
+            ]).then(([seoulData, incheonData]) => {
+                geoJsonCache.seoul = seoulData;
+                geoJsonCache.incheon = incheonData;
+                setupGame();
+            }).catch(err => {
+                alert("정밀 지도를 가져오는 도중 연결 장애가 발생했습니다. 새로고침을 해주세요!");
+                console.error(err);
+            });
         }
 
         function setupGame() {
@@ -432,37 +418,38 @@
             const data = activeQuizList[currentQuestion];
             selectedAnswers = [];
 
-            // 1) 이전 지도 레이어 싹 다 지우기
-            if (currentPolygon) map.removeLayer(currentPolygon);
+            if (currentGeoJSONLayer) map.removeLayer(currentGeoJSONLayer);
             if (currentMarker) map.removeLayer(currentMarker);
 
-            // 2) 실제 지도를 타겟 위치로 웅장하게 이동
             map.flyTo([data.lat, data.lng], 12, {
                 animate: true,
                 duration: 1.2
             });
 
-            // 3) 🌟 정답 구 전체 영역을 실제 지도 위에 다각형으로 노랗게 그리기
-            const polyCoords = districtCoordinates[data.district];
-            if (polyCoords) {
-                currentPolygon = L.polygon(polyCoords, {
-                    color: '#e67e22',       // 주황색 선
-                    weight: 2,
-                    fillColor: '#f1c40f',   // 노란색 영역
-                    fillOpacity: 0.45       // 반투명 처리하여 도로가 다 비치게 함
+            const targetGeoDB = geoJsonCache[data.dbType];
+            if (targetGeoDB) {
+                currentGeoJSONLayer = L.geoJSON(targetGeoDB, {
+                    filter: function(feature) {
+                        const fName = feature.properties.name || feature.properties.sig_kor_nm || "";
+                        return fName.includes(data.districtName);
+                    },
+                    style: {
+                        color: "#e67e22",       
+                        weight: 3,
+                        fillColor: "#f1c40f",   
+                        fillOpacity: 0.45       
+                    }
                 }).addTo(map);
             }
 
-            // 4) 🌟 정답 동 세부 위치를 빨간 원 마커로 콕 찝어 정밀 표시
             if (data.type === 'single') {
                 currentMarker = L.circle([data.lat, data.lng], {
                     color: '#c0392b',
                     fillColor: '#e74c3c',
                     fillOpacity: 0.8,
-                    radius: 350 // 정확한 위치 350m 원
+                    radius: 300 
                 }).addTo(map);
             } else {
-                // 유형 2에서는 작은 점 가이드 형태로 표시
                 currentMarker = L.circle([data.lat, data.lng], {
                     color: '#d35400',
                     fillColor: '#e67e22',
@@ -471,7 +458,6 @@
                 }).addTo(map);
             }
 
-            // UI 구성
             const container = document.getElementById('options-container');
             const submitBtn = document.getElementById('submit-btn');
             const typeBadge = document.getElementById('q-type-badge');
@@ -596,7 +582,7 @@
             score += pts;
             submitBtn.disabled = true;
             submitBtn.innerText = `채점 완료 (+${pts}점)`;
-            submitBtn.style.backgroundColor = "#7f8c8d";
+            submitBtn.style.backgroundColor = "#7f8d8d";
 
             alert(`정답 동을 ${matched}개 찾았습니다! (+${pts}점)`);
             nextStep();
