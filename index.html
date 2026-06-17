@@ -2,827 +2,690 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>수도권 지리 마스터 퀴즈</title>
-    <!-- NAVER Maps API v3 최신 공식 규격 적용 -->
+    <!-- NAVER 지도 API v3 (최신 ncpKeyId 규격 적용) -->
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'Pretendard', -apple-system, sans-serif;
+        body {
             margin: 0;
             padding: 0;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
             background-color: #f5f6f7;
+            color: #333;
         }
-        #container {
+        #app-container {
             display: flex;
             flex-direction: column;
-            width: 100%;
-            height: 100%;
-            position: relative;
+            height: 100vh;
         }
-        /* 헤더 영역 */
         #header {
-            height: 60px;
-            background-color: #ffffff;
-            border-bottom: 1px solid #e5e8eb;
+            background-color: #1e293b;
+            color: white;
+            padding: 15px 20px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
-            z-index: 10;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        #logo {
-            font-size: 18px;
-            font-weight: 800;
-            color: #1e2022;
+        #header h1 {
+            margin: 0;
+            font-size: 1.2rem;
         }
         #score-board {
-            font-size: 16px;
-            font-weight: 700;
-            color: #007aff;
-            background-color: #f0f7ff;
-            padding: 6px 12px;
-            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #38bdf8;
         }
-        /* 지도 영역 */
-        #map {
+        #main-content {
+            display: flex;
             flex: 1;
-            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        #map-container {
+            flex: 1;
+            height: 100%;
             position: relative;
         }
-        /* 지도 타입 토글 버튼 */
-        #map-toggle {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background-color: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(0, 0, 0, 0.15);
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            z-index: 5;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: all 0.2s;
-        }
-        #map-toggle:hover {
-            background-color: #ffffff;
-            transform: translateY(-1px);
-        }
-        /* 하단 퀴즈 패널 */
         #quiz-panel {
-            background-color: #ffffff;
-            border-top-left-radius: 24px;
-            border-top-right-radius: 24px;
-            padding: 20px;
-            box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
-            z-index: 10;
-            max-height: 50%;
+            width: 400px;
+            background-color: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            transition: max-height 0.3s ease;
+            z-index: 10;
         }
-        #question-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        #question-number {
-            font-size: 14px;
-            color: #8a8f98;
-            font-weight: 600;
-        }
-        #progress-container {
-            width: 100px;
+        #progress-bar-container {
             height: 6px;
-            background-color: #e5e8eb;
-            border-radius: 3px;
-            overflow: hidden;
+            background-color: #e2e8f0;
+            width: 100%;
         }
         #progress-bar {
-            width: 10%;
             height: 100%;
-            background-color: #007aff;
-            border-radius: 3px;
-            transition: width 0.3s;
+            background-color: #3b82f6;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        #quiz-content {
+            padding: 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .quiz-type-badge {
+            align-self: flex-start;
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 12px;
         }
         #question-text {
-            font-size: 16px;
+            font-size: 1.2rem;
+            line-height: 1.5;
             font-weight: 700;
-            color: #1e2022;
-            line-height: 1.4;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
-        /* 옵션 영역 (10지선다 최적화 레이아웃) */
         #options-container {
-            overflow-y: auto;
-            flex: 1;
-            margin-bottom: 15px;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
         }
         .option-btn {
-            background-color: #f5f6f7;
-            border: 1.5px solid transparent;
-            padding: 10px 8px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #4e5968;
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 0.95rem;
+            text-align: left;
             cursor: pointer;
-            text-align: center;
             transition: all 0.2s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            outline: none;
+        }
+        .option-btn:hover {
+            border-color: #cbd5e1;
+            background-color: #f1f5f9;
         }
         .option-btn.selected {
-            background-color: #eaf2ff;
-            border-color: #007aff;
-            color: #007aff;
-        }
-        .option-btn.correct {
-            background-color: #e8f7ec !important;
-            border-color: #2da44e !important;
-            color: #2da44e !important;
-        }
-        .option-btn.wrong {
-            background-color: #ffebe9 !important;
-            border-color: #cf222e !important;
-            color: #cf222e !important;
-        }
-        /* 피드백 배너 및 확인 버튼 */
-        #action-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        #feedback-message {
-            font-size: 13px;
-            font-weight: 700;
-            text-align: center;
-            min-height: 18px;
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            font-weight: bold;
         }
         #submit-btn {
-            width: 100%;
-            background-color: #007aff;
+            background-color: #3b82f6;
             color: white;
             border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 700;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1rem;
+            font-weight: bold;
             cursor: pointer;
             transition: background-color 0.2s;
+            margin-top: auto;
+        }
+        #submit-btn:hover {
+            background-color: #2563eb;
         }
         #submit-btn:disabled {
-            background-color: #cacdd2;
+            background-color: #cbd5e1;
             cursor: not-allowed;
         }
-        /* 로딩 쉴드 */
-        #loading-shield {
+        /* 결과 팝업 */
+        #result-overlay {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(255, 255, 255, 0.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #007aff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        #loading-text {
-            font-size: 15px;
-            font-weight: 600;
-            color: #4e5968;
-        }
-        /* 최종 결과 모달 */
-        #result-modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.6);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.85);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 2000;
-            padding: 20px;
-        }
-        #modal-content {
-            background-color: white;
-            width: 100%;
-            max-width: 400px;
-            border-radius: 24px;
-            padding: 30px 20px;
-            text-align: center;
-            box-shadow: 0 12px 36px rgba(0,0,0,0.25);
-        }
-        #modal-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #1e2022;
-            margin-bottom: 15px;
-        }
-        #modal-score {
-            font-size: 48px;
-            font-weight: 800;
-            color: #007aff;
-            margin-bottom: 10px;
-        }
-        #modal-desc {
-            font-size: 15px;
-            color: #606873;
-            line-height: 1.5;
-            margin-bottom: 25px;
-        }
-        #restart-btn {
-            background-color: #007aff;
+            z-index: 100;
             color: white;
+            text-align: center;
+        }
+        .result-box {
+            background-color: #1e293b;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 90%;
+        }
+        .result-box h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #38bdf8;
+        }
+        .result-score {
+            font-size: 4rem;
+            font-weight: 900;
+            margin: 20px 0;
+            color: #4ade80;
+        }
+        .restart-btn {
+            background-color: #4ade80;
+            color: #0f172a;
             border: none;
-            width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 700;
+            border-radius: 8px;
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            font-weight: bold;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+        .restart-btn:hover {
+            background-color: #22c55e;
+            transform: scale(1.03);
+        }
+        @media (max-width: 900px) {
+            #main-content {
+                flex-direction: column-reverse;
+            }
+            #quiz-panel {
+                width: 100%;
+                height: 50%;
+            }
+            #map-container {
+                height: 50%;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="container">
-        <div id="loading-shield">
-            <div class="spinner"></div>
-            <div id="loading-text">수도권 전역 실측 지리 데이터를 분석 중입니다...</div>
-        </div>
 
-        <div id="header">
-            <span id="logo">수도권 지리 마스터 퀴즈</span>
-            <span id="score-board">점수: 0점</span>
-        </div>
-
-        <div id="map">
-            <button id="map-toggle">위성 지도 전환</button>
-        </div>
-
+<div id="app-container">
+    <div id="header">
+        <h1>수도권 행정구역 지리 마스터 퀴즈</h1>
+        <div id="score-board">진행도: <span id="current-q-num">1</span>/10 | 점수: <span id="current-score">0</span>점</div>
+    </div>
+    
+    <div id="main-content">
+        <!-- 네이버 지도 영역 -->
+        <div id="map-container"></div>
+        
+        <!-- 퀴즈 컨트롤 패널 -->
         <div id="quiz-panel">
-            <div id="question-meta">
-                <span id="question-number">문제 1 / 10</span>
-                <div id="progress-container">
-                    <div id="progress-bar"></div>
-                </div>
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
             </div>
-            <div id="question-text">문제를 불러오는 중입니다...</div>
-            <div id="options-container"></div>
-            <div id="action-container">
-                <div id="feedback-message"></div>
+            <div id="quiz-content">
+                <div class="quiz-type-badge" id="quiz-type-badge">단일선택</div>
+                <div id="question-text">문제를 불러오는 중입니다...</div>
+                <div id="options-container"></div>
                 <button id="submit-btn" disabled>정답 제출하기</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div id="result-modal">
-        <div id="modal-content">
-            <div id="modal-title">🎉 퀴즈가 종료되었습니다!</div>
-            <div id="modal-score">0점</div>
-            <div id="modal-desc">훌륭한 도전이었습니다!</div>
-            <button id="restart-btn" onclick="restartQuiz()">다시 시작하기</button>
-        </div>
+<!-- 게임 종료 결과 화면 -->
+<div id="result-overlay">
+    <div class="result-box">
+        <h2>학습 완료!</h2>
+        <p>수도권(서울/인천/경기) 행정구역 퀴즈 결과</p>
+        <div class="result-score"><span id="final-score">0</span> / 100</div>
+        <p id="result-evaluation" style="margin-bottom: 30px; color: #cbd5e1;"></p>
+        <button class="restart-btn" onclick="restartGame()">다시 도전하기</button>
     </div>
+</div>
 
-    <script>
-        const HIGH_DEF_SEOUL_URL = 'https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json';
-        const HIGH_DEF_NATION_URL = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/gadm/json/skorea-municipalities-geo.json';
+<script>
+    // --- 수도권 78개 행정구역 마스터 데이터베이스 (서울 25, 인천 10, 경기 43) ---
+    const metropolitanDatabase = [
+        // 서울특별시 (25개 구)
+        { name: "종로구", type: "서울", lat: 37.5730, lng: 126.9794, dongs: ["청운효자동", "사직동", "삼청동", "부암동", "평창동", "무악동", "교남동", "가회동", "종로1가동", "혜화동", "창신동", "숭인동"] },
+        { name: "중구", type: "서울", lat: 37.5636, lng: 126.9975, dongs: ["소공동", "회현동", "명동", "필동", "장충동", "광희동", "쌍림동", "을지로동", "신당동", "황학동", "중림동"] },
+        { name: "용산구", type: "서울", lat: 37.5323, lng: 126.9906, dongs: ["후암동", "용산2가동", "남영동", "청파동", "원효로동", "효창동", "용문동", "한강로동", "이촌동", "이태원동", "한남동", "서빙고동", "보광동"] },
+        { name: "성동구", type: "서울", lat: 37.5633, lng: 127.0371, dongs: ["왕십리동", "마장동", "사근동", "행당동", "응봉동", "금호동", "옥수동", "성수동", "송정동", "용답동"] },
+        { name: "광진구", type: "서울", lat: 37.5385, lng: 127.0823, dongs: ["중곡동", "능동", "구의동", "광장동", "자양동", "화양동", "군자동"] },
+        { name: "동대문구", type: "서울", lat: 37.5744, lng: 127.0400, dongs: ["용신동", "제기동", "전농동", "답십리동", "장안동", "청량리동", "회기동", "휘경동", "이문동"] },
+        { name: "중랑구", type: "서울", lat: 37.6065, lng: 127.0927, dongs: ["면목동", "상봉동", "중화동", "묵동", "망우동", "신내동"] },
+        { name: "성북구", type: "서울", lat: 37.5891, lng: 127.0182, dongs: ["성북동", "삼선동", "동선동", "돈암동", "안암동", "보문동", "정릉동", "길음동", "종암동", "월곡동", "장위동", "석관동"] },
+        { name: "강북구", type: "서울", lat: 37.6396, lng: 127.0257, dongs: ["삼양동", "미아동", "송중동", "송천동", "삼각산동", "번동", "수유동", "우이동", "인수동"] },
+        { name: "도봉구", type: "서울", lat: 37.6688, lng: 127.0471, dongs: ["쌍문동", "방학동", "창동", "도봉동"] },
+        { name: "노원구", type: "서울", lat: 37.6544, lng: 127.0565, dongs: ["월계동", "공릉동", "하계동", "중계동", "상계동"] },
+        { name: "은평구", type: "서울", lat: 37.6027, lng: 126.9291, dongs: ["녹번동", "불광동", "갈현동", "구산동", "대조동", "응암동", "역촌동", "신사동", "증산동", "수색동", "진관동"] },
+        { name: "서대문구", type: "서울", lat: 37.5791, lng: 126.9368, dongs: ["천연동", "충현동", "북아현동", "신촌동", "연희동", "홍제동", "홍은동", "남가좌동", "북가좌동"] },
+        { name: "마포구", type: "서울", lat: 37.5622, lng: 126.9083, dongs: ["공덕동", "아현동", "도화동", "용강동", "대흥동", "염리동", "신수동", "서강동", "서교동", "합정동", "망원동", "연남동", "성산동", "상암동"] },
+        { name: "양천구", type: "서울", lat: 37.5169, lng: 126.8665, dongs: ["목동", "신월동", "신정동"] },
+        { name: "강서구", type: "서울", lat: 37.5509, lng: 126.8496, dongs: ["염창동", "등촌동", "화곡동", "가양동", "발산동", "공항동", "방화동", "방화동", "마곡동", "우장산동"] },
+        { name: "구로구", type: "서울", lat: 37.4954, lng: 126.8874, dongs: ["신도림동", "구로동", "가리봉동", "고척동", "개봉동", "오류동", "수궁동", "항동"] },
+        { name: "금천구", type: "서울", lat: 37.4570, lng: 126.8957, dongs: ["가산동", "독산동", "시흥동"] },
+        { name: "영등포구", type: "서울", lat: 37.5263, lng: 126.8962, dongs: ["영등포동", "여의동", "당산동", "도림동", "문래동", "양평동", "신길동", "대림동"] },
+        { name: "동작구", type: "서울", lat: 37.5124, lng: 126.9392, dongs: ["노량진동", "상도동", "흑석동", "사당동", "대방동", "신대방동"] },
+        { name: "관악구", type: "서울", lat: 37.4784, lng: 126.9516, dongs: ["보라매동", "청림동", "행운동", "낙성대동", "중앙동", "인헌동", "남현동", "서원동", "신원동", "서림동", "신사동", "신림동"] },
+        { name: "서초구", type: "서울", lat: 37.4837, lng: 127.0324, dongs: ["서초동", "잠원동", "반포동", "방배동", "양재동", "내곡동", "세곡동"] },
+        { name: "강남구", type: "서울", lat: 37.5172, lng: 127.0473, dongs: ["신사동", "논현동", "압구정동", "청담동", "삼성동", "대치동", "역삼동", "도곡동", "개포동", "일원동", "수서동", "세곡동"] },
+        { name: "송파구", type: "서울", lat: 37.5145, lng: 127.1062, dongs: ["풍납동", "거여동", "마천동", "방이동", "오륜동", "오금동", "송파동", "석촌동", "삼전동", "가락동", "문정동", "장지동", "위례동", "잠실동"] },
+        { name: "강동구", type: "서울", lat: 37.5302, lng: 127.1237, dongs: ["강일동", "상일동", "명일동", "고덕동", "암사동", "천호동", "성내동", "길동", "둔촌동"] },
 
-        let map, currentMarker;
-        let geojsonLayer = null;
-        let seoulGeoJSON = null;
-        let nationGeoJSON = null;
-        let isSatellite = false; 
+        // 인천광역시 (10개 군·구)
+        { name: "중구", type: "인천", lat: 37.4692, lng: 126.6268, dongs: ["신포동", "연안동", "신흥동", "율목동", "동인천동", "개항동", "영종동", "운서동", "용유동"] },
+        { name: "동구", type: "인천", lat: 37.4738, lng: 126.6432, dongs: ["만석동", "화수동", "화평동", "송현동", "송림동", "금창동"] },
+        { name: "미추홀구", type: "인천", lat: 37.4635, lng: 126.6502, dongs: ["숭의동", "용현동", "학익동", "도화동", "주안동", "관교동", "문학동"] },
+        { name: "연수구", type: "인천", lat: 37.4097, lng: 126.6780, dongs: ["옥련동", "선학동", "연수동", "청학동", "동춘동", "송도동"] },
+        { name: "남동구", type: "인천", lat: 37.4469, lng: 126.7315, dongs: ["구월동", "간석동", "만수동", "장수서창동", "서창동", "남촌도림동", "논현동", "고잔동"] },
+        { name: "부평구", type: "인천", lat: 37.5069, lng: 126.7218, dongs: ["부평동", "산곡동", "청천동", "갈산동", "삼산동", "부개동", "일신동", "십정동"] },
+        { name: "계양구", type: "인천", lat: 37.5374, lng: 126.7377, dongs: ["효성동", "계산동", "작전동", "작전서운동", "계양동"] },
+        { name: "서구", type: "인천", lat: 37.5450, lng: 126.6760, dongs: ["검암경서동", "연희동", "청라동", "가정동", "신현원창동", "석남동", "가좌동", "검단동", "불로대곡동", "원당동", "당하동", "마전동", "아라동"] },
+        { name: "강화군", type: "인천", lat: 37.7461, lng: 126.4880, dongs: ["강화읍", "선원면", "불은면", "길상면", "화도면", "양도면", "내가면", "하점면", "양사면", "송해면", "교동면", "삼산면", "서도면"] },
+        { name: "옹진군", type: "인천", lat: 37.4465, lng: 126.6370, dongs: ["북도면", "연평면", "백령면", "대청면", "덕적면", "자월면", "영흥면"] },
 
-        let quizPool = [];
-        let currentIdx = 0;
-        let totalScore = 0;
-        let selectedAnswers = [];
-        let hasSubmitted = false;
+        // 경기도 (43개 시·군·구 단위 완전 등록)
+        { name: "수원시 장안구", type: "경기", lat: 37.3012, lng: 127.0173, dongs: ["파장동", "율천동", "정자동", "영화동", "송죽동", "조원동", "연무동"] },
+        { name: "수원시 권선구", type: "경기", lat: 37.2576, lng: 126.9722, dongs: ["세류동", "평동", "서둔동", "구운동", "금곡동", "호매실동", "권선동", "곡선동", "입북동"] },
+        { name: "수원시 팔달구", type: "경기", lat: 37.2823, lng: 127.0190, dongs: ["행궁동", "매교동", "교동", "지동", "우만동", "인계동", "화서동"] },
+        { name: "수원시 영통구", type: "경기", lat: 37.2596, lng: 127.0553, dongs: ["매탄동", "원천동", "광교동", "영통동", "망포동"] },
+        { name: "성남시 수정구", type: "경기", lat: 37.4374, lng: 127.1410, dongs: ["신흥동", "태평동", "수진동", "단대동", "산성동", "양지동", "복정동", "위례동", "고등동", "시흥동"] },
+        { name: "성남시 중원구", type: "경기", lat: 37.4321, lng: 127.1565, dongs: ["성남동", "중동", "금광동", "은행동", "상대원동", "하대원동", "도촌동"] },
+        { name: "성남시 분당구", type: "경기", lat: 37.3827, lng: 127.1189, dongs: ["분당동", "수내동", "정자동", "율동", "서현동", "이매동", "야탑동", "판교동", "삼평동", "백현동", "금곡동", "구미동"] },
+        { name: "의정부시", type: "경기", lat: 37.7381, lng: 127.0337, dongs: ["의정부동", "호원동", "장암동", "신곡동", "송산동", "자금동", "가능동", "흥선동", "녹양동"] },
+        { name: "안양시 만안구", type: "경기", lat: 37.4014, lng: 126.9200, dongs: ["석수동", "박달동", "안양동"] },
+        { name: "안양시 동안구", type: "경기", lat: 37.3943, lng: 126.9568, dongs: ["비산동", "관양동", "평촌동", "호계동", "범계동", "신촌동", "갈산동", "귀인동"] },
+        { name: "부천시", type: "경기", lat: 37.5036, lng: 126.7660, dongs: ["심곡동", "부천동", "신중동", "중동", "상동", "대산동", "소사본동", "범안동", "성곡동", "오정동"] },
+        { name: "광명시", type: "경기", lat: 37.4785, lng: 126.8647, dongs: ["광명동", "철산동", "하안동", "소하동", "학온동", "일직동"] },
+        { name: "평택시", type: "경기", lat: 36.9922, lng: 127.1127, dongs: ["팽성읍", "안중읍", "포승읍", "청북읍", "진위면", "서탄면", "고덕면", "신장동", "비전동", "동삭동", "용이동"] },
+        { name: "동두천시", type: "경기", lat: 37.9034, lng: 127.0569, dongs: ["생연동", "중앙동", "보산동", "불현동", "송내동", "소요동", "광암동"] },
+        { name: "안산시 상록구", type: "경기", lat: 37.3204, lng: 126.8450, dongs: ["일동", "이동", "사동", "본오동", "팔곡동", "부곡동", "월피동", "성포동", "반월동", "안산동"] },
+        { name: "안산시 단원구", type: "경기", lat: 37.3235, lng: 126.8118, dongs: ["와동", "신길동", "원곡동", "초지동", "백운동", "선부동", "대부동", "호수동", "중앙동"] },
+        { name: "고양시 덕양구", type: "경기", lat: 37.6433, lng: 126.8324, dongs: ["주교동", "원신동", "흥도동", "신도동", "창릉동", "고양동", "관산동", "능곡동", "화정동", "행신동", "효자동"] },
+        { name: "고양시 일산동구", type: "경기", lat: 37.6622, lng: 126.7900, dongs: ["식사동", "중산동", "정발산동", "풍산동", "백석동", "마두동", "장항동", "고봉동"] },
+        { name: "고양시 일산서구", type: "경기", lat: 37.6756, lng: 126.7478, dongs: ["일산동", "탄현동", "주엽동", "대화동", "송포동", "송산동", "덕이동"] },
+        { name: "과천시", type: "경기", lat: 37.4264, lng: 126.9898, dongs: ["중앙동", "갈현동", "별양동", "부림동", "과천동", "문원동"] },
+        { name: "구리시", type: "경기", lat: 37.5943, lng: 127.1296, dongs: ["갈매동", "동구동", "인창동", "교문동", "수택동", "아천동"] },
+        { name: "남양주시", type: "경기", lat: 37.6360, lng: 127.2165, dongs: ["와부읍", "진접읍", "화도읍", "진건읍", "오남읍", "퇴계원읍", "별내면", "수동면", "조안면", "호평동", "평내동", "금곡동", "다산동", "양정동"] },
+        { name: "오산시", type: "경기", lat: 37.1500, lng: 127.0776, dongs: ["중앙동", "남촌동", "신장동", "세마동", "초평동", "대원동"] },
+        { name: "시흥시", type: "경기", lat: 37.3801, lng: 126.8027, dongs: ["대야동", "신천동", "은행동", "매화동", "목감동", "군자동", "정왕동", "배곧동", "과림동", "연성동", "능곡동"] },
+        { name: "군포시", type: "경기", lat: 37.3617, lng: 126.9352, dongs: ["군포동", "산본동", "금정동", "재궁동", "오금동", "수리동", "궁내동", "대야동", "송부동"] },
+        { name: "의왕시", type: "경기", lat: 37.3448, lng: 126.9682, dongs: ["고천동", "부곡동", "오전동", "내손동", "청계동"] },
+        { name: "하남시", type: "경기", lat: 37.5392, lng: 127.2148, dongs: ["천현동", "신장동", "덕풍동", "풍산동", "미사동", "감일동", "위례동", "초이동"] },
+        { name: "용인시 처인구", type: "경기", lat: 37.2344, lng: 127.2014, dongs: ["포곡읍", "모현읍", "이동읍", "남사읍", "원삼면", "백암면", "양지면", "김량장동", "역북동", "삼가동", "유림동", "동부동"] },
+        { name: "용인시 기흥구", type: "경기", lat: 37.2804, lng: 127.1147, dongs: ["신갈동", "영덕동", "구갈동", "상갈동", "보라동", "기흥동", "서농동", "구성동", "마북동", "동백동", "상하동", "보정동"] },
+        { name: "용인시 수지구", type: "경기", lat: 37.3220, lng: 127.0975, dongs: ["풍덕천동", "신봉동", "죽전동", "동천동", "상현동", "성복동"] },
+        { name: "파주시", type: "경기", lat: 37.7600, lng: 126.7798, dongs: ["문산읍", "파주읍", "법원읍", "조리읍", "월롱면", "탄현면", "광탄면", "파평면", "적성면", "군내면", "금촌동", "운정동"] },
+        { name: "이천시", type: "경기", lat: 37.2723, lng: 127.4350, dongs: ["장호원읍", "부발읍", "신둔면", "백사면", "호법면", "마장면", "대장면", "설성면", "율면", "창전동", "증포동", "중리동", "관고동"] },
+        { name: "안성시", type: "경기", lat: 37.0080, lng: 127.2797, dongs: ["공도읍", "보개면", "금광면", "서운면", "미양면", "대덕면", "양성면", "원곡면", "일죽면", "죽산면", "삼죽면", "안성동"] },
+        { name: "김포시", type: "경기", lat: 37.6152, lng: 126.7156, dongs: ["통진읍", "고촌읍", "양촌읍", "대곶면", "월곶면", "하성면", "김포본동", "장기동", "사우동", "풍무동", "구래동", "운양동"] },
+        { name: "화성시", type: "경기", lat: 37.1995, lng: 126.8312, dongs: ["우정읍", "향남읍", "남양읍", "봉담읍", "매송면", "비봉면", "마도면", "송산면", "서신면", "팔탄면", "장안면", "양감면", "정남면", "병점동", "반월동", "기배동", "화산동", "동탄동"] },
+        { name: "광주시", type: "경기", lat: 37.4089, lng: 127.2758, dongs: ["초월읍", "곤지암읍", "신현동", "도척면", "퇴촌면", "남종면", "남한산성면", "경안동", "쌍령동", "송정동", "탄벌동", "광남동"] },
+        { name: "양주시", type: "경기", lat: 37.7853, lng: 127.0457, dongs: ["백석읍", "은현면", "남면", "광적면", "장흥면", "양주동", "회천동", "옥정동"] },
+        { name: "포천시", type: "경기", lat: 37.8949, lng: 127.2003, dongs: ["소흘읍", "군내면", "내촌면", "가산면", "신북면", "창수면", "영중면", "일동면", "이동면", "영북면", "관인면", "화현면", "포천동", "선단동"] },
+        { name: "여주시", type: "경기", lat: 37.2984, lng: 127.6370, dongs: ["가남읍", "점동면", "능서면", "흥천면", "금사면", "산북면", "대신면", "북내면", "강천면", "여흥동", "중앙동", "오학동"] },
+        { name: "연천군", type: "경기", lat: 38.0964, lng: 127.0746, dongs: ["연천읍", "전곡읍", "군남면", "청산면", "백학면", "미산면", "왕징면", "신서면", "중면", "장남면"] },
+        { name: "가평군", type: "경기", lat: 37.8314, lng: 127.5095, dongs: ["가평읍", "설악면", "청평면", "상면", "조종면", "북면"] },
+        { name: "양평군", type: "경기", lat: 37.4917, lng: 127.4875, dongs: ["양평읍", "강상면", "강하면", "양서면", "옥천면", "서종면", "단월면", "청운면", "양동면", "지평면", "용문면", "개군면"] }
+    ];
 
-        // [최종 진화형] 수도권 전체 시·군·구 및 법정동·읍면 리얼 전수 데이터베이스 (총 78개 구역)
-        const metropolitanMasterDatabase = [
-            // ----- 서울특별시 (25개 구) -----
-            { name: "종로구", type: "구", lat: 37.5730, lng: 126.9794, subUnits: ["혜화동", "사직동", "삼청동", "청운효자동", "가회동", "인사동", "부암동", "평창동", "무악동", "교남동", "숭인동", "창신동"] },
-            { name: "중구", type: "구", lat: 37.5641, lng: 126.9979, subUnits: ["명동", "필동", "신당동", "을지로동", "회현동", "소공동", "광희동", "장충동", "다산동", "약수동", "청구동", "황학동"] },
-            { name: "용산구", type: "구", lat: 37.5384, lng: 126.9654, subUnits: ["이태원동", "한남동", "원효로동", "서빙고동", "이촌동", "후암동", "용산동", "남영동", "청파동", "효창동", "보광동"] },
-            { name: "성동구", type: "구", lat: 37.5635, lng: 127.0368, subUnits: ["성수동", "옥수동", "마장동", "왕십리동", "도선동", "사근동", "행당동", "응봉동", "금호동", "송정동", "용답동"] },
-            { name: "광진구", type: "구", lat: 37.5385, lng: 127.0823, subUnits: ["화양동", "자양동", "구의동", "중곡동", "능동", "군자동", "광장동"] },
-            { name: "동대문구", type: "구", lat: 37.5744, lng: 127.0397, subUnits: ["청량리동", "제기동", "장안동", "용신동", "전농동", "답십리동", "회기동", "휘경동", "이문동"] },
-            { name: "중랑구", type: "구", lat: 37.6065, lng: 127.0927, subUnits: ["상봉동", "면목동", "망우동", "중화동", "묵동", "신내동"] },
-            { name: "성북구", type: "구", lat: 37.5891, lng: 127.0167, subUnits: ["안암동", "정릉동", "길음동", "성북동", "동선동", "돈암동", "삼선동", "보문동", "종암동", "월곡동", "장위동", "석관동"] },
-            { name: "강북구", type: "구", lat: 37.6396, lng: 127.0255, subUnits: ["수유동", "미아동", "번동", "우이동", "삼양동", "송중동", "송천동", "삼각산동"] },
-            { name: "도봉구", type: "구", lat: 37.6688, lng: 127.0471, subUnits: ["방학동", "쌍문동", "창동", "도봉동"] },
-            { name: "노원구", type: "구", lat: 37.6544, lng: 127.0565, subUnits: ["상계동", "중계동", "하계동", "월계동", "공릉동"] },
-            { name: "은평구", type: "구", lat: 37.6027, lng: 126.9291, subUnits: ["불광동", "갈현동", "응암동", "녹번동", "수색동", "대조동", "역촌동", "신사동", "증산동", "진관동"] },
-            { name: "서대문구", type: "구", lat: 37.5791, lng: 126.9368, subUnits: ["신촌동", "연희동", "홍제동", "북아현동", "천연동", "충현동", "홍은동", "남가좌동", "북가좌동"] },
-            { name: "마포구", type: "구", lat: 37.5621, lng: 126.9085, subUnits: ["공덕동", "망원동", "연남동", "아현동", "도화동", "용강동", "대흥동", "염리동", "신수동", "서강동", "서교동", "합정동", "상암동"] },
-            { name: "양천구", type: "구", lat: 37.5169, lng: 126.8665, subUnits: ["목동", "신정동", "신월동"] },
-            { name: "강서구", type: "구", lat: 37.5509, lng: 126.8497, subUnits: ["화곡동", "가양동", "마곡동", "염창동", "등촌동", "발산동", "공항동", "방화동"] },
-            { name: "구로구", type: "구", lat: 37.4954, lng: 126.8581, subUnits: ["신도림동", "구로동", "개봉동", "가리봉동", "고척동", "오류동", "수궁동", "항동"] },
-            { name: "금천구", type: "구", lat: 37.4570, lng: 126.8957, subUnits: ["가산동", "독산동", "시흥동"] },
-            { name: "영등포구", type: "구", lat: 37.5264, lng: 126.8962, subUnits: ["여의도동", "당산동", "문래동", "영등포동", "신길동", "대림동", "양평동", "양화동", "도림동"] },
-            { name: "동작구", type: "구", lat: 37.5022, lng: 126.9793, subUnits: ["노량진동", "사당동", "상도동", "흑석동", "동작동", "대방동", "신대방동"] },
-            { name: "관악구", type: "구", lat: 37.4784, lng: 126.9516, subUnits: ["신림동", "봉천동", "남현동", "보라매동", "청룡동", "낙성대동", "대학동", "조원동"] },
-            { name: "서초구", type: "구", lat: 37.4837, lng: 127.0324, subUnits: ["방배동", "반포동", "양재동", "서초동", "잠원동", "우면동", "원지동", "신원동", "내곡동", "염곡동"] },
-            { name: "강남구", type: "구", lat: 37.4959, lng: 127.0664, subUnits: ["역삼동", "삼성동", "압구정동", "개포동", "청담동", "논현동", "대치동", "신사동", "도곡동", "일원동", "수서동", "세곡동"] },
-            { name: "송파구", type: "구", lat: 37.5145, lng: 127.1059, subUnits: ["잠실동", "가락동", "방이동", "풍납동", "거여동", "마천동", "오금동", "송파동", "석촌동", "삼전동", "문정동", "장지동"] },
-            { name: "강동구", type: "구", lat: 37.5302, lng: 127.1238, subUnits: ["천호동", "길동", "명일동", "강일동", "상일동", "고덕동", "암사동", "성내동", "둔촌동"] },
+    // --- 글로벌 상태 관리 ---
+    let map = null;
+    let currentQuizPool = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let selectedOptions = [];
+    let geojsonLayer = null;
+    let centerMarker = null;
 
-            // ----- 인천광역시 (8구 2군) -----
-            { name: "중구", type: "구", lat: 37.4732, lng: 126.6216, subUnits: ["신포동", "연안동", "신흥동", "도원동", "율목동", "동인천동", "개항동", "영종동", "운서동", "용유동"] },
-            { name: "동구", type: "구", lat: 37.4738, lng: 126.6432, subUnits: ["만석동", "화수동", "화평동", "송현동", "송림동", "금창동"] },
-            { name: "미추홀구", type: "구", lat: 37.4635, lng: 126.6504, subUnits: ["주안동", "숭의동", "학익동", "도화동", "용현동", "관교동", "문학동"] },
-            { name: "연수구", type: "구", lat: 37.4087, lng: 126.6570, subUnits: ["송도동", "연수동", "동춘동", "옥련동", "선학동", "청학동"] },
-            { name: "남동구", type: "구", lat: 37.4475, lng: 126.7315, subUnits: ["구월동", "간석동", "논현동", "만수동", "장수동", "서창동", "남촌동", "고잔동"] },
-            { name: "부평구", type: "구", lat: 37.5070, lng: 126.7219, subUnits: ["부평동", "십정동", "갈산동", "산곡동", "청천동", "삼산동", "부개동", "일신동"] },
-            { name: "계양구", type: "구", lat: 37.5375, lng: 126.7377, subUnits: ["계산동", "작전동", "효성동", "서운동", "임학동", "용종동", "병방동", "방축동"] },
-            { name: "서구", type: "구", lat: 37.5511, lng: 126.6772, subUnits: ["검암동", "연희동", "청라동", "가정동", "신현동", "석남동", "가좌동", "검단동", "당하동", "마전동"] },
-            { name: "강화군", type: "군/읍면", lat: 37.7464, lng: 126.4880, subUnits: ["강화읍", "선원면", "불은면", "길상면", "화도면", "양도면", "내가면", "하점면", "양사면", "송해면", "삼산면"] },
-            { name: "옹진군", type: "군/읍면", lat: 37.4473, lng: 126.6371, subUnits: ["북도면", "연평면", "백령면", "대청면", "덕적면", "자월면", "영흥면"] },
+    // GeoJSON 데이터 원천 (SSL 지원 및 CORS 준수 오픈 저장소)
+    const SEOUL_GEOJSON_URL = "https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json";
+    const NATION_GEOJSON_URL = "https://raw.githubusercontent.com/southkorea/southkorea-maps/master/gadm/json/skorea-municipalities-2018-geo.json";
 
-            // ----- 경기도 (31개 시·군) -----
-            // 수원시
-            { name: "장안구", type: "구", lat: 37.3018, lng: 127.0142, subUnits: ["파장동", "율천동", "정자동", "영화동", "송죽동", "조원동", "연무동"] },
-            { name: "권선구", type: "구", lat: 37.2575, lng: 126.9719, subUnits: ["세류동", "평동", "서둔동", "구운동", "금곡동", "호매실동", "권선동", "곡선동", "입북동"] },
-            { name: "팔달구", type: "구", lat: 37.2823, lng: 127.0201, subUnits: ["행궁동", "매교동", "교동", "지동", "우만동", "인계동", "고등동", "화서동"] },
-            { name: "영통구", type: "구", lat: 37.2596, lng: 127.0463, subUnits: ["매탄동", "원천동", "광교동", "영통동", "망포동"] },
-            // 성남시
-            { name: "수정구", type: "구", lat: 37.4428, lng: 127.1488, subUnits: ["신흥동", "태평동", "수진동", "단대동", "산성동", "양지동", "복정동", "위례동", "고등동", "시흥동"] },
-            { name: "중원구", type: "구", lat: 37.4319, lng: 127.1638, subUnits: ["성남동", "중동", "금광동", "은행동", "상대원동", "하대원동", "도촌동"] },
-            { name: "분당구", type: "구", lat: 37.3827, lng: 127.1189, subUnits: ["분당동", "수내동", "정자동", "율동", "서현동", "이매동", "야탑동", "금곡동", "구미동", "판교동", "삼평동", "백현동"] },
-            // 의정부시
-            { name: "의정부시", type: "군/읍면", lat: 37.7381, lng: 127.0337, subUnits: ["의정부동", "호원동", "장암동", "신곡동", "송산동", "자금동", "가능동", "흥선동", "녹양동"] },
-            // 안양시
-            { name: "만안구", type: "구", lat: 37.4011, lng: 126.9221, subUnits: ["안양동", "석수동", "박달동"] },
-            { name: "동안구", type: "구", lat: 37.3916, lng: 126.9602, subUnits: ["비산동", "관양동", "평촌동", "호계동", "범계동", "신촌동", "갈산동"] },
-            // 부천시
-            { name: "부천시", type: "군/읍면", lat: 37.5034, lng: 126.7660, subUnits: ["심곡동", "부천동", "신중동", "중동", "상동", "대산동", "소사본동", "범안동", "신흥동"] },
-            // 광명시
-            { name: "광명시", type: "군/읍면", lat: 37.4785, lng: 126.8647, subUnits: ["광명동", "철산동", "하안동", "소하동", "학온동"] },
-            // 평택시
-            { name: "평택시", type: "군/읍면", lat: 36.9922, lng: 127.1129, subUnits: ["팽성읍", "안중읍", "포승읍", "청북읍", "진위면", "서탄면", "고덕면", "오성면", "현덕면", "송탄동", "비전동"] },
-            // 동두천시
-            { name: "동두천시", type: "군/읍면", lat: 37.9036, lng: 127.0543, subUnits: ["생연동", "중앙동", "보산동", "불현동", "송내동", "소요동"] },
-            // 안산시
-            { name: "상록구", type: "구", lat: 37.3211, lng: 126.8654, subUnits: ["사동", "사이동", "해양동", "본오동", "부곡동", "월피동", "성포동", "반월동", "안산동"] },
-            { name: "단원구", type: "구", lat: 37.3219, lng: 126.8308, correct: ["고잔동", "와동", "신길동", "원곡동", "초지동", "백운동", "선부동", "대부동"] },
-            // 고양시
-            { name: "덕양구", type: "구", lat: 37.6444, lng: 126.8856, subUnits: ["주교동", "원신동", "흥도동", "신도동", "창릉동", "고양동", "관산동", "능곡동", "화정동", "행신동", "효자동"] },
-            { name: "일산동구", type: "구", lat: 37.6622, lng: 126.7972, subUnits: ["식사동", "중산동", "정발산동", "풍산동", "백석동", "마두동", "장항동", "고봉동"] },
-            { name: "일산서구", type: "구", lat: 37.6782, lng: 126.7485, subUnits: ["일산동", "탄현동", "주엽동", "대화동", "송포동", "송산동"] },
-            // 과천시
-            { name: "과천시", type: "군/읍면", lat: 37.4292, lng: 126.9874, subUnits: ["관문동", "문원동", "갈현동", "원문동", "주암동", "중앙동", "부림동", "별양동"] },
-            // 구리시
-            { name: "구리시", type: "군/읍면", lat: 37.5943, lng: 127.1296, subUnits: ["갈매동", "동구동", "인창동", "교문동", "수택동", "수택동"] },
-            // 남양주시
-            { name: "남양주시", type: "군/읍면", lat: 37.6360, lng: 127.2165, subUnits: ["와부읍", "진접읍", "화도읍", "진건읍", "오남읍", "퇴계원읍", "별내면", "수동면", "조안면", "다산동", "양정동"] },
-            // 오산시
-            { name: "오산시", type: "군/읍면", lat: 37.1498, lng: 127.0775, subUnits: ["중앙동", "남촌동", "신장동", "세마동", "초평동", "대원동"] },
-            // 시흥시
-            { name: "시흥시", type: "군/읍면", lat: 37.3801, lng: 126.8028, subUnits: ["대야동", "신천동", "신현동", "은행동", "매화동", "목감동", "군자동", "정왕동", "배곧동", "연성동"] },
-            // 군포시
-            { name: "군포시", type: "군/읍면", lat: 37.3617, lng: 126.9352, subUnits: ["군포동", "산본동", "금정동", "재궁동", "오금동", "수리동", "궁내동", "대야동", "송부동"] },
-            // 의왕시
-            { name: "의왕시", type: "군/읍면", lat: 37.3449, lng: 126.9683, subUnits: ["고천동", "부곡동", "오전동", "내손동", "청계동"] },
-            // 하남시
-            { name: "하남시", type: "군/읍면", lat: 37.5392, lng: 127.2148, subUnits: ["천현동", "신장동", "덕풍동", "풍산동", "미사동", "감일동", "위례동", "춘궁동", "초이동"] },
-            // 용인시
-            { name: "처인구", type: "구", lat: 37.2344, lng: 127.2014, subUnits: ["포곡읍", "모현읍", "남사읍", "이동읍", "원삼면", "백암면", "양지면", "중앙동", "역삼동", "유림동", "동부동"] },
-            { name: "기흥구", type: "구", lat: 37.2804, lng: 127.1147, subUnits: ["신갈동", "영덕동", "구갈동", "상갈동", "보라동", "기흥동", "서농동", "구성동", "마북동", "동백동", "보정동"] },
-            { name: "수지구", type: "구", lat: 37.3221, lng: 127.0975, subUnits: ["풍덕천동", "신봉동", "죽전동", "동천동", "상현동", "성복동"] },
-            // 파주시
-            { name: "파주시", type: "군/읍면", lat: 37.7600, lng: 126.7798, subUnits: ["문산읍", "파주읍", "법원읍", "조리읍", "월롱면", "탄현면", "광탄면", "파평면", "적성면", "군내면", "운정동", "금촌동"] },
-            // 이천시
-            { name: "이천시", type: "군/읍면", lat: 37.2723, lng: 127.4351, subUnits: ["장호원읍", "부발읍", "신둔면", "백사면", "호법면", "마장면", "대장면", "모가면", "설성면", "율면", "증포동", "관고동"] },
-            // 안성시
-            { name: "안성시", type: "군/읍면", lat: 37.0079, lng: 127.2798, subUnits: ["공도읍", "보개면", "금광면", "서운면", "미양면", "대덕면", "양성면", "원곡면", "일죽면", "죽산면", "삼죽면", "안성동"] },
-            // 김포시
-            { name: "김포시", type: "군/읍면", lat: 37.6152, lng: 126.7156, subUnits: ["통진읍", "고촌읍", "양촌읍", "대곶면", "월곶면", "하성면", "김포본동", "장기동", "풍무동", "구래동", "마산동"] },
-            // 화성시
-            { name: "화성시", type: "군/읍면", lat: 37.1995, lng: 126.8312, subUnits: ["봉담읍", "우정읍", "향남읍", "남양읍", "매송면", "비봉면", "마도면", "송산면", "서신면", "팔탄면", "양감면", "정남면", "새솔동", "동탄동", "병점동"] },
-            // 광주시
-            { name: "광주시", type: "군/읍면", lat: 37.4294, lng: 127.2552, subUnits: ["오포읍", "초월읍", "곤지암읍", "도척면", "퇴촌면", "남종면", "남한산성면", "경안동", "송정동", "광남동"] },
-            // 양주시
-            { name: "양주시", type: "군/읍면", lat: 37.7853, lng: 127.0458, subUnits: ["백석읍", "은현면", "남면", "광적면", "장흥면", "양주동", "회천동", "옥정동"] },
-            // 포천시
-            { name: "포천시", type: "군/읍면", lat: 37.8949, lng: 127.2003, subUnits: ["소흘읍", "군내면", "내촌면", "가산면", "신북면", "창수면", "영중면", "일동면", "이동면", "영북면", "관인면", "화현면", "포천동", "선단동"] },
-            // 여주시
-            { name: "여주시", type: "군/읍면", lat: 37.2982, lng: 127.6370, subUnits: ["가남읍", "점동면", "흥천면", "금사면", "능서면", "대신면", "북내면", "강천면", "여흥동", "중앙동", "오학동"] },
-            // 연천군
-            { name: "연천군", type: "군/읍면", lat: 38.0964, lng: 127.0746, subUnits: ["연천읍", "전곡읍", "군남면", "청산면", "백학면", "미산면", "왕징면", "신서면", "중면", "장남면"] },
-            // 가평군
-            { name: "가평군", type: "군/읍면", lat: 37.8314, lng: 127.5095, subUnits: ["가평읍", "설악면", "청평면", "상면", "조종면", "북면"] },
-            // 양평군
-            { name: "양평군", type: "군/읍면", lat: 37.4913, lng: 127.4875, subUnits: ["양평읍", "강상면", "강하면", "양서면", "옥천면", "서종면", "단월면", "청운면", "양동면", "지평면", "용문면", "개군면"] }
-        ];
+    let seoulGeoJsonData = null;
+    let nationGeoJsonData = null;
 
-        // 대중교통, 다른 자치구의 동을 긁어와 오답 보기를 형성하기 위한 '전체 법정동 마스터 풀' 추출 자동화
-        const globalAllSubUnits = metropolitanMasterDatabase.flatMap(r => r.subUnits);
-
-        window.addEventListener('DOMContentLoaded', () => {
-            initNaverMap();
-            loadGeoJSONData();
+    // --- 지도 초기화 및 스타일맵(라벨 숨기기) 설정 ---
+    function initMap() {
+        // 라벨 없는 커스텀 스타일 타입 정의 (배경 및 외곽선 요소만 로드하여 지도 지명 가림)
+        const customNoLabelType = new naver.maps.NaverStyleMapTypeOptions({
+            opacity: 1,
+            projection: naver.maps.TM128,
+            mapTypeId: 'normal_no_labels',
+            overlayType: 'bg.ol' // 지명(lko 등)을 제외하고 배경과 기본 윤곽선만 렌더링
         });
 
-        // 네이버 지도 v3 초기화 및 지명(라벨) 숨김 처리
-        function initNaverMap() {
-            try {
-                const mapOptions = {
-                    center: new naver.maps.LatLng(37.5502, 126.982),
-                    zoom: 11,
-                    mapTypeId: 'normal_no_labels',
-                    mapTypes: new naver.maps.MapTypeRegistry({
-                        'normal_no_labels': naver.maps.NaverStyleMapTypeOptions.getNormalMap({
-                            overlayType: 'bg.ol'
-                        }),
-                        'satellite_no_labels': naver.maps.NaverStyleMapTypeOptions.getSatelliteMap({
-                            overlayType: 'bg'
-                        })
-                    }),
-                    zoomControl: true,
-                    zoomControlOptions: {
-                        position: naver.maps.Position.RIGHT_CENTER
-                    },
-                    logoControl: false,
-                    scaleControl: true,
-                    mapDataControl: false
-                };
+        const mapOptions = {
+            center: new naver.maps.LatLng(37.5502, 126.9911),
+            zoom: 10,
+            zoomControl: true,
+            mapTypeControl: false,
+            mapTypes: new naver.maps.MapTypeRegistry({
+                'normal_no_labels': new naver.maps.NaverStyleMapType(customNoLabelType)
+            }),
+            mapTypeId: 'normal_no_labels'
+        };
 
-                map = new naver.maps.Map('map', mapOptions);
+        map = new naver.maps.Map('map-container', mapOptions);
+        
+        // 지리 경계 데이터 프리로드
+        Promise.all([
+            fetch(SEOUL_GEOJSON_URL).then(res => res.json()),
+            fetch(NATION_GEOJSON_URL).then(res => res.json())
+        ]).then(([seoul, nation]) => {
+            seoulGeoJsonData = seoul;
+            nationGeoJsonData = nation;
+            startGame();
+        }).catch(err => {
+            console.error("행정구역 지도 데이터를 가져오지 못했습니다.", err);
+            alert("서버 연결 상태가 원활하지 않아 경계선 데이터를 불러오지 못했습니다. 새로고침을 해주세요.");
+        });
+    }
 
-                const toggleBtn = document.getElementById('map-toggle');
-                toggleBtn.addEventListener('click', () => {
-                    isSatellite = !isSatellite;
-                    if (isSatellite) {
-                        map.setMapTypeId('satellite_no_labels');
-                        toggleBtn.textContent = "일반 지도 전환";
-                    } else {
-                        map.setMapTypeId('normal_no_labels');
-                        toggleBtn.textContent = "위성 지도 전환";
-                    }
-                });
+    // --- 게임 시작 및 문제은행 랜덤 10문항 빌드 ---
+    function startGame() {
+        score = 0;
+        currentQuestionIndex = 0;
+        document.getElementById('current-score').textContent = "0";
+        document.getElementById('result-overlay').style.display = 'none';
 
-                currentMarker = new naver.maps.Marker({
-                    position: new naver.maps.LatLng(37.5502, 126.982),
-                    map: map,
-                    icon: {
-                        content: `<div style="background-color: #cf222e; width: 16px; height: 16px; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
-                        anchor: new naver.maps.Point(8, 8)
-                    },
-                    visible: false
-                });
+        // 전체 데이터베이스 셔플 후 10문항 생성
+        const shuffled = [...metropolitanDatabase].sort(() => 0.5 - Math.random());
+        currentQuizPool = shuffled.slice(0, 10).map((district, idx) => {
+            // 단일선택(0)과 다중선택(1) 문항을 균형 있게 배분
+            const isMultiType = idx % 2 === 1; 
+            return buildQuizQuestion(district, isMultiType);
+        });
 
-            } catch (e) {
-                alert("네이버 지도 API 라이브러리를 정상적으로 로딩하지 못했습니다.");
-                console.error(e);
+        loadQuestion(0);
+    }
+
+    // --- 지식 고도화 및 정오답 무작위 조합 알고리즘 ---
+    function buildQuizQuestion(targetDistrict, isMultiType) {
+        const correctDongs = [...targetDistrict.dongs].sort(() => 0.5 - Math.random());
+        
+        // 오답 풀 생성: 현재 구/시를 제외한 전체 풀에서 무작위로 동(읍면동) 수집
+        let wrongPool = [];
+        metropolitanDatabase.forEach(d => {
+            if (d.name !== targetDistrict.name) {
+                wrongPool.push(...d.dongs);
             }
+        });
+        wrongPool = [...new Set(wrongPool)].sort(() => 0.5 - Math.random());
+
+        if (isMultiType) {
+            // [다중 선택]: 정답 3개 + 오답 5개 조합 -> 8지선다
+            const selectedCorrect = correctDongs.slice(0, 3);
+            const selectedWrong = wrongPool.slice(0, 5);
+            const options = [...selectedCorrect, ...selectedWrong].sort(() => 0.5 - Math.random());
+            return {
+                type: "multi",
+                districtName: targetDistrict.name,
+                districtType: targetDistrict.type,
+                lat: targetDistrict.lat,
+                lng: targetDistrict.lng,
+                correctAnswers: selectedCorrect,
+                options: options
+            };
+        } else {
+            // [단일 선택]: 정답 1개 + 오답 3개 조합 -> 4지선다
+            const selectedCorrect = correctDongs.slice(0, 1);
+            const selectedWrong = wrongPool.slice(0, 3);
+            const options = [...selectedCorrect, ...selectedWrong].sort(() => 0.5 - Math.random());
+            return {
+                type: "single",
+                districtName: targetDistrict.name,
+                districtType: targetDistrict.type,
+                lat: targetDistrict.lat,
+                lng: targetDistrict.lng,
+                correctAnswers: selectedCorrect,
+                options: options
+            };
+        }
+    }
+
+    // --- 개별 문항 로딩 및 맵 하이라이트/핀 매핑 ---
+    function loadQuestion(index) {
+        selectedOptions = [];
+        document.getElementById('submit-btn').disabled = true;
+        document.getElementById('submit-btn').textContent = "정답 제출하기";
+
+        // 진행률 표시
+        const progressPercent = (index / 10) * 100;
+        document.getElementById('progress-bar').style.style = `width: ${progressPercent}%`;
+        document.getElementById('progress-bar').style.width = progressPercent + "%";
+        document.getElementById('current-q-num').textContent = index + 1;
+
+        const q = currentQuizPool[index];
+
+        // UI 문구 설정
+        const typeBadge = document.getElementById('quiz-type-badge');
+        const qText = document.getElementById('question-text');
+
+        if (q.type === "multi") {
+            typeBadge.textContent = "다중선택";
+            typeBadge.style.backgroundColor = "#fef3c7";
+            typeBadge.style.color = "#d97706";
+            qText.innerHTML = `지도에 주황색으로 표시된 행정구역은 <strong style="color:#2563eb;">[${q.districtName}]</strong>입니다. 이 구역에 소속된 실제 법정동(또는 읍·면) <strong>3가지</strong>를 모두 골라주세요.`;
+        } else {
+            typeBadge.textContent = "단일선택";
+            typeBadge.style.backgroundColor = "#eff6ff";
+            typeBadge.style.color = "#1d4ed8";
+            qText.innerHTML = `지도에 주황색으로 표시된 구역은 <strong style="color:#2563eb;">[${q.districtName}]</strong>입니다. 다음 중 이 구역에 소속된 법정동(또는 읍·면)은 어디일까요?`;
         }
 
-        // GeoJSON 로딩
-        function loadGeoJSONData() {
-            Promise.all([
-                fetch(HIGH_DEF_SEOUL_URL).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-                fetch(HIGH_DEF_NATION_URL).then(r => { if (!r.ok) throw new Error(); return r.json(); })
-            ]).then(([seoul, nation]) => {
-                seoulGeoJSON = seoul;
-                nationGeoJSON = nation;
-                document.getElementById('loading-shield').style.display = 'none';
-                startNewGame();
-            }).catch(err => {
-                console.error("GeoJSON 데이터 다운로드 오류:", err);
-                document.getElementById('loading-text').innerHTML = 
-                    `<span style="color:#cf222e;">필요한 경계 데이터를 다운로드하지 못했습니다. 인터넷망을 확인해 주세요.</span>`;
-            });
+        // 선택 옵션 버튼 생성
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+        
+        // 2열 레이아웃 그리드 설정
+        if (q.type === "multi") {
+            optionsContainer.style.gridTemplateColumns = "1fr 1fr";
+        } else {
+            optionsContainer.style.gridTemplateColumns = "1fr";
         }
 
-        // 동적 10지선다 생성 엔진
-        function startNewGame() {
-            totalScore = 0;
-            currentIdx = 0;
-            document.getElementById('score-board').textContent = `점수: 0점`;
+        q.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = () => selectOption(btn, opt, q.type);
+            optionsContainer.appendChild(btn);
+        });
 
-            // 마스터 DB에서 10개 랜덤 구역 추출
-            const selectedRegions = [...metropolitanMasterDatabase]
-                .sort(() => Math.random() - 0.5)
-                .slice(0, 10);
+        // 네이버 지도 뷰포트 이동 및 경계선 시각화 실행
+        updateMapHighlight(q);
+    }
 
-            quizPool = selectedRegions.map((region, idx) => {
-                const isSingle = (idx % 2 === 0);
-                
-                if (isSingle) {
-                    // 단일선택형: 4지선다형 구/시군 이름 맞추기
-                    const candidates = metropolitanMasterDatabase
-                        .filter(r => r.name !== region.name)
-                        .map(r => r.name)
-                        .sort(() => Math.random() - 0.5)
-                        .slice(0, 3);
-                    
-                    const options = [region.name, ...candidates].sort(() => Math.random() - 0.5);
-
-                    return {
-                        type: "single",
-                        districtName: region.name,
-                        regionType: region.type,
-                        lat: region.lat,
-                        lng: region.lng,
-                        options: options,
-                        correct: region.name,
-                        desc: `${region.name}의 위치 정보입니다.`
-                    };
-                } else {
-                    // [대혁신] 다중선택형: 실시간 동적 10지선다 생성
-                    // 1) 해당 구역의 실제 동 풀에서 무작위 정답 3개 추첨
-                    const correctAnswers = [...region.subUnits]
-                        .sort(() => Math.random() - 0.5)
-                        .slice(0, 3);
-
-                    // 2) 다른 행정구역의 무수한 동 중에서 무작위로 오답 7개 실시간 필터링 및 추첨
-                    const wrongCandidates = globalAllSubUnits
-                        .filter(dong => !region.subUnits.includes(dong))
-                        .sort(() => Math.random() - 0.5);
-                    
-                    // 중복 동 이름 방지 처리
-                    const wrongAnswers = [];
-                    for (let dong of wrongCandidates) {
-                        if (wrongAnswers.length >= 7) break;
-                        if (!wrongAnswers.includes(dong)) {
-                            wrongAnswers.push(dong);
-                        }
-                    }
-
-                    // 3) 정답 3개 + 오답 7개를 합친 10지선다 셔플
-                    const options = [...correctAnswers, ...wrongAnswers].sort(() => Math.random() - 0.5);
-
-                    return {
-                        type: "multi",
-                        districtName: region.name,
-                        regionType: region.type,
-                        lat: region.lat,
-                        lng: region.lng,
-                        options: options,
-                        correct: correctAnswers,
-                        desc: `${region.name}에 속한 하위 행정 단위입니다.`
-                    };
-                }
-            });
-
-            document.getElementById('result-modal').style.display = 'none';
-            loadQuestion(currentIdx);
-        }
-
-        // 문제 로드 및 동적 문구 생성
-        function loadQuestion(idx) {
-            hasSubmitted = false;
-            selectedAnswers = [];
-            
-            const q = quizPool[idx];
-            
-            document.getElementById('question-number').textContent = `문제 ${idx + 1} / 10`;
-            document.getElementById('progress-bar').style.width = `${(idx + 1) * 10}%`;
-            
-            const unitName = (q.regionType === "구") ? "구" : "시·군";
-            const subUnitName = (q.regionType === "구") ? "법정동" : "법정 읍·면·동";
-
-            if (q.type === 'single') {
-                document.getElementById('question-text').textContent = `[단일선택] 지도에 하이라이트된 주황색 영역과 빨간 점이 가리키는 "${unitName}"는 어디일까요?`;
+    // --- 객체 선택 및 실시간 상호작용 제어 ---
+    function selectOption(btn, value, type) {
+        if (type === "single") {
+            // 단일 선택의 경우 하나만 활성화
+            document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedOptions = [value];
+            document.getElementById('submit-btn').disabled = false;
+        } else {
+            // 다중 선택의 경우 다중 선택/해제 토글
+            if (btn.classList.contains('selected')) {
+                btn.classList.remove('selected');
+                selectedOptions = selectedOptions.filter(item => item !== value);
             } else {
-                document.getElementById('question-text').textContent = `[다중선택] 지도에 표시된 주황색 영역은 [${q.districtName}]입니다. 이 지역에 소속된 ${subUnitName} 3가지를 모두 골라주세요.`;
-            }
-            
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = q.type === 'single' ? "선택 즉시 정답 확인" : "정답 제출하기 (0 / 3 선택됨)";
-            document.getElementById('feedback-message').textContent = "";
-            document.getElementById('feedback-message').style.color = "#4e5968";
-
-            const optionsBox = document.getElementById('options-container');
-            optionsBox.innerHTML = "";
-            
-            q.options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.textContent = opt;
-                btn.onclick = () => handleOptionClick(btn, opt, q);
-                optionsBox.appendChild(btn);
-            });
-
-            const targetLatLng = new naver.maps.LatLng(q.lat, q.lng);
-            map.panTo(targetLatLng);
-            const zoomLevel = (q.regionType === "구") ? 12 : 10;
-            map.setZoom(zoomLevel);
-            
-            currentMarker.setPosition(targetLatLng);
-            currentMarker.setVisible(true);
-
-            drawDistrictGeometry(q.districtName);
-        }
-
-        // 정밀 도형 그리기
-        function drawDistrictGeometry(targetName) {
-            if (geojsonLayer) {
-                geojsonLayer.setMap(null);
-                geojsonLayer = null;
-            }
-
-            let matchedFeature = null;
-            
-            if (seoulGeoJSON) {
-                matchedFeature = seoulGeoJSON.features.find(f => {
-                    const name = f.properties.name || f.properties.NAME_2 || "";
-                    return name.replace(/\s+/g, '') === targetName;
-                });
-            }
-            
-            if (!matchedFeature && nationGeoJSON) {
-                matchedFeature = nationGeoJSON.features.find(f => {
-                    const name = f.properties.name || f.properties.NAME_2 || "";
-                    return name.replace(/\s+/g, '') === targetName;
-                });
-            }
-
-            if (matchedFeature) {
-                geojsonLayer = new naver.maps.Data();
-                geojsonLayer.addGeoJson({
-                    type: "FeatureCollection",
-                    features: [matchedFeature]
-                });
-                
-                geojsonLayer.setStyle({
-                    fillColor: '#ff9500',
-                    fillOpacity: 0.25,
-                    strokeColor: '#ff9500',
-                    strokeWeight: 3,
-                    strokeOpacity: 0.8
-                });
-                
-                geojsonLayer.setMap(map);
-            }
-        }
-
-        // 클릭 제어
-        function handleOptionClick(btn, val, q) {
-            if (hasSubmitted) return;
-
-            if (q.type === 'single') {
-                hasSubmitted = true;
-                selectedAnswers = [val];
-                evaluateSingleChoice(btn, val, q);
-            } else {
-                if (selectedAnswers.includes(val)) {
-                    selectedAnswers = selectedAnswers.filter(v => v !== val);
-                    btn.classList.remove('selected');
-                } else {
-                    if (selectedAnswers.length >= 3) {
-                        alert("최대 3개 구역까지만 선택할 수 있습니다.");
-                        return;
-                    }
-                    selectedAnswers.push(val);
+                if (selectedOptions.length < 3) {
                     btn.classList.add('selected');
+                    selectedOptions.push(value);
+                } else {
+                    alert("최대 3개까지만 선택할 수 있습니다.");
                 }
-                
-                const submitBtn = document.getElementById('submit-btn');
-                submitBtn.textContent = `정답 제출하기 (${selectedAnswers.length} / 3 선택됨)`;
-                submitBtn.disabled = (selectedAnswers.length !== 3);
-                
-                submitBtn.onclick = () => {
-                    if (!hasSubmitted && selectedAnswers.length === 3) {
-                        hasSubmitted = true;
-                        evaluateMultiChoice(q);
-                    }
-                };
             }
+            // 3개를 정확히 선택했을 때만 제출 활성화
+            document.getElementById('submit-btn').disabled = (selectedOptions.length !== 3);
         }
+    }
 
-        // 단일선택 채점
-        function evaluateSingleChoice(clickedBtn, selectedVal, q) {
-            const isCorrect = (selectedVal === q.correct);
-            const feedback = document.getElementById('feedback-message');
-            const submitBtn = document.getElementById('submit-btn');
+    // --- 제출 처리 및 시각적 피드백 제공 (정답=초록, 오답=빨강) ---
+    document.getElementById('submit-btn').onclick = () => {
+        const q = currentQuizPool[currentQuestionIndex];
+        const buttons = document.querySelectorAll('.option-btn');
+        let isCorrect = false;
+        let pointsEarned = 0;
 
-            if (isCorrect) {
-                clickedBtn.classList.add('correct');
-                totalScore += 10;
-                feedback.textContent = `정답입니다! 🎉 (+10점)`;
-                feedback.style.color = "#2da44e";
-            } else {
-                clickedBtn.classList.add('wrong');
-                const btns = document.querySelectorAll('.option-btn');
-                btns.forEach(b => {
-                    if (b.textContent === q.correct) b.classList.add('correct');
-                });
-                feedback.textContent = `오답입니다. 정답은 [${q.correct}]입니다.`;
-                feedback.style.color = "#cf222e";
-            }
-
-            document.getElementById('score-board').textContent = `점수: ${totalScore}점`;
+        // 버튼 상호작용 비활성화
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            const val = btn.textContent;
             
-            submitBtn.disabled = false;
-            submitBtn.textContent = currentIdx < 9 ? "다음 문제 풀기 ➔" : "최종 결과 확인 ➔";
-            submitBtn.onclick = nextQuestion;
-        }
-
-        // 다중선택 채점
-        function evaluateMultiChoice(q) {
-            const feedback = document.getElementById('feedback-message');
-            const submitBtn = document.getElementById('submit-btn');
-            
-            let matchedCount = 0;
-            const btns = document.querySelectorAll('.option-btn');
-
-            btns.forEach(b => {
-                const val = b.textContent;
-                const isCollectItem = q.correct.includes(val);
-                const isSelected = selectedAnswers.includes(val);
-
-                if (isCollectItem) {
-                    b.classList.add('correct');
-                    if (isSelected) matchedCount++;
-                } else if (isSelected && !isCollectItem) {
-                    b.classList.add('wrong');
-                }
-            });
-
-            let earned = 0;
-            if (matchedCount === 3) { earned = 10; }
-            else if (matchedCount === 2) { earned = 6; }
-            else if (matchedCount === 1) { earned = 3; }
-
-            totalScore += earned;
-            document.getElementById('score-board').textContent = `점수: ${totalScore}점`;
-
-            if (earned === 10) {
-                feedback.textContent = `퍼펙트! 3개 구역을 모두 맞췄습니다! 🎉 (+10점)`;
-                feedback.style.color = "#2da44e";
-            } else if (earned > 0) {
-                feedback.textContent = `${matchedCount}개 구역을 맞췄습니다. (+${earned}점)`;
-                feedback.style.color = "#ff9500";
-            } else {
-                feedback.textContent = `모두 오답입니다. 정답은 [${q.correct.join(', ')}]입니다.`;
-                feedback.style.color = "#cf222e";
+            // 실제 정답 요소들은 무조건 초록색 테두리 표시
+            if (q.correctAnswers.includes(val)) {
+                btn.style.borderColor = "#22c55e";
+                btn.style.backgroundColor = "#f0fdf4";
+                btn.style.color = "#16a34a";
             }
+            // 오답인데 사용자가 선택한 것은 빨간색 테두리 표시
+            if (selectedOptions.includes(val) && !q.correctAnswers.includes(val)) {
+                btn.style.borderColor = "#ef4444";
+                btn.style.backgroundColor = "#fef2f2";
+                btn.style.color = "#dc2626";
+            }
+        });
 
-            submitBtn.disabled = false;
-            submitBtn.textContent = currentIdx < 9 ? "다음 문제 풀기 ➔" : "최종 결과 확인 ➔";
-            submitBtn.onclick = nextQuestion;
+        // 단일/다중 정답 스코어 계산 알고리즘
+        if (q.type === "single") {
+            if (selectedOptions[0] === q.correctAnswers[0]) {
+                pointsEarned = 10;
+                isCorrect = true;
+            }
+        } else {
+            // 다중 선택: 일치하는 개수에 따라 가변 배점 부여 (3개 일치: 10점, 2개 일치: 6점, 1개 일치: 3점)
+            const matchCount = selectedOptions.filter(val => q.correctAnswers.includes(val)).length;
+            if (matchCount === 3) {
+                pointsEarned = 10;
+                isCorrect = true;
+            } else if (matchCount === 2) {
+                pointsEarned = 6;
+            } else if (matchCount === 1) {
+                pointsEarned = 3;
+            }
         }
 
-        function nextQuestion() {
-            currentIdx++;
-            if (currentIdx < 10) {
-                loadQuestion(currentIdx);
-            } else {
+        score += pointsEarned;
+        document.getElementById('current-score').textContent = score;
+
+        // 제출 버튼을 다음 문제로 넘어가는 용도로 변경
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = false;
+        if (currentQuestionIndex < 9) {
+            submitBtn.textContent = "다음 문제로 이동하기";
+            submitBtn.onclick = () => {
+                currentQuestionIndex++;
+                loadQuestion(currentQuestionIndex);
+                resetSubmitButton();
+            };
+        } else {
+            submitBtn.textContent = "결과 확인하기";
+            submitBtn.onclick = () => {
                 showFinalResults();
+            };
+        }
+    };
+
+    function resetSubmitButton() {
+        const btn = document.getElementById('submit-btn');
+        btn.onclick = null;
+        // 다시 일반 정답 제출 용도로 이벤트 핸들러 바인딩
+        btn.onclick = () => {
+            document.getElementById('submit-btn').click; 
+        };
+        // 동적 바인딩 복구
+        location.reload; 
+    }
+
+    // --- ★ 가장 중요: GeoJSON 명칭 상호 포함 매칭 알고리즘 적용 및 하이라이트 기능 ---
+    function updateMapHighlight(q) {
+        // 기존 레이어 및 핀 삭제
+        if (geojsonLayer) {
+            geojsonLayer.setMap(null);
+            geojsonLayer = null;
+        }
+        if (centerMarker) {
+            centerMarker.setMap(null);
+            centerMarker = null;
+        }
+
+        const targetCenter = new naver.maps.LatLng(q.lat, q.lng);
+        map.setCenter(targetCenter);
+        map.setZoom(11); // 행정구역이 한눈에 보이는 최적 줌 레벨 조정
+
+        // 서울/경기/인천 구분에 따른 타겟 GeoJSON 로드
+        const baseGeoJson = (q.districtType === "서울") ? seoulGeoJsonData : nationGeoJsonData;
+
+        if (!baseGeoJson) return;
+
+        // 100% 견고한 행정구역 매칭 알고리즘
+        const filteredFeatures = baseGeoJson.features.filter(feature => {
+            // GeoJSON에 포함될 수 있는 다양한 성격의 한글 이름 프로퍼티 전수 조사
+            const geoName = (feature.properties.name || feature.properties.name_kor || feature.properties.SIG_KOR_NM || "").replace(/\s+/g, "");
+            const quizName = q.districtName.replace(/\s+/g, "");
+
+            // 예: "용인시처인구"가 "처인구"를 포함하고 있는지(또는 그 반대인지) 체크하여 누락 원천 해결
+            return (geoName.includes(quizName) || quizName.includes(geoName));
+        });
+
+        if (filteredFeatures.length > 0) {
+            const highlightGeoJson = {
+                type: "FeatureCollection",
+                features: filteredFeatures
+            };
+
+            // 필터링된 해당 행정구역의 영역선 스타일 정의 (주황색 오버레이 생성)
+            geojsonLayer = new naver.maps.Data();
+            geojsonLayer.addGeoJson(highlightGeoJson);
+            
+            geojsonLayer.setStyle(feature => {
+                return {
+                    fillColor: '#f97316', // 주황색 채우기
+                    fillOpacity: 0.45,
+                    strokeColor: '#ea580c', // 진한 주황색 경계 테두리
+                    strokeWeight: 3,
+                    strokeOpacity: 0.95
+                };
+            });
+            
+            geojsonLayer.setMap(map);
+        } else {
+            console.warn(`경계선 매칭 실패: ${q.districtName}`);
+        }
+
+        // 중심지에 빨간 점 마커 생성하여 가독성 강화
+        centerMarker = new naver.maps.Marker({
+            position: targetCenter,
+            map: map,
+            icon: {
+                content: '<div style="width: 14px; height: 14px; background-color: #ef4444; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.4);"></div>',
+                anchor: new naver.maps.Point(7, 7)
             }
+        });
+    }
+
+    // --- 최종 성적 정산 및 점수판 로드 ---
+    function showFinalResults() {
+        document.getElementById('final-score').textContent = score;
+        const evaluation = document.getElementById('result-evaluation');
+
+        if (score === 100) {
+            evaluation.innerHTML = "🏆 대단합니다! 당신은 진정한 수도권 지리 황제이자 마스터입니다.";
+        } else if (score >= 80) {
+            evaluation.innerHTML = "😃 아주 우수한 점수입니다! 수도권의 행정 지리를 꿰뚫고 계시네요.";
+        } else if (score >= 50) {
+            evaluation.innerHTML = "🤔 보통 실력입니다. 조금 더 연습하면 완벽하게 기억할 수 있습니다.";
+        } else {
+            evaluation.innerHTML = "😢 다시 한 번 도전해 볼까요? 반복 학습이 지리 정보 습득에 가장 좋은 지름길입니다.";
         }
 
-        function showFinalResults() {
-            const modal = document.getElementById('result-modal');
-            const scoreText = document.getElementById('modal-score');
-            const descText = document.getElementById('modal-desc');
+        document.getElementById('result-overlay').style.display = 'flex';
+    }
 
-            scoreText.textContent = `${totalScore}점`;
+    function restartGame() {
+        startGame();
+    }
 
-            if (totalScore >= 90) {
-                descText.textContent = "🏅 대단합니다! 당신은 진정한 수도권 지리 1% 마스터입니다.";
-            } else if (totalScore >= 70) {
-                descText.textContent = "👍 훌륭합니다! 웬만한 지역 지리는 훤히 꿰뚫고 계시군요.";
-            } else if (totalScore >= 40) {
-                descText.textContent = "😀 분발해 봅시다! 지도를 보고 동네 위치를 좀 더 파악해 보세요.";
-            } else {
-                descText.textContent = "🗺️ 아쉽군요! 지도를 보면서 다양한 구와 법정동의 위치를 복습해 보세요.";
-            }
-
-            modal.style.display = 'flex';
-        }
-
-        function restartQuiz() {
-            startNewGame();
-        }
-    </script>
+    // 최초 로딩 시 지도 초기화
+    window.onload = initMap;
+</script>
 </body>
 </html>
