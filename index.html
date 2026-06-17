@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>수도권 지리 마스터 (NAVER 지도 API 공식 실측 버전)</title>
     
-    <!-- 네이버 지도 API v3 및 지오코더 서브모듈 호출 (Client ID 연동 완료) -->
+    <!-- 네이버 지도 API v3 호출 (Client ID 연동 완료) -->
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=kizfnbhv3q&submodules=geocoder"></script>
     
     <style>
@@ -401,11 +401,11 @@
         let selectedOptions = [];
 
         function initMap() {
-            // 네이버 지도 초기화 설정
+            // [오류 수정]: MapTypeStyle -> MapTypeId 로 명칭 전면 교정 완료!
             map = new naver.maps.Map('map', {
                 center: new naver.maps.LatLng(37.53, 126.96),
                 zoom: 11,
-                mapTypeId: naver.maps.MapTypeStyle.NORMAL,
+                mapTypeId: naver.maps.MapTypeId.NORMAL,
                 logoControl: false,
                 mapDataControl: false,
                 scaleControl: false,
@@ -512,7 +512,6 @@
 
         // --- 네이버 지도 API 전용 고해상도 행정구역 렌더링 함수 ---
         function drawNaverDistrict(data) {
-            // 1. 기존 폴리곤 및 원 레이어 완전 초기화
             naverPolygons.forEach(p => p.setMap(null));
             naverPolygons = [];
 
@@ -524,7 +523,6 @@
             const targetName = data.districtName.replace(/\s+/g, '');
             let matchedGeoJson = seoulGeoJson;
 
-            // 서울 이외 지역 구역은 전국 데이터 할당
             if (data.districtName !== '영등포구' && data.districtName !== '마포구' && data.districtName !== '강남구' && data.districtName !== '종로구') {
                 matchedGeoJson = nationGeoJson;
             }
@@ -547,10 +545,8 @@
                 });
             }
 
-            // 지도 중앙점 및 카메라 줌을 해당 구의 위치로 최적 이동
             map.morph(new naver.maps.LatLng(data.lat, data.lng), data.type === 'single' ? 13 : 11.5);
 
-            // 타겟 구역 중심부에 붉은 네온 점 서클 설치
             naverCircle = new naver.maps.Circle({
                 map: map,
                 center: new naver.maps.LatLng(data.lat, data.lng),
@@ -569,13 +565,12 @@
                 paths.push(new naver.maps.LatLng(coord[1], coord[0]));
             });
 
-            // 네이버 지도 고유 Polygon 객체 렌더링
             const poly = new naver.maps.Polygon({
                 map: map,
                 paths: paths,
                 fillColor: '#f1c40f',
-                fillOpacity: 0.35,      // 뒤편의 실제 아파트 단지와 해안선, 한강이 비쳐 보이도록 최적화
-                strokeColor: '#f1c40f',    // 실제 지형 경계선과 맞물리는 뚜렷한 노란색 실선
+                fillOpacity: 0.35,      
+                strokeColor: '#f1c40f',    
                 strokeWeight: 4,
                 strokeOpacity: 0.95
             });
@@ -675,7 +670,6 @@
             startGame();
         }
 
-        // 문서 전체 로드 완료 시 안전하게 네이버 지도 로딩
         window.onload = function() {
             if (typeof naver !== 'undefined') {
                 initMap();
