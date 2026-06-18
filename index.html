@@ -9,24 +9,29 @@
   html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
   #app { display: flex; width: 100vw; height: 100vh; }
   #map-container { flex: 1; height: 100%; background: #e8eef3; }
-  #panel { width: 380px; height: 100%; background: #1e293b; color: #f1f5f9; display: flex; flex-direction: column; padding: 24px; gap: 16px; overflow-y: auto; }
+  #panel { width: 400px; height: 100%; background: #1e293b; color: #f1f5f9; display: flex; flex-direction: column; padding: 24px; gap: 16px; overflow-y: auto; }
   #panel h1 { font-size: 20px; font-weight: 800; }
   .row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #94a3b8; }
   #progress-bar { height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
   #progress-fill { height: 100%; width: 0%; background: #f97316; transition: width .3s; }
-  #question { font-size: 17px; line-height: 1.5; min-height: 70px; background: #0f172a; padding: 16px; border-radius: 12px; }
+  #question { font-size: 17px; line-height: 1.5; min-height: 60px; background: #0f172a; padding: 16px; border-radius: 12px; }
   #options { display: flex; flex-direction: column; gap: 10px; }
   .option-btn { text-align: left; padding: 14px 16px; border: 2px solid #334155; background: #0f172a; color: #f1f5f9; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all .15s; }
   .option-btn:hover:not(:disabled) { border-color: #f97316; }
   .option-btn:disabled { cursor: default; }
   .option-btn.correct { border-color: #22c55e; background: #14532d; }
   .option-btn.wrong { border-color: #ef4444; background: #450a0a; }
-  #next-btn, #start-btn, #restart-btn { padding: 14px; background: #f97316; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  button.primary { padding: 14px; background: #f97316; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  button.secondary { padding: 12px; background: #334155; color: #f1f5f9; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
   #next-btn:disabled { background: #475569; cursor: default; }
   #result { text-align: center; display: flex; flex-direction: column; gap: 16px; }
   #result .score { font-size: 48px; font-weight: 900; color: #f97316; }
-  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(15,23,42,.85); color: #fff; font-size: 18px; z-index: 50; }
+  #loading { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; background: rgba(15,23,42,.9); color: #fff; font-size: 18px; z-index: 50; text-align: center; padding: 20px; }
+  .spinner { width: 36px; height: 36px; border: 4px solid #334155; border-top-color: #f97316; border-radius: 50%; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none !important; }
+  #verify-result { margin-top: 8px; font-size: 12px; line-height: 1.6; }
+  #diag { font-size: 12px; color: #fca5a5; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -36,10 +41,13 @@
     <h1>🗺️ 수도권 지리 마스터</h1>
 
     <div id="start-screen">
-      <p style="color:#94a3b8; line-height:1.6; margin-bottom:16px;">
-        백지도에 표시된 행정구역(주황색)이 어디인지 4지선다로 맞혀보세요. 매 게임 10문제가 무작위로 출제됩니다.
+      <p style="color:#94a3b8; line-height:1.6;">
+        백지도에 주황색으로 표시된 행정구역이 어디인지 4지선다로 맞혀보세요. 매 게임 10문제가 무작위로 출제됩니다.
       </p>
-      <button id="start-btn">게임 시작</button>
+      <button id="start-btn" class="primary">게임 시작</button>
+      <button id="verify-btn" class="secondary" style="margin-top:10px;">🔍 전체 78개 검증</button>
+      <div id="diag"></div>
+      <div id="verify-result"></div>
     </div>
 
     <div id="quiz-screen" class="hidden">
@@ -50,7 +58,7 @@
       <div id="progress-bar"><div id="progress-fill"></div></div>
       <div id="question"></div>
       <div id="options"></div>
-      <button id="next-btn" disabled>다음 문제</button>
+      <button id="next-btn" class="primary" disabled>다음 문제</button>
     </div>
 
     <div id="result-screen" class="hidden">
@@ -58,13 +66,16 @@
         <div>최종 점수</div>
         <div class="score"><span id="final-score">0</span> / 100</div>
         <div id="final-msg"></div>
-        <button id="restart-btn">다시 하기</button>
+        <button id="restart-btn" class="primary">다시 하기</button>
       </div>
     </div>
   </div>
 </div>
 
-<div id="loading">지도 및 경계 데이터를 불러오는 중…</div>
+<div id="loading">
+  <div class="spinner"></div>
+  <div id="loading-text">지도 및 경계 데이터를 불러오는 중…</div>
+</div>
 
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
 <script>
@@ -78,93 +89,94 @@ const GEOJSON_FILES = [
 ];
 
 /* 78개 행정구역.
-   - name: 화면에 보여줄 이름
-   - matchName: GeoJSON의 sggnm 과 정확히 일치해야 하는 "공백 없는" 문자열
-   - group: 오답 보기를 같은 그룹에서만 뽑기 위한 키 */
+   - name      : 화면 표시명
+   - matchName : GeoJSON sggnm 과 정확히 일치해야 하는 "공백 없는" 문자열
+   - sido      : 시도 코드 ("11" 서울 / "28" 인천 / "41" 경기) — 동명이구 구분
+   - group     : 오답 보기를 같은 그룹에서만 뽑기 위한 키 */
 const DB = [
-  // 서울특별시 자치구 25 (group: seoul)
-  {name:"종로구", matchName:"종로구", group:"seoul"},
-  {name:"중구", matchName:"중구", group:"seoul"},
-  {name:"용산구", matchName:"용산구", group:"seoul"},
-  {name:"성동구", matchName:"성동구", group:"seoul"},
-  {name:"광진구", matchName:"광진구", group:"seoul"},
-  {name:"동대문구", matchName:"동대문구", group:"seoul"},
-  {name:"중랑구", matchName:"중랑구", group:"seoul"},
-  {name:"성북구", matchName:"성북구", group:"seoul"},
-  {name:"강북구", matchName:"강북구", group:"seoul"},
-  {name:"도봉구", matchName:"도봉구", group:"seoul"},
-  {name:"노원구", matchName:"노원구", group:"seoul"},
-  {name:"은평구", matchName:"은평구", group:"seoul"},
-  {name:"서대문구", matchName:"서대문구", group:"seoul"},
-  {name:"마포구", matchName:"마포구", group:"seoul"},
-  {name:"양천구", matchName:"양천구", group:"seoul"},
-  {name:"강서구", matchName:"강서구", group:"seoul"},
-  {name:"구로구", matchName:"구로구", group:"seoul"},
-  {name:"금천구", matchName:"금천구", group:"seoul"},
-  {name:"영등포구", matchName:"영등포구", group:"seoul"},
-  {name:"동작구", matchName:"동작구", group:"seoul"},
-  {name:"관악구", matchName:"관악구", group:"seoul"},
-  {name:"서초구", matchName:"서초구", group:"seoul"},
-  {name:"강남구", matchName:"강남구", group:"seoul"},
-  {name:"송파구", matchName:"송파구", group:"seoul"},
-  {name:"강동구", matchName:"강동구", group:"seoul"},
+  // 서울특별시 자치구 25 (sido 11)
+  {name:"종로구", matchName:"종로구", sido:"11", group:"seoul"},
+  {name:"중구", matchName:"중구", sido:"11", group:"seoul"},
+  {name:"용산구", matchName:"용산구", sido:"11", group:"seoul"},
+  {name:"성동구", matchName:"성동구", sido:"11", group:"seoul"},
+  {name:"광진구", matchName:"광진구", sido:"11", group:"seoul"},
+  {name:"동대문구", matchName:"동대문구", sido:"11", group:"seoul"},
+  {name:"중랑구", matchName:"중랑구", sido:"11", group:"seoul"},
+  {name:"성북구", matchName:"성북구", sido:"11", group:"seoul"},
+  {name:"강북구", matchName:"강북구", sido:"11", group:"seoul"},
+  {name:"도봉구", matchName:"도봉구", sido:"11", group:"seoul"},
+  {name:"노원구", matchName:"노원구", sido:"11", group:"seoul"},
+  {name:"은평구", matchName:"은평구", sido:"11", group:"seoul"},
+  {name:"서대문구", matchName:"서대문구", sido:"11", group:"seoul"},
+  {name:"마포구", matchName:"마포구", sido:"11", group:"seoul"},
+  {name:"양천구", matchName:"양천구", sido:"11", group:"seoul"},
+  {name:"강서구", matchName:"강서구", sido:"11", group:"seoul"},
+  {name:"구로구", matchName:"구로구", sido:"11", group:"seoul"},
+  {name:"금천구", matchName:"금천구", sido:"11", group:"seoul"},
+  {name:"영등포구", matchName:"영등포구", sido:"11", group:"seoul"},
+  {name:"동작구", matchName:"동작구", sido:"11", group:"seoul"},
+  {name:"관악구", matchName:"관악구", sido:"11", group:"seoul"},
+  {name:"서초구", matchName:"서초구", sido:"11", group:"seoul"},
+  {name:"강남구", matchName:"강남구", sido:"11", group:"seoul"},
+  {name:"송파구", matchName:"송파구", sido:"11", group:"seoul"},
+  {name:"강동구", matchName:"강동구", sido:"11", group:"seoul"},
 
-  // 인천광역시 군·구 10 (group: incheon)
-  {name:"인천 중구", matchName:"중구", group:"incheon", sido:"28"},
-  {name:"인천 동구", matchName:"동구", group:"incheon", sido:"28"},
-  {name:"미추홀구", matchName:"미추홀구", group:"incheon", sido:"28"},
-  {name:"연수구", matchName:"연수구", group:"incheon", sido:"28"},
-  {name:"남동구", matchName:"남동구", group:"incheon", sido:"28"},
-  {name:"부평구", matchName:"부평구", group:"incheon", sido:"28"},
-  {name:"계양구", matchName:"계양구", group:"incheon", sido:"28"},
-  {name:"인천 서구", matchName:"서구", group:"incheon", sido:"28"},
-  {name:"강화군", matchName:"강화군", group:"incheon", sido:"28"},
-  {name:"옹진군", matchName:"옹진군", group:"incheon", sido:"28"},
+  // 인천광역시 군·구 10 (sido 28)
+  {name:"인천 중구", matchName:"중구", sido:"28", group:"incheon"},
+  {name:"인천 동구", matchName:"동구", sido:"28", group:"incheon"},
+  {name:"미추홀구", matchName:"미추홀구", sido:"28", group:"incheon"},
+  {name:"연수구", matchName:"연수구", sido:"28", group:"incheon"},
+  {name:"남동구", matchName:"남동구", sido:"28", group:"incheon"},
+  {name:"부평구", matchName:"부평구", sido:"28", group:"incheon"},
+  {name:"계양구", matchName:"계양구", sido:"28", group:"incheon"},
+  {name:"인천 서구", matchName:"서구", sido:"28", group:"incheon"},
+  {name:"강화군", matchName:"강화군", sido:"28", group:"incheon"},
+  {name:"옹진군", matchName:"옹진군", sido:"28", group:"incheon"},
 
-  // 경기도 행정구를 가진 시 (각 시 내부 group으로 묶음)
-  {name:"수원시 장안구", matchName:"수원시장안구", group:"gg-suwon"},
-  {name:"수원시 권선구", matchName:"수원시권선구", group:"gg-suwon"},
-  {name:"수원시 팔달구", matchName:"수원시팔달구", group:"gg-suwon"},
-  {name:"수원시 영통구", matchName:"수원시영통구", group:"gg-suwon"},
-  {name:"성남시 수정구", matchName:"성남시수정구", group:"gg-seongnam"},
-  {name:"성남시 중원구", matchName:"성남시중원구", group:"gg-seongnam"},
-  {name:"성남시 분당구", matchName:"성남시분당구", group:"gg-seongnam"},
-  {name:"안양시 만안구", matchName:"안양시만안구", group:"gg-anyang"},
-  {name:"안양시 동안구", matchName:"안양시동안구", group:"gg-anyang"},
-  {name:"안산시 상록구", matchName:"안산시상록구", group:"gg-ansan"},
-  {name:"안산시 단원구", matchName:"안산시단원구", group:"gg-ansan"},
-  {name:"고양시 덕양구", matchName:"고양시덕양구", group:"gg-goyang"},
-  {name:"고양시 일산동구", matchName:"고양시일산동구", group:"gg-goyang"},
-  {name:"고양시 일산서구", matchName:"고양시일산서구", group:"gg-goyang"},
-  {name:"용인시 처인구", matchName:"용인시처인구", group:"gg-yongin"},
-  {name:"용인시 기흥구", matchName:"용인시기흥구", group:"gg-yongin"},
-  {name:"용인시 수지구", matchName:"용인시수지구", group:"gg-yongin"},
+  // 경기도 행정구 (각 시 내부 group)  sido 41
+  {name:"수원시 장안구", matchName:"수원시장안구", sido:"41", group:"gg-suwon"},
+  {name:"수원시 권선구", matchName:"수원시권선구", sido:"41", group:"gg-suwon"},
+  {name:"수원시 팔달구", matchName:"수원시팔달구", sido:"41", group:"gg-suwon"},
+  {name:"수원시 영통구", matchName:"수원시영통구", sido:"41", group:"gg-suwon"},
+  {name:"성남시 수정구", matchName:"성남시수정구", sido:"41", group:"gg-seongnam"},
+  {name:"성남시 중원구", matchName:"성남시중원구", sido:"41", group:"gg-seongnam"},
+  {name:"성남시 분당구", matchName:"성남시분당구", sido:"41", group:"gg-seongnam"},
+  {name:"안양시 만안구", matchName:"안양시만안구", sido:"41", group:"gg-anyang"},
+  {name:"안양시 동안구", matchName:"안양시동안구", sido:"41", group:"gg-anyang"},
+  {name:"안산시 상록구", matchName:"안산시상록구", sido:"41", group:"gg-ansan"},
+  {name:"안산시 단원구", matchName:"안산시단원구", sido:"41", group:"gg-ansan"},
+  {name:"고양시 덕양구", matchName:"고양시덕양구", sido:"41", group:"gg-goyang"},
+  {name:"고양시 일산동구", matchName:"고양시일산동구", sido:"41", group:"gg-goyang"},
+  {name:"고양시 일산서구", matchName:"고양시일산서구", sido:"41", group:"gg-goyang"},
+  {name:"용인시 처인구", matchName:"용인시처인구", sido:"41", group:"gg-yongin"},
+  {name:"용인시 기흥구", matchName:"용인시기흥구", sido:"41", group:"gg-yongin"},
+  {name:"용인시 수지구", matchName:"용인시수지구", sido:"41", group:"gg-yongin"},
 
-  // 경기도 일반 시·군 (group: gg-city)
-  {name:"부천시", matchName:"부천시", group:"gg-city"},
-  {name:"광명시", matchName:"광명시", group:"gg-city"},
-  {name:"평택시", matchName:"평택시", group:"gg-city"},
-  {name:"동두천시", matchName:"동두천시", group:"gg-city"},
-  {name:"과천시", matchName:"과천시", group:"gg-city"},
-  {name:"구리시", matchName:"구리시", group:"gg-city"},
-  {name:"남양주시", matchName:"남양주시", group:"gg-city"},
-  {name:"오산시", matchName:"오산시", group:"gg-city"},
-  {name:"시흥시", matchName:"시흥시", group:"gg-city"},
-  {name:"군포시", matchName:"군포시", group:"gg-city"},
-  {name:"의왕시", matchName:"의왕시", group:"gg-city"},
-  {name:"하남시", matchName:"하남시", group:"gg-city"},
-  {name:"이천시", matchName:"이천시", group:"gg-city"},
-  {name:"안성시", matchName:"안성시", group:"gg-city"},
-  {name:"김포시", matchName:"김포시", group:"gg-city"},
-  {name:"화성시", matchName:"화성시", group:"gg-city"},
-  {name:"광주시", matchName:"광주시", group:"gg-city"},
-  {name:"양주시", matchName:"양주시", group:"gg-city"},
-  {name:"포천시", matchName:"포천시", group:"gg-city"},
-  {name:"여주시", matchName:"여주시", group:"gg-city"},
-  {name:"의정부시", matchName:"의정부시", group:"gg-city"},
-  {name:"연천군", matchName:"연천군", group:"gg-city"},
-  {name:"가평군", matchName:"가평군", group:"gg-city"},
-  {name:"양평군", matchName:"양평군", group:"gg-city"}
+  // 경기도 일반 시·군 (sido 41, group gg-city)
+  {name:"부천시", matchName:"부천시", sido:"41", group:"gg-city"},
+  {name:"광명시", matchName:"광명시", sido:"41", group:"gg-city"},
+  {name:"평택시", matchName:"평택시", sido:"41", group:"gg-city"},
+  {name:"동두천시", matchName:"동두천시", sido:"41", group:"gg-city"},
+  {name:"과천시", matchName:"과천시", sido:"41", group:"gg-city"},
+  {name:"구리시", matchName:"구리시", sido:"41", group:"gg-city"},
+  {name:"남양주시", matchName:"남양주시", sido:"41", group:"gg-city"},
+  {name:"오산시", matchName:"오산시", sido:"41", group:"gg-city"},
+  {name:"시흥시", matchName:"시흥시", sido:"41", group:"gg-city"},
+  {name:"군포시", matchName:"군포시", sido:"41", group:"gg-city"},
+  {name:"의왕시", matchName:"의왕시", sido:"41", group:"gg-city"},
+  {name:"하남시", matchName:"하남시", sido:"41", group:"gg-city"},
+  {name:"이천시", matchName:"이천시", sido:"41", group:"gg-city"},
+  {name:"안성시", matchName:"안성시", sido:"41", group:"gg-city"},
+  {name:"김포시", matchName:"김포시", sido:"41", group:"gg-city"},
+  {name:"화성시", matchName:"화성시", sido:"41", group:"gg-city"},
+  {name:"광주시", matchName:"광주시", sido:"41", group:"gg-city"},
+  {name:"양주시", matchName:"양주시", sido:"41", group:"gg-city"},
+  {name:"포천시", matchName:"포천시", sido:"41", group:"gg-city"},
+  {name:"여주시", matchName:"여주시", sido:"41", group:"gg-city"},
+  {name:"의정부시", matchName:"의정부시", sido:"41", group:"gg-city"},
+  {name:"연천군", matchName:"연천군", sido:"41", group:"gg-city"},
+  {name:"가평군", matchName:"가평군", sido:"41", group:"gg-city"},
+  {name:"양평군", matchName:"양평군", sido:"41", group:"gg-city"}
 ];
 
 /* ===========================================================
@@ -172,9 +184,9 @@ const DB = [
 =========================================================== */
 let map = null;
 let centerMarker = null;
-let highlightedFeatures = [];          // 현재 칠해진 data feature 목록
-const featuresBySgg = {};              // sgg코드 -> [feature,...]
-const codeByMatch = {};                // "sido|matchName" -> sgg코드 (자동추출)
+let highlightedFeatures = [];
+const featuresBySgg = {};       // sgg -> [feature]
+const codeByKey = {};           // "sido|sggnm" -> sgg
 
 let quizSet = [];
 let currentIndex = 0;
@@ -182,7 +194,7 @@ let score = 0;
 let answered = false;
 
 /* ===========================================================
-   초기화
+   지도 초기화
 =========================================================== */
 function initMap() {
   map = new naver.maps.Map("map-container", {
@@ -190,10 +202,9 @@ function initMap() {
     zoom: 10,
     minZoom: 8,
     maxZoom: 14,
-    // 라벨(lko)을 뺀 백지도. NaverStyleMapTypeOptions 는 정적 메서드로 호출한다.
     mapTypes: new naver.maps.MapTypeRegistry({
       "normal_no_labels": naver.maps.NaverStyleMapTypeOptions.getNormalMap({
-        overlayType: "bg.ol"
+        overlayType: "bg.ol"     // 라벨(lko) 제외 = 백지도
       })
     }),
     mapTypeId: "normal_no_labels",
@@ -204,42 +215,33 @@ function initMap() {
   });
 }
 
-/* 전 파일 로드 → data 레이어에 추가 → 인덱스 구축 */
+/* ===========================================================
+   데이터 로드 (병렬) + 인덱스 구축
+=========================================================== */
 async function loadAllGeoData() {
-  // 모든 feature 를 숨김 스타일로 깔아두고, 하이라이트 시 overrideStyle 로 칠한다.
-  map.data.setStyle(() => ({
-    fillOpacity: 0,
-    strokeWeight: 0,
-    clickable: false
-  }));
+  map.data.setStyle(() => ({ fillOpacity: 0, strokeWeight: 0, clickable: false }));
 
-  for (const url of GEOJSON_FILES) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("GeoJSON 로드 실패: " + url);
-    const geojson = await res.json();
-    map.data.addGeoJson(geojson);
-  }
+  const geojsons = await Promise.all(
+    GEOJSON_FILES.map(async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("GeoJSON 로드 실패: " + url);
+      return res.json();
+    })
+  );
+  geojsons.forEach((g) => map.data.addGeoJson(g));
 
-  // 인덱스 구축: sgg코드별 feature 모으기 + matchName→코드 자동추출
   map.data.forEach((feature) => {
     const sgg = feature.getProperty("sgg");
     const sggnm = feature.getProperty("sggnm");
     const sido = feature.getProperty("sido");
     if (!sgg) return;
-
     if (!featuresBySgg[sgg]) featuresBySgg[sgg] = [];
     featuresBySgg[sgg].push(feature);
-
-    if (sggnm) {
-      codeByMatch[sido + "|" + sggnm] = sgg;   // 시도 구분 키 (동명이구 대응)
-      if (!(sggnm in codeByMatch)) codeByMatch[sggnm] = sgg; // 보조 키
-    }
+    if (sggnm && sido) codeByKey[sido + "|" + sggnm] = sgg;
   });
 
-  // DB 각 항목에 실제 sgg코드 부여 (자동추출 결과)
   DB.forEach((item) => {
-    const keyed = (item.sido ? item.sido + "|" : "") + item.matchName;
-    item.sggCode = codeByMatch[keyed] || codeByMatch[item.matchName] || null;
+    item.sggCode = codeByKey[item.sido + "|" + item.matchName] || null;
   });
 }
 
@@ -256,31 +258,23 @@ function renderMapHighlight(item) {
   clearHighlight();
   const feats = item.sggCode ? featuresBySgg[item.sggCode] : null;
   if (!feats || feats.length === 0) {
-    console.warn("해당 sgg 코드의 경계를 찾지 못했습니다:", item.sggCode, item.name);
+    console.warn("경계를 찾지 못함:", item.name, item.sggCode);
     return;
   }
+  const names = new Set(feats.map((f) => f.getProperty("sggnm")));
+  console.log("[정답]", item.name, "| sgg:", item.sggCode,
+              "| 칠해지는 구:", [...names], "| 동 개수:", feats.length);
 
-  // 칠하기 + 경계 계산
-  const bounds = new naver.maps.LatLngBounds();
   feats.forEach((f) => {
     map.data.overrideStyle(f, {
-      fillColor: "#f97316",
-      fillOpacity: 0.55,
-      strokeColor: "#ea580c",
-      strokeWeight: 2,
-      strokeOpacity: 0.95
+      fillColor: "#f97316", fillOpacity: 0.55,
+      strokeColor: "#ea580c", strokeWeight: 2, strokeOpacity: 0.95
     });
     highlightedFeatures.push(f);
-
-    // bounds 누적
-    const geo = f.getGeometry ? null : null; // data API는 직접 좌표 접근이 제한적이라 아래 방식 사용
   });
-
-  // 중심으로 부드럽게 이동 (bounds 기반)
   fitToFeatures(feats);
 }
 
-/* feature 들의 좌표를 모아 bounds 계산 후 morph */
 function fitToFeatures(feats) {
   const bounds = new naver.maps.LatLngBounds();
   let has = false;
@@ -293,7 +287,6 @@ function fitToFeatures(feats) {
     });
   });
   if (!has) return;
-
   const center = bounds.getCenter();
   map.morph(center, optimalZoom(feats), { duration: 500, easing: "easeOutCubic" });
 
@@ -308,8 +301,7 @@ function fitToFeatures(feats) {
 }
 
 function collectCoords(geometry, cb) {
-  const t = geometry.type;
-  const c = geometry.coordinates;
+  const t = geometry.type, c = geometry.coordinates;
   const walk = (arr, depth) => {
     if (depth === 0) { cb(arr[0], arr[1]); return; }
     arr.forEach((a) => walk(a, depth - 1));
@@ -319,11 +311,74 @@ function collectCoords(geometry, cb) {
 }
 
 function optimalZoom(feats) {
-  // feature 개수(=동 수)가 많을수록 면적이 크다고 가정해 줌 조정
   const n = feats.length;
   if (n >= 15) return 11;
   if (n >= 6) return 12;
   return 13;
+}
+
+/* ===========================================================
+   전체 검증
+=========================================================== */
+function verifyAll() {
+  const out = document.getElementById("verify-result");
+  const problems = [];
+  let okCount = 0;
+
+  DB.forEach((item) => {
+    if (!item.sggCode) {
+      problems.push(`❌ [매칭실패] ${item.name} (matchName: "${item.matchName}")`);
+      return;
+    }
+    const feats = featuresBySgg[item.sggCode];
+    if (!feats || feats.length === 0) {
+      problems.push(`❌ [경계없음] ${item.name} (sgg ${item.sggCode})`);
+      return;
+    }
+    const names = new Set(feats.map((f) => f.getProperty("sggnm")));
+    if (names.size !== 1) {
+      problems.push(`⚠ [혼합오염] ${item.name} → ${[...names].join(", ")}`);
+      return;
+    }
+    const actual = [...names][0];
+    if (actual !== item.matchName) {
+      problems.push(`⚠ [이름불일치] ${item.name} → DB:"${item.matchName}" vs 데이터:"${actual}"`);
+      return;
+    }
+    okCount++;
+  });
+
+  // 코드 중복 검사
+  const codeToItems = {};
+  DB.forEach((item) => {
+    if (!item.sggCode) return;
+    (codeToItems[item.sggCode] = codeToItems[item.sggCode] || []).push(item.name);
+  });
+  Object.entries(codeToItems).forEach(([code, names]) => {
+    if (names.length > 1) problems.push(`⛔ [코드중복] sgg ${code}: ${names.join(", ")}`);
+  });
+
+  let html = `<div style="color:#22c55e; font-weight:700;">✅ 정상: ${okCount} / ${DB.length}</div>`;
+  if (problems.length === 0) {
+    html += `<div style="color:#22c55e; margin-top:6px;">🎉 모든 항목이 정확하게 매칭됩니다!</div>`;
+  } else {
+    html += `<div style="color:#fca5a5; margin-top:8px; max-height:340px; overflow-y:auto;">`;
+    problems.forEach((p) => { html += `<div style="margin-bottom:4px;">${p}</div>`; });
+    html += `</div>`;
+  }
+  out.innerHTML = html;
+
+  console.table(
+    DB.map((d) => {
+      const feats = d.sggCode ? featuresBySgg[d.sggCode] : null;
+      const names = feats ? [...new Set(feats.map((f) => f.getProperty("sggnm")))] : [];
+      return {
+        표시명: d.name, matchName: d.matchName, sgg코드: d.sggCode || "(없음)",
+        칠해지는구: names.join(",") || "(없음)", 동개수: feats ? feats.length : 0,
+        정상: d.sggCode && names.length === 1 && names[0] === d.matchName ? "O" : "X"
+      };
+    })
+  );
 }
 
 /* ===========================================================
@@ -339,7 +394,6 @@ function shuffle(arr) {
 }
 
 function startGame() {
-  // sggCode 가 실제로 잡힌 항목만 출제 대상으로 (데이터에 없는 건 제외)
   const valid = DB.filter((d) => d.sggCode);
   quizSet = shuffle(valid).slice(0, 10);
   currentIndex = 0;
@@ -351,14 +405,12 @@ function startGame() {
 }
 
 function buildOptions(target) {
-  // 같은 group 에서만 오답 3개 추출
-  const pool = quizSet[0] ? DB.filter(d => d.group === target.group && d.matchName !== target.matchName && d.sggCode) : [];
-  const wrongs = shuffle(pool).slice(0, 3);
-  // 같은 그룹에 보기가 부족하면 다른 그룹에서 보충 (안전장치)
+  let pool = DB.filter((d) => d.group === target.group && d.matchName !== target.matchName && d.sggCode);
+  let wrongs = shuffle(pool).slice(0, 3);
   if (wrongs.length < 3) {
-    const extra = shuffle(DB.filter(d => d.sggCode && d.matchName !== target.matchName && !wrongs.includes(d)))
+    const extra = shuffle(DB.filter((d) => d.sggCode && d.matchName !== target.matchName && !wrongs.includes(d)))
                   .slice(0, 3 - wrongs.length);
-    wrongs.push(...extra);
+    wrongs = wrongs.concat(extra);
   }
   return shuffle([target, ...wrongs]);
 }
@@ -374,12 +426,11 @@ function loadQuestion() {
 
   const optionsEl = document.getElementById("options");
   optionsEl.innerHTML = "";
-  const options = buildOptions(target);
-  options.forEach((opt) => {
+  buildOptions(target).forEach((opt) => {
     const btn = document.createElement("button");
     btn.className = "option-btn";
     btn.textContent = opt.name;
-    btn.addEventListener("click", () => selectAnswer(btn, opt, target, options));
+    btn.addEventListener("click", () => selectAnswer(btn, opt, target));
     optionsEl.appendChild(btn);
   });
 
@@ -390,35 +441,27 @@ function loadQuestion() {
   renderMapHighlight(target);
 }
 
-function selectAnswer(btn, opt, target, options) {
-  if (answered) return;          // 즉시채점 + 중복클릭 방지 (무한재귀 버그 제거)
+function selectAnswer(btn, opt, target) {
+  if (answered) return;
   answered = true;
-
   const buttons = document.querySelectorAll(".option-btn");
   buttons.forEach((b) => (b.disabled = true));
 
-  if (opt.matchName === target.matchName && opt.group === target.group) {
+  if (opt.sggCode === target.sggCode) {
     btn.classList.add("correct");
     score += 10;
   } else {
     btn.classList.add("wrong");
-    // 정답 버튼 강조
-    buttons.forEach((b) => {
-      if (b.textContent === target.name) b.classList.add("correct");
-    });
+    buttons.forEach((b) => { if (b.textContent === target.name) b.classList.add("correct"); });
   }
-
   document.getElementById("score-label").textContent = "점수 " + score;
   document.getElementById("next-btn").disabled = false;
 }
 
 function nextQuestion() {
   currentIndex++;
-  if (currentIndex >= 10) {
-    showResult();
-  } else {
-    loadQuestion();
-  }
+  if (currentIndex >= 10) showResult();
+  else loadQuestion();
 }
 
 function showResult() {
@@ -438,8 +481,8 @@ function showResult() {
 =========================================================== */
 window.addEventListener("load", async () => {
   if (typeof naver === "undefined" || !naver.maps) {
-    document.getElementById("loading").textContent =
-      "네이버 지도 인증 실패. ttlmymo.github.io 도메인 등록과 키를 확인하세요.";
+    document.getElementById("loading-text").textContent =
+      "네이버 지도 인증 실패. 도메인 등록과 키를 확인하세요.";
     return;
   }
   try {
@@ -447,19 +490,22 @@ window.addEventListener("load", async () => {
     await loadAllGeoData();
     document.getElementById("loading").classList.add("hidden");
 
-    const missing = DB.filter(d => !d.sggCode).map(d => d.name);
+    const missing = DB.filter((d) => !d.sggCode).map((d) => d.name);
     if (missing.length) {
-      console.warn("sgg 코드를 못 찾은 항목 (출제 제외):", missing);
+      document.getElementById("diag").textContent =
+        "⚠ 매칭 실패 (출제 제외): " + missing.join(", ");
+      console.warn("sgg 코드 미발견:", missing);
     }
   } catch (e) {
     console.error(e);
-    document.getElementById("loading").textContent = "데이터 로딩 실패: " + e.message;
+    document.getElementById("loading-text").textContent = "데이터 로딩 실패: " + e.message;
     return;
   }
 
   document.getElementById("start-btn").addEventListener("click", startGame);
   document.getElementById("restart-btn").addEventListener("click", startGame);
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
+  document.getElementById("verify-btn").addEventListener("click", verifyAll);
 });
 </script>
 </body>
