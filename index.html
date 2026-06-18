@@ -9,23 +9,36 @@
   html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
   #app { display: flex; width: 100vw; height: 100vh; }
   #map-container { flex: 1; height: 100%; background: #e8eef3; }
-  #panel { width: 400px; height: 100%; background: #1e293b; color: #f1f5f9; display: flex; flex-direction: column; padding: 24px; gap: 16px; overflow-y: auto; }
+  #panel { width: 400px; height: 100%; background: #1e293b; color: #f1f5f9; display: flex; flex-direction: column; padding: 24px; gap: 14px; overflow-y: auto; }
   #panel h1 { font-size: 20px; font-weight: 800; }
   .row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #94a3b8; }
   #progress-bar { height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
   #progress-fill { height: 100%; width: 0%; background: #f97316; transition: width .3s; }
-  #question { font-size: 17px; line-height: 1.5; min-height: 60px; background: #0f172a; padding: 16px; border-radius: 12px; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; margin-bottom:8px; }
+  .badge.gu { background:#1e3a8a; color:#bfdbfe; }
+  .badge.dong { background:#713f12; color:#fde68a; }
+  #question { font-size: 17px; line-height: 1.5; min-height: 50px; background: #0f172a; padding: 16px; border-radius: 12px; }
+  #legend { font-size:12px; color:#cbd5e1; display:flex; flex-direction:column; gap:4px; }
+  #legend .lg { display:flex; align-items:center; gap:8px; }
+  #legend .sw { width:14px; height:14px; border-radius:3px; border:1px solid rgba(255,255,255,.3); }
   #options { display: flex; flex-direction: column; gap: 10px; }
   .option-btn { text-align: left; padding: 14px 16px; border: 2px solid #334155; background: #0f172a; color: #f1f5f9; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all .15s; }
   .option-btn:hover:not(:disabled) { border-color: #f97316; }
   .option-btn:disabled { cursor: default; }
   .option-btn.correct { border-color: #22c55e; background: #14532d; }
   .option-btn.wrong { border-color: #ef4444; background: #450a0a; }
+  #explain { font-size:13px; line-height:1.5; padding:12px 14px; border-radius:10px; background:#0f172a; border-left:3px solid #38bdf8; color:#e2e8f0; }
   button.primary { padding: 14px; background: #f97316; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
   button.secondary { padding: 12px; background: #334155; color: #f1f5f9; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
   #next-btn:disabled { background: #475569; cursor: default; }
-  #result { text-align: center; display: flex; flex-direction: column; gap: 16px; }
-  #result .score { font-size: 48px; font-weight: 900; color: #f97316; }
+  #result .score { font-size: 44px; font-weight: 900; color: #f97316; text-align:center; }
+  #result-msg { text-align:center; font-size:15px; }
+  #report { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .report-item { background:#0f172a; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.5; border-left:3px solid #475569; }
+  .report-item.ok { border-left-color:#22c55e; }
+  .report-item.no { border-left-color:#ef4444; }
+  .report-item .head { font-weight:700; margin-bottom:2px; }
+  .report-item .sub { color:#94a3b8; }
   #loading { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; background: rgba(15,23,42,.9); color: #fff; font-size: 18px; z-index: 50; text-align: center; padding: 20px; }
   .spinner { width: 36px; height: 36px; border: 4px solid #334155; border-top-color: #f97316; border-radius: 50%; animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -42,10 +55,10 @@
 
     <div id="start-screen">
       <p style="color:#94a3b8; line-height:1.6;">
-        백지도에 주황색으로 표시된 행정구역이 어디인지 4지선다로 맞혀보세요. 매 게임 10문제가 무작위로 출제됩니다.
+        매 문제마다 <b>구·시·군</b> 또는 <b>읍·면·동</b>이 랜덤 출제됩니다. 읍·면·동 문제에서는 시·구·동이 색으로 구분돼 한눈에 위치를 익힐 수 있어요.
       </p>
       <button id="start-btn" class="primary">게임 시작</button>
-      <button id="verify-btn" class="secondary" style="margin-top:10px;">🔍 전체 78개 검증</button>
+      <button id="verify-btn" class="secondary" style="margin-top:10px;">🔍 전체 검증 (구 + 읍·면·동)</button>
       <div id="diag"></div>
       <div id="verify-result"></div>
     </div>
@@ -56,18 +69,29 @@
         <span id="score-label">점수 0</span>
       </div>
       <div id="progress-bar"><div id="progress-fill"></div></div>
-      <div id="question"></div>
+      <div>
+        <span id="q-badge" class="badge gu">구·시·군</span>
+        <div id="question"></div>
+      </div>
+      <div id="legend" class="hidden">
+        <div class="lg"><span class="sw" style="background:#fed7aa;"></span> 시 전체</div>
+        <div class="lg"><span class="sw" style="background:#f97316;"></span> 소속 구</div>
+        <div class="lg"><span class="sw" style="background:#dc2626;"></span> 정답 읍·면·동 (빨간 점)</div>
+      </div>
       <div id="options"></div>
+      <div id="explain" class="hidden"></div>
       <button id="next-btn" class="primary" disabled>다음 문제</button>
     </div>
 
     <div id="result-screen" class="hidden">
       <div id="result">
-        <div>최종 점수</div>
+        <div style="text-align:center; color:#94a3b8;">최종 점수</div>
         <div class="score"><span id="final-score">0</span> / 100</div>
-        <div id="final-msg"></div>
-        <button id="restart-btn" class="primary">다시 하기</button>
+        <div id="result-msg"></div>
       </div>
+      <h2 style="font-size:16px; margin-top:8px;">📋 결과지</h2>
+      <div id="report"></div>
+      <button id="restart-btn" class="primary" style="margin-top:8px;">다시 하기</button>
     </div>
   </div>
 </div>
@@ -87,14 +111,14 @@ const GEOJSON_FILES = [
   "https://cdn.jsdelivr.net/gh/raqoon886/Local_HangJeongDong@master/hangjeongdong_인천광역시.geojson",
   "https://cdn.jsdelivr.net/gh/raqoon886/Local_HangJeongDong@master/hangjeongdong_경기도.geojson"
 ];
+const DONG_RATIO = 0.5;
 
-/* 78개 행정구역.
-   - name      : 화면 표시명
-   - matchName : GeoJSON sggnm 과 정확히 일치해야 하는 "공백 없는" 문자열
-   - sido      : 시도 코드 ("11" 서울 / "28" 인천 / "41" 경기) — 동명이구 구분
-   - group     : 오답 보기를 같은 그룹에서만 뽑기 위한 키 */
+const COLOR_SI   = { fillColor:"#fed7aa", fillOpacity:0.45, strokeColor:"#fb923c", strokeWeight:1, strokeOpacity:0.7 };
+const COLOR_GU   = { fillColor:"#f97316", fillOpacity:0.55, strokeColor:"#ea580c", strokeWeight:2, strokeOpacity:0.95 };
+const COLOR_DONG = { fillColor:"#dc2626", fillOpacity:0.75, strokeColor:"#991b1b", strokeWeight:2, strokeOpacity:1 };
+
+/* 78개 구·시·군 */
 const DB = [
-  // 서울특별시 자치구 25 (sido 11)
   {name:"종로구", matchName:"종로구", sido:"11", group:"seoul"},
   {name:"중구", matchName:"중구", sido:"11", group:"seoul"},
   {name:"용산구", matchName:"용산구", sido:"11", group:"seoul"},
@@ -120,8 +144,6 @@ const DB = [
   {name:"강남구", matchName:"강남구", sido:"11", group:"seoul"},
   {name:"송파구", matchName:"송파구", sido:"11", group:"seoul"},
   {name:"강동구", matchName:"강동구", sido:"11", group:"seoul"},
-
-  // 인천광역시 군·구 10 (sido 28)
   {name:"인천 중구", matchName:"중구", sido:"28", group:"incheon"},
   {name:"인천 동구", matchName:"동구", sido:"28", group:"incheon"},
   {name:"미추홀구", matchName:"미추홀구", sido:"28", group:"incheon"},
@@ -132,8 +154,6 @@ const DB = [
   {name:"인천 서구", matchName:"서구", sido:"28", group:"incheon"},
   {name:"강화군", matchName:"강화군", sido:"28", group:"incheon"},
   {name:"옹진군", matchName:"옹진군", sido:"28", group:"incheon"},
-
-  // 경기도 행정구 (각 시 내부 group)  sido 41
   {name:"수원시 장안구", matchName:"수원시장안구", sido:"41", group:"gg-suwon"},
   {name:"수원시 권선구", matchName:"수원시권선구", sido:"41", group:"gg-suwon"},
   {name:"수원시 팔달구", matchName:"수원시팔달구", sido:"41", group:"gg-suwon"},
@@ -151,8 +171,6 @@ const DB = [
   {name:"용인시 처인구", matchName:"용인시처인구", sido:"41", group:"gg-yongin"},
   {name:"용인시 기흥구", matchName:"용인시기흥구", sido:"41", group:"gg-yongin"},
   {name:"용인시 수지구", matchName:"용인시수지구", sido:"41", group:"gg-yongin"},
-
-  // 경기도 일반 시·군 (sido 41, group gg-city)
   {name:"부천시", matchName:"부천시", sido:"41", group:"gg-city"},
   {name:"광명시", matchName:"광명시", sido:"41", group:"gg-city"},
   {name:"평택시", matchName:"평택시", sido:"41", group:"gg-city"},
@@ -182,16 +200,20 @@ const DB = [
 /* ===========================================================
    전역 상태
 =========================================================== */
-let map = null;
-let centerMarker = null;
+let map = null, centerMarker = null;
 let highlightedFeatures = [];
-const featuresBySgg = {};       // sgg -> [feature]
-const codeByKey = {};           // "sido|sggnm" -> sgg
+const featuresBySgg = {}, codeByKey = {}, featuresBySi = {};
+const dongList = [], dongsBySgg = {};
 
-let quizSet = [];
-let currentIndex = 0;
-let score = 0;
-let answered = false;
+const SIDO_NAME = { "11":"서울특별시", "28":"인천광역시", "41":"경기도" };
+
+let quizSet = [], currentIndex = 0, score = 0, answered = false;
+let answerLog = [];   // 결과지용 기록
+
+function siNameOf(sggnm) {
+  const m = sggnm.match(/^(.*?[시군])/);
+  return m ? m[1] : sggnm;
+}
 
 /* ===========================================================
    지도 초기화
@@ -199,50 +221,53 @@ let answered = false;
 function initMap() {
   map = new naver.maps.Map("map-container", {
     center: new naver.maps.LatLng(37.5642, 127.0016),
-    zoom: 10,
-    minZoom: 8,
-    maxZoom: 14,
+    zoom: 10, minZoom: 8, maxZoom: 15,
     mapTypes: new naver.maps.MapTypeRegistry({
-      "normal_no_labels": naver.maps.NaverStyleMapTypeOptions.getNormalMap({
-        overlayType: "bg.ol"     // 라벨(lko) 제외 = 백지도
-      })
+      "normal_no_labels": naver.maps.NaverStyleMapTypeOptions.getNormalMap({ overlayType: "bg.ol" })
     }),
     mapTypeId: "normal_no_labels",
-    scaleControl: false,
-    logoControl: true,
-    mapDataControl: false,
-    zoomControl: false
+    scaleControl: false, logoControl: true, mapDataControl: false, zoomControl: false
   });
 }
 
 /* ===========================================================
-   데이터 로드 (병렬) + 인덱스 구축
+   데이터 로드 + 인덱스
 =========================================================== */
 async function loadAllGeoData() {
   map.data.setStyle(() => ({ fillOpacity: 0, strokeWeight: 0, clickable: false }));
-
-  const geojsons = await Promise.all(
-    GEOJSON_FILES.map(async (url) => {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("GeoJSON 로드 실패: " + url);
-      return res.json();
-    })
-  );
+  const geojsons = await Promise.all(GEOJSON_FILES.map(async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("GeoJSON 로드 실패: " + url);
+    return res.json();
+  }));
   geojsons.forEach((g) => map.data.addGeoJson(g));
 
   map.data.forEach((feature) => {
     const sgg = feature.getProperty("sgg");
     const sggnm = feature.getProperty("sggnm");
     const sido = feature.getProperty("sido");
+    const adm_nm = feature.getProperty("adm_nm");
     if (!sgg) return;
+
     if (!featuresBySgg[sgg]) featuresBySgg[sgg] = [];
     featuresBySgg[sgg].push(feature);
     if (sggnm && sido) codeByKey[sido + "|" + sggnm] = sgg;
-  });
 
-  DB.forEach((item) => {
-    item.sggCode = codeByKey[item.sido + "|" + item.matchName] || null;
+    if (sggnm && sido) {
+      const siKey = sido + "|" + siNameOf(sggnm);
+      if (!featuresBySi[siKey]) featuresBySi[siKey] = [];
+      featuresBySi[siKey].push(feature);
+    }
+    if (adm_nm) {
+      const parts = adm_nm.trim().split(/\s+/);
+      const dongName = parts[parts.length - 1];
+      const dong = { dongName, sgg, sido, sggnm, feature };
+      dongList.push(dong);
+      if (!dongsBySgg[sgg]) dongsBySgg[sgg] = [];
+      dongsBySgg[sgg].push(dong);
+    }
   });
+  DB.forEach((item) => { item.sggCode = codeByKey[item.sido + "|" + item.matchName] || null; });
 }
 
 /* ===========================================================
@@ -253,65 +278,50 @@ function clearHighlight() {
   highlightedFeatures = [];
   if (centerMarker) { centerMarker.setMap(null); centerMarker = null; }
 }
-
-function renderMapHighlight(item) {
+function highlightGu(feats) {
   clearHighlight();
-  const feats = item.sggCode ? featuresBySgg[item.sggCode] : null;
-  if (!feats || feats.length === 0) {
-    console.warn("경계를 찾지 못함:", item.name, item.sggCode);
-    return;
-  }
-  const names = new Set(feats.map((f) => f.getProperty("sggnm")));
-  console.log("[정답]", item.name, "| sgg:", item.sggCode,
-              "| 칠해지는 구:", [...names], "| 동 개수:", feats.length);
-
-  feats.forEach((f) => {
-    map.data.overrideStyle(f, {
-      fillColor: "#f97316", fillOpacity: 0.55,
-      strokeColor: "#ea580c", strokeWeight: 2, strokeOpacity: 0.95
-    });
-    highlightedFeatures.push(f);
-  });
+  feats.forEach((f) => { map.data.overrideStyle(f, COLOR_GU); highlightedFeatures.push(f); });
   fitToFeatures(feats);
 }
-
+function highlightDong(dong) {
+  clearHighlight();
+  const siFeats = featuresBySi[dong.sido + "|" + siNameOf(dong.sggnm)] || [];
+  const guFeats = featuresBySgg[dong.sgg] || [];
+  siFeats.forEach((f) => { map.data.overrideStyle(f, COLOR_SI); highlightedFeatures.push(f); });
+  guFeats.forEach((f) => { map.data.overrideStyle(f, COLOR_GU); });
+  map.data.overrideStyle(dong.feature, COLOR_DONG);
+  if (!highlightedFeatures.includes(dong.feature)) highlightedFeatures.push(dong.feature);
+  fitToFeatures(guFeats.length ? guFeats : [dong.feature]);
+  const c = featureCenter(dong.feature);
+  if (c) centerMarker = new naver.maps.Marker({
+    position: c, map: map,
+    icon: { content: '<div style="width:16px;height:16px;background:#dc2626;border:3px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(0,0,0,.6);"></div>', anchor: new naver.maps.Point(8, 8) }
+  });
+}
+function featureCenter(f) {
+  const b = new naver.maps.LatLngBounds(); let has = false;
+  const json = f.toGeoJson ? f.toGeoJson() : null;
+  if (json && json.geometry) collectCoords(json.geometry, (lng, lat) => { b.extend(new naver.maps.LatLng(lat, lng)); has = true; });
+  return has ? b.getCenter() : null;
+}
 function fitToFeatures(feats) {
-  const bounds = new naver.maps.LatLngBounds();
-  let has = false;
+  const b = new naver.maps.LatLngBounds(); let has = false;
   feats.forEach((f) => {
     const json = f.toGeoJson ? f.toGeoJson() : null;
     if (!json || !json.geometry) return;
-    collectCoords(json.geometry, (lng, lat) => {
-      bounds.extend(new naver.maps.LatLng(lat, lng));
-      has = true;
-    });
+    collectCoords(json.geometry, (lng, lat) => { b.extend(new naver.maps.LatLng(lat, lng)); has = true; });
   });
   if (!has) return;
-  const center = bounds.getCenter();
-  map.morph(center, optimalZoom(feats), { duration: 500, easing: "easeOutCubic" });
-
-  centerMarker = new naver.maps.Marker({
-    position: center,
-    map: map,
-    icon: {
-      content: '<div style="width:14px;height:14px;background:#ef4444;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(0,0,0,.5);"></div>',
-      anchor: new naver.maps.Point(7, 7)
-    }
-  });
+  map.morph(b.getCenter(), optimalZoom(feats), { duration: 500, easing: "easeOutCubic" });
 }
-
 function collectCoords(geometry, cb) {
   const t = geometry.type, c = geometry.coordinates;
-  const walk = (arr, depth) => {
-    if (depth === 0) { cb(arr[0], arr[1]); return; }
-    arr.forEach((a) => walk(a, depth - 1));
-  };
-  if (t === "Polygon") walk(c, 2);
-  else if (t === "MultiPolygon") walk(c, 3);
+  const walk = (arr, depth) => { if (depth === 0) { cb(arr[0], arr[1]); return; } arr.forEach((a) => walk(a, depth - 1)); };
+  if (t === "Polygon") walk(c, 2); else if (t === "MultiPolygon") walk(c, 3);
 }
-
 function optimalZoom(feats) {
   const n = feats.length;
+  if (n === 1) return 13;
   if (n >= 15) return 11;
   if (n >= 6) return 12;
   return 13;
@@ -322,63 +332,23 @@ function optimalZoom(feats) {
 =========================================================== */
 function verifyAll() {
   const out = document.getElementById("verify-result");
-  const problems = [];
-  let okCount = 0;
-
+  const problems = []; let okCount = 0;
   DB.forEach((item) => {
-    if (!item.sggCode) {
-      problems.push(`❌ [매칭실패] ${item.name} (matchName: "${item.matchName}")`);
-      return;
-    }
+    if (!item.sggCode) { problems.push(`❌ [구/매칭실패] ${item.name}`); return; }
     const feats = featuresBySgg[item.sggCode];
-    if (!feats || feats.length === 0) {
-      problems.push(`❌ [경계없음] ${item.name} (sgg ${item.sggCode})`);
-      return;
-    }
+    if (!feats || !feats.length) { problems.push(`❌ [구/경계없음] ${item.name}`); return; }
     const names = new Set(feats.map((f) => f.getProperty("sggnm")));
-    if (names.size !== 1) {
-      problems.push(`⚠ [혼합오염] ${item.name} → ${[...names].join(", ")}`);
-      return;
-    }
-    const actual = [...names][0];
-    if (actual !== item.matchName) {
-      problems.push(`⚠ [이름불일치] ${item.name} → DB:"${item.matchName}" vs 데이터:"${actual}"`);
-      return;
-    }
+    if (names.size !== 1) { problems.push(`⚠ [구/혼합오염] ${item.name} → ${[...names].join(", ")}`); return; }
+    if ([...names][0] !== item.matchName) { problems.push(`⚠ [구/이름불일치] ${item.name}`); return; }
     okCount++;
   });
-
-  // 코드 중복 검사
-  const codeToItems = {};
-  DB.forEach((item) => {
-    if (!item.sggCode) return;
-    (codeToItems[item.sggCode] = codeToItems[item.sggCode] || []).push(item.name);
-  });
-  Object.entries(codeToItems).forEach(([code, names]) => {
-    if (names.length > 1) problems.push(`⛔ [코드중복] sgg ${code}: ${names.join(", ")}`);
-  });
-
-  let html = `<div style="color:#22c55e; font-weight:700;">✅ 정상: ${okCount} / ${DB.length}</div>`;
-  if (problems.length === 0) {
-    html += `<div style="color:#22c55e; margin-top:6px;">🎉 모든 항목이 정확하게 매칭됩니다!</div>`;
-  } else {
-    html += `<div style="color:#fca5a5; margin-top:8px; max-height:340px; overflow-y:auto;">`;
-    problems.forEach((p) => { html += `<div style="margin-bottom:4px;">${p}</div>`; });
-    html += `</div>`;
-  }
+  let html = `<div style="color:#22c55e; font-weight:700;">✅ 구 정상: ${okCount} / ${DB.length}</div>`;
+  html += `<div style="color:#22c55e; margin-top:4px;">✅ 읍·면·동 총: ${dongList.length}개</div>`;
+  if (problems.length) {
+    html += `<div style="color:#fca5a5; margin-top:8px; max-height:260px; overflow-y:auto;">`;
+    problems.forEach((p) => { html += `<div>${p}</div>`; }); html += `</div>`;
+  } else html += `<div style="color:#22c55e; margin-top:6px;">🎉 모든 항목 정상!</div>`;
   out.innerHTML = html;
-
-  console.table(
-    DB.map((d) => {
-      const feats = d.sggCode ? featuresBySgg[d.sggCode] : null;
-      const names = feats ? [...new Set(feats.map((f) => f.getProperty("sggnm")))] : [];
-      return {
-        표시명: d.name, matchName: d.matchName, sgg코드: d.sggCode || "(없음)",
-        칠해지는구: names.join(",") || "(없음)", 동개수: feats ? feats.length : 0,
-        정상: d.sggCode && names.length === 1 && names[0] === d.matchName ? "O" : "X"
-      };
-    })
-  );
 }
 
 /* ===========================================================
@@ -386,74 +356,117 @@ function verifyAll() {
 =========================================================== */
 function shuffle(arr) {
   const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
 
 function startGame() {
-  const valid = DB.filter((d) => d.sggCode);
-  quizSet = shuffle(valid).slice(0, 10);
-  currentIndex = 0;
-  score = 0;
+  quizSet = []; answerLog = [];
+  const validGu = DB.filter((d) => d.sggCode);
+  for (let i = 0; i < 10; i++) quizSet.push(Math.random() < DONG_RATIO ? makeDongQuestion() : makeGuQuestion(validGu));
+  currentIndex = 0; score = 0;
   document.getElementById("start-screen").classList.add("hidden");
   document.getElementById("result-screen").classList.add("hidden");
   document.getElementById("quiz-screen").classList.remove("hidden");
   loadQuestion();
 }
 
-function buildOptions(target) {
+function makeGuQuestion(validGu) {
+  const target = validGu[Math.floor(Math.random() * validGu.length)];
   let pool = DB.filter((d) => d.group === target.group && d.matchName !== target.matchName && d.sggCode);
   let wrongs = shuffle(pool).slice(0, 3);
   if (wrongs.length < 3) {
-    const extra = shuffle(DB.filter((d) => d.sggCode && d.matchName !== target.matchName && !wrongs.includes(d)))
-                  .slice(0, 3 - wrongs.length);
+    const extra = shuffle(DB.filter((d) => d.sggCode && d.matchName !== target.matchName && !wrongs.includes(d))).slice(0, 3 - wrongs.length);
     wrongs = wrongs.concat(extra);
   }
-  return shuffle([target, ...wrongs]);
+  return {
+    type:"gu", answerLabel: target.name, feats: featuresBySgg[target.sggCode],
+    options: shuffle([target.name, ...wrongs.map((w) => w.name)]),
+    explain: `${target.name}은(는) ${SIDO_NAME[target.sido]}에 속한 행정구역입니다.`
+  };
+}
+
+function makeDongQuestion() {
+  const target = dongList[Math.floor(Math.random() * dongList.length)];
+  let siblings = (dongsBySgg[target.sgg] || []).filter((d) => d.dongName !== target.dongName);
+  let names = [...new Set(siblings.map((d) => d.dongName))];
+  let wrongs = shuffle(names).slice(0, 3);
+  if (wrongs.length < 3) {
+    const extra = shuffle([...new Set(dongList.map((d) => d.dongName))].filter((n) => n !== target.dongName && !wrongs.includes(n))).slice(0, 3 - wrongs.length);
+    wrongs = wrongs.concat(extra);
+  }
+  // 소속 설명: 시·구가 다르면 둘 다, 같으면 시만
+  const si = siNameOf(target.sggnm);
+  const belong = (target.sggnm === si)
+    ? `${SIDO_NAME[target.sido]} ${si}`
+    : `${SIDO_NAME[target.sido]} ${si} ${target.sggnm.replace(si, "")}`;
+  return {
+    type:"dong", dong: target, answerLabel: target.dongName, feats:[target.feature],
+    options: shuffle([target.dongName, ...wrongs]),
+    explain: `${target.dongName}은(는) ${belong}에 속합니다.`
+  };
 }
 
 function loadQuestion() {
   answered = false;
-  const target = quizSet[currentIndex];
-
+  const q = quizSet[currentIndex];
   document.getElementById("q-counter").textContent = (currentIndex + 1) + " / 10";
   document.getElementById("score-label").textContent = "점수 " + score;
   document.getElementById("progress-fill").style.width = (currentIndex / 10 * 100) + "%";
-  document.getElementById("question").textContent = "주황색으로 표시된 이 행정구역의 이름은?";
+
+  const badge = document.getElementById("q-badge");
+  const legend = document.getElementById("legend");
+  if (q.type === "dong") {
+    badge.className = "badge dong"; badge.textContent = "읍·면·동";
+    document.getElementById("question").textContent = "빨간 점이 찍힌 이 읍·면·동의 이름은? (연주황=시, 진주황=구)";
+    legend.classList.remove("hidden");
+  } else {
+    badge.className = "badge gu"; badge.textContent = "구·시·군";
+    document.getElementById("question").textContent = "주황색으로 표시된 이 행정구역의 이름은?";
+    legend.classList.add("hidden");
+  }
+
+  const explainEl = document.getElementById("explain");
+  explainEl.classList.add("hidden"); explainEl.textContent = "";
 
   const optionsEl = document.getElementById("options");
   optionsEl.innerHTML = "";
-  buildOptions(target).forEach((opt) => {
+  q.options.forEach((optLabel) => {
     const btn = document.createElement("button");
     btn.className = "option-btn";
-    btn.textContent = opt.name;
-    btn.addEventListener("click", () => selectAnswer(btn, opt, target));
+    btn.textContent = optLabel;
+    btn.addEventListener("click", () => selectAnswer(btn, optLabel, q));
     optionsEl.appendChild(btn);
   });
 
   const nextBtn = document.getElementById("next-btn");
   nextBtn.disabled = true;
-  nextBtn.textContent = currentIndex === 9 ? "결과 보기" : "다음 문제";
+  nextBtn.textContent = currentIndex === 9 ? "결과지 보기" : "다음 문제";
 
-  renderMapHighlight(target);
+  if (q.type === "dong") highlightDong(q.dong); else highlightGu(q.feats);
 }
 
-function selectAnswer(btn, opt, target) {
+function selectAnswer(btn, optLabel, q) {
   if (answered) return;
   answered = true;
   const buttons = document.querySelectorAll(".option-btn");
   buttons.forEach((b) => (b.disabled = true));
 
-  if (opt.sggCode === target.sggCode) {
-    btn.classList.add("correct");
-    score += 10;
-  } else {
-    btn.classList.add("wrong");
-    buttons.forEach((b) => { if (b.textContent === target.name) b.classList.add("correct"); });
-  }
+  const isCorrect = optLabel === q.answerLabel;
+  if (isCorrect) { btn.classList.add("correct"); score += 10; }
+  else { btn.classList.add("wrong"); buttons.forEach((b) => { if (b.textContent === q.answerLabel) b.classList.add("correct"); }); }
+
+  // 해설 한 줄 (맞아도/틀려도 표시)
+  const explainEl = document.getElementById("explain");
+  explainEl.textContent = (isCorrect ? "✅ 정답! " : "❌ 오답. ") + q.explain;
+  explainEl.style.borderLeftColor = isCorrect ? "#22c55e" : "#ef4444";
+  explainEl.classList.remove("hidden");
+
+  // 결과지 기록
+  answerLog.push({
+    type: q.type, answer: q.answerLabel, picked: optLabel, correct: isCorrect, explain: q.explain
+  });
+
   document.getElementById("score-label").textContent = "점수 " + score;
   document.getElementById("next-btn").disabled = false;
 }
@@ -469,11 +482,24 @@ function showResult() {
   document.getElementById("quiz-screen").classList.add("hidden");
   document.getElementById("result-screen").classList.remove("hidden");
   document.getElementById("final-score").textContent = score;
-  const msg = score >= 90 ? "🏆 수도권 지리 마스터!" :
-              score >= 70 ? "👍 훌륭해요!" :
-              score >= 50 ? "🙂 절반은 넘겼어요." :
-                            "📚 조금 더 연습해봐요!";
-  document.getElementById("final-msg").textContent = msg;
+  const correctCnt = answerLog.filter((a) => a.correct).length;
+  const msg = score >= 90 ? "🏆 수도권 지리 마스터!" : score >= 70 ? "👍 훌륭해요!" : score >= 50 ? "🙂 절반은 넘겼어요." : "📚 조금 더 연습해봐요!";
+  document.getElementById("result-msg").textContent = `${msg}  (10문제 중 ${correctCnt}개 정답)`;
+
+  // 결과지 렌더
+  const report = document.getElementById("report");
+  report.innerHTML = "";
+  answerLog.forEach((a, i) => {
+    const item = document.createElement("div");
+    item.className = "report-item " + (a.correct ? "ok" : "no");
+    const tag = a.type === "dong" ? "읍·면·동" : "구·시·군";
+    const pickedLine = a.correct ? "" : `<div class="sub">내 답: ${a.picked}</div>`;
+    item.innerHTML = `
+      <div class="head">${i + 1}. ${a.correct ? "⭕" : "❌"} [${tag}] 정답: ${a.answer}</div>
+      ${pickedLine}
+      <div class="sub">${a.explain}</div>`;
+    report.appendChild(item);
+  });
 }
 
 /* ===========================================================
@@ -481,27 +507,20 @@ function showResult() {
 =========================================================== */
 window.addEventListener("load", async () => {
   if (typeof naver === "undefined" || !naver.maps) {
-    document.getElementById("loading-text").textContent =
-      "네이버 지도 인증 실패. 도메인 등록과 키를 확인하세요.";
+    document.getElementById("loading-text").textContent = "네이버 지도 인증 실패.";
     return;
   }
   try {
     initMap();
     await loadAllGeoData();
     document.getElementById("loading").classList.add("hidden");
-
     const missing = DB.filter((d) => !d.sggCode).map((d) => d.name);
-    if (missing.length) {
-      document.getElementById("diag").textContent =
-        "⚠ 매칭 실패 (출제 제외): " + missing.join(", ");
-      console.warn("sgg 코드 미발견:", missing);
-    }
+    if (missing.length) document.getElementById("diag").textContent = "⚠ 구 매칭 실패: " + missing.join(", ");
   } catch (e) {
     console.error(e);
     document.getElementById("loading-text").textContent = "데이터 로딩 실패: " + e.message;
     return;
   }
-
   document.getElementById("start-btn").addEventListener("click", startGame);
   document.getElementById("restart-btn").addEventListener("click", startGame);
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
