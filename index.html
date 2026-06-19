@@ -50,8 +50,8 @@
   @media (max-width: 768px) {
     /* 화면을 위(지도)/아래(패널)로 분할. dvh로 실제 보이는 높이 기준 */
     #app { flex-direction: column; height: 100dvh; }
-    #map-container { width: 100%; height: 42dvh; flex: none; }
-    /* 패널은 남은 공간을 자동으로 채우고, 넘치면 내부 스크롤 */
+    #map-container { width: 100%; height: 60dvh; flex: none; }
+    /* 패널은 남은 공간(약 40%)을 자동으로 채우고, 넘치면 내부 스크롤 */
     #panel { width: 100%; flex: 1; min-height: 0; padding: 10px 12px; gap: 6px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     #panel h1 { font-size: 15px; }
     .row { font-size: 12px; }
@@ -490,7 +490,6 @@ function selectAnswer(btn, optLabel, q) {
   document.getElementById("score-label").textContent = "점수 " + score;
   const nextBtn = document.getElementById("next-btn");
   nextBtn.disabled = false;
-  // 채점 후 다음 버튼이 화면에 보이도록 패널을 아래로 스크롤
   nextBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
@@ -547,7 +546,6 @@ window.addEventListener("load", async () => {
   document.getElementById("restart-btn").addEventListener("click", startGame);
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
   document.getElementById("verify-btn").addEventListener("click", verifyAll);
-  // 화면 회전·리사이즈 때 지도 크기 재인식
   window.addEventListener("resize", () => { if (map) naver.maps.Event.trigger(map, "resize"); });
 });
 </script>
