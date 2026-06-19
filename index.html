@@ -49,12 +49,21 @@
   /* ===== 모바일(세로 화면) 대응 ===== */
   @media (max-width: 768px) {
     #app { flex-direction: column; }
-    #map-container { width: 100%; height: 45vh; flex: none; }
-    #panel { width: 100%; height: 55vh; flex: 1; padding: 16px; gap: 10px; }
-    #panel h1 { font-size: 18px; }
-    #question { font-size: 15px; padding: 12px; min-height: 0; }
-    .option-btn { padding: 12px 14px; font-size: 14px; }
-    #result .score { font-size: 36px; }
+    #map-container { width: 100%; height: 50vh; flex: none; }
+    #panel { width: 100%; height: 50vh; flex: 1; padding: 10px 12px; gap: 6px; -webkit-overflow-scrolling: touch; }
+    #panel h1 { font-size: 15px; }
+    .row { font-size: 12px; }
+    .badge { margin-bottom: 3px; padding: 2px 7px; font-size: 10px; }
+    #question { font-size: 13px; line-height: 1.35; padding: 8px 10px; min-height: 0; }
+    #legend { font-size: 10px; gap: 2px; }
+    #legend .sw { width: 11px; height: 11px; }
+    #options { gap: 5px; }
+    .option-btn { padding: 7px 11px; font-size: 13px; border-radius: 9px; border-width: 1px; }
+    button.primary { padding: 9px; font-size: 14px; border-radius: 9px; }
+    #explain { font-size: 11px; padding: 7px 10px; line-height: 1.35; }
+    #result .score { font-size: 30px; }
+    #result-msg { font-size: 12px; }
+    .report-item { font-size: 11px; padding: 7px 9px; }
   }
 </style>
 </head>
