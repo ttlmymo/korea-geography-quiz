@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>수도권 지리 마스터 퀴즈</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
-  #app { display: flex; width: 100vw; height: 100vh; }
+  #app { display: flex; width: 100vw; height: 100vh; height: 100dvh; }
   #map-container { flex: 1; height: 100%; background: #e8eef3; }
   #panel { width: 400px; height: 100%; background: #1e293b; color: #f1f5f9; display: flex; flex-direction: column; padding: 24px; gap: 14px; overflow-y: auto; }
   #panel h1 { font-size: 20px; font-weight: 800; }
@@ -48,18 +48,21 @@
 
   /* ===== 모바일(세로 화면) 대응 ===== */
   @media (max-width: 768px) {
-    #app { flex-direction: column; }
-    #map-container { width: 100%; height: 50vh; flex: none; }
-    #panel { width: 100%; height: 50vh; flex: 1; padding: 10px 12px; gap: 6px; -webkit-overflow-scrolling: touch; }
+    /* 화면을 위(지도)/아래(패널)로 분할. dvh로 실제 보이는 높이 기준 */
+    #app { flex-direction: column; height: 100dvh; }
+    #map-container { width: 100%; height: 42dvh; flex: none; }
+    /* 패널은 남은 공간을 자동으로 채우고, 넘치면 내부 스크롤 */
+    #panel { width: 100%; flex: 1; min-height: 0; padding: 10px 12px; gap: 6px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     #panel h1 { font-size: 15px; }
     .row { font-size: 12px; }
     .badge { margin-bottom: 3px; padding: 2px 7px; font-size: 10px; }
     #question { font-size: 13px; line-height: 1.35; padding: 8px 10px; min-height: 0; }
     #legend { font-size: 10px; gap: 2px; }
     #legend .sw { width: 11px; height: 11px; }
-    #options { gap: 5px; }
-    .option-btn { padding: 7px 11px; font-size: 13px; border-radius: 9px; border-width: 1px; }
-    button.primary { padding: 9px; font-size: 14px; border-radius: 9px; }
+    /* 보기를 가로 2개씩 2줄로 */
+    #options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .option-btn { padding: 10px 8px; font-size: 13px; border-radius: 9px; border-width: 1px; text-align: center; }
+    button.primary { padding: 10px; font-size: 14px; border-radius: 9px; }
     #explain { font-size: 11px; padding: 7px 10px; line-height: 1.35; }
     #result .score { font-size: 30px; }
     #result-msg { font-size: 12px; }
@@ -415,7 +418,6 @@ function makeDongQuestion() {
     const extra = shuffle([...new Set(dongList.map((d) => d.dongName))].filter((n) => n !== target.dongName && !wrongs.includes(n))).slice(0, 3 - wrongs.length);
     wrongs = wrongs.concat(extra);
   }
-  // 소속 설명: 시·구가 다르면 둘 다, 같으면 시만
   const si = siNameOf(target.sggnm);
   const belong = (target.sggnm === si)
     ? `${SIDO_NAME[target.sido]} ${si}`
@@ -476,19 +478,20 @@ function selectAnswer(btn, optLabel, q) {
   if (isCorrect) { btn.classList.add("correct"); score += 10; }
   else { btn.classList.add("wrong"); buttons.forEach((b) => { if (b.textContent === q.answerLabel) b.classList.add("correct"); }); }
 
-  // 해설 한 줄 (맞아도/틀려도 표시)
   const explainEl = document.getElementById("explain");
   explainEl.textContent = (isCorrect ? "✅ 정답! " : "❌ 오답. ") + q.explain;
   explainEl.style.borderLeftColor = isCorrect ? "#22c55e" : "#ef4444";
   explainEl.classList.remove("hidden");
 
-  // 결과지 기록
   answerLog.push({
     type: q.type, answer: q.answerLabel, picked: optLabel, correct: isCorrect, explain: q.explain
   });
 
   document.getElementById("score-label").textContent = "점수 " + score;
-  document.getElementById("next-btn").disabled = false;
+  const nextBtn = document.getElementById("next-btn");
+  nextBtn.disabled = false;
+  // 채점 후 다음 버튼이 화면에 보이도록 패널을 아래로 스크롤
+  nextBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function nextQuestion() {
@@ -506,7 +509,6 @@ function showResult() {
   const msg = score >= 90 ? "🏆 수도권 지리 마스터!" : score >= 70 ? "👍 훌륭해요!" : score >= 50 ? "🙂 절반은 넘겼어요." : "📚 조금 더 연습해봐요!";
   document.getElementById("result-msg").textContent = `${msg}  (10문제 중 ${correctCnt}개 정답)`;
 
-  // 결과지 렌더
   const report = document.getElementById("report");
   report.innerHTML = "";
   answerLog.forEach((a, i) => {
@@ -545,6 +547,8 @@ window.addEventListener("load", async () => {
   document.getElementById("restart-btn").addEventListener("click", startGame);
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
   document.getElementById("verify-btn").addEventListener("click", verifyAll);
+  // 화면 회전·리사이즈 때 지도 크기 재인식
+  window.addEventListener("resize", () => { if (map) naver.maps.Event.trigger(map, "resize"); });
 });
 </script>
 </body>
