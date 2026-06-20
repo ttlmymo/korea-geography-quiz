@@ -73,7 +73,6 @@
   #rank-note { font-size:11px; color:#64748b; line-height:1.5; margin-top:8px; }
   #rank-status { font-size:13px; color:#94a3b8; text-align:center; padding:14px; }
 
-  /* ===== 학습 모드 ===== */
   #learn-list { display:flex; flex-direction:column; gap:6px; margin-top:4px; }
   .learn-item { background:#0f172a; border:1px solid #334155; border-radius:9px; padding:11px 13px; font-size:14px; cursor:pointer; transition:all .15s; display:flex; justify-content:space-between; align-items:center; }
   .learn-item:hover { border-color:#f97316; background:#162133; }
@@ -88,6 +87,7 @@
   #info-card .ic-row { margin-bottom:5px; }
   #info-card .ic-label { color:#38bdf8; font-weight:700; margin-right:6px; }
   #info-card .ic-empty { color:#64748b; font-size:12px; }
+  #learn-hint { background:#0b1220; border-radius:9px; padding:10px 12px; font-size:12px; color:#7dd3fc; line-height:1.5; }
 
   @media (max-width: 768px) {
     #app { flex-direction: column; height: 100dvh; }
@@ -177,7 +177,7 @@
       <div class="row" style="margin-bottom:2px;">
         <span style="font-size:16px; font-weight:800; color:#f1f5f9;">📚 학습 모드</span>
       </div>
-      <p style="color:#94a3b8; font-size:12px; line-height:1.5;">지역을 고르고 구·시·군을 누르면 지도에서 위치와 정보를 확인할 수 있어요.</p>
+      <div id="learn-hint">👆 지도를 직접 누르면 그곳이 어느 구·동인지 알려줘요. 또는 아래 목록에서 골라도 됩니다.</div>
 
       <div class="setup-block">
         <span class="label">지역 선택</span>
@@ -285,7 +285,6 @@ try {
   console.error("Firebase 초기화 실패:", e);
 }
 
-/* 랭킹 누적 저장 (닉네임당 한 문서, 점수 합산) */
 async function saveRankScore(nick, sc, total) {
   if (!db) return false;
   const cleanNick = (nick || "").trim().slice(0, 10);
@@ -316,7 +315,6 @@ async function saveRankScore(nick, sc, total) {
   }
 }
 
-/* 누적 점수 TOP 10 불러오기 */
 async function fetchTopRanks() {
   if (!db) return null;
   try {
@@ -348,7 +346,6 @@ const COLOR_DONG = { fillColor:"#7dd3fc", fillOpacity:0.75, strokeColor:"#0ea5e9
 const LS_BEST = "kgq_best_score";
 const LS_NICK = "kgq_nick";
 
-/* 78개 구·시·군 */
 const DB = [
   {name:"종로구", matchName:"종로구", sido:"11", group:"seoul"},
   {name:"중구", matchName:"중구", sido:"11", group:"seoul"},
@@ -437,9 +434,9 @@ let map = null, centerMarker = null;
 let highlightedFeatures = [];
 const featuresBySgg = {}, codeByKey = {}, featuresBySi = {};
 const dongList = [], dongsBySgg = {};
+const dongByFeature = new Map();   // feature → dong 객체 (지도 클릭용)
 
 const SIDO_NAME = { "11":"서울특별시", "28":"인천광역시", "41":"경기도" };
-const REGION_NAME = { seoul:"서울특별시", incheon:"인천광역시", gg:"경기도" };
 
 let quizSet = [], currentIndex = 0, score = 0, answered = false;
 let answerLog = [];
@@ -447,8 +444,10 @@ let totalQuestions = 10;
 let settings = { region:"all", type:"mix", count:10, timer:"off" };
 let timerId = null, timerLeft = 0;
 
-let learnRegion = "seoul";       // 학습 모드 현재 지역
-let expandedGu = null;           // 학습 모드에서 펼쳐진 구 코드
+let learnRegion = "seoul";
+let expandedGu = null;
+let learnMode = false;             // 학습 모드 동안만 지도 클릭 허용
+let mapClickListener = null;
 
 function siNameOf(sggnm) {
   const m = sggnm.match(/^(.*?[시군])/);
@@ -474,13 +473,22 @@ function initMap() {
     mapTypeId: "normal_no_labels",
     scaleControl: false, logoControl: true, mapDataControl: false, zoomControl: false
   });
+
+  // 경계(도형) 클릭 이벤트: 학습 모드일 때만 동작
+  mapClickListener = naver.maps.Event.addListener(map.data, "click", (e) => {
+    if (!learnMode) return;
+    const feature = e.feature;
+    const dong = dongByFeature.get(feature);
+    if (dong) onMapDongClick(dong);
+  });
 }
 
 /* ===========================================================
    데이터 로드 + 인덱스
 =========================================================== */
 async function loadAllGeoData() {
-  map.data.setStyle(() => ({ fillOpacity: 0, strokeWeight: 0, clickable: false }));
+  // 기본 스타일: 투명하지만 클릭은 가능하도록 clickable: true
+  map.data.setStyle(() => ({ fillOpacity: 0, strokeWeight: 0, clickable: true }));
   const geojsons = await Promise.all(GEOJSON_FILES.map(async (url) => {
     const res = await fetch(url);
     if (!res.ok) throw new Error("GeoJSON 로드 실패: " + url);
@@ -509,6 +517,7 @@ async function loadAllGeoData() {
       const dongName = parts[parts.length - 1];
       const dong = { dongName, sgg, sido, sggnm, feature };
       dongList.push(dong);
+      dongByFeature.set(feature, dong);
       if (!dongsBySgg[sgg]) dongsBySgg[sgg] = [];
       dongsBySgg[sgg].push(dong);
     }
@@ -571,13 +580,18 @@ function collectCoords(geometry, cb) {
 =========================================================== */
 function openLearnMode() {
   clearHighlight();
+  learnMode = true;
   showScreen("learn");
   document.getElementById("info-card").classList.add("hidden");
   expandedGu = null;
   renderLearnList();
 }
+function closeLearnMode() {
+  learnMode = false;
+  clearHighlight();
+  showScreen("start");
+}
 
-/* 현재 지역의 구·시·군 목록 그리기 */
 function renderLearnList() {
   const listEl = document.getElementById("learn-list");
   listEl.innerHTML = "";
@@ -585,12 +599,11 @@ function renderLearnList() {
 
   items.forEach((item) => {
     const row = document.createElement("div");
-    row.className = "learn-item";
+    row.className = "learn-item" + (expandedGu === item.sggCode ? " sel" : "");
     row.innerHTML = `<span>${item.name}</span><span class="arrow">위치 보기 ▸</span>`;
-    row.addEventListener("click", () => selectLearnGu(item, row));
+    row.addEventListener("click", () => selectLearnGu(item));
     listEl.appendChild(row);
 
-    // 펼쳐진 구라면 그 아래에 동 목록 표시
     if (expandedGu === item.sggCode) {
       const dongWrap = document.createElement("div");
       dongWrap.className = "learn-dong-wrap";
@@ -610,30 +623,44 @@ function renderLearnList() {
   });
 }
 
-/* 구·시·군 선택 → 지도 표시 + 카드 + 동 목록 토글 */
-function selectLearnGu(item, rowEl) {
+function selectLearnGu(item) {
   const feats = featuresBySgg[item.sggCode];
   if (feats) highlightGu(feats);
-  // 동 목록 토글
   expandedGu = (expandedGu === item.sggCode) ? null : item.sggCode;
   renderLearnList();
-  showInfoCard(item.name, SIDO_NAME[item.sido], null);
+  showInfoCard(item.name, SIDO_NAME[item.sido]);
   document.getElementById("map-container").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-/* 동 선택 → 지도 표시 + 카드 */
 function selectLearnDong(dg, el) {
   highlightDong(dg);
   document.querySelectorAll(".learn-dong").forEach((x) => x.classList.remove("sel"));
-  el.classList.add("sel");
+  if (el) el.classList.add("sel");
   const si = siNameOf(dg.sggnm);
   const belong = (dg.sggnm === si) ? `${SIDO_NAME[dg.sido]} ${si}` : `${SIDO_NAME[dg.sido]} ${dg.sggnm}`;
-  showInfoCard(dg.dongName, belong, null);
+  showInfoCard(dg.dongName, belong);
   document.getElementById("map-container").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-/* 정보 카드 표시 (특징/인접지역은 다음 단계에서 추가 예정) */
-function showInfoCard(title, belong, feature) {
+/* 지도에서 동을 직접 클릭했을 때 */
+function onMapDongClick(dong) {
+  // 클릭한 동이 속한 지역으로 목록도 맞춰줌
+  const region = SIDO_TO_REGION[dong.sido];
+  if (region && region !== learnRegion) {
+    learnRegion = region;
+    document.querySelectorAll("#learn-region button").forEach((b) => {
+      b.classList.toggle("sel", b.getAttribute("data-val") === region);
+    });
+  }
+  expandedGu = dong.sgg;
+  highlightDong(dong);
+  renderLearnList();
+  const si = siNameOf(dong.sggnm);
+  const belong = (dong.sggnm === si) ? `${SIDO_NAME[dong.sido]} ${si}` : `${SIDO_NAME[dong.sido]} ${dong.sggnm}`;
+  showInfoCard(dong.dongName, belong);
+}
+
+function showInfoCard(title, belong) {
   const card = document.getElementById("info-card");
   card.classList.remove("hidden");
   card.innerHTML = `
@@ -687,6 +714,7 @@ function filteredDongPool() {
 }
 
 function startGame() {
+  learnMode = false;   // 퀴즈 중엔 지도 클릭 비활성
   totalQuestions = settings.count;
   quizSet = []; answerLog = [];
   const guPool = filteredGuPool();
@@ -718,6 +746,7 @@ function startGame() {
 function retryWrongOnly() {
   const wrongQs = answerLog.filter((a) => !a.correct).map((a) => a.q);
   if (!wrongQs.length) { alert("틀린 문제가 없습니다! 🎉"); return; }
+  learnMode = false;
   quizSet = shuffle(wrongQs);
   totalQuestions = quizSet.length;
   answerLog = [];
@@ -764,9 +793,7 @@ function makeDongQuestion(pool) {
 }
 
 /* ===== 타이머 ===== */
-function stopTimer() {
-  if (timerId) { clearInterval(timerId); timerId = null; }
-}
+function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
 function startTimer() {
   stopTimer();
   if (settings.timer !== "on") { document.getElementById("timer-wrap").classList.add("hidden"); return; }
@@ -774,9 +801,7 @@ function startTimer() {
   timerLeft = TIMER_SECONDS;
   const fill = document.getElementById("timer-fill");
   const num = document.getElementById("timer-num");
-  fill.classList.remove("warn");
-  fill.style.width = "100%";
-  num.textContent = timerLeft;
+  fill.classList.remove("warn"); fill.style.width = "100%"; num.textContent = timerLeft;
   timerId = setInterval(() => {
     timerLeft--;
     num.textContent = timerLeft;
@@ -957,7 +982,7 @@ function escapeHtml(s) {
 }
 
 /* ===========================================================
-   설정 화면 세그먼트 버튼 처리
+   세그먼트 버튼
 =========================================================== */
 function setupSegment(containerId, key) {
   const cont = document.getElementById(containerId);
@@ -971,8 +996,6 @@ function setupSegment(containerId, key) {
     });
   });
 }
-
-/* 학습 모드 지역 세그먼트 */
 function setupLearnRegionSegment() {
   const cont = document.getElementById("learn-region");
   cont.querySelectorAll("button").forEach((btn) => {
@@ -1021,7 +1044,7 @@ window.addEventListener("load", async () => {
   document.getElementById("start-btn").addEventListener("click", startGame);
   document.getElementById("restart-btn").addEventListener("click", () => { showScreen("start"); document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0"; });
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
-  document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); showScreen("start"); });
+  document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); learnMode = false; showScreen("start"); });
   document.getElementById("verify-btn").addEventListener("click", verifyAll);
   document.getElementById("wrong-only-btn").addEventListener("click", retryWrongOnly);
   document.getElementById("rank-btn").addEventListener("click", showRanking);
@@ -1029,7 +1052,7 @@ window.addEventListener("load", async () => {
   document.getElementById("rank-refresh-btn").addEventListener("click", showRanking);
   document.getElementById("rank-back-btn").addEventListener("click", () => showScreen("start"));
   document.getElementById("learn-btn").addEventListener("click", openLearnMode);
-  document.getElementById("learn-back-btn").addEventListener("click", () => { clearHighlight(); showScreen("start"); });
+  document.getElementById("learn-back-btn").addEventListener("click", closeLearnMode);
 
   window.addEventListener("resize", () => { if (map) naver.maps.Event.trigger(map, "resize"); });
 });
