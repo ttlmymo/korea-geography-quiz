@@ -50,7 +50,29 @@
   #verify-result { margin-top: 8px; font-size: 12px; line-height: 1.6; }
   #diag { font-size: 12px; color: #fca5a5; margin-top: 8px; }
 
-  /* ===== 모바일(세로 화면) 대응 ===== */
+  .setup-block { background:#0f172a; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .setup-block .label { font-size:12px; color:#94a3b8; font-weight:700; }
+  .seg { display:flex; gap:6px; flex-wrap:wrap; }
+  .seg button { flex:1; min-width:60px; padding:8px 6px; background:#1e293b; color:#cbd5e1; border:1px solid #334155; border-radius:8px; font-size:13px; cursor:pointer; transition:all .15s; }
+  .seg button.sel { background:#f97316; color:#fff; border-color:#f97316; font-weight:700; }
+  .nick-input { width:100%; padding:10px 12px; background:#1e293b; color:#f1f5f9; border:1px solid #334155; border-radius:8px; font-size:14px; }
+  .nick-input::placeholder { color:#64748b; }
+  #best-score-box { background:#0f172a; border-radius:10px; padding:10px 14px; font-size:13px; color:#fbbf24; text-align:center; font-weight:700; }
+  #timer-wrap .row { margin-bottom:4px; }
+  #timer-bar-wrap { height:6px; background:#334155; border-radius:3px; overflow:hidden; }
+  #timer-fill { height:100%; width:100%; background:#22c55e; transition:width 1s linear; }
+  #timer-fill.warn { background:#ef4444; }
+
+  #rank-list { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  .rank-item { display:flex; align-items:center; gap:10px; background:#0f172a; border-radius:8px; padding:8px 12px; font-size:13px; }
+  .rank-item .pos { font-weight:800; width:30px; text-align:center; }
+  .rank-item.me { outline:1px solid #f97316; }
+  .rank-item .nick { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rank-item .pts { font-weight:700; color:#f97316; }
+  .rank-item .date { font-size:10px; color:#64748b; margin-left:6px; }
+  #rank-note { font-size:11px; color:#64748b; line-height:1.5; margin-top:8px; }
+  #rank-status { font-size:13px; color:#94a3b8; text-align:center; padding:14px; }
+
   @media (max-width: 768px) {
     #app { flex-direction: column; height: 100dvh; }
     #map-container { width: 100%; height: 60dvh; flex: none; }
@@ -68,6 +90,8 @@
     #result .score { font-size: 30px; }
     #result-msg { font-size: 12px; }
     .report-item { font-size: 11px; padding: 7px 9px; }
+    .setup-block { padding: 9px 11px; gap: 6px; }
+    .seg button { font-size: 12px; padding: 7px 5px; }
   }
 </style>
 </head>
@@ -77,22 +101,70 @@
   <div id="panel">
     <h1>🗺️ 수도권 지리 마스터</h1>
 
+    <!-- ============ 시작 화면 ============ -->
     <div id="start-screen">
-      <p style="color:#94a3b8; line-height:1.6;">
-        매 문제마다 <b>구·시·군</b> 또는 <b>읍·면·동</b>이 랜덤 출제됩니다. 읍·면·동 문제에서는 시·구·동이 색으로 구분돼 한눈에 위치를 익힐 수 있어요.
-      </p>
+      <div id="best-score-box">🏆 내 최고 점수: <span id="best-score">0</span>점</div>
+
+      <div class="setup-block">
+        <span class="label">닉네임 (랭킹 등록용)</span>
+        <input id="nick-input" class="nick-input" type="text" maxlength="10" placeholder="닉네임을 입력하세요" />
+      </div>
+
+      <div class="setup-block">
+        <span class="label">출제 지역</span>
+        <div class="seg" id="seg-region">
+          <button data-val="all" class="sel">전체</button>
+          <button data-val="seoul">서울</button>
+          <button data-val="incheon">인천</button>
+          <button data-val="gg">경기</button>
+        </div>
+      </div>
+
+      <div class="setup-block">
+        <span class="label">문제 유형</span>
+        <div class="seg" id="seg-type">
+          <button data-val="mix" class="sel">혼합</button>
+          <button data-val="gu">구·시·군만</button>
+          <button data-val="dong">읍·면·동만</button>
+        </div>
+      </div>
+
+      <div class="setup-block">
+        <span class="label">문제 수</span>
+        <div class="seg" id="seg-count">
+          <button data-val="10" class="sel">10문제</button>
+          <button data-val="20">20문제</button>
+        </div>
+      </div>
+
+      <div class="setup-block">
+        <span class="label">타이머 (문제당 15초)</span>
+        <div class="seg" id="seg-timer">
+          <button data-val="off" class="sel">끄기</button>
+          <button data-val="on">켜기</button>
+        </div>
+      </div>
+
       <button id="start-btn" class="primary">게임 시작</button>
-      <button id="verify-btn" class="secondary" style="margin-top:10px;">🔍 전체 검증 (구 + 읍·면·동)</button>
+      <button id="rank-btn" class="secondary" style="margin-top:6px;">🏅 랭킹 보기</button>
+      <button id="verify-btn" class="secondary" style="margin-top:6px;">🔍 전체 검증 (구 + 읍·면·동)</button>
       <div id="diag"></div>
       <div id="verify-result"></div>
     </div>
 
+    <!-- ============ 퀴즈 화면 ============ -->
     <div id="quiz-screen" class="hidden">
       <div class="row">
         <span id="q-counter">1 / 10</span>
         <span id="score-label">점수 0</span>
       </div>
       <div id="progress-bar"><div id="progress-fill"></div></div>
+
+      <div id="timer-wrap" class="hidden">
+        <div class="row"><span>⏱ 남은 시간</span><span id="timer-num">15</span></div>
+        <div id="timer-bar-wrap"><div id="timer-fill"></div></div>
+      </div>
+
       <div>
         <span id="q-badge" class="badge gu">구·시·군</span>
         <div id="question"></div>
@@ -105,17 +177,37 @@
       <div id="options"></div>
       <div id="explain" class="hidden"></div>
       <button id="next-btn" class="primary" disabled>다음 문제</button>
+      <button id="quit-btn" class="secondary">그만두기</button>
     </div>
 
+    <!-- ============ 결과 화면 ============ -->
     <div id="result-screen" class="hidden">
       <div id="result">
         <div style="text-align:center; color:#94a3b8;">최종 점수</div>
-        <div class="score"><span id="final-score">0</span> / 100</div>
+        <div class="score"><span id="final-score">0</span> / <span id="max-score">100</span></div>
         <div id="result-msg"></div>
+        <div id="new-best" class="hidden" style="text-align:center; color:#22c55e; font-weight:700; margin-top:6px;">🎉 내 최고 점수 갱신!</div>
+        <div id="rank-save-status" style="text-align:center; color:#94a3b8; font-size:12px; margin-top:6px;"></div>
       </div>
+
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button id="wrong-only-btn" class="secondary" style="flex:1;">❌ 틀린 문제만</button>
+        <button id="to-rank-btn" class="secondary" style="flex:1;">🏅 랭킹 보기</button>
+      </div>
+
       <h2 style="font-size:16px; margin-top:8px;">📋 결과지 <span style="font-size:12px; color:#94a3b8; font-weight:400;">(항목을 누르면 지도에 다시 표시)</span></h2>
       <div id="report"></div>
       <button id="restart-btn" class="primary" style="margin-top:8px;">다시 하기</button>
+    </div>
+
+    <!-- ============ 랭킹 화면 ============ -->
+    <div id="rank-screen" class="hidden">
+      <h2 style="font-size:18px;">🏅 실시간 랭킹 TOP 10</h2>
+      <div id="rank-status" class="hidden">불러오는 중…</div>
+      <div id="rank-list"></div>
+      <div id="rank-note">※ 전 세계 모든 플레이어의 점수가 실시간으로 반영됩니다. 닉네임을 입력하고 게임하면 자동 등록돼요.</div>
+      <button id="rank-refresh-btn" class="secondary" style="margin-top:10px;">🔄 새로고침</button>
+      <button id="rank-back-btn" class="primary" style="margin-top:6px;">← 처음으로</button>
     </div>
   </div>
 </div>
@@ -125,8 +217,62 @@
   <div id="loading-text">지도 및 경계 데이터를 불러오는 중…</div>
 </div>
 
+<!-- Firebase SDK (CDN / compat 방식) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
 <script>
+/* ===========================================================
+   Firebase 초기화
+=========================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCreRg5lONdqd2diZUrffnXe-XYTVuiZVI",
+  authDomain: "korea-geo-quiz.firebaseapp.com",
+  projectId: "korea-geo-quiz",
+  storageBucket: "korea-geo-quiz.firebasestorage.app",
+  messagingSenderId: "183744001417",
+  appId: "1:183744001417:web:ef53c9f7ab06f6dd6f9d58"
+};
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+} catch (e) {
+  console.error("Firebase 초기화 실패:", e);
+}
+
+/* 랭킹 저장 */
+async function saveRankScore(nick, sc, total) {
+  if (!db) return false;
+  try {
+    await db.collection("ranking").add({
+      nick: (nick || "익명").slice(0, 10),
+      score: sc,
+      total: total,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return true;
+  } catch (e) {
+    console.error("랭킹 저장 실패:", e);
+    return false;
+  }
+}
+
+/* 랭킹 TOP 10 불러오기 */
+async function fetchTopRanks() {
+  if (!db) return null;
+  try {
+    const snap = await db.collection("ranking").orderBy("score", "desc").limit(10).get();
+    const list = [];
+    snap.forEach((doc) => list.push(doc.data()));
+    return list;
+  } catch (e) {
+    console.error("랭킹 불러오기 실패:", e);
+    return null;
+  }
+}
+
 /* ===========================================================
    설정
 =========================================================== */
@@ -136,10 +282,14 @@ const GEOJSON_FILES = [
   "https://cdn.jsdelivr.net/gh/raqoon886/Local_HangJeongDong@master/hangjeongdong_경기도.geojson"
 ];
 const DONG_RATIO = 0.5;
+const TIMER_SECONDS = 15;
 
 const COLOR_SI   = { fillColor:"#fed7aa", fillOpacity:0.45, strokeColor:"#fb923c", strokeWeight:1, strokeOpacity:0.7 };
 const COLOR_GU   = { fillColor:"#f97316", fillOpacity:0.55, strokeColor:"#ea580c", strokeWeight:2, strokeOpacity:0.95 };
 const COLOR_DONG = { fillColor:"#7dd3fc", fillOpacity:0.75, strokeColor:"#0ea5e9", strokeWeight:2, strokeOpacity:1 };
+
+const LS_BEST = "kgq_best_score";
+const LS_NICK = "kgq_nick";
 
 /* 78개 구·시·군 */
 const DB = [
@@ -221,6 +371,8 @@ const DB = [
   {name:"양평군", matchName:"양평군", sido:"41", group:"gg-city"}
 ];
 
+const SIDO_TO_REGION = { "11":"seoul", "28":"incheon", "41":"gg" };
+
 /* ===========================================================
    전역 상태
 =========================================================== */
@@ -232,11 +384,21 @@ const dongList = [], dongsBySgg = {};
 const SIDO_NAME = { "11":"서울특별시", "28":"인천광역시", "41":"경기도" };
 
 let quizSet = [], currentIndex = 0, score = 0, answered = false;
-let answerLog = [];   // 결과지용 기록
+let answerLog = [];
+let totalQuestions = 10;
+let settings = { region:"all", type:"mix", count:10, timer:"off" };
+let timerId = null, timerLeft = 0;
 
 function siNameOf(sggnm) {
   const m = sggnm.match(/^(.*?[시군])/);
   return m ? m[1] : sggnm;
+}
+
+/* 화면 전환 헬퍼 */
+function showScreen(name) {
+  ["start","quiz","result","rank"].forEach((s) => {
+    document.getElementById(s + "-screen").classList.toggle("hidden", s !== name);
+  });
 }
 
 /* ===========================================================
@@ -328,7 +490,6 @@ function featureCenter(f) {
   if (json && json.geometry) collectCoords(json.geometry, (lng, lat) => { b.extend(new naver.maps.LatLng(lat, lng)); has = true; });
   return has ? b.getCenter() : null;
 }
-/* 경계가 화면에 꽉 차게 자동 줌 (PC/모바일 화면 비율에 맞춤) */
 function fitToFeatures(feats) {
   const b = new naver.maps.LatLngBounds(); let has = false;
   feats.forEach((f) => {
@@ -337,7 +498,6 @@ function fitToFeatures(feats) {
     collectCoords(json.geometry, (lng, lat) => { b.extend(new naver.maps.LatLng(lat, lng)); has = true; });
   });
   if (!has) return;
-  // 화면 크기에 맞춰 자동으로 줌 계산. 가장자리에 여백(padding)을 줘서 꽉 차지 않게.
   map.fitBounds(b, { top: 40, right: 40, bottom: 40, left: 40 });
 }
 function collectCoords(geometry, cb) {
@@ -378,15 +538,55 @@ function shuffle(arr) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
+function filteredGuPool() {
+  let pool = DB.filter((d) => d.sggCode);
+  if (settings.region !== "all") pool = pool.filter((d) => SIDO_TO_REGION[d.sido] === settings.region);
+  return pool;
+}
+function filteredDongPool() {
+  let pool = dongList;
+  if (settings.region !== "all") pool = pool.filter((d) => SIDO_TO_REGION[d.sido] === settings.region);
+  return pool;
+}
 
 function startGame() {
+  totalQuestions = settings.count;
   quizSet = []; answerLog = [];
-  const validGu = DB.filter((d) => d.sggCode);
-  for (let i = 0; i < 10; i++) quizSet.push(Math.random() < DONG_RATIO ? makeDongQuestion() : makeGuQuestion(validGu));
+  const guPool = filteredGuPool();
+  const dongPool = filteredDongPool();
+
+  if ((settings.type === "gu" && !guPool.length) ||
+      (settings.type === "dong" && !dongPool.length) ||
+      (settings.type === "mix" && !guPool.length && !dongPool.length)) {
+    alert("선택한 조건에 맞는 문제가 없습니다. 지역/유형을 바꿔주세요.");
+    return;
+  }
+
+  for (let i = 0; i < totalQuestions; i++) {
+    let useDong;
+    if (settings.type === "gu") useDong = false;
+    else if (settings.type === "dong") useDong = true;
+    else useDong = Math.random() < DONG_RATIO;
+    if (useDong && !dongPool.length) useDong = false;
+    if (!useDong && !guPool.length) useDong = true;
+    quizSet.push(useDong ? makeDongQuestion(dongPool) : makeGuQuestion(guPool));
+  }
+
   currentIndex = 0; score = 0;
-  document.getElementById("start-screen").classList.add("hidden");
-  document.getElementById("result-screen").classList.add("hidden");
-  document.getElementById("quiz-screen").classList.remove("hidden");
+  document.getElementById("max-score").textContent = totalQuestions * 10;
+  showScreen("quiz");
+  loadQuestion();
+}
+
+function retryWrongOnly() {
+  const wrongQs = answerLog.filter((a) => !a.correct).map((a) => a.q);
+  if (!wrongQs.length) { alert("틀린 문제가 없습니다! 🎉"); return; }
+  quizSet = shuffle(wrongQs);
+  totalQuestions = quizSet.length;
+  answerLog = [];
+  currentIndex = 0; score = 0;
+  document.getElementById("max-score").textContent = totalQuestions * 10;
+  showScreen("quiz");
   loadQuestion();
 }
 
@@ -405,8 +605,9 @@ function makeGuQuestion(validGu) {
   };
 }
 
-function makeDongQuestion() {
-  const target = dongList[Math.floor(Math.random() * dongList.length)];
+function makeDongQuestion(pool) {
+  const src = (pool && pool.length) ? pool : dongList;
+  const target = src[Math.floor(Math.random() * src.length)];
   let siblings = (dongsBySgg[target.sgg] || []).filter((d) => d.dongName !== target.dongName);
   let names = [...new Set(siblings.map((d) => d.dongName))];
   let wrongs = shuffle(names).slice(0, 3);
@@ -425,12 +626,53 @@ function makeDongQuestion() {
   };
 }
 
+/* ===== 타이머 ===== */
+function stopTimer() {
+  if (timerId) { clearInterval(timerId); timerId = null; }
+}
+function startTimer() {
+  stopTimer();
+  if (settings.timer !== "on") { document.getElementById("timer-wrap").classList.add("hidden"); return; }
+  document.getElementById("timer-wrap").classList.remove("hidden");
+  timerLeft = TIMER_SECONDS;
+  const fill = document.getElementById("timer-fill");
+  const num = document.getElementById("timer-num");
+  fill.classList.remove("warn");
+  fill.style.width = "100%";
+  num.textContent = timerLeft;
+  timerId = setInterval(() => {
+    timerLeft--;
+    num.textContent = timerLeft;
+    fill.style.width = (timerLeft / TIMER_SECONDS * 100) + "%";
+    if (timerLeft <= 5) fill.classList.add("warn");
+    if (timerLeft <= 0) {
+      stopTimer();
+      timeOut();
+    }
+  }, 1000);
+}
+function timeOut() {
+  if (answered) return;
+  answered = true;
+  const q = quizSet[currentIndex];
+  const buttons = document.querySelectorAll(".option-btn");
+  buttons.forEach((b) => { b.disabled = true; if (b.textContent === q.answerLabel) b.classList.add("correct"); });
+  const explainEl = document.getElementById("explain");
+  explainEl.textContent = "⏰ 시간 초과! " + q.explain;
+  explainEl.style.borderLeftColor = "#ef4444";
+  explainEl.classList.remove("hidden");
+  answerLog.push({ type: q.type, answer: q.answerLabel, picked: "(시간초과)", correct: false, explain: q.explain, q: q });
+  const nextBtn = document.getElementById("next-btn");
+  nextBtn.disabled = false;
+  nextBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
 function loadQuestion() {
   answered = false;
   const q = quizSet[currentIndex];
-  document.getElementById("q-counter").textContent = (currentIndex + 1) + " / 10";
+  document.getElementById("q-counter").textContent = (currentIndex + 1) + " / " + totalQuestions;
   document.getElementById("score-label").textContent = "점수 " + score;
-  document.getElementById("progress-fill").style.width = (currentIndex / 10 * 100) + "%";
+  document.getElementById("progress-fill").style.width = (currentIndex / totalQuestions * 100) + "%";
 
   const badge = document.getElementById("q-badge");
   const legend = document.getElementById("legend");
@@ -459,14 +701,16 @@ function loadQuestion() {
 
   const nextBtn = document.getElementById("next-btn");
   nextBtn.disabled = true;
-  nextBtn.textContent = currentIndex === 9 ? "결과지 보기" : "다음 문제";
+  nextBtn.textContent = currentIndex === totalQuestions - 1 ? "결과지 보기" : "다음 문제";
 
   if (q.type === "dong") highlightDong(q.dong); else highlightGu(q.feats);
+  startTimer();
 }
 
 function selectAnswer(btn, optLabel, q) {
   if (answered) return;
   answered = true;
+  stopTimer();
   const buttons = document.querySelectorAll(".option-btn");
   buttons.forEach((b) => (b.disabled = true));
 
@@ -479,10 +723,7 @@ function selectAnswer(btn, optLabel, q) {
   explainEl.style.borderLeftColor = isCorrect ? "#22c55e" : "#ef4444";
   explainEl.classList.remove("hidden");
 
-  // 결과지 기록 (지도 복기용으로 q 전체를 함께 저장)
-  answerLog.push({
-    type: q.type, answer: q.answerLabel, picked: optLabel, correct: isCorrect, explain: q.explain, q: q
-  });
+  answerLog.push({ type: q.type, answer: q.answerLabel, picked: optLabel, correct: isCorrect, explain: q.explain, q: q });
 
   document.getElementById("score-label").textContent = "점수 " + score;
   const nextBtn = document.getElementById("next-btn");
@@ -492,34 +733,46 @@ function selectAnswer(btn, optLabel, q) {
 
 function nextQuestion() {
   currentIndex++;
-  if (currentIndex >= 10) showResult();
+  if (currentIndex >= totalQuestions) showResult();
   else loadQuestion();
 }
 
-/* 결과지 항목 클릭 시 그 문제의 지도를 다시 표시 */
 function replayQuestion(idx) {
   const log = answerLog[idx];
   if (!log || !log.q) return;
   const q = log.q;
   if (q.type === "dong") highlightDong(q.dong);
   else highlightGu(q.feats);
-  // 선택된 항목 강조
   document.querySelectorAll(".report-item").forEach((el) => el.classList.remove("active"));
   const target = document.querySelector(`.report-item[data-idx="${idx}"]`);
   if (target) target.classList.add("active");
-  // 모바일에서 지도가 위에 있으니 지도로 스크롤
   document.getElementById("map-container").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function showResult() {
+async function showResult() {
+  stopTimer();
   clearHighlight();
-  document.getElementById("quiz-screen").classList.add("hidden");
-  document.getElementById("result-screen").classList.remove("hidden");
+  showScreen("result");
+  const maxScore = totalQuestions * 10;
   document.getElementById("final-score").textContent = score;
-  const correctCnt = answerLog.filter((a) => a.correct).length;
-  const msg = score >= 90 ? "🏆 수도권 지리 마스터!" : score >= 70 ? "👍 훌륭해요!" : score >= 50 ? "🙂 절반은 넘겼어요." : "📚 조금 더 연습해봐요!";
-  document.getElementById("result-msg").textContent = `${msg}  (10문제 중 ${correctCnt}개 정답)`;
+  document.getElementById("max-score").textContent = maxScore;
 
+  const correctCnt = answerLog.filter((a) => a.correct).length;
+  const pct = score / maxScore;
+  const msg = pct >= 0.9 ? "🏆 수도권 지리 마스터!" : pct >= 0.7 ? "👍 훌륭해요!" : pct >= 0.5 ? "🙂 절반은 넘겼어요." : "📚 조금 더 연습해봐요!";
+  document.getElementById("result-msg").textContent = `${msg}  (${totalQuestions}문제 중 ${correctCnt}개 정답)`;
+
+  // 로컬 최고 점수
+  const prevBest = parseInt(localStorage.getItem(LS_BEST) || "0", 10);
+  const newBestEl = document.getElementById("new-best");
+  if (score > prevBest) {
+    localStorage.setItem(LS_BEST, String(score));
+    newBestEl.classList.remove("hidden");
+  } else {
+    newBestEl.classList.add("hidden");
+  }
+
+  // 결과지
   const report = document.getElementById("report");
   report.innerHTML = "";
   answerLog.forEach((a, i) => {
@@ -535,6 +788,73 @@ function showResult() {
       <div class="replay">👆 눌러서 지도에서 위치 확인</div>`;
     item.addEventListener("click", () => replayQuestion(i));
     report.appendChild(item);
+  });
+
+  // 랭킹 저장 (Firestore)
+  const statusEl = document.getElementById("rank-save-status");
+  const nick = (document.getElementById("nick-input").value || "").trim();
+  if (nick) localStorage.setItem(LS_NICK, nick);
+  statusEl.textContent = "랭킹에 점수 등록 중…";
+  const ok = await saveRankScore(nick, score, maxScore);
+  statusEl.textContent = ok ? "✅ 랭킹에 등록되었습니다!" : "⚠ 랭킹 등록 실패 (오프라인이거나 규칙 차단)";
+}
+
+/* ===== 랭킹 화면 ===== */
+async function showRanking() {
+  showScreen("rank");
+  const statusEl = document.getElementById("rank-status");
+  const listEl = document.getElementById("rank-list");
+  statusEl.classList.remove("hidden");
+  statusEl.textContent = "불러오는 중…";
+  listEl.innerHTML = "";
+
+  const list = await fetchTopRanks();
+  if (list === null) {
+    statusEl.textContent = "⚠ 랭킹을 불러오지 못했습니다. (네트워크/규칙 확인)";
+    return;
+  }
+  if (!list.length) {
+    statusEl.textContent = "아직 등록된 점수가 없어요. 첫 주인공이 되어보세요! 🎯";
+    return;
+  }
+  statusEl.classList.add("hidden");
+  const myNick = localStorage.getItem(LS_NICK) || "";
+  const medals = ["🥇","🥈","🥉"];
+  list.forEach((r, i) => {
+    const div = document.createElement("div");
+    div.className = "rank-item" + (myNick && r.nick === myNick ? " me" : "");
+    const pos = i < 3 ? medals[i] : (i + 1);
+    let dateStr = "";
+    if (r.createdAt && r.createdAt.toDate) {
+      const d = r.createdAt.toDate();
+      dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+    }
+    div.innerHTML = `
+      <span class="pos">${pos}</span>
+      <span class="nick">${escapeHtml(r.nick || "익명")}</span>
+      <span class="date">${dateStr}</span>
+      <span class="pts">${r.score}점</span>`;
+    listEl.appendChild(div);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+/* ===========================================================
+   설정 화면 세그먼트 버튼 처리
+=========================================================== */
+function setupSegment(containerId, key) {
+  const cont = document.getElementById(containerId);
+  cont.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      cont.querySelectorAll("button").forEach((b) => b.classList.remove("sel"));
+      btn.classList.add("sel");
+      let val = btn.getAttribute("data-val");
+      if (key === "count") val = parseInt(val, 10);
+      settings[key] = val;
+    });
   });
 }
 
@@ -557,10 +877,30 @@ window.addEventListener("load", async () => {
     document.getElementById("loading-text").textContent = "데이터 로딩 실패: " + e.message;
     return;
   }
+
+  // 저장된 닉네임/최고점수 표시
+  document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0";
+  const savedNick = localStorage.getItem(LS_NICK);
+  if (savedNick) document.getElementById("nick-input").value = savedNick;
+
+  // 설정 세그먼트
+  setupSegment("seg-region", "region");
+  setupSegment("seg-type", "type");
+  setupSegment("seg-count", "count");
+  setupSegment("seg-timer", "timer");
+
+  // 버튼 이벤트
   document.getElementById("start-btn").addEventListener("click", startGame);
-  document.getElementById("restart-btn").addEventListener("click", startGame);
+  document.getElementById("restart-btn").addEventListener("click", () => { showScreen("start"); document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0"; });
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
+  document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); showScreen("start"); });
   document.getElementById("verify-btn").addEventListener("click", verifyAll);
+  document.getElementById("wrong-only-btn").addEventListener("click", retryWrongOnly);
+  document.getElementById("rank-btn").addEventListener("click", showRanking);
+  document.getElementById("to-rank-btn").addEventListener("click", showRanking);
+  document.getElementById("rank-refresh-btn").addEventListener("click", showRanking);
+  document.getElementById("rank-back-btn").addEventListener("click", () => showScreen("start"));
+
   window.addEventListener("resize", () => { if (map) naver.maps.Event.trigger(map, "resize"); });
 });
 </script>
