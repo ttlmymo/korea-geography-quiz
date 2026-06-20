@@ -365,6 +365,11 @@ const MANUAL_ADJ_REMOVE = [
   // ["강남구", "관악구"],
 ];
 
+ // 섬 등으로 인접 구가 0개일 때 보여줄 맞춤 설명 (구 이름 기준)
+const ISLAND_NOTE = {
+  "옹진군": "인천 앞바다에 흩어져 있는 섬들로만 이루어진 군이에요. 백령도·연평도·대청도·덕적도·자월도 등이 속하며, 육지와 바다로 분리되어 있어 경계가 맞닿은 구·군이 없습니다."
+};
+
 const DB = [
   {name:"종로구", matchName:"종로구", sido:"11", group:"seoul"},
   {name:"중구", matchName:"중구", sido:"11", group:"seoul"},
@@ -795,11 +800,18 @@ function showGuInfoCard(item) {
   const card = document.getElementById("info-card");
   card.classList.remove("hidden");
   const adj = getGuAdjNames(item.sggCode);
-  const adjText = adj.length ? adj.join(", ") : "<span class='ic-empty'>계산된 인접 구가 없어요.</span>";
+  let adjHtml;
+  if (adj.length) {
+    adjHtml = adj.join(", ");
+  } else if (ISLAND_NOTE[item.name]) {
+    adjHtml = `<span style="color:#cbd5e1;">${ISLAND_NOTE[item.name]}</span>`;
+  } else {
+    adjHtml = "<span class='ic-empty'>계산된 인접 구가 없어요.</span>";
+  }
   card.innerHTML = `
     <div class="ic-title">${item.name}</div>
     <div class="ic-row"><span class="ic-label">소속</span>${SIDO_NAME[item.sido]}</div>
-    <div class="ic-row"><span class="ic-label">인접 지역</span>${adjText}</div>
+    <div class="ic-row"><span class="ic-label">인접 지역</span>${adjHtml}</div>
     <div class="ic-row"><span class="ic-label">특징</span><span class="ic-empty">아직 등록된 설명이 없어요. (다음 단계에서 추가됩니다)</span></div>
   `;
 }
