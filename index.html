@@ -346,6 +346,9 @@ const COLOR_DONG = { fillColor:"#7dd3fc", fillOpacity:0.75, strokeColor:"#0ea5e9
 const LS_BEST = "kgq_best_score";
 const LS_NICK = "kgq_nick";
 
+/* 한국어 가나다 + 숫자 자연 정렬용 비교 함수 */
+const koCmp = (a, b) => String(a).localeCompare(String(b), "ko", { numeric: true });
+
 const DB = [
   {name:"종로구", matchName:"종로구", sido:"11", group:"seoul"},
   {name:"중구", matchName:"중구", sido:"11", group:"seoul"},
@@ -447,6 +450,7 @@ let timerId = null, timerLeft = 0;
 let learnRegion = "seoul";
 let expandedGu = null;
 let learnMode = false;             // 학습 모드 동안만 지도 클릭 허용
+let selectedDongName = null;       // 지도/목록에서 선택된 동 이름 기억
 let mapClickListener = null;
 
 function siNameOf(sggnm) {
@@ -522,6 +526,12 @@ async function loadAllGeoData() {
       dongsBySgg[sgg].push(dong);
     }
   });
+
+  // 각 구의 동 목록을 가나다(+숫자) 순으로 정렬
+  Object.keys(dongsBySgg).forEach((sgg) => {
+    dongsBySgg[sgg].sort((a, b) => koCmp(a.dongName, b.dongName));
+  });
+
   DB.forEach((item) => { item.sggCode = codeByKey[item.sido + "|" + item.matchName] || null; });
 }
 
@@ -584,6 +594,7 @@ function openLearnMode() {
   showScreen("learn");
   document.getElementById("info-card").classList.add("hidden");
   expandedGu = null;
+  selectedDongName = null;
   renderLearnList();
 }
 function closeLearnMode() {
@@ -595,7 +606,11 @@ function closeLearnMode() {
 function renderLearnList() {
   const listEl = document.getElementById("learn-list");
   listEl.innerHTML = "";
-  const items = DB.filter((d) => d.sggCode && SIDO_TO_REGION[d.sido] === learnRegion);
+  // 선택 지역의 구 목록을 가나다순으로 정렬
+  const items = DB
+    .filter((d) => d.sggCode && SIDO_TO_REGION[d.sido] === learnRegion)
+    .slice()
+    .sort((a, b) => koCmp(a.name, b.name));
 
   items.forEach((item) => {
     const row = document.createElement("div");
@@ -607,13 +622,13 @@ function renderLearnList() {
     if (expandedGu === item.sggCode) {
       const dongWrap = document.createElement("div");
       dongWrap.className = "learn-dong-wrap";
-      const dongs = (dongsBySgg[item.sggCode] || []);
+      const dongs = (dongsBySgg[item.sggCode] || []);   // 이미 정렬되어 있음
       const seen = new Set();
       dongs.forEach((dg) => {
         if (seen.has(dg.dongName)) return;
         seen.add(dg.dongName);
         const d = document.createElement("div");
-        d.className = "learn-dong";
+        d.className = "learn-dong" + (selectedDongName === dg.dongName ? " sel" : "");
         d.textContent = "· " + dg.dongName;
         d.addEventListener("click", (e) => { e.stopPropagation(); selectLearnDong(dg, d); });
         dongWrap.appendChild(d);
@@ -627,12 +642,14 @@ function selectLearnGu(item) {
   const feats = featuresBySgg[item.sggCode];
   if (feats) highlightGu(feats);
   expandedGu = (expandedGu === item.sggCode) ? null : item.sggCode;
+  selectedDongName = null;
   renderLearnList();
   showInfoCard(item.name, SIDO_NAME[item.sido]);
   document.getElementById("map-container").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function selectLearnDong(dg, el) {
+  selectedDongName = dg.dongName;
   highlightDong(dg);
   document.querySelectorAll(".learn-dong").forEach((x) => x.classList.remove("sel"));
   if (el) el.classList.add("sel");
@@ -653,11 +670,15 @@ function onMapDongClick(dong) {
     });
   }
   expandedGu = dong.sgg;
+  selectedDongName = dong.dongName;
   highlightDong(dong);
   renderLearnList();
   const si = siNameOf(dong.sggnm);
   const belong = (dong.sggnm === si) ? `${SIDO_NAME[dong.sido]} ${si}` : `${SIDO_NAME[dong.sido]} ${dong.sggnm}`;
   showInfoCard(dong.dongName, belong);
+  // 정보 카드가 화면에 보이도록 스크롤
+  const card = document.getElementById("info-card");
+  if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function showInfoCard(title, belong) {
@@ -1004,6 +1025,7 @@ function setupLearnRegionSegment() {
       btn.classList.add("sel");
       learnRegion = btn.getAttribute("data-val");
       expandedGu = null;
+      selectedDongName = null;
       document.getElementById("info-card").classList.add("hidden");
       clearHighlight();
       renderLearnList();
