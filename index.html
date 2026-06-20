@@ -169,6 +169,7 @@
       <button id="start-btn" class="primary">게임 시작</button>
       <button id="rank-btn" class="secondary" style="margin-top:6px;">🏅 랭킹 보기</button>
       <button id="verify-btn" class="secondary" style="margin-top:6px;">🔍 전체 검증 (구 + 읍·면·동)</button>
+      <button id="adj-verify-btn" class="secondary" style="margin-top:6px;">🔗 인접 검증 (비대칭 의심 쌍)</button>
       <div id="diag"></div>
       <div id="verify-result"></div>
     </div>
@@ -350,6 +351,20 @@ const LS_NICK = "kgq_nick";
 /* 한국어 가나다 + 숫자 자연 정렬용 비교 함수 */
 const koCmp = (a, b) => String(a).localeCompare(String(b), "ko", { numeric: true });
 
+/* ===== 인접 계산 설정 ===== */
+// 격자 크기(도 단위). 약 0.007도 ≈ 700m. 크게 하면 인접이 많이, 작게 하면 적게 잡힘.
+const ADJ_GRID = 0.007;
+
+// 수동 보정: 자동으로 안 잡히는데 실제로 인접인 쌍을 여기에 추가 (구 이름 기준)
+//   예: ["강남구", "성동구"]
+const MANUAL_ADJ_ADD = [
+  // ["강남구", "성동구"],
+];
+// 수동 보정: 잘못 잡힌 인접 쌍을 여기서 제거 (구 이름 기준)
+const MANUAL_ADJ_REMOVE = [
+  // ["강남구", "관악구"],
+];
+
 const DB = [
   {name:"종로구", matchName:"종로구", sido:"11", group:"seoul"},
   {name:"중구", matchName:"중구", sido:"11", group:"seoul"},
@@ -440,6 +455,11 @@ const featuresBySgg = {}, codeByKey = {}, featuresBySi = {};
 const dongList = [], dongsBySgg = {};
 const dongByFeature = new Map();   // feature → dong 객체 (지도 클릭용)
 
+// 인접 관계 저장소
+const guAdj = {};      // sggCode → Set(sggCode)  (구 인접)
+const dongAdj = {};    // dongKey → Set(dongKey)  (동 인접)
+const guNameByCode = {};   // sggCode → 표시용 구 이름
+
 const SIDO_NAME = { "11":"서울특별시", "28":"인천광역시", "41":"경기도" };
 
 let quizSet = [], currentIndex = 0, score = 0, answered = false;
@@ -458,6 +478,8 @@ function siNameOf(sggnm) {
   const m = sggnm.match(/^(.*?[시군])/);
   return m ? m[1] : sggnm;
 }
+
+function dongKeyOf(dong) { return dong.sgg + "|" + dong.dongName; }
 
 function showScreen(name) {
   ["start","learn","quiz","result","rank"].forEach((s) => {
@@ -479,7 +501,6 @@ function initMap() {
     scaleControl: false, logoControl: true, mapDataControl: false, zoomControl: false
   });
 
-  // 경계(도형) 클릭 이벤트: 학습 모드일 때만 동작
   mapClickListener = naver.maps.Event.addListener(map.data, "click", (e) => {
     if (!learnMode) return;
     const feature = e.feature;
@@ -492,7 +513,6 @@ function initMap() {
    데이터 로드 + 인덱스
 =========================================================== */
 async function loadAllGeoData() {
-  // 기본 스타일: 투명하지만 클릭은 가능하도록 clickable: true
   map.data.setStyle(() => ({ fillOpacity: 0, strokeWeight: 0, clickable: true }));
   const geojsons = await Promise.all(GEOJSON_FILES.map(async (url) => {
     const res = await fetch(url);
@@ -510,7 +530,7 @@ async function loadAllGeoData() {
 
     if (!featuresBySgg[sgg]) featuresBySgg[sgg] = [];
     featuresBySgg[sgg].push(feature);
-    if (sggnm && sido) codeByKey[sido + "|" + sggnm] = sgg;
+    if (sggnm && sido) { codeByKey[sido + "|" + sggnm] = sgg; guNameByCode[sgg] = sggnm; }
 
     if (sggnm && sido) {
       const siKey = sido + "|" + siNameOf(sggnm);
@@ -528,12 +548,102 @@ async function loadAllGeoData() {
     }
   });
 
-  // 각 구의 동 목록을 가나다(+숫자) 순으로 정렬
   Object.keys(dongsBySgg).forEach((sgg) => {
     dongsBySgg[sgg].sort((a, b) => koCmp(a.dongName, b.dongName));
   });
 
   DB.forEach((item) => { item.sggCode = codeByKey[item.sido + "|" + item.matchName] || null; });
+
+  computeAdjacency();
+}
+
+/* ===========================================================
+   인접 계산 (격자 기반)
+=========================================================== */
+function computeAdjacency() {
+  // 1) 각 동의 경계점을 격자 칸에 등록
+  const cellToDongs = new Map();   // "gx,gy" → Set(dongKey)
+  const cellToGus = new Map();     // "gx,gy" → Set(sggCode)
+
+  dongList.forEach((dong) => {
+    const dKey = dongKeyOf(dong);
+    const json = dong.feature.toGeoJson ? dong.feature.toGeoJson() : null;
+    if (!json || !json.geometry) return;
+    const seenCells = new Set();
+    collectCoords(json.geometry, (lng, lat) => {
+      const gx = Math.round(lng / ADJ_GRID);
+      const gy = Math.round(lat / ADJ_GRID);
+      const cell = gx + "," + gy;
+      if (seenCells.has(cell)) return;
+      seenCells.add(cell);
+      if (!cellToDongs.has(cell)) cellToDongs.set(cell, new Set());
+      cellToDongs.get(cell).add(dKey);
+      if (!cellToGus.has(cell)) cellToGus.set(cell, new Set());
+      cellToGus.get(cell).add(dong.sgg);
+    });
+  });
+
+  // 2) 같은 칸을 공유하는 동끼리 인접
+  const addAdj = (store, a, b) => {
+    if (a === b) return;
+    if (!store[a]) store[a] = new Set();
+    if (!store[b]) store[b] = new Set();
+    store[a].add(b); store[b].add(a);
+  };
+  cellToDongs.forEach((set) => {
+    const arr = [...set];
+    for (let i = 0; i < arr.length; i++)
+      for (let j = i + 1; j < arr.length; j++) addAdj(dongAdj, arr[i], arr[j]);
+  });
+  cellToGus.forEach((set) => {
+    const arr = [...set];
+    for (let i = 0; i < arr.length; i++)
+      for (let j = i + 1; j < arr.length; j++) addAdj(guAdj, arr[i], arr[j]);
+  });
+
+  // 3) 수동 보정 (구 단위)
+  MANUAL_ADJ_ADD.forEach(([n1, n2]) => {
+    const c1 = findGuCodeByName(n1), c2 = findGuCodeByName(n2);
+    if (c1 && c2) addAdj(guAdj, c1, c2);
+  });
+  MANUAL_ADJ_REMOVE.forEach(([n1, n2]) => {
+    const c1 = findGuCodeByName(n1), c2 = findGuCodeByName(n2);
+    if (c1 && c2) { if (guAdj[c1]) guAdj[c1].delete(c2); if (guAdj[c2]) guAdj[c2].delete(c1); }
+  });
+}
+
+// DB의 name(표시명)으로 sggCode 찾기
+function findGuCodeByName(name) {
+  const item = DB.find((d) => d.name === name && d.sggCode);
+  return item ? item.sggCode : null;
+}
+
+/* 구의 인접 구 이름 목록 (표시용, 가나다순) */
+function getGuAdjNames(sggCode) {
+  const set = guAdj[sggCode];
+  if (!set) return [];
+  const names = [];
+  set.forEach((code) => {
+    const item = DB.find((d) => d.sggCode === code);
+    names.push(item ? item.name : (guNameByCode[code] || code));
+  });
+  return [...new Set(names)].sort(koCmp);
+}
+
+/* 동의 인접 동 목록 (표시용, "구 동" 형태, 가나다순) */
+function getDongAdjNames(dong) {
+  const set = dongAdj[dongKeyOf(dong)];
+  if (!set) return [];
+  const names = [];
+  set.forEach((key) => {
+    const [sgg, name] = key.split("|");
+    if (sgg === dong.sgg) names.push(name);                 // 같은 구면 동 이름만
+    else {
+      const gnm = guNameByCode[sgg] || "";
+      names.push((gnm ? gnm + " " : "") + name);            // 다른 구면 구 이름 포함
+    }
+  });
+  return [...new Set(names)].sort(koCmp);
 }
 
 /* ===========================================================
@@ -607,7 +717,6 @@ function closeLearnMode() {
 function renderLearnList() {
   const listEl = document.getElementById("learn-list");
   listEl.innerHTML = "";
-  // 선택 지역의 구 목록을 가나다순으로 정렬
   const items = DB
     .filter((d) => d.sggCode && SIDO_TO_REGION[d.sido] === learnRegion)
     .slice()
@@ -623,7 +732,7 @@ function renderLearnList() {
     if (expandedGu === item.sggCode) {
       const dongWrap = document.createElement("div");
       dongWrap.className = "learn-dong-wrap";
-      const dongs = (dongsBySgg[item.sggCode] || []);   // 이미 정렬되어 있음
+      const dongs = (dongsBySgg[item.sggCode] || []);
       const seen = new Set();
       dongs.forEach((dg) => {
         if (seen.has(dg.dongName)) return;
@@ -638,16 +747,13 @@ function renderLearnList() {
     }
   });
 
-  // 선택된 동 또는 펼쳐진 구를 목록 안에서 자동으로 보이게 스크롤
   requestAnimationFrame(() => {
     let target = null;
     if (selectedDongName) {
       const dongEls = listEl.querySelectorAll(".learn-dong");
       dongEls.forEach((el) => { if (el.textContent === "· " + selectedDongName) target = el; });
     }
-    if (!target && expandedGu) {
-      target = listEl.querySelector(".learn-item.sel");
-    }
+    if (!target && expandedGu) target = listEl.querySelector(".learn-item.sel");
     if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
@@ -658,7 +764,7 @@ function selectLearnGu(item) {
   expandedGu = (expandedGu === item.sggCode) ? null : item.sggCode;
   selectedDongName = null;
   renderLearnList();
-  showInfoCard(item.name, SIDO_NAME[item.sido]);
+  showGuInfoCard(item);
 }
 
 function selectLearnDong(dg, el) {
@@ -666,14 +772,10 @@ function selectLearnDong(dg, el) {
   highlightDong(dg);
   document.querySelectorAll(".learn-dong").forEach((x) => x.classList.remove("sel"));
   if (el) el.classList.add("sel");
-  const si = siNameOf(dg.sggnm);
-  const belong = (dg.sggnm === si) ? `${SIDO_NAME[dg.sido]} ${si}` : `${SIDO_NAME[dg.sido]} ${dg.sggnm}`;
-  showInfoCard(dg.dongName, belong);
+  showDongInfoCard(dg);
 }
 
-/* 지도에서 동을 직접 클릭했을 때 */
 function onMapDongClick(dong) {
-  // 클릭한 동이 속한 지역으로 목록도 맞춰줌
   const region = SIDO_TO_REGION[dong.sido];
   if (region && region !== learnRegion) {
     learnRegion = region;
@@ -685,17 +787,35 @@ function onMapDongClick(dong) {
   selectedDongName = dong.dongName;
   highlightDong(dong);
   renderLearnList();
-  const si = siNameOf(dong.sggnm);
-  const belong = (dong.sggnm === si) ? `${SIDO_NAME[dong.sido]} ${si}` : `${SIDO_NAME[dong.sido]} ${dong.sggnm}`;
-  showInfoCard(dong.dongName, belong);
+  showDongInfoCard(dong);
 }
 
-function showInfoCard(title, belong) {
+/* 구 정보 카드 */
+function showGuInfoCard(item) {
   const card = document.getElementById("info-card");
   card.classList.remove("hidden");
+  const adj = getGuAdjNames(item.sggCode);
+  const adjText = adj.length ? adj.join(", ") : "<span class='ic-empty'>계산된 인접 구가 없어요.</span>";
   card.innerHTML = `
-    <div class="ic-title">${title}</div>
+    <div class="ic-title">${item.name}</div>
+    <div class="ic-row"><span class="ic-label">소속</span>${SIDO_NAME[item.sido]}</div>
+    <div class="ic-row"><span class="ic-label">인접 지역</span>${adjText}</div>
+    <div class="ic-row"><span class="ic-label">특징</span><span class="ic-empty">아직 등록된 설명이 없어요. (다음 단계에서 추가됩니다)</span></div>
+  `;
+}
+
+/* 동 정보 카드 */
+function showDongInfoCard(dong) {
+  const card = document.getElementById("info-card");
+  card.classList.remove("hidden");
+  const si = siNameOf(dong.sggnm);
+  const belong = (dong.sggnm === si) ? `${SIDO_NAME[dong.sido]} ${si}` : `${SIDO_NAME[dong.sido]} ${dong.sggnm}`;
+  const adj = getDongAdjNames(dong);
+  const adjText = adj.length ? adj.join(", ") : "<span class='ic-empty'>계산된 인접 동이 없어요.</span>";
+  card.innerHTML = `
+    <div class="ic-title">${dong.dongName}</div>
     <div class="ic-row"><span class="ic-label">소속</span>${belong}</div>
+    <div class="ic-row"><span class="ic-label">인접 지역</span>${adjText}</div>
     <div class="ic-row"><span class="ic-label">특징</span><span class="ic-empty">아직 등록된 설명이 없어요. (다음 단계에서 추가됩니다)</span></div>
   `;
 }
@@ -724,6 +844,44 @@ function verifyAll() {
   out.innerHTML = html;
 }
 
+/* 인접 비대칭 검사 (구 단위) */
+function verifyAdjacency() {
+  const out = document.getElementById("verify-result");
+  // 구 단위 인접을 이름 기준으로 모아 비대칭 점검
+  const asym = [];
+  DB.forEach((a) => {
+    if (!a.sggCode) return;
+    const set = guAdj[a.sggCode] || new Set();
+    set.forEach((code) => {
+      // a → b 인데 b → a 가 없는 경우 (격자 비대칭은 드물지만 점검)
+      const back = guAdj[code];
+      if (!back || !back.has(a.sggCode)) {
+        const b = DB.find((d) => d.sggCode === code);
+        asym.push(`${a.name} → ${b ? b.name : code} (역방향 없음)`);
+      }
+    });
+  });
+  // 인접이 0개인 구 (고립 의심)
+  const isolated = DB.filter((d) => d.sggCode && (!guAdj[d.sggCode] || guAdj[d.sggCode].size === 0)).map((d) => d.name);
+
+  let html = `<div style="color:#38bdf8; font-weight:700;">🔗 인접 검증 결과</div>`;
+  html += `<div style="color:#94a3b8; margin-top:4px;">격자 크기 ADJ_GRID = ${ADJ_GRID}</div>`;
+  if (isolated.length) {
+    html += `<div style="color:#fca5a5; margin-top:8px;">⚠ 인접 구 0개 (의심): ${isolated.join(", ")}</div>`;
+  } else {
+    html += `<div style="color:#22c55e; margin-top:8px;">✅ 인접 0개인 구 없음</div>`;
+  }
+  if (asym.length) {
+    html += `<div style="color:#fbbf24; margin-top:8px;">⚠ 비대칭 쌍 ${asym.length}건:</div>`;
+    html += `<div style="color:#fca5a5; max-height:220px; overflow-y:auto; margin-top:4px;">`;
+    asym.forEach((s) => { html += `<div>${s}</div>`; }); html += `</div>`;
+  } else {
+    html += `<div style="color:#22c55e; margin-top:8px;">✅ 비대칭 쌍 없음 (구 인접 정상 대칭)</div>`;
+  }
+  html += `<div style="color:#64748b; margin-top:8px; font-size:11px;">※ 이 결과를 복사해 보내주시면 함께 보정합니다.</div>`;
+  out.innerHTML = html;
+}
+
 /* ===========================================================
    퀴즈 로직
 =========================================================== */
@@ -744,7 +902,7 @@ function filteredDongPool() {
 }
 
 function startGame() {
-  learnMode = false;   // 퀴즈 중엔 지도 클릭 비활성
+  learnMode = false;
   totalQuestions = settings.count;
   quizSet = []; answerLog = [];
   const guPool = filteredGuPool();
@@ -1077,6 +1235,7 @@ window.addEventListener("load", async () => {
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
   document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); learnMode = false; showScreen("start"); });
   document.getElementById("verify-btn").addEventListener("click", verifyAll);
+  document.getElementById("adj-verify-btn").addEventListener("click", verifyAdjacency);
   document.getElementById("wrong-only-btn").addEventListener("click", retryWrongOnly);
   document.getElementById("rank-btn").addEventListener("click", showRanking);
   document.getElementById("to-rank-btn").addEventListener("click", showRanking);
