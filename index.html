@@ -823,15 +823,19 @@ function showDongInfoCard(dong) {
   const si = siNameOf(dong.sggnm);
   const belong = (dong.sggnm === si) ? `${SIDO_NAME[dong.sido]} ${si}` : `${SIDO_NAME[dong.sido]} ${dong.sggnm}`;
   const adj = getDongAdjNames(dong);
-  // 이 동이 속한 구의 표시 이름(DB 기준) 찾기 — 섬 설명 매칭용
+  // 섬 설명 매칭: 동의 sggnm 또는 소속 구 이름에서 ISLAND_NOTE 키를 찾음
   const guItem = DB.find((d) => d.sggCode === dong.sgg);
-  const guName = guItem ? guItem.name : "";
+  const guName = (guItem && guItem.name) || dong.sggnm || "";
+  const islandKey = Object.keys(ISLAND_NOTE).find(
+    (k) => guName.indexOf(k) !== -1 || (dong.sggnm || "").indexOf(k) !== -1
+  );
   let adjHtml;
   if (adj.length) {
     adjHtml = adj.join(", ");
-  } else if (guName && ISLAND_NOTE[guName]) {
-    adjHtml = `<span style="color:#cbd5e1;">${ISLAND_NOTE[guName]}</span>`;
+  } else if (islandKey) {
+    adjHtml = `<span style="color:#cbd5e1;">${ISLAND_NOTE[islandKey]}</span>`;
   } else {
+
     adjHtml = "<span class='ic-empty'>계산된 인접 동이 없어요.</span>";
   }
   card.innerHTML = `
