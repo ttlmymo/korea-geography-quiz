@@ -509,22 +509,33 @@ function refreshAuthUI() {
   const loginArea = document.getElementById("login-area");
   const nickSetup = document.getElementById("nick-setup");
   const userInfo = document.getElementById("user-info");
+  const bestBox = document.getElementById("best-score-box");  // 최고 점수 박스
 
   if (!currentUser) {
+    // 로그아웃 상태: 로그인 버튼만 보이고, 최고 점수 숨김
     loginArea.classList.remove("hidden");
     nickSetup.classList.add("hidden");
     userInfo.classList.add("hidden");
+    if (bestBox) bestBox.classList.add("hidden");
   } else if (!currentNick) {
+    // 로그인됐지만 닉네임 설정 전: 닉네임 입력만, 최고 점수 숨김
     loginArea.classList.add("hidden");
     nickSetup.classList.remove("hidden");
     userInfo.classList.add("hidden");
+    if (bestBox) bestBox.classList.add("hidden");
   } else {
+    // 로그인 + 닉네임 완료: 사용자 정보 + 최고 점수 표시
     loginArea.classList.add("hidden");
     nickSetup.classList.add("hidden");
     userInfo.classList.remove("hidden");
     document.getElementById("user-nick").textContent = currentNick;
+    if (bestBox) {
+      bestBox.classList.remove("hidden");
+      document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0";
+    }
   }
 }
+
 
 /* ===========================================================
    설정
