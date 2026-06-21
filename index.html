@@ -74,6 +74,24 @@
   #rank-note { font-size:11px; color:#64748b; line-height:1.5; margin-top:8px; }
   #rank-status { font-size:13px; color:#94a3b8; text-align:center; padding:14px; }
 
+  /* ===== 로그인 영역 ===== */
+  #auth-box { background:#0f172a; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  #auth-box .label { font-size:12px; color:#94a3b8; font-weight:700; }
+  .login-btn { width:100%; padding:11px 12px; border:none; border-radius:9px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .login-btn.google { background:#fff; color:#1f2937; }
+  .login-btn.kakao { background:#fee500; color:#191600; }
+  #user-info { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px; }
+  #user-info .uname { font-weight:700; color:#f1f5f9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #logout-btn { background:#334155; color:#cbd5e1; border:none; border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; flex:none; }
+  #nick-setup { display:flex; flex-direction:column; gap:8px; }
+  #nick-edit-btn { background:none; border:none; color:#38bdf8; font-size:11px; cursor:pointer; text-decoration:underline; padding:0; }
+
+  /* ===== 시작화면 미니 랭킹 ===== */
+  #home-rank { background:#0f172a; border-radius:12px; padding:12px 14px; }
+  #home-rank .hr-title { font-size:13px; font-weight:800; color:#fbbf24; margin-bottom:8px; }
+  #home-rank-list { display:flex; flex-direction:column; gap:5px; }
+  #home-rank-status { font-size:12px; color:#64748b; text-align:center; padding:8px; }
+
   #learn-list { display:flex; flex-direction:column; gap:6px; margin-top:4px; flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px; }
   .learn-item { background:#0f172a; border:1px solid #334155; border-radius:9px; padding:11px 13px; font-size:14px; cursor:pointer; transition:all .15s; display:flex; justify-content:space-between; align-items:center; flex:none; }
   .learn-item:hover { border-color:#f97316; background:#162133; }
@@ -122,14 +140,34 @@
 
     <!-- ============ 시작 화면 ============ -->
     <div id="start-screen">
+
+      <!-- 로그인 영역 -->
+      <div id="auth-box">
+        <!-- 로그아웃 상태 -->
+        <div id="login-area">
+          <span class="label">로그인하면 점수가 랭킹에 등록돼요</span>
+          <button id="google-login-btn" class="login-btn google">🔵 구글로 로그인</button>
+          <button id="kakao-login-btn" class="login-btn kakao">💬 카카오로 로그인</button>
+        </div>
+        <!-- 로그인됨 + 닉네임 설정 전 -->
+        <div id="nick-setup" class="hidden">
+          <span class="label">랭킹에 표시할 닉네임을 정해주세요</span>
+          <input id="nick-input" class="nick-input" type="text" maxlength="10" placeholder="닉네임 (최대 10자)" />
+          <button id="nick-save-btn" class="primary" style="padding:10px;">닉네임 저장</button>
+        </div>
+        <!-- 로그인됨 + 닉네임 있음 -->
+        <div id="user-info" class="hidden">
+          <span class="uname">👤 <span id="user-nick">-</span></span>
+          <div style="display:flex; gap:6px; align-items:center; flex:none;">
+            <button id="nick-edit-btn">닉네임 변경</button>
+            <button id="logout-btn">로그아웃</button>
+          </div>
+        </div>
+      </div>
+
       <div id="best-score-box">🏆 내 최고 점수: <span id="best-score">0</span>점</div>
 
       <button id="learn-btn" class="primary" style="background:#38bdf8;">📚 학습 모드</button>
-
-      <div class="setup-block">
-        <span class="label">닉네임 (랭킹 등록용)</span>
-        <input id="nick-input" class="nick-input" type="text" maxlength="10" placeholder="닉네임을 입력하세요" />
-      </div>
 
       <div class="setup-block">
         <span class="label">출제 지역</span>
@@ -167,7 +205,14 @@
       </div>
 
       <button id="start-btn" class="primary">게임 시작</button>
-      <button id="rank-btn" class="secondary" style="margin-top:6px;">🏅 랭킹 보기</button>
+
+      <!-- 시작화면 자동 랭킹 -->
+      <div id="home-rank">
+        <div class="hr-title">🏅 실시간 랭킹 TOP 10</div>
+        <div id="home-rank-status">불러오는 중…</div>
+        <div id="home-rank-list"></div>
+      </div>
+
       <button id="verify-btn" class="secondary" style="margin-top:6px;">🔍 전체 검증 (구 + 읍·면·동)</button>
       <button id="adj-verify-btn" class="secondary" style="margin-top:6px;">🔗 인접 검증 (비대칭 의심 쌍)</button>
       <div id="diag"></div>
@@ -250,7 +295,7 @@
       <h2 style="font-size:18px;">🏅 실시간 랭킹 TOP 10</h2>
       <div id="rank-status" class="hidden">불러오는 중…</div>
       <div id="rank-list"></div>
-      <div id="rank-note">※ 전 세계 모든 플레이어의 점수가 실시간으로 반영됩니다. 닉네임을 입력하고 게임하면 자동 등록돼요.</div>
+      <div id="rank-note">※ 전 세계 모든 플레이어의 점수가 실시간으로 반영됩니다. 로그인 후 닉네임을 정하고 게임하면 자동 등록돼요.</div>
       <button id="rank-refresh-btn" class="secondary" style="margin-top:10px;">🔄 새로고침</button>
       <button id="rank-back-btn" class="primary" style="margin-top:6px;">← 처음으로</button>
     </div>
@@ -262,54 +307,91 @@
   <div id="loading-text">지도 및 경계 데이터를 불러오는 중…</div>
 </div>
 
-<!-- Firebase SDK (CDN / compat 방식) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Supabase SDK (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
 <script>
 /* ===========================================================
-   Firebase 초기화
+   Supabase 초기화
 =========================================================== */
-const firebaseConfig = {
-  apiKey: "AIzaSyCreRg5lONdqd2diZUrffnXe-XYTVuiZVI",
-  authDomain: "korea-geo-quiz.firebaseapp.com",
-  projectId: "korea-geo-quiz",
-  storageBucket: "korea-geo-quiz.firebasestorage.app",
-  messagingSenderId: "183744001417",
-  appId: "1:183744001417:web:ef53c9f7ab06f6dd6f9d58"
-};
-let db = null;
+const SUPABASE_URL = "https://vldljgpeuuptuvgjtirsz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsZGxncGV1dXB0dXZnanRpcnN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4ODgxNDgsImV4cCI6MjA5NzQ2NDE0OH0.-87MHEDl1KkjdwUynpEB8fJVkdDATw5O_rDFaTsHXZE";
+
+let sb = null;
 try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.firestore();
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 } catch (e) {
-  console.error("Firebase 초기화 실패:", e);
+  console.error("Supabase 초기화 실패:", e);
 }
 
-async function saveRankScore(nick, sc, total) {
-  if (!db) return false;
-  const cleanNick = (nick || "").trim().slice(0, 10);
-  if (!cleanNick) return false;
+let currentUser = null;   // 로그인된 사용자 (null이면 비로그인)
+let currentNick = null;   // 현재 닉네임 (ranking 테이블에 저장된 값)
+
+/* 구글 로그인 */
+async function loginGoogle() {
+  if (!sb) return;
+  await sb.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.href.split("#")[0] }
+  });
+}
+/* 카카오 로그인 */
+async function loginKakao() {
+  if (!sb) return;
+  await sb.auth.signInWithOAuth({
+    provider: "kakao",
+    options: { redirectTo: window.location.href.split("#")[0] }
+  });
+}
+/* 로그아웃 */
+async function logout() {
+  if (!sb) return;
+  await sb.auth.signOut();
+  currentUser = null;
+  currentNick = null;
+  refreshAuthUI();
+}
+
+/* 내 ranking 행에서 닉네임 가져오기 */
+async function fetchMyNick() {
+  if (!sb || !currentUser) return null;
   try {
-    const ref = db.collection("ranking").doc(cleanNick);
-    await db.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      if (snap.exists) {
-        const d = snap.data();
-        tx.update(ref, {
-          totalScore: (d.totalScore || 0) + sc,
-          plays: (d.plays || 0) + 1,
-          best: Math.max(d.best || 0, sc),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } else {
-        tx.set(ref, {
-          nick: cleanNick, totalScore: sc, plays: 1, best: sc,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+    const { data, error } = await sb
+      .from("ranking")
+      .select("nick")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+    if (error) { console.error(error); return null; }
+    return data ? data.nick : null;
+  } catch (e) { console.error(e); return null; }
+}
+
+/* 닉네임 저장(처음 등록 시 점수 0짜리 행은 안 만들고, 게임 종료 때 add_score로 생성됨).
+   여기서는 이미 행이 있으면 nick만 업데이트, 없으면 localStorage에 임시 저장 */
+async function saveNick(nick) {
+  const clean = (nick || "").trim().slice(0, 10);
+  if (!clean) return false;
+  currentNick = clean;
+  localStorage.setItem(LS_NICK, clean);
+  // 이미 ranking 행이 있으면 닉네임만 갱신
+  if (sb && currentUser) {
+    try {
+      const { data } = await sb.from("ranking").select("user_id").eq("user_id", currentUser.id).maybeSingle();
+      if (data) {
+        await sb.from("ranking").update({ nick: clean }).eq("user_id", currentUser.id);
       }
-    });
+    } catch (e) { console.error(e); }
+  }
+  return true;
+}
+
+/* 점수 저장 (게임 종료 시) - add_score 함수 호출 */
+async function saveRankScore(sc) {
+  if (!sb || !currentUser || !currentNick) return false;
+  try {
+    const { error } = await sb.rpc("add_score", { p_nick: currentNick, p_score: sc });
+    if (error) { console.error("랭킹 저장 실패:", error); return false; }
     return true;
   } catch (e) {
     console.error("랭킹 저장 실패:", e);
@@ -317,16 +399,42 @@ async function saveRankScore(nick, sc, total) {
   }
 }
 
+/* 랭킹 TOP 10 불러오기 (총점 기준 내림차순) */
 async function fetchTopRanks() {
-  if (!db) return null;
+  if (!sb) return null;
   try {
-    const snap = await db.collection("ranking").orderBy("totalScore", "desc").limit(10).get();
-    const list = [];
-    snap.forEach((doc) => list.push(doc.data()));
-    return list;
+    const { data, error } = await sb
+      .from("ranking")
+      .select("nick, total_score, plays, best")
+      .order("total_score", { ascending: false })
+      .limit(10);
+    if (error) { console.error("랭킹 불러오기 실패:", error); return null; }
+    return data || [];
   } catch (e) {
     console.error("랭킹 불러오기 실패:", e);
     return null;
+  }
+}
+
+/* 로그인/닉네임 상태에 따라 시작화면 UI 갱신 */
+function refreshAuthUI() {
+  const loginArea = document.getElementById("login-area");
+  const nickSetup = document.getElementById("nick-setup");
+  const userInfo = document.getElementById("user-info");
+
+  if (!currentUser) {
+    loginArea.classList.remove("hidden");
+    nickSetup.classList.add("hidden");
+    userInfo.classList.add("hidden");
+  } else if (!currentNick) {
+    loginArea.classList.add("hidden");
+    nickSetup.classList.remove("hidden");
+    userInfo.classList.add("hidden");
+  } else {
+    loginArea.classList.add("hidden");
+    nickSetup.classList.add("hidden");
+    userInfo.classList.remove("hidden");
+    document.getElementById("user-nick").textContent = currentNick;
   }
 }
 
@@ -348,24 +456,16 @@ const COLOR_DONG = { fillColor:"#7dd3fc", fillOpacity:0.75, strokeColor:"#0ea5e9
 const LS_BEST = "kgq_best_score";
 const LS_NICK = "kgq_nick";
 
-/* 한국어 가나다 + 숫자 자연 정렬용 비교 함수 */
 const koCmp = (a, b) => String(a).localeCompare(String(b), "ko", { numeric: true });
 
-/* ===== 인접 계산 설정 ===== */
-// 격자 크기(도 단위). 약 0.007도 ≈ 700m. 크게 하면 인접이 많이, 작게 하면 적게 잡힘.
 const ADJ_GRID = 0.007;
-
-// 수동 보정: 자동으로 안 잡히는데 실제로 인접인 쌍을 여기에 추가 (구 이름 기준)
-//   예: ["강남구", "성동구"]
 const MANUAL_ADJ_ADD = [
   // ["강남구", "성동구"],
 ];
-// 수동 보정: 잘못 잡힌 인접 쌍을 여기서 제거 (구 이름 기준)
 const MANUAL_ADJ_REMOVE = [
   // ["강남구", "관악구"],
 ];
 
- // 섬 등으로 인접 구가 0개일 때 보여줄 맞춤 설명 (구 이름 기준)
 const ISLAND_NOTE = {
   "옹진군": "인천 앞바다에 흩어져 있는 섬들로만 이루어진 군이에요. 백령도·연평도·대청도·덕적도·자월도 등이 속하며, 육지와 바다로 분리되어 있어 경계가 맞닿은 구·군이 없습니다."
 };
@@ -458,12 +558,11 @@ let map = null, centerMarker = null;
 let highlightedFeatures = [];
 const featuresBySgg = {}, codeByKey = {}, featuresBySi = {};
 const dongList = [], dongsBySgg = {};
-const dongByFeature = new Map();   // feature → dong 객체 (지도 클릭용)
+const dongByFeature = new Map();
 
-// 인접 관계 저장소
-const guAdj = {};      // sggCode → Set(sggCode)  (구 인접)
-const dongAdj = {};    // dongKey → Set(dongKey)  (동 인접)
-const guNameByCode = {};   // sggCode → 표시용 구 이름
+const guAdj = {};
+const dongAdj = {};
+const guNameByCode = {};
 
 const SIDO_NAME = { "11":"서울특별시", "28":"인천광역시", "41":"경기도" };
 
@@ -475,8 +574,8 @@ let timerId = null, timerLeft = 0;
 
 let learnRegion = "seoul";
 let expandedGu = null;
-let learnMode = false;             // 학습 모드 동안만 지도 클릭 허용
-let selectedDongName = null;       // 지도/목록에서 선택된 동 이름 기억
+let learnMode = false;
+let selectedDongName = null;
 let mapClickListener = null;
 
 function siNameOf(sggnm) {
@@ -566,9 +665,8 @@ async function loadAllGeoData() {
    인접 계산 (격자 기반)
 =========================================================== */
 function computeAdjacency() {
-  // 1) 각 동의 경계점을 격자 칸에 등록
-  const cellToDongs = new Map();   // "gx,gy" → Set(dongKey)
-  const cellToGus = new Map();     // "gx,gy" → Set(sggCode)
+  const cellToDongs = new Map();
+  const cellToGus = new Map();
 
   dongList.forEach((dong) => {
     const dKey = dongKeyOf(dong);
@@ -588,7 +686,6 @@ function computeAdjacency() {
     });
   });
 
-  // 2) 같은 칸을 공유하는 동끼리 인접
   const addAdj = (store, a, b) => {
     if (a === b) return;
     if (!store[a]) store[a] = new Set();
@@ -606,7 +703,6 @@ function computeAdjacency() {
       for (let j = i + 1; j < arr.length; j++) addAdj(guAdj, arr[i], arr[j]);
   });
 
-  // 3) 수동 보정 (구 단위)
   MANUAL_ADJ_ADD.forEach(([n1, n2]) => {
     const c1 = findGuCodeByName(n1), c2 = findGuCodeByName(n2);
     if (c1 && c2) addAdj(guAdj, c1, c2);
@@ -617,13 +713,11 @@ function computeAdjacency() {
   });
 }
 
-// DB의 name(표시명)으로 sggCode 찾기
 function findGuCodeByName(name) {
   const item = DB.find((d) => d.name === name && d.sggCode);
   return item ? item.sggCode : null;
 }
 
-/* 구의 인접 구 이름 목록 (표시용, 가나다순) */
 function getGuAdjNames(sggCode) {
   const set = guAdj[sggCode];
   if (!set) return [];
@@ -635,17 +729,16 @@ function getGuAdjNames(sggCode) {
   return [...new Set(names)].sort(koCmp);
 }
 
-/* 동의 인접 동 목록 (표시용, "구 동" 형태, 가나다순) */
 function getDongAdjNames(dong) {
   const set = dongAdj[dongKeyOf(dong)];
   if (!set) return [];
   const names = [];
   set.forEach((key) => {
     const [sgg, name] = key.split("|");
-    if (sgg === dong.sgg) names.push(name);                 // 같은 구면 동 이름만
+    if (sgg === dong.sgg) names.push(name);
     else {
       const gnm = guNameByCode[sgg] || "";
-      names.push((gnm ? gnm + " " : "") + name);            // 다른 구면 구 이름 포함
+      names.push((gnm ? gnm + " " : "") + name);
     }
   });
   return [...new Set(names)].sort(koCmp);
@@ -795,7 +888,6 @@ function onMapDongClick(dong) {
   showDongInfoCard(dong);
 }
 
-/* 구 정보 카드 */
 function showGuInfoCard(item) {
   const card = document.getElementById("info-card");
   card.classList.remove("hidden");
@@ -816,14 +908,12 @@ function showGuInfoCard(item) {
   `;
 }
 
-/* 동 정보 카드 */
 function showDongInfoCard(dong) {
   const card = document.getElementById("info-card");
   card.classList.remove("hidden");
   const si = siNameOf(dong.sggnm);
   const belong = (dong.sggnm === si) ? `${SIDO_NAME[dong.sido]} ${si}` : `${SIDO_NAME[dong.sido]} ${dong.sggnm}`;
   const adj = getDongAdjNames(dong);
-  // 섬 설명 매칭: 동의 sggnm 또는 소속 구 이름에서 ISLAND_NOTE 키를 찾음
   const guItem = DB.find((d) => d.sggCode === dong.sgg);
   const guName = (guItem && guItem.name) || dong.sggnm || "";
   const islandKey = Object.keys(ISLAND_NOTE).find(
@@ -835,7 +925,6 @@ function showDongInfoCard(dong) {
   } else if (islandKey) {
     adjHtml = `<span style="color:#cbd5e1;">${ISLAND_NOTE[islandKey]}</span>`;
   } else {
-
     adjHtml = "<span class='ic-empty'>계산된 인접 동이 없어요.</span>";
   }
   card.innerHTML = `
@@ -870,16 +959,13 @@ function verifyAll() {
   out.innerHTML = html;
 }
 
-/* 인접 비대칭 검사 (구 단위) */
 function verifyAdjacency() {
   const out = document.getElementById("verify-result");
-  // 구 단위 인접을 이름 기준으로 모아 비대칭 점검
   const asym = [];
   DB.forEach((a) => {
     if (!a.sggCode) return;
     const set = guAdj[a.sggCode] || new Set();
     set.forEach((code) => {
-      // a → b 인데 b → a 가 없는 경우 (격자 비대칭은 드물지만 점검)
       const back = guAdj[code];
       if (!back || !back.has(a.sggCode)) {
         const b = DB.find((d) => d.sggCode === code);
@@ -887,7 +973,6 @@ function verifyAdjacency() {
       }
     });
   });
-  // 인접이 0개인 구 (고립 의심)
   const isolated = DB.filter((d) => d.sggCode && (!guAdj[d.sggCode] || guAdj[d.sggCode].size === 0)).map((d) => d.name);
 
   let html = `<div style="color:#38bdf8; font-weight:700;">🔗 인접 검증 결과</div>`;
@@ -1006,7 +1091,6 @@ function makeDongQuestion(pool) {
   };
 }
 
-/* ===== 타이머 ===== */
 function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
 function startTimer() {
   stopTimer();
@@ -1157,26 +1241,25 @@ async function showResult() {
   });
 
   const statusEl = document.getElementById("rank-save-status");
-  const nick = (document.getElementById("nick-input").value || "").trim();
-  if (nick) localStorage.setItem(LS_NICK, nick);
-  statusEl.textContent = "랭킹에 점수 등록 중…";
-  const ok = await saveRankScore(nick, score, maxScore);
-  statusEl.textContent = ok ? "✅ 랭킹에 등록되었습니다!" : "⚠ 랭킹 등록 실패 (닉네임 미입력 또는 네트워크 문제)";
+  if (!currentUser) {
+    statusEl.textContent = "ℹ️ 로그인하면 점수가 랭킹에 등록돼요. (처음 화면에서 로그인)";
+  } else if (!currentNick) {
+    statusEl.textContent = "ℹ️ 닉네임을 정하면 점수가 등록돼요. (처음 화면에서 닉네임 설정)";
+  } else {
+    statusEl.textContent = "랭킹에 점수 등록 중…";
+    const ok = await saveRankScore(score);
+    statusEl.textContent = ok ? "✅ 랭킹에 등록되었습니다!" : "⚠ 랭킹 등록 실패 (네트워크 문제)";
+    loadHomeRanking();  // 시작화면 랭킹 미리 갱신
+  }
 }
 
-async function showRanking() {
-  showScreen("rank");
-  const statusEl = document.getElementById("rank-status");
-  const listEl = document.getElementById("rank-list");
-  statusEl.classList.remove("hidden");
-  statusEl.textContent = "불러오는 중…";
+/* 랭킹 화면 렌더 (공용) */
+function renderRankList(list, listEl, statusEl) {
   listEl.innerHTML = "";
-
-  const list = await fetchTopRanks();
-  if (list === null) { statusEl.textContent = "⚠ 랭킹을 불러오지 못했습니다."; return; }
-  if (!list.length) { statusEl.textContent = "아직 등록된 점수가 없어요. 첫 주인공이 되어보세요! 🎯"; return; }
-  statusEl.classList.add("hidden");
-  const myNick = localStorage.getItem(LS_NICK) || "";
+  if (list === null) { if (statusEl) { statusEl.classList.remove("hidden"); statusEl.textContent = "⚠ 랭킹을 불러오지 못했습니다."; } return; }
+  if (!list.length) { if (statusEl) { statusEl.classList.remove("hidden"); statusEl.textContent = "아직 등록된 점수가 없어요. 첫 주인공이 되어보세요! 🎯"; } return; }
+  if (statusEl) statusEl.classList.add("hidden");
+  const myNick = currentNick || localStorage.getItem(LS_NICK) || "";
   const medals = ["🥇","🥈","🥉"];
   list.forEach((r, i) => {
     const div = document.createElement("div");
@@ -1186,9 +1269,31 @@ async function showRanking() {
       <span class="pos">${pos}</span>
       <span class="nick">${escapeHtml(r.nick || "익명")}</span>
       <span class="date">${r.plays || 0}판</span>
-      <span class="pts">${r.totalScore}점</span>`;
+      <span class="pts">${r.total_score}점</span>`;
     listEl.appendChild(div);
   });
+}
+
+async function showRanking() {
+  showScreen("rank");
+  const statusEl = document.getElementById("rank-status");
+  const listEl = document.getElementById("rank-list");
+  statusEl.classList.remove("hidden");
+  statusEl.textContent = "불러오는 중…";
+  listEl.innerHTML = "";
+  const list = await fetchTopRanks();
+  renderRankList(list, listEl, statusEl);
+}
+
+/* 시작 화면 자동 랭킹 */
+async function loadHomeRanking() {
+  const statusEl = document.getElementById("home-rank-status");
+  const listEl = document.getElementById("home-rank-list");
+  statusEl.classList.remove("hidden");
+  statusEl.textContent = "불러오는 중…";
+  listEl.innerHTML = "";
+  const list = await fetchTopRanks();
+  renderRankList(list, listEl, statusEl);
 }
 
 function escapeHtml(s) {
@@ -1227,6 +1332,37 @@ function setupLearnRegionSegment() {
 }
 
 /* ===========================================================
+   로그인 상태 초기화
+=========================================================== */
+async function initAuth() {
+  if (!sb) return;
+  // 현재 세션 확인
+  const { data: { session } } = await sb.auth.getSession();
+  if (session && session.user) {
+    currentUser = session.user;
+    currentNick = await fetchMyNick();
+    // ranking에 닉네임이 아직 없으면 localStorage 백업 확인
+    if (!currentNick) {
+      const saved = localStorage.getItem(LS_NICK);
+      if (saved) currentNick = saved;
+    }
+  }
+  refreshAuthUI();
+
+  // 로그인/로그아웃 상태 변화 감지
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session && session.user) {
+      currentUser = session.user;
+      currentNick = await fetchMyNick() || localStorage.getItem(LS_NICK) || null;
+    } else {
+      currentUser = null;
+      currentNick = null;
+    }
+    refreshAuthUI();
+  });
+}
+
+/* ===========================================================
    부팅
 =========================================================== */
 window.addEventListener("load", async () => {
@@ -1247,8 +1383,6 @@ window.addEventListener("load", async () => {
   }
 
   document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0";
-  const savedNick = localStorage.getItem(LS_NICK);
-  if (savedNick) document.getElementById("nick-input").value = savedNick;
 
   setupSegment("seg-region", "region");
   setupSegment("seg-type", "type");
@@ -1256,21 +1390,41 @@ window.addEventListener("load", async () => {
   setupSegment("seg-timer", "timer");
   setupLearnRegionSegment();
 
+  // 로그인 관련 버튼
+  document.getElementById("google-login-btn").addEventListener("click", loginGoogle);
+  document.getElementById("kakao-login-btn").addEventListener("click", loginKakao);
+  document.getElementById("logout-btn").addEventListener("click", logout);
+  document.getElementById("nick-save-btn").addEventListener("click", async () => {
+    const v = document.getElementById("nick-input").value;
+    if (!v.trim()) { alert("닉네임을 입력해주세요."); return; }
+    await saveNick(v);
+    refreshAuthUI();
+  });
+  document.getElementById("nick-edit-btn").addEventListener("click", () => {
+    document.getElementById("nick-input").value = currentNick || "";
+    currentNick = null;          // 닉네임 설정 화면으로 되돌림
+    refreshAuthUI();
+  });
+
+  // 게임 관련 버튼
   document.getElementById("start-btn").addEventListener("click", startGame);
-  document.getElementById("restart-btn").addEventListener("click", () => { showScreen("start"); document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0"; });
+  document.getElementById("restart-btn").addEventListener("click", () => { showScreen("start"); document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0"; loadHomeRanking(); });
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
   document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); learnMode = false; showScreen("start"); });
   document.getElementById("verify-btn").addEventListener("click", verifyAll);
   document.getElementById("adj-verify-btn").addEventListener("click", verifyAdjacency);
   document.getElementById("wrong-only-btn").addEventListener("click", retryWrongOnly);
-  document.getElementById("rank-btn").addEventListener("click", showRanking);
   document.getElementById("to-rank-btn").addEventListener("click", showRanking);
   document.getElementById("rank-refresh-btn").addEventListener("click", showRanking);
-  document.getElementById("rank-back-btn").addEventListener("click", () => showScreen("start"));
+  document.getElementById("rank-back-btn").addEventListener("click", () => { showScreen("start"); loadHomeRanking(); });
   document.getElementById("learn-btn").addEventListener("click", openLearnMode);
   document.getElementById("learn-back-btn").addEventListener("click", closeLearnMode);
 
   window.addEventListener("resize", () => { if (map) naver.maps.Event.trigger(map, "resize"); });
+
+  // 로그인 상태 확인 + 시작화면 랭킹 자동 로드
+  await initAuth();
+  loadHomeRanking();
 });
 </script>
 </body>
