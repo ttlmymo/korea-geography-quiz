@@ -344,7 +344,7 @@ async function loginKakao() {
     provider: "kakao",
     options: {
       redirectTo: window.location.href.split("#")[0],
-      scopes: "profile_nickname"
+      queryParams: { scope: "profile_nickname" }
     }
   });
 }
