@@ -372,19 +372,44 @@ async function fetchMyNick() {
   } catch (e) { console.error(e); return null; }
 }
 
-/* 닉네임 저장(처음 등록 시 점수 0짜리 행은 안 만들고, 게임 종료 때 add_score로 생성됨).
-   여기서는 이미 행이 있으면 nick만 업데이트, 없으면 localStorage에 임시 저장 */
+/* 닉네임 저장 - 중복 체크 포함.
+   다른 사용자가 이미 쓰는 닉네임이면 알림 후 false 반환.
+   이미 ranking 행이 있으면 nick만 업데이트, 없으면 localStorage에 임시 저장 */
 async function saveNick(nick) {
   const clean = (nick || "").trim().slice(0, 10);
   if (!clean) return false;
+
+  // 중복 닉네임 체크 (나 자신 제외)
+  if (sb && currentUser) {
+    try {
+      const { data: dup } = await sb
+        .from("ranking")
+        .select("user_id")
+        .eq("nick", clean)
+        .neq("user_id", currentUser.id)
+        .maybeSingle();
+      if (dup) {
+        alert("이미 사용 중인 닉네임이에요. 다른 닉네임을 정해주세요.");
+        return false;
+      }
+    } catch (e) { console.error(e); }
+  }
+
   currentNick = clean;
   localStorage.setItem(LS_NICK, clean);
+
   // 이미 ranking 행이 있으면 닉네임만 갱신
   if (sb && currentUser) {
     try {
       const { data } = await sb.from("ranking").select("user_id").eq("user_id", currentUser.id).maybeSingle();
       if (data) {
-        await sb.from("ranking").update({ nick: clean }).eq("user_id", currentUser.id);
+        const { error } = await sb.from("ranking").update({ nick: clean }).eq("user_id", currentUser.id);
+        if (error) {
+          // DB UNIQUE 제약에 걸린 경우 (동시 저장 등)
+          alert("이미 사용 중인 닉네임이에요. 다른 닉네임을 정해주세요.");
+          currentNick = null;
+          return false;
+        }
       }
     } catch (e) { console.error(e); }
   }
@@ -1402,8 +1427,8 @@ window.addEventListener("load", async () => {
   document.getElementById("nick-save-btn").addEventListener("click", async () => {
     const v = document.getElementById("nick-input").value;
     if (!v.trim()) { alert("닉네임을 입력해주세요."); return; }
-    await saveNick(v);
-    refreshAuthUI();
+    const ok = await saveNick(v);
+    if (ok) refreshAuthUI();
   });
   document.getElementById("nick-edit-btn").addEventListener("click", () => {
     document.getElementById("nick-input").value = currentNick || "";
