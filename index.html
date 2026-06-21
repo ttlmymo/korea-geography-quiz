@@ -336,14 +336,19 @@ async function loginGoogle() {
     options: { redirectTo: window.location.href.split("#")[0] }
   });
 }
+ 
 /* 카카오 로그인 */
 async function loginKakao() {
   if (!sb) return;
   await sb.auth.signInWithOAuth({
     provider: "kakao",
-    options: { redirectTo: window.location.href.split("#")[0] }
+    options: {
+      redirectTo: window.location.href.split("#")[0],
+      scopes: "profile_nickname"
+    }
   });
 }
+
 /* 로그아웃 */
 async function logout() {
   if (!sb) return;
