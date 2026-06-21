@@ -3,12 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>수도권 지리 마스터 퀴즈</title>
+<title>전국 지리 마스터 퀴즈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg:        #d9d2c5;
     --panel:     #e3dccf;
-    --card:      #ece5d8;   /* 버튼/카드 베이스 - 배경과 비슷한 톤이라 점토효과 잘남 */
+    --card:      #ece5d8;
     --card-2:    #e3dbcc;
     --line:      #d4cab8;
     --text:      #5a5244;
@@ -24,7 +27,6 @@
     --red:       #d98a64;
     --radius:    24px;
     --radius-sm: 18px;
-    /* === 핵심: 도톰한 이중 그림자 === */
     --clay:      9px 9px 20px rgba(150,132,105,.55), -8px -8px 16px rgba(255,255,255,.9);
     --clay-in:   inset 6px 6px 13px rgba(150,132,105,.5), inset -6px -6px 13px rgba(255,255,255,.9);
     --clay-sm:   6px 6px 14px rgba(150,132,105,.45), -5px -5px 11px rgba(255,255,255,.85);
@@ -98,13 +100,15 @@
   #verify-result { margin-top: 8px; font-size: 13px; line-height: 1.6; }
   #diag { font-size: 13px; color: var(--peach-d); margin-top: 8px; }
 
-  .setup-block { background:var(--card); border-radius:var(--radius); padding:17px 19px; display:flex; flex-direction:column; gap:13px; box-shadow:var(--clay); }
+  .setup-block { background:var(--card); border-radius:var(--radius); padding:17px 19px; display:flex; flex-direction:column; gap:13px; box-shadow:var(--clay); margin-bottom:18px; }
   .setup-block .label { font-size:13px; color:var(--muted); font-weight:400; letter-spacing:.02em; }
   .seg { display:flex; gap:10px; flex-wrap:wrap; }
   .seg button { flex:1; min-width:62px; padding:13px 6px; background:var(--card); color:var(--muted); border:none; border-radius:15px; font-size:15px; font-weight:400; cursor:pointer; transition:all .15s; box-shadow:var(--clay-sm); }
   .seg button:hover { transform:translateY(-2px); }
   .seg button:active { box-shadow:var(--clay-in); transform:translateY(0); }
   .seg button.sel { background:linear-gradient(145deg,var(--sage),var(--sage-d)); color:#fff; box-shadow:var(--clay-sm); text-shadow:0 1px 1px rgba(0,0,0,.1); }
+
+  #setup-area { display:flex; flex-direction:column; }
 
   .nick-input { width:100%; padding:15px 17px; background:var(--card-2); color:var(--text); border:none; border-radius:15px; font-size:16px; font-family:"Jua",sans-serif; box-shadow:var(--clay-in); }
   .nick-input:focus { outline:none; }
@@ -129,7 +133,6 @@
   #rank-note { font-size:12px; color:var(--muted); line-height:1.6; margin-top:8px; }
   #rank-status { font-size:14px; color:var(--muted); text-align:center; padding:14px; }
 
-  /* ===== 로그인 영역 ===== */
   #auth-box { background:var(--card); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--clay); }
   #auth-box .label { font-size:13px; color:var(--muted); font-weight:400; text-align:center; }
   .login-btn { width:100%; padding:15px; border:none; border-radius:16px; font-size:16px; font-weight:400; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .15s; box-shadow:var(--clay-sm); }
@@ -143,7 +146,6 @@
   #nick-setup { display:flex; flex-direction:column; gap:12px; }
   #nick-edit-btn { background:none; border:none; color:var(--peach-d); font-size:12px; cursor:pointer; text-decoration:underline; padding:0; font-weight:400; }
 
-  /* ===== 시작화면 미니 랭킹 ===== */
   #home-rank { background:var(--card); border-radius:var(--radius); padding:18px; box-shadow:var(--clay); }
   #home-rank .hr-title { font-size:16px; font-weight:400; color:var(--text); margin-bottom:14px; }
   #home-rank-list { display:flex; flex-direction:column; gap:9px; }
@@ -182,7 +184,7 @@
     #result .score { font-size: 40px; }
     #result-msg { font-size: 13px; }
     .report-item { font-size: 12px; padding: 11px 13px; }
-    .setup-block { padding: 14px 15px; gap: 10px; }
+    .setup-block { padding: 14px 15px; gap: 10px; margin-bottom: 12px; }
     .seg button { font-size: 14px; padding: 11px 5px; }
     .learn-item { padding: 13px 15px; font-size: 15px; }
     #info-card { font-size: 14px; padding: 15px 17px; }
@@ -194,26 +196,23 @@
 <div id="app">
   <div id="map-container"></div>
   <div id="panel">
-    <h1>🗺️ 수도권 지리 마스터</h1>
+    <h1>🗺️ 전국 지리 마스터</h1>
 
     <!-- ============ 시작 화면 ============ -->
     <div id="start-screen">
 
       <!-- 로그인 영역 -->
       <div id="auth-box">
-        <!-- 로그아웃 상태 -->
         <div id="login-area">
           <span class="label">로그인하면 점수가 랭킹에 등록돼요</span>
           <button id="google-login-btn" class="login-btn google">🔵 구글로 로그인</button>
           <button id="kakao-login-btn" class="login-btn kakao">💬 카카오로 로그인</button>
         </div>
-        <!-- 로그인됨 + 닉네임 설정 전 -->
         <div id="nick-setup" class="hidden">
           <span class="label">랭킹에 표시할 닉네임을 정해주세요</span>
           <input id="nick-input" class="nick-input" type="text" maxlength="10" placeholder="닉네임 (최대 10자)" />
           <button id="nick-save-btn" class="primary" style="padding:10px;">닉네임 저장</button>
         </div>
-        <!-- 로그인됨 + 닉네임 있음 -->
         <div id="user-info" class="hidden">
           <span class="uname">👤 <span id="user-nick">-</span></span>
           <div style="display:flex; gap:6px; align-items:center; flex:none;">
@@ -223,46 +222,55 @@
         </div>
       </div>
 
-            <div id="best-score-box" class="hidden">🏆 내 최고 점수: <span id="best-score">0</span>점</div>
+      <div id="best-score-box" class="hidden">🏆 내 최고 점수: <span id="best-score">0</span>점</div>
 
-      <button id="learn-btn" class="primary" style="background:#38bdf8;">📚 학습 모드</button>
+      <!-- 시작하기 (누르면 설정+모드 펼쳐짐) -->
+      <button id="open-setup-btn" class="primary">▶️ 시작하기</button>
 
-      <div class="setup-block">
-        <span class="label">출제 지역</span>
-        <div class="seg" id="seg-region">
-          <button data-val="all" class="sel">전체</button>
-          <button data-val="seoul">서울</button>
-          <button data-val="incheon">인천</button>
-          <button data-val="gg">경기</button>
+      <!-- 펼쳐지는 설정 영역 (처음엔 숨김) -->
+      <div id="setup-area" class="hidden">
+
+        <div class="setup-block">
+          <span class="label">출제 지역</span>
+          <div class="seg" id="seg-region">
+            <button data-val="all" class="sel">전체</button>
+            <button data-val="seoul">서울</button>
+            <button data-val="incheon">인천</button>
+            <button data-val="gg">경기</button>
+          </div>
         </div>
-      </div>
 
-      <div class="setup-block">
-        <span class="label">문제 유형</span>
-        <div class="seg" id="seg-type">
-          <button data-val="mix" class="sel">혼합</button>
-          <button data-val="gu">구·시·군만</button>
-          <button data-val="dong">읍·면·동만</button>
+        <div class="setup-block">
+          <span class="label">문제 유형</span>
+          <div class="seg" id="seg-type">
+            <button data-val="mix" class="sel">혼합</button>
+            <button data-val="gu">구·시·군만</button>
+            <button data-val="dong">읍·면·동만</button>
+          </div>
         </div>
-      </div>
 
-      <div class="setup-block">
-        <span class="label">문제 수</span>
-        <div class="seg" id="seg-count">
-          <button data-val="10" class="sel">10문제</button>
-          <button data-val="20">20문제</button>
+        <div class="setup-block">
+          <span class="label">문제 수</span>
+          <div class="seg" id="seg-count">
+            <button data-val="10" class="sel">10문제</button>
+            <button data-val="20">20문제</button>
+          </div>
         </div>
-      </div>
 
-      <div class="setup-block">
-        <span class="label">타이머 (문제당 15초)</span>
-        <div class="seg" id="seg-timer">
-          <button data-val="off" class="sel">끄기</button>
-          <button data-val="on">켜기</button>
+        <div class="setup-block">
+          <span class="label">타이머 (문제당 15초)</span>
+          <div class="seg" id="seg-timer">
+            <button data-val="off" class="sel">끄기</button>
+            <button data-val="on">켜기</button>
+          </div>
         </div>
-      </div>
 
-      <button id="start-btn" class="primary">게임 시작</button>
+        <div style="display:flex; gap:10px;">
+          <button id="learn-btn" class="primary" style="flex:1; background:linear-gradient(145deg,#7fb8d4,#5e9ec0);">📚 학습 모드</button>
+          <button id="start-btn" class="primary" style="flex:1;">🎮 게임 모드</button>
+        </div>
+
+      </div>
 
       <!-- 시작화면 자동 랭킹 -->
       <div id="home-rank">
@@ -280,11 +288,11 @@
     <!-- ============ 학습 모드 화면 ============ -->
     <div id="learn-screen" class="hidden">
       <div class="row" style="margin-bottom:2px;">
-        <span style="font-size:16px; font-weight:800; color:#f1f5f9;">📚 학습 모드</span>
+        <span style="font-size:18px; font-weight:400; color:var(--text);">📚 학습 모드</span>
       </div>
       <div id="learn-hint">👆 지도를 직접 누르면 그곳이 어느 구·동인지 알려줘요. 또는 아래 목록에서 골라도 됩니다.</div>
 
-      <div class="setup-block" style="flex:none;">
+      <div class="setup-block" style="flex:none; margin-bottom:0;">
         <span class="label">지역 선택</span>
         <div class="seg" id="learn-region">
           <button data-val="seoul" class="sel">서울</button>
@@ -331,11 +339,11 @@
     <!-- ============ 결과 화면 ============ -->
     <div id="result-screen" class="hidden">
       <div id="result">
-        <div style="text-align:center; color:#94a3b8;">최종 점수</div>
+        <div style="text-align:center; color:var(--muted);">최종 점수</div>
         <div class="score"><span id="final-score">0</span> / <span id="max-score">100</span></div>
         <div id="result-msg"></div>
-        <div id="new-best" class="hidden" style="text-align:center; color:#22c55e; font-weight:700; margin-top:6px;">🎉 내 최고 점수 갱신!</div>
-        <div id="rank-save-status" style="text-align:center; color:#94a3b8; font-size:12px; margin-top:6px;"></div>
+        <div id="new-best" class="hidden" style="text-align:center; color:var(--sage-d); font-weight:400; margin-top:6px;">🎉 내 최고 점수 갱신!</div>
+        <div id="rank-save-status" style="text-align:center; color:var(--muted); font-size:12px; margin-top:6px;"></div>
       </div>
 
       <div style="display:flex; gap:8px; margin-top:8px;">
@@ -343,14 +351,14 @@
         <button id="to-rank-btn" class="secondary" style="flex:1;">🏅 랭킹 보기</button>
       </div>
 
-      <h2 style="font-size:16px; margin-top:8px;">📋 결과지 <span style="font-size:12px; color:#94a3b8; font-weight:400;">(항목을 누르면 지도에 다시 표시)</span></h2>
+      <h2 style="font-size:16px; margin-top:8px; font-weight:400; color:var(--text);">📋 결과지 <span style="font-size:12px; color:var(--muted); font-weight:400;">(항목을 누르면 지도에 다시 표시)</span></h2>
       <div id="report"></div>
       <button id="restart-btn" class="primary" style="margin-top:8px;">다시 하기</button>
     </div>
 
     <!-- ============ 랭킹 화면 ============ -->
     <div id="rank-screen" class="hidden">
-      <h2 style="font-size:18px;">🏅 실시간 랭킹 TOP 10</h2>
+      <h2 style="font-size:18px; font-weight:400; color:var(--text);">🏅 실시간 랭킹 TOP 10</h2>
       <div id="rank-status" class="hidden">불러오는 중…</div>
       <div id="rank-list"></div>
       <div id="rank-note">※ 전 세계 모든 플레이어의 점수가 실시간으로 반영됩니다. 로그인 후 닉네임을 정하고 게임하면 자동 등록돼요.</div>
@@ -365,9 +373,7 @@
   <div id="loading-text">지도 및 경계 데이터를 불러오는 중…</div>
 </div>
 
-<!-- Supabase SDK (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
 <script>
 /* ===========================================================
@@ -383,10 +389,9 @@ try {
   console.error("Supabase 초기화 실패:", e);
 }
 
-let currentUser = null;   // 로그인된 사용자 (null이면 비로그인)
-let currentNick = null;   // 현재 닉네임 (ranking 테이블에 저장된 값)
+let currentUser = null;
+let currentNick = null;
 
-/* 구글 로그인 */
 async function loginGoogle() {
   if (!sb) return;
   await sb.auth.signInWithOAuth({
@@ -394,8 +399,7 @@ async function loginGoogle() {
     options: { redirectTo: window.location.href.split("#")[0] }
   });
 }
- 
-/* 카카오 로그인 */
+
 async function loginKakao() {
   if (!sb) return;
   await sb.auth.signInWithOAuth({
@@ -407,7 +411,6 @@ async function loginKakao() {
   });
 }
 
-/* 로그아웃 */
 async function logout() {
   if (!sb) return;
   await sb.auth.signOut();
@@ -416,7 +419,6 @@ async function logout() {
   refreshAuthUI();
 }
 
-/* 내 ranking 행에서 닉네임 가져오기 */
 async function fetchMyNick() {
   if (!sb || !currentUser) return null;
   try {
@@ -430,14 +432,9 @@ async function fetchMyNick() {
   } catch (e) { console.error(e); return null; }
 }
 
-/* 닉네임 저장 - 중복 체크 포함.
-   다른 사용자가 이미 쓰는 닉네임이면 알림 후 false 반환.
-   이미 ranking 행이 있으면 nick만 업데이트, 없으면 localStorage에 임시 저장 */
 async function saveNick(nick) {
   const clean = (nick || "").trim().slice(0, 10);
   if (!clean) return false;
-
-  // 중복 닉네임 체크 (나 자신 제외)
   if (sb && currentUser) {
     try {
       const { data: dup } = await sb
@@ -452,18 +449,14 @@ async function saveNick(nick) {
       }
     } catch (e) { console.error(e); }
   }
-
   currentNick = clean;
   localStorage.setItem(LS_NICK, clean);
-
-  // 이미 ranking 행이 있으면 닉네임만 갱신
   if (sb && currentUser) {
     try {
       const { data } = await sb.from("ranking").select("user_id").eq("user_id", currentUser.id).maybeSingle();
       if (data) {
         const { error } = await sb.from("ranking").update({ nick: clean }).eq("user_id", currentUser.id);
         if (error) {
-          // DB UNIQUE 제약에 걸린 경우 (동시 저장 등)
           alert("이미 사용 중인 닉네임이에요. 다른 닉네임을 정해주세요.");
           currentNick = null;
           return false;
@@ -474,7 +467,6 @@ async function saveNick(nick) {
   return true;
 }
 
-/* 점수 저장 (게임 종료 시) - add_score 함수 호출 */
 async function saveRankScore(sc) {
   if (!sb || !currentUser || !currentNick) return false;
   try {
@@ -487,7 +479,6 @@ async function saveRankScore(sc) {
   }
 }
 
-/* 랭킹 TOP 10 불러오기 (총점 기준 내림차순) */
 async function fetchTopRanks() {
   if (!sb) return null;
   try {
@@ -504,27 +495,23 @@ async function fetchTopRanks() {
   }
 }
 
-/* 로그인/닉네임 상태에 따라 시작화면 UI 갱신 */
 function refreshAuthUI() {
   const loginArea = document.getElementById("login-area");
   const nickSetup = document.getElementById("nick-setup");
   const userInfo = document.getElementById("user-info");
-  const bestBox = document.getElementById("best-score-box");  // 최고 점수 박스
+  const bestBox = document.getElementById("best-score-box");
 
   if (!currentUser) {
-    // 로그아웃 상태: 로그인 버튼만 보이고, 최고 점수 숨김
     loginArea.classList.remove("hidden");
     nickSetup.classList.add("hidden");
     userInfo.classList.add("hidden");
     if (bestBox) bestBox.classList.add("hidden");
   } else if (!currentNick) {
-    // 로그인됐지만 닉네임 설정 전: 닉네임 입력만, 최고 점수 숨김
     loginArea.classList.add("hidden");
     nickSetup.classList.remove("hidden");
     userInfo.classList.add("hidden");
     if (bestBox) bestBox.classList.add("hidden");
   } else {
-    // 로그인 + 닉네임 완료: 사용자 정보 + 최고 점수 표시
     loginArea.classList.add("hidden");
     nickSetup.classList.add("hidden");
     userInfo.classList.remove("hidden");
@@ -535,7 +522,6 @@ function refreshAuthUI() {
     }
   }
 }
-
 
 /* ===========================================================
    설정
@@ -558,12 +544,8 @@ const LS_NICK = "kgq_nick";
 const koCmp = (a, b) => String(a).localeCompare(String(b), "ko", { numeric: true });
 
 const ADJ_GRID = 0.007;
-const MANUAL_ADJ_ADD = [
-  // ["강남구", "성동구"],
-];
-const MANUAL_ADJ_REMOVE = [
-  // ["강남구", "관악구"],
-];
+const MANUAL_ADJ_ADD = [];
+const MANUAL_ADJ_REMOVE = [];
 
 const ISLAND_NOTE = {
   "옹진군": "인천 앞바다에 흩어져 있는 섬들로만 이루어진 군이에요. 백령도·연평도·대청도·덕적도·자월도 등이 속하며, 육지와 바다로 분리되어 있어 경계가 맞닿은 구·군이 없습니다."
@@ -995,7 +977,7 @@ function showGuInfoCard(item) {
   if (adj.length) {
     adjHtml = adj.join(", ");
   } else if (ISLAND_NOTE[item.name]) {
-    adjHtml = `<span style="color:#cbd5e1;">${ISLAND_NOTE[item.name]}</span>`;
+    adjHtml = `<span style="color:var(--text);">${ISLAND_NOTE[item.name]}</span>`;
   } else {
     adjHtml = "<span class='ic-empty'>계산된 인접 구가 없어요.</span>";
   }
@@ -1022,7 +1004,7 @@ function showDongInfoCard(dong) {
   if (adj.length) {
     adjHtml = adj.join(", ");
   } else if (islandKey) {
-    adjHtml = `<span style="color:#cbd5e1;">${ISLAND_NOTE[islandKey]}</span>`;
+    adjHtml = `<span style="color:var(--text);">${ISLAND_NOTE[islandKey]}</span>`;
   } else {
     adjHtml = "<span class='ic-empty'>계산된 인접 동이 없어요.</span>";
   }
@@ -1314,7 +1296,7 @@ async function showResult() {
 
   const correctCnt = answerLog.filter((a) => a.correct).length;
   const pct = score / maxScore;
-  const msg = pct >= 0.9 ? "🏆 수도권 지리 마스터!" : pct >= 0.7 ? "👍 훌륭해요!" : pct >= 0.5 ? "🙂 절반은 넘겼어요." : "📚 조금 더 연습해봐요!";
+  const msg = pct >= 0.9 ? "🏆 전국 지리 마스터!" : pct >= 0.7 ? "👍 훌륭해요!" : pct >= 0.5 ? "🙂 절반은 넘겼어요." : "📚 조금 더 연습해봐요!";
   document.getElementById("result-msg").textContent = `${msg}  (${totalQuestions}문제 중 ${correctCnt}개 정답)`;
 
   const prevBest = parseInt(localStorage.getItem(LS_BEST) || "0", 10);
@@ -1348,11 +1330,10 @@ async function showResult() {
     statusEl.textContent = "랭킹에 점수 등록 중…";
     const ok = await saveRankScore(score);
     statusEl.textContent = ok ? "✅ 랭킹에 등록되었습니다!" : "⚠ 랭킹 등록 실패 (네트워크 문제)";
-    loadHomeRanking();  // 시작화면 랭킹 미리 갱신
+    loadHomeRanking();
   }
 }
 
-/* 랭킹 화면 렌더 (공용) */
 function renderRankList(list, listEl, statusEl) {
   listEl.innerHTML = "";
   if (list === null) { if (statusEl) { statusEl.classList.remove("hidden"); statusEl.textContent = "⚠ 랭킹을 불러오지 못했습니다."; } return; }
@@ -1384,7 +1365,6 @@ async function showRanking() {
   renderRankList(list, listEl, statusEl);
 }
 
-/* 시작 화면 자동 랭킹 */
 async function loadHomeRanking() {
   const statusEl = document.getElementById("home-rank-status");
   const listEl = document.getElementById("home-rank-list");
@@ -1435,12 +1415,10 @@ function setupLearnRegionSegment() {
 =========================================================== */
 async function initAuth() {
   if (!sb) return;
-  // 현재 세션 확인
   const { data: { session } } = await sb.auth.getSession();
   if (session && session.user) {
     currentUser = session.user;
     currentNick = await fetchMyNick();
-    // ranking에 닉네임이 아직 없으면 localStorage 백업 확인
     if (!currentNick) {
       const saved = localStorage.getItem(LS_NICK);
       if (saved) currentNick = saved;
@@ -1448,7 +1426,6 @@ async function initAuth() {
   }
   refreshAuthUI();
 
-  // 로그인/로그아웃 상태 변화 감지
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session && session.user) {
       currentUser = session.user;
@@ -1459,6 +1436,14 @@ async function initAuth() {
     }
     refreshAuthUI();
   });
+}
+
+/* 설정 영역 접기 (처음 화면 복귀 시) */
+function closeSetupArea() {
+  const area = document.getElementById("setup-area");
+  const obtn = document.getElementById("open-setup-btn");
+  if (area) area.classList.add("hidden");
+  if (obtn) obtn.textContent = "▶️ 시작하기";
 }
 
 /* ===========================================================
@@ -1501,27 +1486,44 @@ window.addEventListener("load", async () => {
   });
   document.getElementById("nick-edit-btn").addEventListener("click", () => {
     document.getElementById("nick-input").value = currentNick || "";
-    currentNick = null;          // 닉네임 설정 화면으로 되돌림
+    currentNick = null;
     refreshAuthUI();
+  });
+
+  // 시작하기 버튼 (설정+모드 펼치기/접기 토글)
+  document.getElementById("open-setup-btn").addEventListener("click", () => {
+    const area = document.getElementById("setup-area");
+    const btn = document.getElementById("open-setup-btn");
+    if (area.classList.contains("hidden")) {
+      area.classList.remove("hidden");
+      btn.textContent = "▲ 닫기";
+    } else {
+      area.classList.add("hidden");
+      btn.textContent = "▶️ 시작하기";
+    }
   });
 
   // 게임 관련 버튼
   document.getElementById("start-btn").addEventListener("click", startGame);
-  document.getElementById("restart-btn").addEventListener("click", () => { showScreen("start"); document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0"; loadHomeRanking(); });
+  document.getElementById("restart-btn").addEventListener("click", () => {
+    showScreen("start");
+    document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0";
+    loadHomeRanking();
+    closeSetupArea();
+  });
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
-  document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); learnMode = false; showScreen("start"); });
+  document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); learnMode = false; showScreen("start"); closeSetupArea(); });
   document.getElementById("verify-btn").addEventListener("click", verifyAll);
   document.getElementById("adj-verify-btn").addEventListener("click", verifyAdjacency);
   document.getElementById("wrong-only-btn").addEventListener("click", retryWrongOnly);
   document.getElementById("to-rank-btn").addEventListener("click", showRanking);
   document.getElementById("rank-refresh-btn").addEventListener("click", showRanking);
-  document.getElementById("rank-back-btn").addEventListener("click", () => { showScreen("start"); loadHomeRanking(); });
+  document.getElementById("rank-back-btn").addEventListener("click", () => { showScreen("start"); loadHomeRanking(); closeSetupArea(); });
   document.getElementById("learn-btn").addEventListener("click", openLearnMode);
-  document.getElementById("learn-back-btn").addEventListener("click", closeLearnMode);
+  document.getElementById("learn-back-btn").addEventListener("click", () => { closeLearnMode(); closeSetupArea(); });
 
   window.addEventListener("resize", () => { if (map) naver.maps.Event.trigger(map, "resize"); });
 
-  // 로그인 상태 확인 + 시작화면 랭킹 자동 로드
   await initAuth();
   loadHomeRanking();
 });
