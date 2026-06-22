@@ -37,11 +37,12 @@
   #map-container { flex: 1; height: 100%; background: #e8eef3; }
 
   #panel {
-    width: 400px; height: 100%;
+    width: clamp(380px, 38%, 600px); height: 100%;
     background: linear-gradient(160deg, #e1dacd 0%, #d6cebe 100%);
     color: var(--text); display: flex; flex-direction: column;
     padding: 26px 24px; gap: 18px; overflow-y: auto;
   }
+
   #panel::-webkit-scrollbar { width: 8px; }
   #panel::-webkit-scrollbar-thumb { background: #c5bba6; border-radius: 4px; }
   #panel h1 { font-size: 23px; font-weight: 400; letter-spacing: 0; display:flex; align-items:center; gap:10px; color:var(--text); }
