@@ -9,10 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:        #e8e2d5;   /* 큰 배경 (가장 밝은 베이지) */
-    --panel:     #ded7c8;   /* 큰 패널 */
-    --card:      #f0ebe0;   /* 작은 카드 (밝음) */
-    --card-2:    #e4ddce;   /* 비활성 버튼 */
+    --bg:        #e8e2d5;
+    --panel:     #ded7c8;
+    --card:      #f0ebe0;
+    --card-2:    #e4ddce;
     --line:      #d8cfbd;
     --text:      #5f5749;
     --muted:     #a59c89;
@@ -20,14 +20,13 @@
     --sage-d:    #8aa97e;
     --peach:     #e3a183;
     --peach-d:   #d68f6e;
-    --cream:     #eccf6f;   /* 학습 모드 노랑 */
+    --cream:     #eccf6f;
     --cream-d:   #e3c259;
     --gold:      #d9a93f;
     --green:     #8aa97e;
     --red:       #d68f6e;
     --radius:    26px;
     --radius-sm: 20px;
-    /* 두 번째 시안 톤: 부드럽고 은은한 그림자 */
     --soft:      0 8px 20px rgba(150,135,108,.28);
     --soft-sm:   0 5px 13px rgba(150,135,108,.22);
     --soft-btn:  0 6px 14px rgba(150,135,108,.30), 0 1px 2px rgba(150,135,108,.20);
@@ -38,14 +37,14 @@
   #app { display: flex; width: 100vw; height: 100vh; height: 100dvh; }
   #map-container { flex: 1; height: 100%; background: #e8eef3; }
 
-   /* 큰 배경 패널 */
+  /* 큰 배경 패널 */
   #panel {
     width: clamp(380px, 38%, 600px); height: 100%;
     background: var(--bg);
     color: var(--text); display: flex; flex-direction: column;
     padding: 22px 20px; overflow-y: auto;
   }
-  /* 시안: 배경 위에 떠 있는 큰 흰색 카드 */
+  /* 배경 위에 떠 있는 큰 흰색 카드 */
   #panel-card {
     background: var(--card);
     border-radius: 34px;
@@ -55,10 +54,9 @@
     flex-direction: column;
     gap: 18px;
   }
-  #panel h1 { margin-bottom: 2px; }
   #panel::-webkit-scrollbar { width: 8px; }
   #panel::-webkit-scrollbar-thumb { background: #cabfa9; border-radius: 4px; }
-  #panel h1 { font-size: 24px; font-weight: 400; letter-spacing: 0; display:flex; align-items:center; gap:10px; color:var(--text); justify-content:center; }
+  #panel h1 { font-size: 24px; font-weight: 400; letter-spacing: 0; display:flex; align-items:center; gap:10px; color:var(--text); justify-content:center; margin-bottom:2px; }
 
   .row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--muted); }
 
@@ -85,7 +83,6 @@
 
   #explain { font-size:14px; line-height:1.6; padding:16px 18px; border-radius:var(--radius-sm); background: var(--card); box-shadow: var(--soft-sm); border-left:5px solid var(--sage); color:var(--text); }
 
-  /* 기본 큰 버튼 (게임 모드 / 시작하기 = 코랄) */
   button.primary { padding: 18px; background: var(--peach); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 19px; font-weight: 400; cursor: pointer; transition: all .18s ease; box-shadow: var(--soft-btn); text-shadow:0 1px 2px rgba(0,0,0,.13); }
   button.primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(150,135,108,.34); }
   button.primary:active { transform: translateY(1px); box-shadow: var(--inset); }
@@ -115,7 +112,6 @@
   #verify-result { margin-top: 8px; font-size: 13px; line-height: 1.6; }
   #diag { font-size: 13px; color: var(--peach-d); margin-top: 8px; }
 
-  /* 작은 카드 패널 (큰 패널 위에 떠 있는 느낌) */
   .setup-block { background:var(--card); border-radius:var(--radius); padding:18px 20px; display:flex; flex-direction:column; gap:14px; box-shadow:var(--soft); margin-bottom:16px; }
   .setup-block .label { font-size:14px; color:var(--muted); font-weight:400; letter-spacing:.02em; }
   .seg { display:flex; gap:10px; flex-wrap:wrap; }
@@ -124,13 +120,11 @@
   .seg button:active { transform:translateY(0); box-shadow:var(--inset); }
   .seg button.sel { background:var(--sage); color:#fff; box-shadow:var(--soft-btn); text-shadow:0 1px 1px rgba(0,0,0,.1); }
 
-  /* 문제 유형: 슬라이더 느낌 (선택된 버튼만 채워진 알약) */
   #seg-type { background:var(--card-2); border-radius:999px; padding:5px; gap:0; box-shadow:var(--inset); }
   #seg-type button { box-shadow:none; background:transparent; border-radius:999px; }
   #seg-type button:hover { transform:none; }
   #seg-type button.sel { background:var(--sage); color:#fff; box-shadow:var(--soft-btn); }
 
-  /* 문제 수: 라디오 버튼 스타일 */
   #seg-count { gap:22px; }
   #seg-count button { flex:none; min-width:0; display:flex; align-items:center; gap:9px; background:transparent; box-shadow:none; color:var(--text); padding:6px 4px; }
   #seg-count button:hover { transform:none; }
@@ -139,7 +133,6 @@
   #seg-count button.sel { color:var(--text); }
   #seg-count button.sel::before { background:var(--sage); box-shadow:0 0 0 4px var(--card) inset, var(--soft-sm); }
 
-  /* 타이머: 토글 스위치 */
   #timer-toggle-row { display:flex; align-items:center; justify-content:space-between; }
   #timer-toggle-row .label { margin:0; }
   .toggle { width:62px; height:34px; border-radius:999px; background:var(--card-2); box-shadow:var(--inset); border:none; cursor:pointer; position:relative; transition:background .2s; flex:none; padding:0; }
@@ -148,28 +141,23 @@
   .toggle.on::after { left:32px; }
 
   #setup-area { display:flex; flex-direction:column; }
-  /* 모드 선택 두 버튼 영역 */
   #mode-buttons { display:flex; flex-direction:column; gap:14px; margin-bottom:16px; }
   #learn-btn { background:var(--cream); color:#6e5a16; text-shadow:none; }
   #game-mode-btn { background:var(--peach); color:#fff; }
-  /* 게임 설정 (게임 모드 누르면 펼침) */
   #game-setup { display:flex; flex-direction:column; }
 
   .nick-input { width:100%; padding:15px 17px; background:var(--card-2); color:var(--text); border:none; border-radius:15px; font-size:16px; font-family:"Jua",sans-serif; box-shadow:var(--inset); }
   .nick-input:focus { outline:none; }
   .nick-input::placeholder { color:#aaa08c; }
 
-  /* 점수 박스: 시안처럼 큰 세이지 카드 */
-  #best-score-box { background:var(--sage); border-radius:var(--radius); padding:26px 22px; text-align:center; color:#fff; box-shadow:var(--soft); }
-  #best-score-box .bs-label { font-size:16px; font-weight:400; opacity:.92; margin-bottom:4px; }
-  #best-score-box .bs-num { font-size:48px; font-weight:400; line-height:1.1; text-shadow:0 2px 3px rgba(0,0,0,.12); }
+  /* 닉네임 옆 인라인 점수 배지 */
+  #inline-best { background:var(--sage); color:#fff; font-size:14px; padding:7px 14px; border-radius:999px; box-shadow:var(--soft-sm); white-space:nowrap; flex:none; }
 
   #timer-wrap .row { margin-bottom:7px; }
   #timer-bar-wrap { height:14px; background:var(--card-2); border-radius:999px; overflow:hidden; box-shadow:var(--inset); }
   #timer-fill { height:100%; width:100%; background:var(--sage); border-radius:999px; transition:width 1s linear; }
   #timer-fill.warn { background:var(--peach-d); }
 
-  /* 랭킹: 큰 카드 안에 밝은 박스 */
   #home-rank, #rank-screen .rank-wrap { background:var(--panel); border-radius:var(--radius); padding:20px; box-shadow:var(--soft); }
   #home-rank .hr-title { font-size:17px; font-weight:400; color:var(--text); margin-bottom:14px; text-align:center; }
   #home-rank-list, #rank-list { display:flex; flex-direction:column; gap:9px; }
@@ -183,18 +171,23 @@
   .rank-item .date { font-size:11px; color:var(--muted); margin-left:6px; }
   #rank-note { font-size:12px; color:var(--muted); line-height:1.6; margin-top:8px; }
 
-  #auth-box { background:var(--card); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--soft); }
+  #auth-box { background:var(--card-2); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--inset); }
   #auth-box .label { font-size:13px; color:var(--muted); font-weight:400; text-align:center; }
   .login-btn { width:100%; padding:15px; border:none; border-radius:16px; font-size:16px; font-weight:400; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .15s; box-shadow:var(--soft-sm); }
   .login-btn:hover { transform:translateY(-2px); box-shadow:var(--soft); }
   .login-btn:active { transform:translateY(0); box-shadow:var(--inset); }
   .login-btn.google { background:#fbf7ef; color:#5b5345; }
   .login-btn.kakao { background:#fae39a; color:#5e4a16; }
-  #user-info { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:15px; }
+  #user-info { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; }
   #user-info .uname { font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #logout-btn { background:var(--card-2); color:var(--muted); border:none; border-radius:12px; padding:9px 14px; font-size:13px; font-weight:400; cursor:pointer; flex:none; box-shadow:var(--soft-sm); }
   #nick-setup { display:flex; flex-direction:column; gap:12px; }
   #nick-edit-btn { background:none; border:none; color:var(--peach-d); font-size:12px; cursor:pointer; text-decoration:underline; padding:0; font-weight:400; }
+
+  /* 시작 화면 요소 간격 */
+  #start-screen > * { margin-bottom: 16px; }
+  #start-screen > *:last-child { margin-bottom: 0; }
+  #open-setup-btn { width: 100%; }
 
   #learn-list { display:flex; flex-direction:column; gap:9px; margin-top:4px; flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px; }
   .learn-item { background:var(--card); border:none; border-radius:16px; padding:15px 17px; font-size:16px; font-weight:400; cursor:pointer; transition:all .15s; display:flex; justify-content:space-between; align-items:center; flex:none; box-shadow:var(--soft-sm); }
@@ -215,7 +208,8 @@
   @media (max-width: 768px) {
     #app { flex-direction: column; height: 100dvh; }
     #map-container { width: 100%; height: 54dvh; flex: none; }
-    #panel { width: 100%; flex: 1; min-height: 0; padding: 18px 16px; gap: 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    #panel { width: 100%; flex: 1; min-height: 0; padding: 14px 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    #panel-card { border-radius: 26px; padding: 18px 16px; gap: 12px; }
     #panel h1 { font-size: 19px; }
     .row { font-size: 13px; }
     .badge { margin-bottom: 5px; padding: 5px 12px; font-size: 12px; }
@@ -233,14 +227,14 @@
     .seg button { font-size: 14px; padding: 11px 5px; }
     .learn-item { padding: 13px 15px; font-size: 15px; }
     #info-card { font-size: 14px; padding: 15px 17px; }
-    #best-score-box .bs-num { font-size: 40px; }
+    #start-screen > * { margin-bottom: 12px; }
   }
 </style>
 </head>
 <body>
 <div id="app">
   <div id="map-container"></div>
-   <div id="panel">
+  <div id="panel">
    <div id="panel-card">
     <h1>🗺️ 전국 지리 마스터</h1>
 
@@ -261,17 +255,12 @@
         </div>
         <div id="user-info" class="hidden">
           <span class="uname">👤 <span id="user-nick">-</span></span>
+          <span id="inline-best" class="hidden">🏆 <span id="inline-best-score">0</span>점</span>
           <div style="display:flex; gap:6px; align-items:center; flex:none;">
             <button id="nick-edit-btn">닉네임 변경</button>
             <button id="logout-btn">로그아웃</button>
           </div>
         </div>
-      </div>
-
-      <!-- 점수 박스 (시안 스타일 큰 카드) -->
-      <div id="best-score-box" class="hidden">
-        <div class="bs-label">🏆 최고 점수</div>
-        <div class="bs-num"><span id="best-score">0</span>점</div>
       </div>
 
       <!-- 시작하기 (누르면 모드 선택 펼쳐짐) -->
@@ -334,8 +323,8 @@
         <div id="home-rank-list"></div>
       </div>
 
-      <button id="verify-btn" class="secondary" style="margin-top:6px;">🔍 전체 검증 (구 + 읍·면·동)</button>
-      <button id="adj-verify-btn" class="secondary" style="margin-top:6px;">🔗 인접 검증 (비대칭 의심 쌍)</button>
+      <button id="verify-btn" class="secondary">🔍 전체 검증 (구 + 읍·면·동)</button>
+      <button id="adj-verify-btn" class="secondary">🔗 인접 검증 (비대칭 의심 쌍)</button>
       <div id="diag"></div>
       <div id="verify-result"></div>
     </div>
@@ -419,7 +408,7 @@
         <div id="rank-list"></div>
       </div>
       <div id="rank-note">※ 전 세계 모든 플레이어의 점수가 실시간으로 반영됩니다. 로그인 후 닉네임을 정하고 게임하면 자동 등록돼요.</div>
-            <button id="rank-refresh-btn" class="secondary" style="margin-top:10px;">🔄 새로고침</button>
+      <button id="rank-refresh-btn" class="secondary" style="margin-top:10px;">🔄 새로고침</button>
       <button id="rank-back-btn" class="primary" style="margin-top:6px;">← 처음으로</button>
     </div>
    </div>
@@ -557,26 +546,26 @@ function refreshAuthUI() {
   const loginArea = document.getElementById("login-area");
   const nickSetup = document.getElementById("nick-setup");
   const userInfo = document.getElementById("user-info");
-  const bestBox = document.getElementById("best-score-box");
+  const inlineBest = document.getElementById("inline-best");
 
   if (!currentUser) {
     loginArea.classList.remove("hidden");
     nickSetup.classList.add("hidden");
     userInfo.classList.add("hidden");
-    if (bestBox) bestBox.classList.add("hidden");
+    if (inlineBest) inlineBest.classList.add("hidden");
   } else if (!currentNick) {
     loginArea.classList.add("hidden");
     nickSetup.classList.remove("hidden");
     userInfo.classList.add("hidden");
-    if (bestBox) bestBox.classList.add("hidden");
+    if (inlineBest) inlineBest.classList.add("hidden");
   } else {
     loginArea.classList.add("hidden");
     nickSetup.classList.add("hidden");
     userInfo.classList.remove("hidden");
     document.getElementById("user-nick").textContent = currentNick;
-    if (bestBox) {
-      bestBox.classList.remove("hidden");
-      document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0";
+    if (inlineBest) {
+      inlineBest.classList.remove("hidden");
+      document.getElementById("inline-best-score").textContent = localStorage.getItem(LS_BEST) || "0";
     }
   }
 }
@@ -1515,6 +1504,12 @@ function closeSetupArea() {
   if (obtn) obtn.textContent = "▶️ 시작하기";
 }
 
+/* 인라인 최고 점수 갱신 헬퍼 */
+function updateInlineBest() {
+  const el = document.getElementById("inline-best-score");
+  if (el) el.textContent = localStorage.getItem(LS_BEST) || "0";
+}
+
 /* ===========================================================
    부팅
 =========================================================== */
@@ -1535,7 +1530,7 @@ window.addEventListener("load", async () => {
     return;
   }
 
-  document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0";
+  updateInlineBest();
 
   setupSegment("seg-region", "region");
   setupSegment("seg-type", "type");
@@ -1568,7 +1563,7 @@ window.addEventListener("load", async () => {
       btn.textContent = "▲ 닫기";
     } else {
       area.classList.add("hidden");
-      document.getElementById("game-setup").classList.add("hidden");  // 닫을 때 게임설정도 접기
+      document.getElementById("game-setup").classList.add("hidden");
       btn.textContent = "▶️ 시작하기";
     }
   });
@@ -1586,7 +1581,7 @@ window.addEventListener("load", async () => {
   document.getElementById("start-btn").addEventListener("click", startGame);
   document.getElementById("restart-btn").addEventListener("click", () => {
     showScreen("start");
-    document.getElementById("best-score").textContent = localStorage.getItem(LS_BEST) || "0";
+    updateInlineBest();
     loadHomeRanking();
     closeSetupArea();
   });
