@@ -37,14 +37,12 @@
   #app { display: flex; width: 100vw; height: 100vh; height: 100dvh; }
   #map-container { flex: 1; height: 100%; background: #e8eef3; }
 
-  /* 큰 배경 패널 */
   #panel {
     width: clamp(380px, 38%, 600px); height: 100%;
     background: var(--bg);
     color: var(--text); display: flex; flex-direction: column;
     padding: 22px 20px; overflow-y: auto;
   }
-  /* 배경 위에 떠 있는 큰 흰색 카드 */
   #panel-card {
     background: var(--card);
     border-radius: 34px;
@@ -174,19 +172,21 @@
   #rank-note { font-size:12px; color:var(--muted); line-height:1.6; margin-top:8px; }
 
   #auth-box { background:var(--card-2); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--inset); }
-  #auth-box .label { font-size:13px; color:var(--muted); font-weight:400; text-align:center; }
-  .login-btn { width:100%; padding:15px; border:none; border-radius:16px; font-size:16px; font-weight:400; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .15s; box-shadow:var(--soft-sm); }
+  #auth-box .label { font-size:16px; color:var(--muted); font-weight:400; text-align:center; }
+  /* 로그인 버튼 세로 간격 */
+  #login-area { display:flex; flex-direction:column; gap:14px; }
+  .login-btn { width:100%; padding:15px; border:none; border-radius:16px; font-size:16px; font-weight:400; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:transform .15s; box-shadow:var(--soft-sm); }
   .login-btn:hover { transform:translateY(-2px); box-shadow:var(--soft); }
   .login-btn:active { transform:translateY(0); box-shadow:var(--inset); }
-  .login-btn.google { background:#fbf7ef; color:#5b5345; }
-  .login-btn.kakao { background:#fae39a; color:#5e4a16; }
+  .login-btn.google { background:#fff; color:#3c4043; }
+  .login-btn.kakao { background:#fee500; color:#191600; }
+  .login-btn svg { width:20px; height:20px; flex:none; }
   #user-info { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; }
   #user-info .uname { font-size:20px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #logout-btn { background:var(--card-2); color:var(--muted); border:none; border-radius:12px; padding:9px 14px; font-size:18px; font-weight:400; cursor:pointer; flex:none; box-shadow:var(--soft-sm); }
   #nick-setup { display:flex; flex-direction:column; gap:12px; }
-    #nick-edit-btn { background:none; border:none; color:var(--peach-d); font-size:18px; cursor:pointer; text-decoration:underline; padding:0; font-weight:400; }
+  #nick-edit-btn { background:none; border:none; color:var(--peach-d); font-size:18px; cursor:pointer; text-decoration:underline; padding:0; font-weight:400; }
 
-  /* 시작 화면 요소 간격 */
   #start-screen > * { margin-bottom: 16px; }
   #start-screen > *:last-child { margin-bottom: 0; }
   #open-setup-btn { width: 100%; }
@@ -214,6 +214,15 @@
     #panel-card { border-radius: 26px; padding: 18px 16px; gap: 12px; }
     #panel h1 { font-size: 19px; }
     .row { font-size: 13px; }
+    /* 모바일: 로그인 줄 글자 변경 전 크기로 복원 (잘림 방지) */
+    #user-info { gap:6px; flex-wrap:wrap; }
+    #user-info .uname { font-size:15px; }
+    #inline-best { padding:7px 14px; }
+    #inline-best .ib-label { font-size:11px; }
+    #inline-best .ib-num { font-size:18px; }
+    #nick-edit-btn { font-size:12px; }
+    #logout-btn { font-size:13px; padding:9px 14px; }
+    #auth-box .label { font-size:14px; }
     .badge { margin-bottom: 5px; padding: 5px 12px; font-size: 12px; }
     #question { font-size: 15px; line-height: 1.5; padding: 14px 16px; min-height: 0; }
     #legend { font-size: 11px; gap: 4px; }
@@ -247,8 +256,14 @@
       <div id="auth-box">
         <div id="login-area">
           <span class="label">로그인하면 점수가 랭킹에 등록돼요</span>
-          <button id="google-login-btn" class="login-btn google">🔵 구글로 로그인</button>
-          <button id="kakao-login-btn" class="login-btn kakao">💬 카카오로 로그인</button>
+          <button id="google-login-btn" class="login-btn google">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+            구글 로그인
+          </button>
+          <button id="kakao-login-btn" class="login-btn kakao">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#191600" d="M12 3C6.477 3 2 6.582 2 11c0 2.86 1.92 5.37 4.81 6.78-.21.74-.76 2.68-.87 3.1-.14.52.19.51.4.37.16-.11 2.6-1.77 3.66-2.49.64.09 1.31.14 2 .14 5.523 0 10-3.582 10-8S17.523 3 12 3z"/></svg>
+            카카오 로그인
+          </button>
         </div>
         <div id="nick-setup" class="hidden">
           <span class="label">랭킹에 표시할 닉네임을 정해주세요</span>
@@ -257,7 +272,7 @@
         </div>
         <div id="user-info" class="hidden">
           <span class="uname">👤 <span id="user-nick">-</span></span>
-                   <span id="inline-best" class="hidden">
+          <span id="inline-best" class="hidden">
             <span class="ib-label">🏆 내 최고 점수</span>
             <span class="ib-num"><span id="inline-best-score">0</span>점</span>
           </span>
@@ -1543,7 +1558,6 @@ window.addEventListener("load", async () => {
   setupLearnRegionSegment();
   setupTimerToggle();
 
-  // 로그인 관련 버튼
   document.getElementById("google-login-btn").addEventListener("click", loginGoogle);
   document.getElementById("kakao-login-btn").addEventListener("click", loginKakao);
   document.getElementById("logout-btn").addEventListener("click", logout);
@@ -1559,7 +1573,6 @@ window.addEventListener("load", async () => {
     refreshAuthUI();
   });
 
-  // 시작하기 버튼 (모드 선택 펼치기/접기 토글)
   document.getElementById("open-setup-btn").addEventListener("click", () => {
     const area = document.getElementById("setup-area");
     const btn = document.getElementById("open-setup-btn");
@@ -1573,7 +1586,6 @@ window.addEventListener("load", async () => {
     }
   });
 
-  // 게임 모드 버튼 (게임 설정 펼치기/접기 토글)
   document.getElementById("game-mode-btn").addEventListener("click", () => {
     const gameSetup = document.getElementById("game-setup");
     gameSetup.classList.toggle("hidden");
@@ -1582,7 +1594,6 @@ window.addEventListener("load", async () => {
     }
   });
 
-  // 게임 관련 버튼
   document.getElementById("start-btn").addEventListener("click", startGame);
   document.getElementById("restart-btn").addEventListener("click", () => {
     showScreen("start");
