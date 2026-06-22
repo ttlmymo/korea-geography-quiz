@@ -150,8 +150,10 @@
   .nick-input:focus { outline:none; }
   .nick-input::placeholder { color:#aaa08c; }
 
-  /* 닉네임 옆 인라인 점수 배지 */
-  #inline-best { background:var(--sage); color:#fff; font-size:14px; padding:7px 14px; border-radius:999px; box-shadow:var(--soft-sm); white-space:nowrap; flex:none; }
+  /* 닉네임 옆 인라인 점수 배지 (2줄: 라벨 + 점수) */
+  #inline-best { background:var(--sage); color:#fff; border-radius:16px; padding:8px 16px; box-shadow:var(--soft-sm); white-space:nowrap; flex:none; display:flex; flex-direction:column; align-items:center; line-height:1.2; }
+  #inline-best .ib-label { font-size:11px; opacity:.92; }
+  #inline-best .ib-num { font-size:18px; }
 
   #timer-wrap .row { margin-bottom:7px; }
   #timer-bar-wrap { height:14px; background:var(--card-2); border-radius:999px; overflow:hidden; box-shadow:var(--inset); }
@@ -255,7 +257,10 @@
         </div>
         <div id="user-info" class="hidden">
           <span class="uname">👤 <span id="user-nick">-</span></span>
-          <span id="inline-best" class="hidden">🏆 <span id="inline-best-score">0</span>점</span>
+                   <span id="inline-best" class="hidden">
+            <span class="ib-label">🏆 내 최고 점수</span>
+            <span class="ib-num"><span id="inline-best-score">0</span>점</span>
+          </span>
           <div style="display:flex; gap:6px; align-items:center; flex:none;">
             <button id="nick-edit-btn">닉네임 변경</button>
             <button id="logout-btn">로그아웃</button>
