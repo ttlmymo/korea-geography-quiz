@@ -780,7 +780,7 @@ const IDB_NAME = "kgq_geo_cache";
 const IDB_STORE = "regions";
 const IDB_VERSION = 1;
 // 데이터 스키마가 바뀌면 이 값을 올려 기존 캐시를 무효화한다.
-const DATA_SCHEMA_VERSION = "bjd-v1";
+const DATA_SCHEMA_VERSION = "bjd-v2";
 
 function idbOpen() {
   return new Promise((resolve, reject) => {
@@ -842,7 +842,11 @@ async function buildSggMapForSido(sidoCode) {
 function normalizeBjd(geo, sggMap) {
   (geo.features || []).forEach((f) => {
     const p = f.properties || {};
-    const code5 = p.COL_ADM_SE || (p.EMD_CD ? String(p.EMD_CD).slice(0, 5) : "");
+    // EMD_CD 앞 5자리가 일반구까지 구분(예: 41115=수원시팔달구).
+    // 이게 hjd 매핑에 있으면 우선 사용하고, 없으면 COL_ADM_SE(시 레벨)로 폴백.
+    const cdFront5 = p.EMD_CD ? String(p.EMD_CD).slice(0, 5) : "";
+    const colCode  = p.COL_ADM_SE || "";
+    const code5 = (cdFront5 && sggMap[cdFront5]) ? cdFront5 : (colCode || cdFront5);
     const m = sggMap[code5] || {};
     p.sgg    = code5;
     p.sido   = m.sido   || code5.slice(0, 2);
