@@ -148,7 +148,6 @@
   .nick-input:focus { outline:none; }
   .nick-input::placeholder { color:#aaa08c; }
 
-  /* 닉네임 옆 인라인 점수 배지 (2줄: 라벨 + 점수) */
   #inline-best { background:var(--sage); color:#fff; border-radius:16px; padding:8px 16px; box-shadow:var(--soft-sm); white-space:nowrap; flex:none; display:flex; flex-direction:column; align-items:center; line-height:1.2; }
   #inline-best .ib-label { font-size:18px; opacity:.92; }
   #inline-best .ib-num { font-size:18px; }
@@ -173,7 +172,6 @@
 
   #auth-box { background:var(--card-2); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--inset); }
   #auth-box .label { font-size:16px; color:var(--muted); font-weight:400; text-align:center; }
-  /* 로그인 버튼 세로 간격 */
   #login-area { display:flex; flex-direction:column; gap:14px; }
   .login-btn { width:100%; padding:15px; border:none; border-radius:16px; font-size:16px; font-weight:400; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:transform .15s; box-shadow:var(--soft-sm); }
   .login-btn:hover { transform:translateY(-2px); box-shadow:var(--soft); }
@@ -214,7 +212,6 @@
     #panel-card { border-radius: 26px; padding: 18px 16px; gap: 12px; }
     #panel h1 { font-size: 19px; }
     .row { font-size: 13px; }
-    /* 모바일: 로그인 줄 글자 변경 전 크기로 복원 (잘림 방지) */
     #user-info { gap:6px; flex-wrap:wrap; }
     #user-info .uname { font-size:15px; }
     #inline-best { padding:7px 14px; }
@@ -249,10 +246,7 @@
    <div id="panel-card">
     <h1>🗺️ 전국 지리 마스터</h1>
 
-    <!-- ============ 시작 화면 ============ -->
     <div id="start-screen">
-
-      <!-- 로그인 영역 -->
       <div id="auth-box">
         <div id="login-area">
           <span class="label">로그인하면 점수가 랭킹에 등록돼요</span>
@@ -283,19 +277,14 @@
         </div>
       </div>
 
-      <!-- 시작하기 (누르면 모드 선택 펼쳐짐) -->
       <button id="open-setup-btn" class="primary">시작하기</button>
 
-      <!-- 펼쳐지는 영역 (처음엔 숨김) -->
       <div id="setup-area" class="hidden">
-
-        <!-- 모드 선택: 학습 / 게임 -->
         <div id="mode-buttons">
           <button id="learn-btn" class="primary">📚 학습 모드</button>
           <button id="game-mode-btn" class="primary">🎮 게임 모드</button>
         </div>
 
-        <!-- 게임 모드 누르면 펼쳐지는 게임 설정 -->
         <div id="game-setup" class="hidden">
           <div class="setup-block">
             <span class="label">출제 지역</span>
@@ -333,10 +322,8 @@
 
           <button id="start-btn" class="primary">🎮 게임 시작!</button>
         </div>
-
       </div>
 
-      <!-- 시작화면 자동 랭킹 -->
       <div id="home-rank">
         <div class="hr-title">🏅 실시간 랭킹 TOP 10</div>
         <div id="home-rank-status">불러오는 중…</div>
@@ -349,7 +336,6 @@
       <div id="verify-result"></div>
     </div>
 
-    <!-- ============ 학습 모드 화면 ============ -->
     <div id="learn-screen" class="hidden">
       <div class="row" style="margin-bottom:2px;">
         <span style="font-size:18px; font-weight:400; color:var(--text);">📚 학습 모드</span>
@@ -366,13 +352,10 @@
       </div>
 
       <div id="info-card" class="hidden"></div>
-
       <div id="learn-list"></div>
-
       <button id="learn-back-btn" class="primary" style="margin-top:10px; flex:none;">← 처음으로</button>
     </div>
 
-    <!-- ============ 퀴즈 화면 ============ -->
     <div id="quiz-screen" class="hidden">
       <div class="row">
         <span id="q-counter">1 / 10</span>
@@ -400,7 +383,6 @@
       <button id="quit-btn" class="secondary">그만두기</button>
     </div>
 
-    <!-- ============ 결과 화면 ============ -->
     <div id="result-screen" class="hidden">
       <div id="result">
         <div style="text-align:center; color:var(--muted);">최종 점수</div>
@@ -420,7 +402,6 @@
       <button id="restart-btn" class="primary" style="margin-top:8px;">다시 하기</button>
     </div>
 
-    <!-- ============ 랭킹 화면 ============ -->
     <div id="rank-screen" class="hidden">
       <h2 style="font-size:18px; font-weight:400; color:var(--text);">🏅 실시간 랭킹 TOP 10</h2>
       <div class="rank-wrap" style="margin-top:10px;">
@@ -595,20 +576,16 @@ function refreshAuthUI() {
 =========================================================== */
 const CDN_BASE = "https://cdn.jsdelivr.net/gh/ttlmymo/korea-geography-quiz@main";
 
-// 시도코드 -> { bjd: 법정동 경계 파일, hjd: 시군구 이름 매핑용 파일 }
 const REGION_FILES = {
   "11": { bjd: CDN_BASE + "/bjd/bjd_11_seoul.geojson",    hjd: CDN_BASE + "/hjd/hjd_11_seoul.geojson"    },
   "28": { bjd: CDN_BASE + "/bjd/bjd_28_incheon.geojson",  hjd: CDN_BASE + "/hjd/hjd_28_incheon.geojson"  },
   "41": { bjd: CDN_BASE + "/bjd/bjd_41_gyeonggi.geojson", hjd: CDN_BASE + "/hjd/hjd_41_gyeonggi.geojson" }
 };
 
-// 현재 활성화할 권역(시도코드). 전국 확장 시 여기에 코드만 추가.
 const ACTIVE_SIDOS = ["11", "28", "41"];
 
-// 시군구 5자리 코드 -> { sido, sidonm, sggnm } (hjd에서 런타임 추출 + 캐싱)
 let SGG_MAP = {};
 
-// hjd 파일에 누락된 시군구의 수동 보정표 (코드 -> 이름)
 const SGG_MAP_FALLBACK = {
   "41590": { sido: "41", sidonm: "경기도", sggnm: "화성시" }
 };
@@ -780,13 +757,10 @@ function initMap() {
 
 /* ===========================================================
    IndexedDB 캐싱 레이어
-   - 한 번 받은 권역 데이터를 기기에 영구 저장 → 재접속 시 네트워크 없이 즉시 로드(오프라인 OK)
-   - 전세계 확장 / 네이티브 앱 전환 시에도 이 구조가 그대로 이어짐
 =========================================================== */
 const IDB_NAME = "kgq_geo_cache";
 const IDB_STORE = "regions";
 const IDB_VERSION = 1;
-// 데이터 스키마가 바뀌면 이 값을 올려 기존 캐시를 무효화한다.
 const DATA_SCHEMA_VERSION = "bjd-v3";
 
 function idbOpen() {
@@ -830,7 +804,6 @@ async function idbSet(key, value) {
    시군구 코드 -> 이름 매핑 (hjd에서 추출)
 =========================================================== */
 async function buildSggMapForSido(sidoCode) {
-  // hjd 파일에서 sgg -> {sido, sidonm, sggnm} 추출
   const url = REGION_FILES[sidoCode].hjd;
   const res = await fetch(url);
   if (!res.ok) throw new Error("행정동(hjd) 로드 실패: " + url);
@@ -845,12 +818,9 @@ async function buildSggMapForSido(sidoCode) {
   return map;
 }
 
-/* 법정동 GeoJSON에 hjd 매핑을 적용해 기존 코드 호환 속성으로 정규화 */
 function normalizeBjd(geo, sggMap) {
   (geo.features || []).forEach((f) => {
     const p = f.properties || {};
-    // EMD_CD 앞 5자리가 일반구까지 구분(예: 41115=수원시팔달구).
-    // 이게 hjd 매핑에 있으면 우선 사용하고, 없으면 COL_ADM_SE(시 레벨)로 폴백.
     const cdFront5 = p.EMD_CD ? String(p.EMD_CD).slice(0, 5) : "";
     const colCode  = p.COL_ADM_SE || "";
     const code5 = (cdFront5 && sggMap[cdFront5]) ? cdFront5 : (colCode || cdFront5);
@@ -866,30 +836,24 @@ function normalizeBjd(geo, sggMap) {
   return geo;
 }
 
-/* 권역(시도) 단위 데이터 로드: 캐시 우선 → 없으면 네트워크 후 캐싱 */
 async function loadRegionGeo(sidoCode) {
   const cacheKey = "bjd_" + sidoCode + "_" + DATA_SCHEMA_VERSION;
   const cached = await idbGet(cacheKey);
   if (cached && cached.geo && cached.sggMap) {
-    // 캐시된 매핑 표도 전역에 합쳐줌
     Object.assign(SGG_MAP, cached.sggMap);
     return cached.geo;
   }
 
-  // 1) hjd에서 시군구 이름 매핑 추출
   const sggMap = await buildSggMapForSido(sidoCode);
   Object.assign(SGG_MAP, sggMap);
 
-  // 2) 법정동 경계 로드 + 정규화
   const url = REGION_FILES[sidoCode].bjd;
   const res = await fetch(url);
   if (!res.ok) throw new Error("법정동(bjd) 로드 실패: " + url);
   let geo = await res.json();
   geo = normalizeBjd(geo, sggMap);
 
-  // 3) 캐싱 (실패해도 동작에는 지장 없음)
   await idbSet(cacheKey, { geo, sggMap, savedAt: Date.now() });
-
   return geo;
 }
 
@@ -901,7 +865,6 @@ async function loadAllGeoData() {
 
   const loadingText = document.getElementById("loading-text");
 
-  // 활성 권역을 순차 로드 (진행 표시). 캐시가 있으면 거의 즉시.
   const geos = [];
   for (let i = 0; i < ACTIVE_SIDOS.length; i++) {
     const code = ACTIVE_SIDOS[i];
@@ -927,7 +890,6 @@ async function loadAllGeoData() {
       if (!featuresBySi[siKey]) featuresBySi[siKey] = [];
       featuresBySi[siKey].push(feature);
     }
-    // 법정동: EMD_NM이 동 이름. (adm_nm 끝 토큰도 동일하지만 EMD_NM을 우선 사용)
     const dongName = feature.getProperty("EMD_NM") ||
       (adm_nm ? adm_nm.trim().split(/\s+/).pop() : null);
     if (dongName) {
@@ -945,7 +907,34 @@ async function loadAllGeoData() {
 
   DB.forEach((item) => { item.sggCode = codeByKey[item.sido + "|" + item.matchName] || null; });
 
-  computeAdjacency();
+  // 인접 결과 캐시: 있으면 불러오고, 없으면 계산 후 저장
+  const adjKey = ADJ_CACHE_KEY + "_" + DATA_SCHEMA_VERSION + "_" + ACTIVE_SIDOS.join("-");
+  const cachedAdj = await idbGet(adjKey);
+  if (cachedAdj && cachedAdj.guAdj && cachedAdj.dongAdj) {
+    deserializeAdj(cachedAdj.guAdj, guAdj);
+    deserializeAdj(cachedAdj.dongAdj, dongAdj);
+  } else {
+    computeAdjacency();
+    await idbSet(adjKey, {
+      guAdj: serializeAdj(guAdj),
+      dongAdj: serializeAdj(dongAdj),
+      savedAt: Date.now()
+    });
+  }
+}
+
+/* ===========================================================
+   인접/인덱스 결과 캐싱 헬퍼
+=========================================================== */
+const ADJ_CACHE_KEY = "adj_v1";
+
+function serializeAdj(store) {
+  const out = {};
+  Object.keys(store).forEach((k) => { out[k] = [...store[k]]; });
+  return out;
+}
+function deserializeAdj(obj, target) {
+  Object.keys(obj).forEach((k) => { target[k] = new Set(obj[k]); });
 }
 
 /* ===========================================================
@@ -1245,6 +1234,7 @@ function verifyAll() {
   } else html += `<div style="color:#22c55e; margin-top:6px;">🎉 모든 항목 정상!</div>`;
   out.innerHTML = html;
 }
+
 function verifyAdjacency() {
   const out = document.getElementById("verify-result");
   const asym = [];
@@ -1615,7 +1605,6 @@ function setupLearnRegionSegment() {
   });
 }
 
-/* 타이머 토글 스위치 */
 function setupTimerToggle() {
   const tg = document.getElementById("timer-toggle");
   tg.addEventListener("click", () => {
@@ -1652,7 +1641,6 @@ async function initAuth() {
   });
 }
 
-/* 설정 영역 접기 (처음 화면 복귀 시) */
 function closeSetupArea() {
   const area = document.getElementById("setup-area");
   const gameSetup = document.getElementById("game-setup");
@@ -1662,7 +1650,6 @@ function closeSetupArea() {
   if (obtn) obtn.textContent = "▶️ 시작하기";
 }
 
-/* 인라인 최고 점수 갱신 헬퍼 */
 function updateInlineBest() {
   const el = document.getElementById("inline-best-score");
   if (el) el.textContent = localStorage.getItem(LS_BEST) || "0";
