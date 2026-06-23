@@ -284,7 +284,7 @@
       </div>
 
       <!-- 시작하기 (누르면 모드 선택 펼쳐짐) -->
-      <button id="open-setup-btn" class="primary">▶️ 시작하기</button>
+      <button id="open-setup-btn" class="primary">시작하기</button>
 
       <!-- 펼쳐지는 영역 (처음엔 숨김) -->
       <div id="setup-area" class="hidden">
@@ -593,11 +593,21 @@ function refreshAuthUI() {
 /* ===========================================================
    설정
 =========================================================== */
-const GEOJSON_FILES = [
-  "https://cdn.jsdelivr.net/gh/raqoon886/Local_HangJeongDong@master/hangjeongdong_서울특별시.geojson",
-  "https://cdn.jsdelivr.net/gh/raqoon886/Local_HangJeongDong@master/hangjeongdong_인천광역시.geojson",
-  "https://cdn.jsdelivr.net/gh/raqoon886/Local_HangJeongDong@master/hangjeongdong_경기도.geojson"
-];
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/ttlmymo/korea-geography-quiz@main";
+
+// 시도코드 -> { bjd: 법정동 경계 파일, hjd: 시군구 이름 매핑용 파일 }
+const REGION_FILES = {
+  "11": { bjd: CDN_BASE + "/bjd/bjd_11_seoul.geojson",    hjd: CDN_BASE + "/hjd/hjd_11_seoul.geojson"    },
+  "28": { bjd: CDN_BASE + "/bjd/bjd_28_incheon.geojson",  hjd: CDN_BASE + "/hjd/hjd_28_incheon.geojson"  },
+  "41": { bjd: CDN_BASE + "/bjd/bjd_41_gyeonggi.geojson", hjd: CDN_BASE + "/hjd/hjd_41_gyeonggi.geojson" }
+};
+
+// 현재 활성화할 권역(시도코드). 전국 확장 시 여기에 코드만 추가.
+const ACTIVE_SIDOS = ["11", "28", "41"];
+
+// 시군구 5자리 코드 -> { sido, sidonm, sggnm } (hjd에서 런타임 추출 + 캐싱)
+let SGG_MAP = {};
+
 const DONG_RATIO = 0.5;
 const TIMER_SECONDS = 15;
 
@@ -762,16 +772,133 @@ function initMap() {
 }
 
 /* ===========================================================
+   IndexedDB 캐싱 레이어
+   - 한 번 받은 권역 데이터를 기기에 영구 저장 → 재접속 시 네트워크 없이 즉시 로드(오프라인 OK)
+   - 전세계 확장 / 네이티브 앱 전환 시에도 이 구조가 그대로 이어짐
+=========================================================== */
+const IDB_NAME = "kgq_geo_cache";
+const IDB_STORE = "regions";
+const IDB_VERSION = 1;
+// 데이터 스키마가 바뀌면 이 값을 올려 기존 캐시를 무효화한다.
+const DATA_SCHEMA_VERSION = "bjd-v1";
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) { reject(new Error("no-indexeddb")); return; }
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbGet(key) {
+  try {
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { console.warn("idbGet 실패, 네트워크로 진행:", e); return null; }
+}
+
+async function idbSet(key, value) {
+  try {
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(value, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { console.warn("idbSet 실패(캐시 생략):", e); return false; }
+}
+
+/* ===========================================================
+   시군구 코드 -> 이름 매핑 (hjd에서 추출)
+=========================================================== */
+async function buildSggMapForSido(sidoCode) {
+  // hjd 파일에서 sgg -> {sido, sidonm, sggnm} 추출
+  const url = REGION_FILES[sidoCode].hjd;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("행정동(hjd) 로드 실패: " + url);
+  const geo = await res.json();
+  const map = {};
+  (geo.features || []).forEach((f) => {
+    const p = f.properties || {};
+    if (p.sgg && !map[p.sgg]) {
+      map[p.sgg] = { sido: p.sido, sidonm: p.sidonm, sggnm: p.sggnm };
+    }
+  });
+  return map;
+}
+
+/* 법정동 GeoJSON에 hjd 매핑을 적용해 기존 코드 호환 속성으로 정규화 */
+function normalizeBjd(geo, sggMap) {
+  (geo.features || []).forEach((f) => {
+    const p = f.properties || {};
+    const code5 = p.COL_ADM_SE || (p.EMD_CD ? String(p.EMD_CD).slice(0, 5) : "");
+    const m = sggMap[code5] || {};
+    p.sgg    = code5;
+    p.sido   = m.sido   || code5.slice(0, 2);
+    p.sidonm = m.sidonm || (SIDO_NAME[code5.slice(0, 2)] || "");
+    p.sggnm  = m.sggnm  || "";
+    p.adm_nm = [p.sidonm, p.sggnm, p.EMD_NM].filter(Boolean).join(" ");
+    p.adm_cd = p.EMD_CD || "";
+    f.properties = p;
+  });
+  return geo;
+}
+
+/* 권역(시도) 단위 데이터 로드: 캐시 우선 → 없으면 네트워크 후 캐싱 */
+async function loadRegionGeo(sidoCode) {
+  const cacheKey = "bjd_" + sidoCode + "_" + DATA_SCHEMA_VERSION;
+  const cached = await idbGet(cacheKey);
+  if (cached && cached.geo && cached.sggMap) {
+    // 캐시된 매핑 표도 전역에 합쳐줌
+    Object.assign(SGG_MAP, cached.sggMap);
+    return cached.geo;
+  }
+
+  // 1) hjd에서 시군구 이름 매핑 추출
+  const sggMap = await buildSggMapForSido(sidoCode);
+  Object.assign(SGG_MAP, sggMap);
+
+  // 2) 법정동 경계 로드 + 정규화
+  const url = REGION_FILES[sidoCode].bjd;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("법정동(bjd) 로드 실패: " + url);
+  let geo = await res.json();
+  geo = normalizeBjd(geo, sggMap);
+
+  // 3) 캐싱 (실패해도 동작에는 지장 없음)
+  await idbSet(cacheKey, { geo, sggMap, savedAt: Date.now() });
+
+  return geo;
+}
+
+/* ===========================================================
    데이터 로드 + 인덱스
 =========================================================== */
 async function loadAllGeoData() {
   map.data.setStyle(() => ({ fillOpacity: 0, strokeWeight: 0, clickable: true }));
-  const geojsons = await Promise.all(GEOJSON_FILES.map(async (url) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("GeoJSON 로드 실패: " + url);
-    return res.json();
-  }));
-  geojsons.forEach((g) => map.data.addGeoJson(g));
+
+  const loadingText = document.getElementById("loading-text");
+
+  // 활성 권역을 순차 로드 (진행 표시). 캐시가 있으면 거의 즉시.
+  const geos = [];
+  for (let i = 0; i < ACTIVE_SIDOS.length; i++) {
+    const code = ACTIVE_SIDOS[i];
+    if (loadingText) loadingText.textContent =
+      `경계 데이터를 불러오는 중… (${SIDO_NAME[code] || code}, ${i + 1}/${ACTIVE_SIDOS.length})`;
+    geos.push(await loadRegionGeo(code));
+  }
+  geos.forEach((g) => map.data.addGeoJson(g));
 
   map.data.forEach((feature) => {
     const sgg = feature.getProperty("sgg");
@@ -789,9 +916,10 @@ async function loadAllGeoData() {
       if (!featuresBySi[siKey]) featuresBySi[siKey] = [];
       featuresBySi[siKey].push(feature);
     }
-    if (adm_nm) {
-      const parts = adm_nm.trim().split(/\s+/);
-      const dongName = parts[parts.length - 1];
+    // 법정동: EMD_NM이 동 이름. (adm_nm 끝 토큰도 동일하지만 EMD_NM을 우선 사용)
+    const dongName = feature.getProperty("EMD_NM") ||
+      (adm_nm ? adm_nm.trim().split(/\s+/).pop() : null);
+    if (dongName) {
       const dong = { dongName, sgg, sido, sggnm, feature };
       dongList.push(dong);
       dongByFeature.set(feature, dong);
@@ -1099,7 +1227,7 @@ function verifyAll() {
     okCount++;
   });
   let html = `<div style="color:#22c55e; font-weight:700;">✅ 구 정상: ${okCount} / ${DB.length}</div>`;
-  html += `<div style="color:#22c55e; margin-top:4px;">✅ 읍·면·동 총: ${dongList.length}개</div>`;
+  html += `<div style="color:#22c55e; margin-top:4px;">✅ 읍·면·동(법정동) 총: ${dongList.length}개</div>`;
   if (problems.length) {
     html += `<div style="color:#fca5a5; margin-top:8px; max-height:260px; overflow-y:auto;">`;
     problems.forEach((p) => { html += `<div>${p}</div>`; }); html += `</div>`;
@@ -1235,7 +1363,7 @@ function makeDongQuestion(pool) {
   return {
     type:"dong", dong: target, answerLabel: target.dongName, feats:[target.feature],
     options: shuffle([target.dongName, ...wrongs]),
-    explain: `${target.dongName}은(는) ${belong}에 속합니다.`
+    explain: `${target.dongName}은(는) ${belong}에 속하는 법정동입니다.`
   };
 }
 
