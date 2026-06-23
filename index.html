@@ -681,7 +681,9 @@ const DB = [
   {name:"용인시 처인구", matchName:"용인시처인구", sido:"41", group:"gg-yongin"},
   {name:"용인시 기흥구", matchName:"용인시기흥구", sido:"41", group:"gg-yongin"},
   {name:"용인시 수지구", matchName:"용인시수지구", sido:"41", group:"gg-yongin"},
-  {name:"부천시", matchName:"부천시", sido:"41", group:"gg-city"},
+  {name:"부천시 원미구", matchName:"부천시원미구", sido:"41", group:"gg-bucheon"},
+  {name:"부천시 소사구", matchName:"부천시소사구", sido:"41", group:"gg-bucheon"},
+  {name:"부천시 오정구", matchName:"부천시오정구", sido:"41", group:"gg-bucheon"},
   {name:"광명시", matchName:"광명시", sido:"41", group:"gg-city"},
   {name:"평택시", matchName:"평택시", sido:"41", group:"gg-city"},
   {name:"동두천시", matchName:"동두천시", sido:"41", group:"gg-city"},
@@ -1242,7 +1244,7 @@ function verifyAll() {
   map.data.forEach((f) => {
     const nm = f.getProperty("sggnm") || "";
     const sgg = f.getProperty("sgg") || "";
-    if (nm.indexOf("부천") !== -1 || nm.indexOf("화성") !== -1) diag[sgg] = nm;
+    if (nm.indexOf("화성") !== -1 || String(sgg).indexOf("4159") === 0) diag[sgg] = nm;
   });
   html += `<div style="color:#2563eb; margin-top:12px; font-weight:700;">🔬 부천/화성 실제 코드:</div>`;
   Object.keys(diag).sort().forEach((k) => {
