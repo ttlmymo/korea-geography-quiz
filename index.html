@@ -608,6 +608,11 @@ const ACTIVE_SIDOS = ["11", "28", "41"];
 // 시군구 5자리 코드 -> { sido, sidonm, sggnm } (hjd에서 런타임 추출 + 캐싱)
 let SGG_MAP = {};
 
+// hjd 파일에 누락된 시군구의 수동 보정표 (코드 -> 이름)
+const SGG_MAP_FALLBACK = {
+  "41590": { sido: "41", sidonm: "경기도", sggnm: "화성시" }
+};
+
 const DONG_RATIO = 0.5;
 const TIMER_SECONDS = 15;
 
@@ -849,7 +854,7 @@ function normalizeBjd(geo, sggMap) {
     const cdFront5 = p.EMD_CD ? String(p.EMD_CD).slice(0, 5) : "";
     const colCode  = p.COL_ADM_SE || "";
     const code5 = (cdFront5 && sggMap[cdFront5]) ? cdFront5 : (colCode || cdFront5);
-    const m = sggMap[code5] || {};
+    const m = sggMap[code5] || SGG_MAP_FALLBACK[code5] || {};
     p.sgg    = code5;
     p.sido   = m.sido   || code5.slice(0, 2);
     p.sidonm = m.sidonm || (SIDO_NAME[code5.slice(0, 2)] || "");
