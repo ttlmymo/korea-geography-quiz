@@ -787,7 +787,7 @@ const IDB_NAME = "kgq_geo_cache";
 const IDB_STORE = "regions";
 const IDB_VERSION = 1;
 // 데이터 스키마가 바뀌면 이 값을 올려 기존 캐시를 무효화한다.
-const DATA_SCHEMA_VERSION = "bjd-v2";
+const DATA_SCHEMA_VERSION = "bjd-v3";
 
 function idbOpen() {
   return new Promise((resolve, reject) => {
@@ -1242,24 +1242,9 @@ function verifyAll() {
   if (problems.length) {
     html += `<div style="color:#fca5a5; margin-top:8px; max-height:260px; overflow-y:auto;">`;
     problems.forEach((p) => { html += `<div>${p}</div>`; }); html += `</div>`;
-    } else html += `<div style="color:#22c55e; margin-top:6px;">🎉 모든 항목 정상!</div>`;
-
-  // ===== 진단용 임시 코드 (부천/화성 실제 코드 확인) =====
-  const diag = {};
-  map.data.forEach((f) => {
-    const nm = f.getProperty("sggnm") || "";
-    const sgg = f.getProperty("sgg") || "";
-    if (nm.indexOf("화성") !== -1 || String(sgg).indexOf("4159") === 0) diag[sgg] = nm;
-  });
-  html += `<div style="color:#2563eb; margin-top:12px; font-weight:700;">🔬 부천/화성 실제 코드:</div>`;
-  Object.keys(diag).sort().forEach((k) => {
-    html += `<div style="color:#2563eb;">${k} → ${diag[k]}</div>`;
-  });
-  // ===== 진단용 임시 코드 끝 =====
-
+  } else html += `<div style="color:#22c55e; margin-top:6px;">🎉 모든 항목 정상!</div>`;
   out.innerHTML = html;
 }
-
 function verifyAdjacency() {
   const out = document.getElementById("verify-result");
   const asym = [];
