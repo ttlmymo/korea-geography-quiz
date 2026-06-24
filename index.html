@@ -655,7 +655,10 @@ const COLOR_DONG = { fillColor:"#7dd3fc", fillOpacity:0.75, strokeColor:"#0ea5e9
 const COLOR_CANDIDATE = { fillColor:"#cbd5e1", fillOpacity:0.35, strokeColor:"#94a3b8", strokeWeight:1, strokeOpacity:0.8, clickable:true };
 const COLOR_CORRECT   = { fillColor:"#86efac", fillOpacity:0.75, strokeColor:"#16a34a", strokeWeight:2, strokeOpacity:1 };
 const COLOR_WRONGPICK = { fillColor:"#fca5a5", fillOpacity:0.75, strokeColor:"#dc2626", strokeWeight:2, strokeOpacity:1 };
-
+/* 구 문제용: 동 내부 경계선을 숨기기 위해 테두리 투명 */
+const COLOR_CANDIDATE_NB = { fillColor:"#cbd5e1", fillOpacity:0.4, strokeColor:"#cbd5e1", strokeWeight:0, strokeOpacity:0, clickable:true };
+const COLOR_CORRECT_NB   = { fillColor:"#86efac", fillOpacity:0.8, strokeColor:"#86efac", strokeWeight:0, strokeOpacity:0 };
+const COLOR_WRONGPICK_NB = { fillColor:"#fca5a5", fillOpacity:0.8, strokeColor:"#fca5a5", strokeWeight:0, strokeOpacity:0 };
 const LS_BEST = "kgq_best_score";
 const LS_NICK = "kgq_nick";
 
@@ -1165,13 +1168,13 @@ function regionSidos(region) {
 function showLocateCandidates(q) {
   clearHighlight();
   clearCandidates();
-  if (q.qtype === "gu") {
+   if (q.qtype === "gu") {
     const sidos = regionSidos(q.region);
     DB.forEach((item) => {
       if (!item.sggCode) return;
       if (sidos.indexOf(item.sido) === -1) return;
       (featuresBySgg[item.sggCode] || []).forEach((f) => {
-        map.data.overrideStyle(f, COLOR_CANDIDATE);
+        map.data.overrideStyle(f, COLOR_CANDIDATE_NB);
         candidateFeatures.push(f);
       });
     });
@@ -1214,15 +1217,21 @@ function judgeLocate(feature, q, context) {
     isCorrect = !!(dong && dong.sgg === q.sgg && dong.dongName === q.dongName);
   }
 
-  // 정답 영역 칠하기
+   // 정답 영역 칠하기
   if (q.qtype === "gu") {
-    (featuresBySgg[q.sgg] || []).forEach((f) => map.data.overrideStyle(f, COLOR_CORRECT));
+    (featuresBySgg[q.sgg] || []).forEach((f) => map.data.overrideStyle(f, COLOR_CORRECT_NB));
   } else {
     const ans = (dongsBySgg[q.sgg] || []).find((d) => d.dongName === q.dongName);
     if (ans) map.data.overrideStyle(ans.feature, COLOR_CORRECT);
   }
-  // 틀리게 누른 곳 표시
-  if (!isCorrect) map.data.overrideStyle(feature, COLOR_WRONGPICK);
+  // 틀리게 누른 곳 표시 (구 문제는 클릭한 동이 속한 구 전체를 빨강)
+  if (!isCorrect) {
+    if (q.qtype === "gu") {
+      (featuresBySgg[clickedSgg] || []).forEach((f) => map.data.overrideStyle(f, COLOR_WRONGPICK_NB));
+    } else {
+      map.data.overrideStyle(feature, COLOR_WRONGPICK);
+    }
+  }
 
   if (context === "learn") {
     locateCurrent.done = true;
