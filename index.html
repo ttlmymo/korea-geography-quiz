@@ -118,10 +118,10 @@
   .seg button:active { transform:translateY(0); box-shadow:var(--inset); }
   .seg button.sel { background:var(--sage); color:#fff; box-shadow:var(--soft-btn); text-shadow:0 1px 1px rgba(0,0,0,.1); }
 
-  #seg-type { background:var(--card-2); border-radius:999px; padding:5px; gap:0; box-shadow:var(--inset); }
-  #seg-type button { box-shadow:none; background:transparent; border-radius:999px; }
-  #seg-type button:hover { transform:none; }
-  #seg-type button.sel { background:var(--sage); color:#fff; box-shadow:var(--soft-btn); }
+  #seg-type, #seg-dir { background:var(--card-2); border-radius:999px; padding:5px; gap:0; box-shadow:var(--inset); }
+  #seg-type button, #seg-dir button { box-shadow:none; background:transparent; border-radius:999px; }
+  #seg-type button:hover, #seg-dir button:hover { transform:none; }
+  #seg-type button.sel, #seg-dir button.sel { background:var(--sage); color:#fff; box-shadow:var(--soft-btn); }
 
   #seg-count { gap:22px; }
   #seg-count button { flex:none; min-width:0; display:flex; align-items:center; gap:9px; background:transparent; box-shadow:none; color:var(--text); padding:6px 4px; }
@@ -189,6 +189,13 @@
   #start-screen > *:last-child { margin-bottom: 0; }
   #open-setup-btn { width: 100%; }
 
+  #learn-dir-select { display:flex; flex-direction:column; gap:14px; }
+  #learn-dir-select .dir-btn { padding:20px; border:none; border-radius:var(--radius-sm); font-size:18px; font-weight:400; cursor:pointer; box-shadow:var(--soft-btn); transition:all .15s; text-align:left; line-height:1.5; }
+  #learn-dir-select .dir-btn:hover { transform:translateY(-2px); box-shadow:var(--soft); }
+  #learn-dir-select .dir-btn.a { background:var(--cream); color:#6e5a16; }
+  #learn-dir-select .dir-btn.b { background:var(--sage); color:#fff; }
+  #learn-dir-select .dir-btn .sub { font-size:13px; opacity:.85; display:block; margin-top:5px; }
+
   #learn-list { display:flex; flex-direction:column; gap:9px; margin-top:4px; flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-right:4px; }
   .learn-item { background:var(--card); border:none; border-radius:16px; padding:15px 17px; font-size:16px; font-weight:400; cursor:pointer; transition:all .15s; display:flex; justify-content:space-between; align-items:center; flex:none; box-shadow:var(--soft-sm); }
   .learn-item:hover { transform:translateY(-2px); box-shadow:var(--soft); }
@@ -204,6 +211,10 @@
   #info-card .ic-label { color:var(--sage-d); font-weight:400; margin-right:7px; }
   #info-card .ic-empty { color:var(--muted); font-size:13px; }
   #learn-hint { background:var(--card-2); border-radius:15px; padding:14px 16px; font-size:13px; color:var(--text); line-height:1.6; flex:none; box-shadow:var(--inset); }
+
+  #locate-panel { display:flex; flex-direction:column; gap:14px; flex:1; min-height:0; }
+  #locate-question { font-size:18px; line-height:1.6; background:var(--card); padding:20px; border-radius:var(--radius); box-shadow:var(--soft); color:var(--text); }
+  #locate-feedback { font-size:14px; line-height:1.6; padding:16px 18px; border-radius:var(--radius-sm); background:var(--card); box-shadow:var(--soft-sm); border-left:5px solid var(--sage); color:var(--text); }
 
   @media (max-width: 768px) {
     #app { flex-direction: column; height: 100dvh; }
@@ -221,13 +232,13 @@
     #logout-btn { font-size:13px; padding:9px 14px; }
     #auth-box .label { font-size:14px; }
     .badge { margin-bottom: 5px; padding: 5px 12px; font-size: 12px; }
-    #question { font-size: 15px; line-height: 1.5; padding: 14px 16px; min-height: 0; }
+    #question, #locate-question { font-size: 15px; line-height: 1.5; padding: 14px 16px; min-height: 0; }
     #legend { font-size: 11px; gap: 4px; }
     #legend .sw { width: 13px; height: 13px; }
     #options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .option-btn { padding: 14px 9px; font-size: 15px; border-radius: 15px; text-align: center; }
     button.primary { padding: 15px; font-size: 16px; }
-    #explain { font-size: 12px; padding: 12px 14px; line-height: 1.5; }
+    #explain, #locate-feedback { font-size: 12px; padding: 12px 14px; line-height: 1.5; }
     #result .score { font-size: 40px; }
     #result-msg { font-size: 13px; }
     .report-item { font-size: 12px; padding: 11px 13px; }
@@ -236,6 +247,7 @@
     .learn-item { padding: 13px 15px; font-size: 15px; }
     #info-card { font-size: 14px; padding: 15px 17px; }
     #start-screen > * { margin-bottom: 12px; }
+    #learn-dir-select .dir-btn { padding:16px; font-size:16px; }
   }
 </style>
 </head>
@@ -286,6 +298,15 @@
         </div>
 
         <div id="game-setup" class="hidden">
+          <div class="setup-block">
+            <span class="label">출제 방향</span>
+            <div class="seg" id="seg-dir">
+              <button data-val="name" class="sel">위치→이름</button>
+              <button data-val="locate">이름→위치</button>
+              <button data-val="mix">혼합</button>
+            </div>
+          </div>
+
           <div class="setup-block">
             <span class="label">출제 지역</span>
             <div class="seg" id="seg-region">
@@ -340,19 +361,54 @@
       <div class="row" style="margin-bottom:2px;">
         <span style="font-size:18px; font-weight:400; color:var(--text);">📚 학습 모드</span>
       </div>
-      <div id="learn-hint">👆 지도를 직접 누르면 그곳이 어느 구·동인지 알려줘요. 또는 아래 목록에서 골라도 됩니다.</div>
 
-      <div class="setup-block" style="flex:none; margin-bottom:0;">
-        <span class="label">지역 선택</span>
-        <div class="seg" id="learn-region">
-          <button data-val="seoul" class="sel">서울</button>
-          <button data-val="incheon">인천</button>
-          <button data-val="gg">경기</button>
-        </div>
+      <div id="learn-dir-select">
+        <button class="dir-btn a" id="learn-dir-name">🗺️ 위치 → 이름
+          <span class="sub">지도에서 구·동을 골라 이름과 정보를 확인해요</span>
+        </button>
+        <button class="dir-btn b" id="learn-dir-locate">📍 이름 → 위치
+          <span class="sub">이름을 보고 지도에서 위치를 직접 찾아요 (연습)</span>
+        </button>
       </div>
 
-      <div id="info-card" class="hidden"></div>
-      <div id="learn-list"></div>
+      <div id="learn-explore" class="hidden" style="display:flex; flex-direction:column; flex:1; min-height:0; gap:14px;">
+        <div id="learn-hint">👆 지도를 직접 누르면 그곳이 어느 구·동인지 알려줘요. 또는 아래 목록에서 골라도 됩니다.</div>
+
+        <div class="setup-block" style="flex:none; margin-bottom:0;">
+          <span class="label">지역 선택</span>
+          <div class="seg" id="learn-region">
+            <button data-val="seoul" class="sel">서울</button>
+            <button data-val="incheon">인천</button>
+            <button data-val="gg">경기</button>
+          </div>
+        </div>
+
+        <div id="info-card" class="hidden"></div>
+        <div id="learn-list"></div>
+      </div>
+
+      <div id="locate-panel" class="hidden">
+        <div class="setup-block" style="flex:none; margin-bottom:0;">
+          <span class="label">지역 선택</span>
+          <div class="seg" id="locate-region">
+            <button data-val="seoul" class="sel">서울</button>
+            <button data-val="incheon">인천</button>
+            <button data-val="gg">경기</button>
+          </div>
+        </div>
+        <div class="setup-block" style="flex:none; margin-bottom:0;">
+          <span class="label">문제 유형</span>
+          <div class="seg" id="locate-type">
+            <button data-val="gu" class="sel">구·시·군</button>
+            <button data-val="dong">읍·면·동</button>
+          </div>
+        </div>
+        <span id="q-badge-locate" class="badge gu" style="align-self:flex-start;">구·시·군</span>
+        <div id="locate-question">아래 "다음 문제"를 눌러 시작하세요.</div>
+        <div id="locate-feedback" class="hidden"></div>
+        <button id="locate-next-btn" class="primary" style="flex:none;">문제 시작 / 다음 문제</button>
+      </div>
+
       <button id="learn-back-btn" class="primary" style="margin-top:10px; flex:none;">← 처음으로</button>
     </div>
 
@@ -596,6 +652,9 @@ const TIMER_SECONDS = 15;
 const COLOR_SI   = { fillColor:"#fed7aa", fillOpacity:0.45, strokeColor:"#fb923c", strokeWeight:1, strokeOpacity:0.7 };
 const COLOR_GU   = { fillColor:"#f97316", fillOpacity:0.55, strokeColor:"#ea580c", strokeWeight:2, strokeOpacity:0.95 };
 const COLOR_DONG = { fillColor:"#7dd3fc", fillOpacity:0.75, strokeColor:"#0ea5e9", strokeWeight:2, strokeOpacity:1 };
+const COLOR_CANDIDATE = { fillColor:"#cbd5e1", fillOpacity:0.35, strokeColor:"#94a3b8", strokeWeight:1, strokeOpacity:0.8, clickable:true };
+const COLOR_CORRECT   = { fillColor:"#86efac", fillOpacity:0.75, strokeColor:"#16a34a", strokeWeight:2, strokeOpacity:1 };
+const COLOR_WRONGPICK = { fillColor:"#fca5a5", fillOpacity:0.75, strokeColor:"#dc2626", strokeWeight:2, strokeOpacity:1 };
 
 const LS_BEST = "kgq_best_score";
 const LS_NICK = "kgq_nick";
@@ -609,7 +668,12 @@ const MANUAL_ADJ_REMOVE = [];
 const ISLAND_NOTE = {
   "옹진군": "인천 앞바다에 흩어져 있는 섬들로만 이루어진 군이에요. 백령도·연평도·대청도·덕적도·자월도 등이 속하며, 육지와 바다로 분리되어 있어 경계가 맞닿은 구·군이 없습니다."
 };
+</script>
 
+<script>
+/* ===========================================================
+   DB (구·시·군 목록)
+=========================================================== */
 const DB = [
   {name:"종로구", matchName:"종로구", sido:"11", group:"seoul"},
   {name:"중구", matchName:"중구", sido:"11", group:"seoul"},
@@ -711,14 +775,22 @@ const SIDO_NAME = { "11":"서울특별시", "28":"인천광역시", "41":"경기
 let quizSet = [], currentIndex = 0, score = 0, answered = false;
 let answerLog = [];
 let totalQuestions = 10;
-let settings = { region:"all", type:"mix", count:10, timer:"off" };
+let settings = { dir:"name", region:"all", type:"mix", count:10, timer:"off" };
 let timerId = null, timerLeft = 0;
 
 let learnRegion = "seoul";
 let expandedGu = null;
-let learnMode = false;
 let selectedDongName = null;
 let mapClickListener = null;
+
+/* appMode: "none" | "learn-explore" | "learn-locate" | "game" */
+let appMode = "none";
+let candidateFeatures = [];
+
+/* 학습 locate 연습 상태 */
+let locateRegion = "seoul";
+let locateType = "gu";
+let locateCurrent = null;
 
 function siNameOf(sggnm) {
   const m = sggnm.match(/^(.*?[시군])/);
@@ -734,7 +806,7 @@ function showScreen(name) {
 }
 
 /* ===========================================================
-   지도 초기화
+   지도 초기화 + 클릭 라우팅
 =========================================================== */
 function initMap() {
   map = new naver.maps.Map("map-container", {
@@ -748,10 +820,16 @@ function initMap() {
   });
 
   mapClickListener = naver.maps.Event.addListener(map.data, "click", (e) => {
-    if (!learnMode) return;
     const feature = e.feature;
-    const dong = dongByFeature.get(feature);
-    if (dong) onMapDongClick(dong);
+    if (appMode === "learn-explore") {
+      const dong = dongByFeature.get(feature);
+      if (dong) onMapDongClick(dong);
+    } else if (appMode === "learn-locate") {
+      handleLocateClick(feature, "learn");
+    } else if (appMode === "game") {
+      const q = quizSet[currentIndex];
+      if (q && q.dir === "locate") handleLocateClick(feature, "game");
+    }
   });
 }
 
@@ -808,14 +886,14 @@ async function buildSggMapForSido(sidoCode) {
   const res = await fetch(url);
   if (!res.ok) throw new Error("행정동(hjd) 로드 실패: " + url);
   const geo = await res.json();
-  const map = {};
+  const mp = {};
   (geo.features || []).forEach((f) => {
     const p = f.properties || {};
-    if (p.sgg && !map[p.sgg]) {
-      map[p.sgg] = { sido: p.sido, sidonm: p.sidonm, sggnm: p.sggnm };
+    if (p.sgg && !mp[p.sgg]) {
+      mp[p.sgg] = { sido: p.sido, sidonm: p.sidonm, sggnm: p.sggnm };
     }
   });
-  return map;
+  return mp;
 }
 
 function normalizeBjd(geo, sggMap) {
@@ -907,7 +985,6 @@ async function loadAllGeoData() {
 
   DB.forEach((item) => { item.sggCode = codeByKey[item.sido + "|" + item.matchName] || null; });
 
-  // 인접 결과 캐시: 있으면 불러오고, 없으면 계산 후 저장
   const adjKey = ADJ_CACHE_KEY + "_" + DATA_SCHEMA_VERSION + "_" + ACTIVE_SIDOS.join("-");
   const cachedAdj = await idbGet(adjKey);
   if (cachedAdj && cachedAdj.guAdj && cachedAdj.dongAdj) {
@@ -1028,6 +1105,10 @@ function clearHighlight() {
   highlightedFeatures = [];
   if (centerMarker) { centerMarker.setMap(null); centerMarker = null; }
 }
+function clearCandidates() {
+  candidateFeatures.forEach((f) => map.data.revertStyle(f));
+  candidateFeatures = [];
+}
 function highlightGu(feats) {
   clearHighlight();
   feats.forEach((f) => { map.data.overrideStyle(f, COLOR_GU); highlightedFeatures.push(f); });
@@ -1071,23 +1152,188 @@ function collectCoords(geometry, cb) {
 }
 
 /* ===========================================================
-   학습 모드
+   이름→위치 (클릭으로 맞히기) 공용 로직
+   - 학습/게임 양쪽에서 사용
+=========================================================== */
+function regionSidos(region) {
+  if (region === "all") return ACTIVE_SIDOS.slice();
+  const code = Object.keys(SIDO_TO_REGION).find((k) => SIDO_TO_REGION[k] === region);
+  return code ? [code] : ACTIVE_SIDOS.slice();
+}
+
+/* 후보 영역 칠하기: 구 문제는 출제 지역 모든 구, 동 문제는 해당 구의 모든 동 */
+function showLocateCandidates(q) {
+  clearHighlight();
+  clearCandidates();
+  if (q.qtype === "gu") {
+    const sidos = regionSidos(q.region);
+    DB.forEach((item) => {
+      if (!item.sggCode) return;
+      if (sidos.indexOf(item.sido) === -1) return;
+      (featuresBySgg[item.sggCode] || []).forEach((f) => {
+        map.data.overrideStyle(f, COLOR_CANDIDATE);
+        candidateFeatures.push(f);
+      });
+    });
+    const allFeats = [];
+    sidos.forEach((sd) => {
+      DB.filter((d) => d.sido === sd && d.sggCode).forEach((d) => {
+        (featuresBySgg[d.sggCode] || []).forEach((f) => allFeats.push(f));
+      });
+    });
+    if (allFeats.length) fitToFeatures(allFeats);
+  } else {
+    (dongsBySgg[q.sgg] || []).forEach((dg) => {
+      map.data.overrideStyle(dg.feature, COLOR_CANDIDATE);
+      candidateFeatures.push(dg.feature);
+    });
+    if (featuresBySgg[q.sgg]) fitToFeatures(featuresBySgg[q.sgg]);
+  }
+}
+
+/* 클릭 판정. context: "learn" | "game" */
+function handleLocateClick(feature, context) {
+  if (context === "learn") {
+    if (!locateCurrent || locateCurrent.done) return;
+    judgeLocate(feature, locateCurrent, context);
+  } else {
+    if (answered) return;
+    const q = quizSet[currentIndex];
+    if (!q || q.dir !== "locate") return;
+    judgeLocate(feature, q, context);
+  }
+}
+
+function judgeLocate(feature, q, context) {
+  const clickedSgg = feature.getProperty("sgg");
+  const dong = dongByFeature.get(feature);
+  let isCorrect = false;
+  if (q.qtype === "gu") {
+    isCorrect = (clickedSgg === q.sgg);
+  } else {
+    isCorrect = !!(dong && dong.sgg === q.sgg && dong.dongName === q.dongName);
+  }
+
+  // 정답 영역 칠하기
+  if (q.qtype === "gu") {
+    (featuresBySgg[q.sgg] || []).forEach((f) => map.data.overrideStyle(f, COLOR_CORRECT));
+  } else {
+    const ans = (dongsBySgg[q.sgg] || []).find((d) => d.dongName === q.dongName);
+    if (ans) map.data.overrideStyle(ans.feature, COLOR_CORRECT);
+  }
+  // 틀리게 누른 곳 표시
+  if (!isCorrect) map.data.overrideStyle(feature, COLOR_WRONGPICK);
+
+  if (context === "learn") {
+    locateCurrent.done = true;
+    const fb = document.getElementById("locate-feedback");
+    fb.classList.remove("hidden");
+    fb.style.borderLeftColor = isCorrect ? "#22c55e" : "#ef4444";
+    fb.textContent = (isCorrect ? "✅ 정답! " : "❌ 아쉬워요. ") + q.answerFull + " 입니다. (초록=정답 위치)";
+  } else {
+    answered = true;
+    stopTimer();
+    const isC = isCorrect;
+    if (isC) score += 10;
+    const explainEl = document.getElementById("explain");
+    explainEl.classList.remove("hidden");
+    explainEl.style.borderLeftColor = isC ? "#22c55e" : "#ef4444";
+    explainEl.textContent = (isC ? "✅ 정답! " : "❌ 오답. ") + q.answerFull + " 입니다.";
+    answerLog.push({ type: q.qtype, dir:"locate", answer: q.answerFull, picked: isC ? "정답 클릭" : "오답 클릭", correct: isC, explain: q.answerFull + " 위치 맞히기", q: q });
+    document.getElementById("score-label").textContent = "점수 " + score;
+    const nextBtn = document.getElementById("next-btn");
+    nextBtn.disabled = false;
+    nextBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+/* ===========================================================
+   학습 모드 - 진입/방향선택
 =========================================================== */
 function openLearnMode() {
   clearHighlight();
-  learnMode = true;
+  clearCandidates();
+  appMode = "none";
   showScreen("learn");
-  document.getElementById("info-card").classList.add("hidden");
-  expandedGu = null;
-  selectedDongName = null;
-  renderLearnList();
+  document.getElementById("learn-dir-select").classList.remove("hidden");
+  document.getElementById("learn-explore").classList.add("hidden");
+  document.getElementById("locate-panel").classList.add("hidden");
 }
 function closeLearnMode() {
-  learnMode = false;
+  appMode = "none";
   clearHighlight();
+  clearCandidates();
   showScreen("start");
 }
 
+function openLearnExplore() {
+  appMode = "learn-explore";
+  document.getElementById("learn-dir-select").classList.add("hidden");
+  document.getElementById("learn-explore").classList.remove("hidden");
+  document.getElementById("locate-panel").classList.add("hidden");
+  document.getElementById("info-card").classList.add("hidden");
+  expandedGu = null; selectedDongName = null;
+  clearHighlight(); clearCandidates();
+  renderLearnList();
+}
+
+function openLearnLocate() {
+  appMode = "learn-locate";
+  document.getElementById("learn-dir-select").classList.add("hidden");
+  document.getElementById("learn-explore").classList.add("hidden");
+  document.getElementById("locate-panel").classList.remove("hidden");
+  document.getElementById("locate-feedback").classList.add("hidden");
+  document.getElementById("locate-question").textContent = '아래 "문제 시작 / 다음 문제"를 눌러 시작하세요.';
+  locateCurrent = null;
+  clearHighlight(); clearCandidates();
+}
+
+/* 학습 locate: 다음 문제 만들기 */
+function nextLearnLocate() {
+  clearHighlight(); clearCandidates();
+  document.getElementById("locate-feedback").classList.add("hidden");
+
+  const q = buildLocateQuestion(locateRegion, locateType);
+  if (!q) { alert("해당 조건에 맞는 문제를 만들 수 없습니다."); return; }
+  locateCurrent = q;
+  const badge = document.getElementById("q-badge-locate");
+  if (q.qtype === "gu") { badge.className = "badge gu"; badge.textContent = "구·시·군"; }
+  else { badge.className = "badge dong"; badge.textContent = "읍·면·동"; }
+  document.getElementById("locate-question").textContent = q.prompt;
+  showLocateCandidates(q);
+}
+
+/* 공용: locate 문제 객체 생성 */
+function buildLocateQuestion(region, qtype) {
+  const sidos = regionSidos(region);
+  if (qtype === "gu") {
+    const pool = DB.filter((d) => d.sggCode && sidos.indexOf(d.sido) !== -1);
+    if (!pool.length) return null;
+    const t = pool[Math.floor(Math.random() * pool.length)];
+    return {
+      dir:"locate", qtype:"gu", region, sgg: t.sggCode,
+      prompt: `"${t.name}" 은(는) 어디일까요? 지도에서 찾아 누르세요.`,
+      answerFull: `${SIDO_NAME[t.sido]} ${t.name}`,
+      done:false
+    };
+  } else {
+    let pool = dongList.filter((d) => sidos.indexOf(d.sido) !== -1);
+    if (!pool.length) return null;
+    const t = pool[Math.floor(Math.random() * pool.length)];
+    const si = siNameOf(t.sggnm);
+    const guLabel = (t.sggnm === si) ? si : t.sggnm;
+    return {
+      dir:"locate", qtype:"dong", region, sgg: t.sgg, dongName: t.dongName,
+      prompt: `"${guLabel} ${t.dongName}" 은(는) 어디일까요? 지도에서 찾아 누르세요.`,
+      answerFull: `${SIDO_NAME[t.sido]} ${guLabel} ${t.dongName}`,
+      done:false
+    };
+  }
+}
+
+/* ===========================================================
+   학습 모드 - 위치→이름 (탐색)
+=========================================================== */
 function renderLearnList() {
   const listEl = document.getElementById("learn-list");
   listEl.innerHTML = "";
@@ -1169,13 +1415,9 @@ function showGuInfoCard(item) {
   card.classList.remove("hidden");
   const adj = getGuAdjNames(item.sggCode);
   let adjHtml;
-  if (adj.length) {
-    adjHtml = adj.join(", ");
-  } else if (ISLAND_NOTE[item.name]) {
-    adjHtml = `<span style="color:var(--text);">${ISLAND_NOTE[item.name]}</span>`;
-  } else {
-    adjHtml = "<span class='ic-empty'>계산된 인접 구가 없어요.</span>";
-  }
+  if (adj.length) adjHtml = adj.join(", ");
+  else if (ISLAND_NOTE[item.name]) adjHtml = `<span style="color:var(--text);">${ISLAND_NOTE[item.name]}</span>`;
+  else adjHtml = "<span class='ic-empty'>계산된 인접 구가 없어요.</span>";
   card.innerHTML = `
     <div class="ic-title">${item.name}</div>
     <div class="ic-row"><span class="ic-label">소속</span>${SIDO_NAME[item.sido]}</div>
@@ -1192,17 +1434,11 @@ function showDongInfoCard(dong) {
   const adj = getDongAdjNames(dong);
   const guItem = DB.find((d) => d.sggCode === dong.sgg);
   const guName = (guItem && guItem.name) || dong.sggnm || "";
-  const islandKey = Object.keys(ISLAND_NOTE).find(
-    (k) => guName.indexOf(k) !== -1 || (dong.sggnm || "").indexOf(k) !== -1
-  );
+  const islandKey = Object.keys(ISLAND_NOTE).find((k) => guName.indexOf(k) !== -1 || (dong.sggnm || "").indexOf(k) !== -1);
   let adjHtml;
-  if (adj.length) {
-    adjHtml = adj.join(", ");
-  } else if (islandKey) {
-    adjHtml = `<span style="color:var(--text);">${ISLAND_NOTE[islandKey]}</span>`;
-  } else {
-    adjHtml = "<span class='ic-empty'>계산된 인접 동이 없어요.</span>";
-  }
+  if (adj.length) adjHtml = adj.join(", ");
+  else if (islandKey) adjHtml = `<span style="color:var(--text);">${ISLAND_NOTE[islandKey]}</span>`;
+  else adjHtml = "<span class='ic-empty'>계산된 인접 동이 없어요.</span>";
   card.innerHTML = `
     <div class="ic-title">${dong.dongName}</div>
     <div class="ic-row"><span class="ic-label">소속</span>${belong}</div>
@@ -1212,7 +1448,7 @@ function showDongInfoCard(dong) {
 }
 
 /* ===========================================================
-   전체 검증
+   전체 검증 / 인접 검증
 =========================================================== */
 function verifyAll() {
   const out = document.getElementById("verify-result");
@@ -1253,24 +1489,19 @@ function verifyAdjacency() {
 
   let html = `<div style="color:#38bdf8; font-weight:700;">🔗 인접 검증 결과</div>`;
   html += `<div style="color:#94a3b8; margin-top:4px;">격자 크기 ADJ_GRID = ${ADJ_GRID}</div>`;
-  if (isolated.length) {
-    html += `<div style="color:#fca5a5; margin-top:8px;">⚠ 인접 구 0개 (의심): ${isolated.join(", ")}</div>`;
-  } else {
-    html += `<div style="color:#22c55e; margin-top:8px;">✅ 인접 0개인 구 없음</div>`;
-  }
+  if (isolated.length) html += `<div style="color:#fca5a5; margin-top:8px;">⚠ 인접 구 0개 (의심): ${isolated.join(", ")}</div>`;
+  else html += `<div style="color:#22c55e; margin-top:8px;">✅ 인접 0개인 구 없음</div>`;
   if (asym.length) {
     html += `<div style="color:#fbbf24; margin-top:8px;">⚠ 비대칭 쌍 ${asym.length}건:</div>`;
     html += `<div style="color:#fca5a5; max-height:220px; overflow-y:auto; margin-top:4px;">`;
     asym.forEach((s) => { html += `<div>${s}</div>`; }); html += `</div>`;
-  } else {
-    html += `<div style="color:#22c55e; margin-top:8px;">✅ 비대칭 쌍 없음 (구 인접 정상 대칭)</div>`;
-  }
+  } else html += `<div style="color:#22c55e; margin-top:8px;">✅ 비대칭 쌍 없음 (구 인접 정상 대칭)</div>`;
   html += `<div style="color:#64748b; margin-top:8px; font-size:11px;">※ 이 결과를 복사해 보내주시면 함께 보정합니다.</div>`;
   out.innerHTML = html;
 }
 
 /* ===========================================================
-   퀴즈 로직
+   게임 퀴즈 로직
 =========================================================== */
 function shuffle(arr) {
   const a = arr.slice();
@@ -1289,7 +1520,7 @@ function filteredDongPool() {
 }
 
 function startGame() {
-  learnMode = false;
+  appMode = "game";
   totalQuestions = settings.count;
   quizSet = []; answerLog = [];
   const guPool = filteredGuPool();
@@ -1303,13 +1534,26 @@ function startGame() {
   }
 
   for (let i = 0; i < totalQuestions; i++) {
+    // 방향 결정
+    let dir;
+    if (settings.dir === "name") dir = "name";
+    else if (settings.dir === "locate") dir = "locate";
+    else dir = Math.random() < 0.5 ? "name" : "locate";
+
+    // 유형 결정
     let useDong;
     if (settings.type === "gu") useDong = false;
     else if (settings.type === "dong") useDong = true;
     else useDong = Math.random() < DONG_RATIO;
     if (useDong && !dongPool.length) useDong = false;
     if (!useDong && !guPool.length) useDong = true;
-    quizSet.push(useDong ? makeDongQuestion(dongPool) : makeGuQuestion(guPool));
+
+    if (dir === "name") {
+      quizSet.push(useDong ? makeDongQuestion(dongPool) : makeGuQuestion(guPool));
+    } else {
+      const q = buildLocateQuestion(settings.region, useDong ? "dong" : "gu");
+      quizSet.push(q || (useDong ? makeDongQuestion(dongPool) : makeGuQuestion(guPool)));
+    }
   }
 
   currentIndex = 0; score = 0;
@@ -1321,7 +1565,7 @@ function startGame() {
 function retryWrongOnly() {
   const wrongQs = answerLog.filter((a) => !a.correct).map((a) => a.q);
   if (!wrongQs.length) { alert("틀린 문제가 없습니다! 🎉"); return; }
-  learnMode = false;
+  appMode = "game";
   quizSet = shuffle(wrongQs);
   totalQuestions = quizSet.length;
   answerLog = [];
@@ -1340,7 +1584,7 @@ function makeGuQuestion(validGu) {
     wrongs = wrongs.concat(extra);
   }
   return {
-    type:"gu", answerLabel: target.name, feats: featuresBySgg[target.sggCode],
+    dir:"name", type:"gu", qtype:"gu", answerLabel: target.name, feats: featuresBySgg[target.sggCode],
     options: shuffle([target.name, ...wrongs.map((w) => w.name)]),
     explain: `${target.name}은(는) ${SIDO_NAME[target.sido]}에 속한 행정구역입니다.`
   };
@@ -1361,7 +1605,7 @@ function makeDongQuestion(pool) {
     ? `${SIDO_NAME[target.sido]} ${si}`
     : `${SIDO_NAME[target.sido]} ${si} ${target.sggnm.replace(si, "")}`;
   return {
-    type:"dong", dong: target, answerLabel: target.dongName, feats:[target.feature],
+    dir:"name", type:"dong", qtype:"dong", dong: target, answerLabel: target.dongName, feats:[target.feature],
     options: shuffle([target.dongName, ...wrongs]),
     explain: `${target.dongName}은(는) ${belong}에 속하는 법정동입니다.`
   };
@@ -1388,13 +1632,21 @@ function timeOut() {
   if (answered) return;
   answered = true;
   const q = quizSet[currentIndex];
-  const buttons = document.querySelectorAll(".option-btn");
-  buttons.forEach((b) => { b.disabled = true; if (b.textContent === q.answerLabel) b.classList.add("correct"); });
   const explainEl = document.getElementById("explain");
-  explainEl.textContent = "⏰ 시간 초과! " + q.explain;
+  if (q.dir === "name") {
+    const buttons = document.querySelectorAll(".option-btn");
+    buttons.forEach((b) => { b.disabled = true; if (b.textContent === q.answerLabel) b.classList.add("correct"); });
+    explainEl.textContent = "⏰ 시간 초과! " + q.explain;
+    answerLog.push({ type: q.qtype, dir:q.dir, answer: q.answerLabel, picked: "(시간초과)", correct: false, explain: q.explain, q: q });
+  } else {
+    // locate: 정답 위치 표시
+    if (q.qtype === "gu") (featuresBySgg[q.sgg] || []).forEach((f) => map.data.overrideStyle(f, COLOR_CORRECT));
+    else { const ans = (dongsBySgg[q.sgg] || []).find((d) => d.dongName === q.dongName); if (ans) map.data.overrideStyle(ans.feature, COLOR_CORRECT); }
+    explainEl.textContent = "⏰ 시간 초과! " + q.answerFull + " 입니다.";
+    answerLog.push({ type: q.qtype, dir:q.dir, answer: q.answerFull, picked: "(시간초과)", correct: false, explain: q.answerFull + " 위치 맞히기", q: q });
+  }
   explainEl.style.borderLeftColor = "#ef4444";
   explainEl.classList.remove("hidden");
-  answerLog.push({ type: q.type, answer: q.answerLabel, picked: "(시간초과)", correct: false, explain: q.explain, q: q });
   const nextBtn = document.getElementById("next-btn");
   nextBtn.disabled = false;
   nextBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -1402,6 +1654,8 @@ function timeOut() {
 
 function loadQuestion() {
   answered = false;
+  clearHighlight();
+  clearCandidates();
   const q = quizSet[currentIndex];
   document.getElementById("q-counter").textContent = (currentIndex + 1) + " / " + totalQuestions;
   document.getElementById("score-label").textContent = "점수 " + score;
@@ -1409,34 +1663,45 @@ function loadQuestion() {
 
   const badge = document.getElementById("q-badge");
   const legend = document.getElementById("legend");
-  if (q.type === "dong") {
-    badge.className = "badge dong"; badge.textContent = "읍·면·동";
-    document.getElementById("question").textContent = "빨간 점이 찍힌 이 읍·면·동의 이름은? (연주황=시, 진주황=구)";
-    legend.classList.remove("hidden");
-  } else {
-    badge.className = "badge gu"; badge.textContent = "구·시·군";
-    document.getElementById("question").textContent = "주황색으로 표시된 이 행정구역의 이름은?";
-    legend.classList.add("hidden");
-  }
-
+  const optionsEl = document.getElementById("options");
   const explainEl = document.getElementById("explain");
   explainEl.classList.add("hidden"); explainEl.textContent = "";
 
-  const optionsEl = document.getElementById("options");
-  optionsEl.innerHTML = "";
-  q.options.forEach((optLabel) => {
-    const btn = document.createElement("button");
-    btn.className = "option-btn";
-    btn.textContent = optLabel;
-    btn.addEventListener("click", () => selectAnswer(btn, optLabel, q));
-    optionsEl.appendChild(btn);
-  });
+  if (q.dir === "name") {
+    // 기존 위치→이름
+    optionsEl.classList.remove("hidden");
+    optionsEl.innerHTML = "";
+    if (q.qtype === "dong") {
+      badge.className = "badge dong"; badge.textContent = "읍·면·동";
+      document.getElementById("question").textContent = "빨간 점이 찍힌 이 읍·면·동의 이름은? (연주황=시, 진주황=구)";
+      legend.classList.remove("hidden");
+    } else {
+      badge.className = "badge gu"; badge.textContent = "구·시·군";
+      document.getElementById("question").textContent = "주황색으로 표시된 이 행정구역의 이름은?";
+      legend.classList.add("hidden");
+    }
+    q.options.forEach((optLabel) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.textContent = optLabel;
+      btn.addEventListener("click", () => selectAnswer(btn, optLabel, q));
+      optionsEl.appendChild(btn);
+    });
+    if (q.qtype === "dong") highlightDong(q.dong); else highlightGu(q.feats);
+  } else {
+    // 이름→위치 (클릭)
+    legend.classList.add("hidden");
+    optionsEl.innerHTML = "";
+    optionsEl.classList.add("hidden");
+    if (q.qtype === "dong") { badge.className = "badge dong"; badge.textContent = "읍·면·동 (클릭)"; }
+    else { badge.className = "badge gu"; badge.textContent = "구·시·군 (클릭)"; }
+    document.getElementById("question").textContent = q.prompt + " (지도에서 클릭)";
+    showLocateCandidates(q);
+  }
 
   const nextBtn = document.getElementById("next-btn");
   nextBtn.disabled = true;
   nextBtn.textContent = currentIndex === totalQuestions - 1 ? "결과지 보기" : "다음 문제";
-
-  if (q.type === "dong") highlightDong(q.dong); else highlightGu(q.feats);
   startTimer();
 }
 
@@ -1456,7 +1721,7 @@ function selectAnswer(btn, optLabel, q) {
   explainEl.style.borderLeftColor = isCorrect ? "#22c55e" : "#ef4444";
   explainEl.classList.remove("hidden");
 
-  answerLog.push({ type: q.type, answer: q.answerLabel, picked: optLabel, correct: isCorrect, explain: q.explain, q: q });
+  answerLog.push({ type: q.qtype, dir:q.dir, answer: q.answerLabel, picked: optLabel, correct: isCorrect, explain: q.explain, q: q });
 
   document.getElementById("score-label").textContent = "점수 " + score;
   const nextBtn = document.getElementById("next-btn");
@@ -1474,7 +1739,13 @@ function replayQuestion(idx) {
   const log = answerLog[idx];
   if (!log || !log.q) return;
   const q = log.q;
-  if (q.type === "dong") highlightDong(q.dong); else highlightGu(q.feats);
+  clearHighlight(); clearCandidates();
+  if (q.dir === "name") {
+    if (q.qtype === "dong") highlightDong(q.dong); else highlightGu(q.feats);
+  } else {
+    if (q.qtype === "gu") (featuresBySgg[q.sgg] || []).forEach((f) => map.data.overrideStyle(f, COLOR_CORRECT));
+    else { const ans = (dongsBySgg[q.sgg] || []).find((d) => d.dongName === q.dongName); if (ans) { highlightDong(ans); } }
+  }
   document.querySelectorAll(".report-item").forEach((el) => el.classList.remove("active"));
   const target = document.querySelector(`.report-item[data-idx="${idx}"]`);
   if (target) target.classList.add("active");
@@ -1483,7 +1754,8 @@ function replayQuestion(idx) {
 
 async function showResult() {
   stopTimer();
-  clearHighlight();
+  clearHighlight(); clearCandidates();
+  appMode = "none";
   showScreen("result");
   const maxScore = totalQuestions * 10;
   document.getElementById("final-score").textContent = score;
@@ -1505,7 +1777,7 @@ async function showResult() {
     const item = document.createElement("div");
     item.className = "report-item " + (a.correct ? "ok" : "no");
     item.setAttribute("data-idx", i);
-    const tag = a.type === "dong" ? "읍·면·동" : "구·시·군";
+    const tag = (a.type === "dong" ? "읍·면·동" : "구·시·군") + (a.dir === "locate" ? "·위치" : "·이름");
     const pickedLine = a.correct ? "" : `<div class="sub">내 답: ${a.picked}</div>`;
     item.innerHTML = `
       <div class="head">${i + 1}. ${a.correct ? "⭕" : "❌"} [${tag}] 정답: ${a.answer}</div>
@@ -1604,6 +1876,34 @@ function setupLearnRegionSegment() {
     });
   });
 }
+function setupLocateRegionSegment() {
+  const cont = document.getElementById("locate-region");
+  cont.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      cont.querySelectorAll("button").forEach((b) => b.classList.remove("sel"));
+      btn.classList.add("sel");
+      locateRegion = btn.getAttribute("data-val");
+      locateCurrent = null;
+      document.getElementById("locate-feedback").classList.add("hidden");
+      document.getElementById("locate-question").textContent = '"문제 시작 / 다음 문제"를 눌러 시작하세요.';
+      clearHighlight(); clearCandidates();
+    });
+  });
+}
+function setupLocateTypeSegment() {
+  const cont = document.getElementById("locate-type");
+  cont.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      cont.querySelectorAll("button").forEach((b) => b.classList.remove("sel"));
+      btn.classList.add("sel");
+      locateType = btn.getAttribute("data-val");
+      locateCurrent = null;
+      document.getElementById("locate-feedback").classList.add("hidden");
+      document.getElementById("locate-question").textContent = '"문제 시작 / 다음 문제"를 눌러 시작하세요.';
+      clearHighlight(); clearCandidates();
+    });
+  });
+}
 
 function setupTimerToggle() {
   const tg = document.getElementById("timer-toggle");
@@ -1677,10 +1977,13 @@ window.addEventListener("load", async () => {
 
   updateInlineBest();
 
+  setupSegment("seg-dir", "dir");
   setupSegment("seg-region", "region");
   setupSegment("seg-type", "type");
   setupSegment("seg-count", "count");
   setupLearnRegionSegment();
+  setupLocateRegionSegment();
+  setupLocateTypeSegment();
   setupTimerToggle();
 
   document.getElementById("google-login-btn").addEventListener("click", loginGoogle);
@@ -1721,20 +2024,21 @@ window.addEventListener("load", async () => {
 
   document.getElementById("start-btn").addEventListener("click", startGame);
   document.getElementById("restart-btn").addEventListener("click", () => {
-    showScreen("start");
-    updateInlineBest();
-    loadHomeRanking();
-    closeSetupArea();
+    showScreen("start"); updateInlineBest(); loadHomeRanking(); closeSetupArea();
   });
   document.getElementById("next-btn").addEventListener("click", nextQuestion);
-  document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); learnMode = false; showScreen("start"); closeSetupArea(); });
+  document.getElementById("quit-btn").addEventListener("click", () => { stopTimer(); clearHighlight(); clearCandidates(); appMode = "none"; showScreen("start"); closeSetupArea(); });
   document.getElementById("verify-btn").addEventListener("click", verifyAll);
   document.getElementById("adj-verify-btn").addEventListener("click", verifyAdjacency);
   document.getElementById("wrong-only-btn").addEventListener("click", retryWrongOnly);
   document.getElementById("to-rank-btn").addEventListener("click", showRanking);
   document.getElementById("rank-refresh-btn").addEventListener("click", showRanking);
   document.getElementById("rank-back-btn").addEventListener("click", () => { showScreen("start"); loadHomeRanking(); closeSetupArea(); });
+
   document.getElementById("learn-btn").addEventListener("click", openLearnMode);
+  document.getElementById("learn-dir-name").addEventListener("click", openLearnExplore);
+  document.getElementById("learn-dir-locate").addEventListener("click", openLearnLocate);
+  document.getElementById("locate-next-btn").addEventListener("click", nextLearnLocate);
   document.getElementById("learn-back-btn").addEventListener("click", () => { closeLearnMode(); closeSetupArea(); });
 
   window.addEventListener("resize", () => { if (map) naver.maps.Event.trigger(map, "resize"); });
