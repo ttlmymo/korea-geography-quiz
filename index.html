@@ -1491,8 +1491,10 @@ function buildLocateQuestion(region, qtype) {
     const pool = DB.filter((d) => d.sggCode && sidos.indexOf(d.sido) !== -1);
     if (!pool.length) return null;
     const t = pool[Math.floor(Math.random() * pool.length)];
+    // ★ 후보 범위를 정답 구가 속한 시도로 한정 (전체 선택 시 전국이 깔리는 문제 해결)
+    const guRegion = SIDO_TO_REGION[t.sido] || region;
     return {
-      dir:"locate", qtype:"gu", region, sgg: t.sggCode,
+      dir:"locate", qtype:"gu", region: guRegion, sgg: t.sggCode,
       prompt: `"${t.name}" 은(는) 어디일까요? 지도에서 찾아 누르세요.`,
       answerFull: t.full_nm || t.name,
       done:false
