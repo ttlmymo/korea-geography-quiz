@@ -1326,13 +1326,18 @@ function guCodesForRegion(region) {
   return DB.filter((d) => d.sggCode && sidos.indexOf(d.sido) !== -1).map((d) => d.sggCode);
 }
 
+/* 같은 시(group)에 속한 구 코드 목록 */
+function guCodesForGroup(group) {
+  return DB.filter((d) => d.sggCode && d.group === group).map((d) => d.sggCode);
+}
+
 /* 후보 영역 칠하기: 구 문제는 출제 지역 모든 구(gu 폴리곤), 동 문제는 해당 구의 모든 동 */
 function showLocateCandidates(q) {
   clearHighlight();
   clearCandidates();
   clearGuOverlays();
   if (q.qtype === "gu") {
-    const codes = guCodesForRegion(q.region);
+    const codes = q.guGroup ? guCodesForGroup(q.guGroup) : guCodesForRegion(q.region);
     codes.forEach((code) => showGuOverlay(code, GU_STYLE_CANDIDATE));
     if (codes.length) fitToGuCodes(codes);
   } else {
@@ -1384,7 +1389,7 @@ function handleGuLocateClick(latlng, context) {
     if (!q || q.dir !== "locate" || q.qtype !== "gu") return;
   }
 
-  const codes = guCodesForRegion(q.region);
+  const codes = q.guGroup ? guCodesForGroup(q.guGroup) : guCodesForRegion(q.region);
   const clickedCode = findGuCodeAtLatLng(latlng, codes);
   if (!clickedCode) return; // 후보 영역 밖 클릭은 무시
 
@@ -1494,7 +1499,7 @@ function buildLocateQuestion(region, qtype) {
     // ★ 후보 범위를 정답 구가 속한 시도로 한정 (전체 선택 시 전국이 깔리는 문제 해결)
     const guRegion = SIDO_TO_REGION[t.sido] || region;
     return {
-      dir:"locate", qtype:"gu", region: guRegion, sgg: t.sggCode,
+      dir:"locate", qtype:"gu", region: guRegion, guGroup: t.group, sgg: t.sggCode,
       prompt: `"${t.name}" 은(는) 어디일까요? 지도에서 찾아 누르세요.`,
       answerFull: t.full_nm || t.name,
       done:false
@@ -1828,7 +1833,7 @@ function timeOut() {
     // locate: 정답 위치 표시
     if (q.qtype === "gu") {
       clearGuOverlays();
-      const codes = guCodesForRegion(q.region);
+      const codes = q.guGroup ? guCodesForGroup(q.guGroup) : guCodesForRegion(q.region);
       codes.forEach((code) => showGuOverlay(code, code === q.sgg ? GU_STYLE_CORRECT : GU_STYLE_CANDIDATE));
     } else {
       const ans = (dongsBySgg[q.sgg] || []).find((d) => d.dongName === q.dongName); if (ans) map.data.overrideStyle(ans.feature, COLOR_CORRECT);
