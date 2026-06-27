@@ -696,6 +696,23 @@ let DB = [];
 
 const SIDO_TO_REGION = { "11":"seoul", "28":"incheon", "41":"gg" };
 
+/* 경기 북부 시·군 (한강 이북). 나머지 경기 시·군은 모두 남부. */
+const GG_NORTH = ["고양시","의정부시","남양주시","파주시","구리시","양주시","포천시","동두천시","가평군","연천군"];
+
+/* group 형식 "41-평택시" 에서 시 이름을 추출해 권역 키 반환. 경기(41)가 아니면 null. */
+function ggZoneOfGroup(group) {
+  if (!group) return null;
+  const parts = group.split("-");
+  if (parts[0] !== "41") return null;
+  const city = parts[1] || "";
+  return GG_NORTH.some((n) => city.indexOf(n) === 0) ? "gg-north" : "gg-south";
+}
+
+/* 같은 권역(gg-north/gg-south)에 속한 구·시·군 코드 목록 */
+function guCodesForZone(zone) {
+  return DB.filter((d) => d.sggCode && ggZoneOfGroup(d.group) === zone).map((d) => d.sggCode);
+}
+
 /* ===========================================================
    전역 상태
 =========================================================== */
@@ -1337,7 +1354,9 @@ function showLocateCandidates(q) {
   clearCandidates();
   clearGuOverlays();
   if (q.qtype === "gu") {
-    const codes = q.guGroup ? guCodesForGroup(q.guGroup) : guCodesForRegion(q.region);
+    const codes = q.guGroup ? guCodesForGroup(q.guGroup)
+                : q.guZone  ? guCodesForZone(q.guZone)
+                : guCodesForRegion(q.region);
     codes.forEach((code) => showGuOverlay(code, GU_STYLE_CANDIDATE));
     if (codes.length) fitToGuCodes(codes);
   } else {
@@ -1389,7 +1408,9 @@ function handleGuLocateClick(latlng, context) {
     if (!q || q.dir !== "locate" || q.qtype !== "gu") return;
   }
 
-  const codes = q.guGroup ? guCodesForGroup(q.guGroup) : guCodesForRegion(q.region);
+  const codes = q.guGroup ? guCodesForGroup(q.guGroup)
+              : q.guZone  ? guCodesForZone(q.guZone)
+              : guCodesForRegion(q.region);
   const clickedCode = findGuCodeAtLatLng(latlng, codes);
   if (!clickedCode) return; // 후보 영역 밖 클릭은 무시
 
@@ -1496,14 +1517,26 @@ function buildLocateQuestion(region, qtype) {
     const pool = DB.filter((d) => d.sggCode && sidos.indexOf(d.sido) !== -1);
     if (!pool.length) return null;
     const t = pool[Math.floor(Math.random() * pool.length)];
-    // ★ 후보 범위를 정답 구가 속한 시도로 한정 (전체 선택 시 전국이 깔리는 문제 해결)
     const guRegion = SIDO_TO_REGION[t.sido] || region;
-    return {
-      dir:"locate", qtype:"gu", region: guRegion, guGroup: t.group, sgg: t.sggCode,
+
+    // 후보 범위 결정:
+    //  - 같은 시(group)에 구가 2개 이상 → 통합시: 같은 시 후보(guGroup)
+    //  - 구가 1개뿐인 경기 시·군 → 같은 권역 후보(guZone: 남부/북부)
+    //  - 그 외(서울/인천 단일 자치구 등) → 시도 전체 후보(region만)
+    const groupCount = DB.filter((d) => d.sggCode && d.group === t.group).length;
+    const zone = ggZoneOfGroup(t.group);
+    const q = {
+      dir:"locate", qtype:"gu", region: guRegion, sgg: t.sggCode,
       prompt: `"${t.name}" 은(는) 어디일까요? 지도에서 찾아 누르세요.`,
       answerFull: t.full_nm || t.name,
       done:false
     };
+    if (groupCount >= 2) {
+      q.guGroup = t.group;
+    } else if (zone) {
+      q.guZone = zone;
+    }
+    return q;
   } else {
     let pool = dongList.filter((d) => sidos.indexOf(d.sido) !== -1);
     if (!pool.length) return null;
@@ -1833,7 +1866,9 @@ function timeOut() {
     // locate: 정답 위치 표시
     if (q.qtype === "gu") {
       clearGuOverlays();
-      const codes = q.guGroup ? guCodesForGroup(q.guGroup) : guCodesForRegion(q.region);
+      const codes = q.guGroup ? guCodesForGroup(q.guGroup)
+                  : q.guZone  ? guCodesForZone(q.guZone)
+                  : guCodesForRegion(q.region);
       codes.forEach((code) => showGuOverlay(code, code === q.sgg ? GU_STYLE_CORRECT : GU_STYLE_CANDIDATE));
     } else {
       const ans = (dongsBySgg[q.sgg] || []).find((d) => d.dongName === q.dongName); if (ans) map.data.overrideStyle(ans.feature, COLOR_CORRECT);
