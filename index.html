@@ -1010,7 +1010,13 @@ function buildDbFromGu() {
   Object.keys(guPropsByCode).forEach((code) => {
     const p = guPropsByCode[code];
     const sggnm = p.sgg_nm || "";
-    const si = siNameOf(sggnm);
+    const fullNm = p.full_nm || "";
+    const parts = fullNm.split(/\s+/).filter(Boolean);
+    let si = "";
+    for (const part of parts) {
+      if (/[시군]$/.test(part)) { si = part; break; }
+    }
+    if (!si) si = siNameOf(sggnm);
     // 같은 시(또는 구가 없는 단일 시·군)는 같은 group 으로 묶는다.
     const group = (p.sido || "") + "-" + (si || sggnm);
     const fullName = p.full_nm || ((p.sidonm ? p.sidonm + " " : "") + sggnm);
