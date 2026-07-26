@@ -199,10 +199,10 @@
 
   /* ── 검색 박스 ── */
   #search-box { position: relative; }
-  #search-input { width:100%; padding:15px 17px; background:var(--card-2); color:var(--text); border:none; border-radius:15px; font-size:16px; font-family:"Jua",sans-serif; box-shadow:var(--inset); }
-  #search-input:focus { outline:none; }
-  #search-input::placeholder { color:#aaa08c; }
-  #search-results { display:flex; flex-direction:column; gap:7px; margin-top:8px; }
+  #search-input, #learn-search-input { width:100%; padding:15px 17px; background:var(--card-2); color:var(--text); border:none; border-radius:15px; font-size:16px; font-family:"Jua",sans-serif; box-shadow:var(--inset); }
+  #search-input:focus, #learn-search-input:focus { outline:none; }
+  #search-input::placeholder, #learn-search-input::placeholder { color:#aaa08c; }
+  #search-results, #learn-search-results { display:flex; flex-direction:column; gap:7px; margin-top:8px; }
   .search-item { background:var(--card); border:none; border-radius:15px; padding:13px 16px; font-size:15px; font-weight:400; cursor:pointer; transition:all .15s; box-shadow:var(--soft-sm); text-align:left; color:var(--text); }
   .search-item:hover { transform:translateY(-2px); box-shadow:var(--soft); }
   .search-item:active { transform:translateY(0); box-shadow:var(--inset); }
@@ -398,6 +398,11 @@
 
       <div id="learn-explore" class="hidden" style="display:flex; flex-direction:column; flex:1; min-height:0; gap:14px;">
         <div id="learn-hint">👆 지도를 직접 누르면 그곳이 어느 구·동인지 알려줘요. 또는 아래 목록에서 골라도 됩니다.</div>
+
+        <div id="learn-search-box">
+          <input id="learn-search-input" type="text" placeholder="🔍 지역명 검색 (예: 강서구, 만세구, 역삼동)" autocomplete="off" />
+          <div id="learn-search-results"></div>
+        </div>
 
         <div class="setup-block" style="flex:none; margin-bottom:0;">
           <span class="label">지역 선택</span>
@@ -2343,102 +2348,101 @@ window.addEventListener("load", async () => {
   window.addEventListener("resize", () => { if (map) naver.maps.Event.trigger(map, "resize"); });
 
   /* ── 통합 지역 검색 ── */
-  (function setupSearch() {
-    const searchInput  = document.getElementById("search-input");
-    const searchResults = document.getElementById("search-results");
 
-    function clearSearchResults() {
-      searchResults.innerHTML = "";
-    }
+  /* 공용: 지역명 일치 항목 배열 반환 */
+  function buildSearchResults(q) {
+    const results = [];
+    /* 1) 구·시·군 */
+    DB.forEach((d) => {
+      if (!d.sggCode) return;
+      if (d.name.indexOf(q) !== -1 || (d.sgg_nm && d.sgg_nm.indexOf(q) !== -1)) {
+        const sidoLabel = SIDO_NAME[d.sido] || d.sidonm || "";
+        results.push({ type:"gu", sido:d.sido, sggCode:d.sggCode, dbItem:d, label:d.sgg_nm||d.name, sub:sidoLabel });
+      }
+    });
+    /* 2) 읍·면·동 (중복 제거) */
+    const dongSeen = new Set();
+    dongList.forEach((dong) => {
+      if (dong.dongName.indexOf(q) === -1) return;
+      const key = dong.sgg + "|" + dong.dongName;
+      if (dongSeen.has(key)) return;
+      dongSeen.add(key);
+      const guItem = DB.find((d) => d.sggCode === dong.sgg);
+      const guLabel = guItem ? (guItem.sgg_nm || guItem.name) : (dong.sggnm || "");
+      const sidoLabel = SIDO_NAME[dong.sido] || "";
+      results.push({ type:"dong", sido:dong.sido, dong:dong, label:dong.dongName, sub:sidoLabel + " " + guLabel });
+    });
+    return results.slice(0, 30);
+  }
 
-    /* 검색 결과 항목 클릭 처리 */
-    function handleSearchClick(item) {
-      clearSearchResults();
-      searchInput.value = "";
+  /* 공용: 결과 리스트를 컨테이너에 렌더링 */
+  function renderSearchResults(results, containerEl, onClickFn) {
+    containerEl.innerHTML = "";
+    results.forEach((item) => {
+      const btn = document.createElement("button");
+      btn.className = "search-item";
+      btn.innerHTML = `<div class="si-name">${escapeHtml(item.label)}</div><div class="si-sub">${escapeHtml(item.sub.trim())}</div>`;
+      btn.addEventListener("click", () => onClickFn(item));
+      containerEl.appendChild(btn);
+    });
+  }
 
-      /* 지역(region) 설정 */
-      const region = SIDO_TO_REGION[item.sido] || "seoul";
-      learnRegion = region;
-
-      /* learn-region 세그먼트 UI 동기화 */
-      document.querySelectorAll("#learn-region button").forEach((b) => {
-        b.classList.toggle("sel", b.getAttribute("data-val") === region);
-      });
-
-      /* 학습 모드(탐색) 화면으로 전환 */
+  /* 공용: 항목 클릭 시 지도+정보카드 갱신 (mode: "start" | "learn") */
+  function applySearchItem(item, mode) {
+    const region = SIDO_TO_REGION[item.sido] || "seoul";
+    learnRegion = region;
+    /* learn-region 세그먼트 UI 동기화 */
+    document.querySelectorAll("#learn-region button").forEach((b) => {
+      b.classList.toggle("sel", b.getAttribute("data-val") === region);
+    });
+    if (mode === "start") {
+      /* 시작 화면에서: 학습 모드 탐색 화면으로 전환 */
       openLearnMode();
       openLearnExplore();
-
-      if (item.type === "gu") {
-        /* 구·시·군 */
-        expandedGu = item.sggCode;
-        selectedDongName = null;
-        highlightGuByCode(item.sggCode);
-        renderLearnList();
-        showGuInfoCard(item.dbItem);
-      } else {
-        /* 읍·면·동 */
-        expandedGu = item.dong.sgg;
-        selectedDongName = item.dong.dongName;
-        clearGuOverlays();
-        highlightDong(item.dong);
-        renderLearnList();
-        showDongInfoCard(item.dong);
-      }
     }
+    /* 이하는 두 모드 공통: 지도 및 정보카드 갱신 */
+    if (item.type === "gu") {
+      expandedGu = item.sggCode;
+      selectedDongName = null;
+      highlightGuByCode(item.sggCode);
+      renderLearnList();
+      showGuInfoCard(item.dbItem);
+    } else {
+      expandedGu = item.dong.sgg;
+      selectedDongName = item.dong.dongName;
+      clearGuOverlays();
+      highlightDong(item.dong);
+      renderLearnList();
+      showDongInfoCard(item.dong);
+    }
+  }
 
-    /* 실시간 검색 */
+  /* 시작 화면 검색창 */
+  (function setupSearch() {
+    const searchInput   = document.getElementById("search-input");
+    const searchResults = document.getElementById("search-results");
     searchInput.addEventListener("input", () => {
       const q = searchInput.value.trim();
-      if (q.length < 1) { clearSearchResults(); return; }
-
-      const results = [];
-
-      /* 1) 구·시·군 검색 */
-      DB.forEach((d) => {
-        if (!d.sggCode) return;
-        if (d.name.indexOf(q) !== -1 || (d.sgg_nm && d.sgg_nm.indexOf(q) !== -1)) {
-          const sidoLabel = SIDO_NAME[d.sido] || d.sidonm || "";
-          results.push({
-            type: "gu",
-            sido: d.sido,
-            sggCode: d.sggCode,
-            dbItem: d,
-            label: d.sgg_nm || d.name,
-            sub: sidoLabel
-          });
-        }
+      if (q.length < 1) { searchResults.innerHTML = ""; return; }
+      renderSearchResults(buildSearchResults(q), searchResults, (item) => {
+        searchResults.innerHTML = "";
+        searchInput.value = "";
+        applySearchItem(item, "start");
       });
+    });
+  })();
 
-      /* 2) 읍·면·동 검색 (중복 제거: 같은 sgg + dongName은 첫 번째만) */
-      const dongSeen = new Set();
-      dongList.forEach((dong) => {
-        if (dong.dongName.indexOf(q) === -1) return;
-        const key = dong.sgg + "|" + dong.dongName;
-        if (dongSeen.has(key)) return;
-        dongSeen.add(key);
-        const guItem = DB.find((d) => d.sggCode === dong.sgg);
-        const guLabel = guItem ? (guItem.sgg_nm || guItem.name) : (dong.sggnm || "");
-        const sidoLabel = SIDO_NAME[dong.sido] || "";
-        results.push({
-          type: "dong",
-          sido: dong.sido,
-          dong: dong,
-          label: dong.dongName,
-          sub: sidoLabel + " " + guLabel
-        });
-      });
-
-      /* 상위 30개 */
-      const top = results.slice(0, 30);
-
-      clearSearchResults();
-      top.forEach((item) => {
-        const btn = document.createElement("button");
-        btn.className = "search-item";
-        btn.innerHTML = `<div class="si-name">${escapeHtml(item.label)}</div><div class="si-sub">${escapeHtml(item.sub.trim())}</div>`;
-        btn.addEventListener("click", () => handleSearchClick(item));
-        searchResults.appendChild(btn);
+  /* 학습 탐색 화면 검색창 */
+  (function setupLearnSearch() {
+    const learnSearchInput   = document.getElementById("learn-search-input");
+    const learnSearchResults = document.getElementById("learn-search-results");
+    learnSearchInput.addEventListener("input", () => {
+      const q = learnSearchInput.value.trim();
+      if (q.length < 1) { learnSearchResults.innerHTML = ""; return; }
+      renderSearchResults(buildSearchResults(q), learnSearchResults, (item) => {
+        learnSearchResults.innerHTML = "";
+        learnSearchInput.value = "";
+        applySearchItem(item, "learn");
       });
     });
   })();
