@@ -2,7 +2,7 @@ import { readdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 const ORIGIN = "https://ttlmymo.github.io";
-const BASE_PATH = "/korea-geography-quiz";
+const BASE_PATH = "/korea-geography-quiz-test"; // 실서비스: /korea-geography-quiz
 const SITE_URL = ORIGIN + BASE_PATH;
 const today = new Date().toISOString().slice(0, 10);
 
@@ -18,6 +18,8 @@ const urls = [
     alt: { ko: `${SITE_URL}/seoul/`, en: `${SITE_URL}/en/seoul/` } },
   { loc: `${SITE_URL}/en/seoul/`,  pri: "0.8", freq: "monthly",
     alt: { ko: `${SITE_URL}/seoul/`, en: `${SITE_URL}/en/seoul/` } }
+  { loc: `${SITE_URL}/privacy.html`,    pri: "0.3", freq: "yearly", alt: null },
+  { loc: `${SITE_URL}/privacy-en.html`, pri: "0.3", freq: "yearly", alt: null }
 ];
 
 const dirs = await readdir("seoul", { withFileTypes: true });
