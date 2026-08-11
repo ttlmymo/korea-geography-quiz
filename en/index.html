@@ -80,7 +80,7 @@
           "name": "Do I need to sign up?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sign in with a Google or Kakao account and pick a nickname, and you can start right away. Both Learning Mode and Game Mode require sign-in, and your scores are posted to the live leaderboard automatically. There is no separate sign-up form and no cost."
+            "text": "You sign in with a Google or Kakao account, then choose a nickname. Your scores are posted to the live leaderboard automatically. There is no lengthy registration form."
           }
         },
         {
@@ -151,7 +151,13 @@
   html[lang="en"] #learn-search-input {
     font-family: "Fredoka", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   }
-  /* TODO(작업3): 구 라벨 마커 영문 폰트 미적용 */
+  /* 지도 구 이름표 (NEW-4) — 마커 인라인 스타일을 클래스로 이전 */
+  .gu-label{ transform:translate(-50%,-50%); font-size:11px; font-weight:bold; color:#5f5749;
+             background:rgba(255,255,255,.78); padding:2px 6px; border-radius:5px;
+             white-space:nowrap; pointer-events:none; box-shadow:0 1px 3px rgba(0,0,0,.15);
+             font-family:"Jua", sans-serif; }
+  html[lang="en"] .gu-label{ font-family:"Fredoka","Apple SD Gothic Neo",sans-serif;
+                             font-size:10px; font-weight:600; letter-spacing:.01em; }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; font-family: "Jua", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
@@ -390,6 +396,31 @@
 .bi-ko{ display:block; font-size:0.78em; color:#9a9a9a; font-weight:400; line-height:1.25; margin-top:2px; letter-spacing:0; }
 .bi-chip{ display:inline-block; vertical-align:top; margin:0 12px 6px 0; }
 .ic-title .bi-ko{ font-size:0.62em; }
+
+/* ── S5-2 영문 텍스트 길이 대응 ── */
+
+/* ① 리더보드 닉네임: 최소 너비 확보 후 말줄임 */
+.nick{flex:1 1 auto;min-width:5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ② 한글 보조문구 색 대비 개선(초록/주황 버튼 위에서 묻힘 방지) */
+.bi-ko{display:block;font-size:.72em;line-height:1.2;margin-top:2px;color:#4a4a4a;opacity:.85;}
+
+/* ③ 320px 이하: 영문 모드에서 한글 보조문구 숨김 */
+@media (max-width:360px){
+  html[lang="en"] .bi-ko{display:none;}
+  h1[data-i18n="app.title"]{font-size:1.05rem;line-height:1.25;}
+}
+
+/* ④ 리더보드 우측 수치: 줄바꿈 금지 */
+.nick ~ span{white-space:nowrap;flex:0 0 auto;}
+.nick ~ span:not(:last-child){font-size:.8em;}
+
+/* ⑤ 320px 이하: 리더보드 행 여백 축소 */
+@media (max-width:340px){
+  .nick ~ span:last-child{font-size:.9em;}
+  .nick{min-width:4em;}
+}
+
 </style>
 </head>
 
@@ -649,9 +680,9 @@
 
      <h2 style="font-size:22px; margin:28px 0 8px;">Frequently asked questions</h2>
      <p><strong>Q. Do I need to sign up?</strong><br>
-     Sign in with a Google or Kakao account and pick a nickname, and you can start right away. Both Learning Mode and Game Mode require sign-in, and your scores are posted to the live leaderboard automatically. There is no separate sign-up form and no cost.</p>
+     You sign in with a Google or Kakao account, then choose a nickname. Your scores are posted to the live leaderboard automatically. There is no lengthy registration form.</p>
      <p><strong>Q. Which regions can I study?</strong><br>
-     Seoul, Incheon and Gyeonggi-do are covered down to the district (si/gun/gu) and neighborhood (eup/myeon/dong) level, and more regions are being added.</p>
+     Seoul, Incheon and Gyeonggi-do are covered down to the district and neighborhood level, and more regions are being added.</p>
      <p><strong>Q. Does it work on mobile?</strong><br>
      Yes. It runs in any smartphone browser, and you can add it to your home screen to use it like an app.</p>
 
@@ -669,7 +700,7 @@
      &nbsp;·&nbsp;
      <a href="mailto:koquiz.support@gmail.com" style="color:var(--muted); text-decoration:none;" data-i18n="footer.contact">문의하기</a>
      &nbsp;·&nbsp;
-     <a id="footer-privacy-link" href="../privacy-en.html" hreflang="en" style="color:var(--muted); text-decoration:none;" data-i18n="footer.privacy">개인정보처리방침</a>
+     <a id="footer-privacy-link" href="../privacy.html" hreflang="ko" style="color:var(--muted); text-decoration:none;" data-i18n="footer.privacy">개인정보처리방침</a>
      <div style="margin-top:4px;">Copyright 2026. koquiz.support@gmail.com All rights reserved.</div>
    </div>
   </div>
@@ -962,6 +993,13 @@ function romanizeFull(name) {
   return String(name).trim().split(/\s+/)
     .map(t => SIDO_FULL_EN[t] || (typeof romanizePlace === 'function' ? romanizePlace(t) : (ROMA[t] || t)))
     .reverse().join(', ');
+}
+
+/* 지도 라벨용: 어순 유지 + 공백 결합 ("화성시 만세구" → "Hwaseong-si Manse-gu")  (NEW-4) */
+function romanizeInline(name) {
+  return String(name).trim().split(/\s+/)
+    .map(t => SIDO_FULL_EN[t] || (typeof romanizePlace === 'function' ? romanizePlace(t) : (ROMA[t] || t)))
+    .join(' ');
 }
 
 /* 검색 비교용 정규화: 소문자 + 하이픈·공백·쉼표·마침표 제거 */
@@ -1591,7 +1629,8 @@ function guLabelText(code) {
   const sidonm = p.sidonm || SIDO_NAME[(p.sido || "").slice(0, 2)] || "";
   let t = full;
   if (sidonm && t.indexOf(sidonm) === 0) t = t.slice(sidonm.length).trim();
-  return t || p.sgg_nm || "";
+  t = t || p.sgg_nm || "";
+  return isEn() ? romanizeInline(t) : t;   /* NEW-4 */
 }
 
 /* ===========================================================
@@ -1646,7 +1685,7 @@ function buildGuPolygons(geo) {
         position: center,
         map: null,
         icon: {
-          content: `<div style="transform:translate(-50%,-50%);font-size:11px;font-weight:bold;color:#5f5749;background:rgba(255,255,255,0.78);padding:2px 6px;border-radius:5px;white-space:nowrap;pointer-events:none;font-family:'Jua',sans-serif;box-shadow:0 1px 3px rgba(0,0,0,.15);">${guLabelText(code)}</div>`,
+          content: `<div class="gu-label">${guLabelText(code)}</div>`,
           anchor: new naver.maps.Point(0, 0)
         },
         clickable: false
@@ -2627,7 +2666,7 @@ function retryWrongOnly() {
 function josaEunNeun(w) {
   const s = String(w || "");
   const last = s.charCodeAt(s.length - 1);
-  if (last < 0xac00 || last > 0xd7a3) return "은(는)";
+  if (isNaN(last) || last < 0xac00 || last > 0xd7a3) return "은(는)";
   return ((last - 0xac00) % 28) ? "은" : "는";
 }
 
@@ -2671,13 +2710,12 @@ function makeDongQuestion(pool) {
     wrongs = wrongs.concat(extra);
   }
   const si = siNameOf(target.sggnm);
-  const belong = `${SIDO_NAME[target.sido]} ${target.sggnm === si ? si : target.sggnm}`
-                   .replace(/\s+/g, " ").trim();
+  const belong = `${SIDO_NAME[target.sido]} ${target.sggnm}`.replace(/\s+/g, " ").trim();
   return {
     dir:"name", type:"dong", qtype:"dong", dong: target, answerLabel: target.dongName, feats:[target.feature],
     options: shuffle([target.dongName, ...wrongs]),
     explain: isEn()
-      ? `${romanizeFull(target.dongName)} is a legal-status neighborhood (beopjeong-dong) in ${romanizeFull(belong)}.`
+      ? `${romanizeFull(target.dongName)} is a neighborhood (beopjeong-dong) of ${romanizeFull(belong)}.`
       : `${target.dongName}${josaEunNeun(target.dongName)} ${belong}에 속하는 법정동입니다.`
   };
 }
