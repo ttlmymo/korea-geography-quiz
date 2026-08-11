@@ -1,17 +1,20 @@
-name: Build & Deploy Pages
+name: Build region pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  push:
+    paths:
+      - 'index.html'
+      - 'features.js'
+      - 'features_en.js'
+      - 'roma.js'
+      - 'scripts/**'
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: build-pages
   cancel-in-progress: true
 
 jobs:
@@ -19,22 +22,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Generate pages
-        run: node scripts/gen-pages.mjs
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - run: node scripts/gen-pages.mjs
+      - run: node scripts/gen-en.mjs
+      - run: node scripts/gen-sitemap.mjs
+      - name: Commit generated files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add seoul en sitemap.xml
+          git diff --staged --quiet && echo "변경 없음" && exit 0
+          git commit -m "chore: 지역 페이지 자동 생성"
+          git pull --rebase origin main
+          git push
