@@ -1,0 +1,28 @@
+// 서울 25개 자치구: 한글명 → URL 슬러그 / 영문명
+export const SEOUL_SLUGS = {
+  "강남구":   { slug: "gangnam-gu",     en: "Gangnam-gu" },
+  "강동구":   { slug: "gangdong-gu",    en: "Gangdong-gu" },
+  "강북구":   { slug: "gangbuk-gu",     en: "Gangbuk-gu" },
+  "강서구":   { slug: "gangseo-gu",     en: "Gangseo-gu" },
+  "관악구":   { slug: "gwanak-gu",      en: "Gwanak-gu" },
+  "광진구":   { slug: "gwangjin-gu",    en: "Gwangjin-gu" },
+  "구로구":   { slug: "guro-gu",        en: "Guro-gu" },
+  "금천구":   { slug: "geumcheon-gu",   en: "Geumcheon-gu" },
+  "노원구":   { slug: "nowon-gu",       en: "Nowon-gu" },
+  "도봉구":   { slug: "dobong-gu",      en: "Dobong-gu" },
+  "동대문구": { slug: "dongdaemun-gu",  en: "Dongdaemun-gu" },
+  "동작구":   { slug: "dongjak-gu",     en: "Dongjak-gu" },
+  "마포구":   { slug: "mapo-gu",        en: "Mapo-gu" },
+  "서대문구": { slug: "seodaemun-gu",   en: "Seodaemun-gu" },
+  "서초구":   { slug: "seocho-gu",      en: "Seocho-gu" },
+  "성동구":   { slug: "seongdong-gu",   en: "Seongdong-gu" },
+  "성북구":   { slug: "seongbuk-gu",    en: "Seongbuk-gu" },
+  "송파구":   { slug: "songpa-gu",      en: "Songpa-gu" },
+  "양천구":   { slug: "yangcheon-gu",   en: "Yangcheon-gu" },
+  "영등포구": { slug: "yeongdeungpo-gu", en: "Yeongdeungpo-gu" },
+  "용산구":   { slug: "yongsan-gu",     en: "Yongsan-gu" },
+  "은평구":   { slug: "eunpyeong-gu",   en: "Eunpyeong-gu" },
+  "종로구":   { slug: "jongno-gu",      en: "Jongno-gu" },
+  "중구":     { slug: "jung-gu",        en: "Jung-gu" },
+  "중랑구":   { slug: "jungnang-gu",    en: "Jungnang-gu" }
+};
