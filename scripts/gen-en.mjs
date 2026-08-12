@@ -37,8 +37,8 @@ const OG_IMAGE = KO_URL + "social-image/og-image-en.jpg";
 
 /* ─────────────── 1. 영문 HEAD ─────────────── */
 const EN_TITLE = "Korea Geography Master Quiz";
-const EN_DESC  = "A free map-based quiz for learning South Korea's provinces, cities, " +
-  "districts and neighborhoods. Tap the map, test yourself, and climb the live leaderboard.";
+const EN_DESC  = "Seoul districts map quiz with a page for every gu, romanized place names, " +
+  "an interactive boundary map, and leaderboard rankings.";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -87,7 +87,7 @@ const jsonLd = {
 };
 
 const EN_HEAD = `
-<title>${EN_TITLE} – Learn Korean Administrative Divisions on the Map</title>
+<title>${EN_TITLE} – Seoul Districts Map Quiz & Korean Administrative Divisions</title>
 ${NOINDEX ? '\n<meta name="robots" content="noindex, nofollow">\n' : ""}
 <meta name="description" content="${EN_DESC}">
 <link rel="canonical" href="${EN_URL}">
@@ -124,6 +124,7 @@ const EN_GUIDE = `
    <section id="content-guide" style="max-width:820px; margin:40px auto 0; padding:24px 18px 40px; line-height:1.9; color:#333; font-size:15px; border-top:1px solid #ddd;">
 
      <h2 style="font-size:22px; margin-bottom:8px;">What is Korea Geography Master Quiz?</h2>
+     <p>Every one of Seoul's 25 districts has its own page with local landmarks, Korean and romanized names, and an interactive boundary map. Study each area at your own pace, then switch to game mode and see where you land on the leaderboard.</p>
      <p>Korea Geography Master Quiz is a learning game that helps you get familiar with South Korea's administrative divisions using a real interactive map. You either find a place on the map or name the highlighted area, so anyone from elementary students to adults can pick up the hierarchy of provinces, cities, districts and neighborhoods naturally. Because you work with an actual map instead of memorizing lists, it builds a real sense of where things are.</p>
 
      <h2 style="font-size:22px; margin:28px 0 8px;">How Korean administrative divisions are structured</h2>
