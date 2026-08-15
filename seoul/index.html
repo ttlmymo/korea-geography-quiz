@@ -75,16 +75,16 @@ li span{display:block;font-size:12px;color:var(--muted)}
     if (drawn) return; drawn = true;
     try {
       map.data.addGeoJson(D.f);
-      map.data.setStyle({ fillColor:"#8aa97e", fillOpacity:0.34,
-        strokeColor:"#ffffff", strokeOpacity:0.95, strokeWeight:1.5 });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
       bounds = new naver.maps.LatLngBounds(
         new naver.maps.LatLng(D.bb[1], D.bb[0]),
         new naver.maps.LatLng(D.bb[3], D.bb[2]));
       fitSeoulBounds();
       naver.maps.Event.addListener(map.data, "mouseover", function(e){
         map.data.revertStyle();
-        map.data.overrideStyle(e.feature, { fillColor:"#e3a183", fillOpacity:0.62,
-          strokeColor:"#ffffff", strokeOpacity:1, strokeWeight:2 });
+        map.data.overrideStyle(e.feature, { fillColor:"#1a73e8", fillOpacity:0.28,
+          strokeColor:"#0b57d0", strokeOpacity:1, strokeWeight:3 });
       });
       naver.maps.Event.addListener(map.data, "mouseout", function(){ map.data.revertStyle(); });
       naver.maps.Event.addListener(map.data, "click", function(e){
