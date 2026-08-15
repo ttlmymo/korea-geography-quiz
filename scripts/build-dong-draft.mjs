@@ -9,11 +9,44 @@ const BJD_PATH = path.join("bjd", "bjd_11_seoul.geojson");
 const GU_PATH = path.join("gu", "gu_11_seoul.geojson");
 const ENTRY = /(?:^|\n)(\d+)\.\s*([^\n(]+?)\s*\(([^)\n]*)\)\s*\n([\s\S]*?)(?=\n\d+\.\s*[^\n(]+?\s*\([^)\n]*\)\s*\n|$)/g;
 
+const FILTER_RULES = [
+  { label: "facility", test: /(?:학교|병원|도서관|공원|아파트|사무소|전시관|박물관|사찰|체육시설|공공기관).*(?:있|자리|조성|운영|설치|밀집)/ },
+  { label: "transit", test: /(?:도로|지하철|역|터널|대교|인터체인지|고속도로|노선).*(?:지나|연결|개통|통과|이르)/ },
+  { label: "ongoing", test: /(?:최근|현재|점차|개발되|조성되|계획되|신흥|재개발)/ },
+  { label: "commerce", test: /(?:상권|상가|시장|백화점|업소|유흥|상업지역|가구단지|학원가)/ },
+  { label: "admin-org", test: /(?:행정동|동사무소|구청|출장소).*?(?:담당|관할|운영)/ }
+];
+const HISTORICAL_KEEP = /(?:\b(?:1[0-9]{3}|20[0-9]{2})년|조선|고려|백제|고구려|신라|일제|편입|신설|분구|개칭|통합|철거민|이주|정착|유래|유적|설화|전설|원찰|개명|창릉천|진관사)/;
+
+function splitSentences(text) {
+  return String(text || "").replace(/\r/g, "").split(/(?<=[.!?])\s+/).map((sentence) => sentence.trim()).filter(Boolean);
+}
+
+function filterBeforeGeneration(text) {
+  const kept = [], removed = [], historicalKeep = [];
+  for (const sentence of splitSentences(text)) {
+    const rule = FILTER_RULES.find((candidate) => candidate.test.test(sentence));
+    if (rule && !HISTORICAL_KEEP.test(sentence)) {
+      removed.push({ label: rule.label, sentence });
+    } else {
+      kept.push(sentence);
+      if (rule && HISTORICAL_KEEP.test(sentence)) historicalKeep.push({ label: "historical-keep", sentence, wouldMatch: rule.label });
+    }
+  }
+  return { kept, removed, historicalKeep };
+}
+
 // GeoJSON 법정동 → 문서 항목명. 2007년 은평구 진관동은 진관내동·진관외동·구파발동을 통합해 신설됐다.
 // 근거: 한국민족문화대백과사전 은평구 문서의 동 절 및 서울특별시 2007년 행정동 통합.
 const MANUAL_MAP = {
   "11380": {
     "진관동": ["진관내동", "진관외동", "구파발동"]
+  }
+};
+// 원문에 행정동명 변경이 명시된 경우만 허용하는 비-fuzzy 별칭 매핑.
+const EXPLICIT_RENAME_MAP = {
+  "11740": {
+    "강일동": "하일동"
   }
 };
 
@@ -59,7 +92,7 @@ function compositeCandidates(dongName) {
 }
 
 function entrySource(entry) {
-  return { name: entry.name, hanja: entry.hanja, docIndex: entry.docIndex, raw: entry.raw };
+  return { name: entry.name, hanja: entry.hanja, docIndex: entry.docIndex, raw: entry.raw, preGenerationFilter: filterBeforeGeneration(entry.body) };
 }
 
 const [indexData, bjdData, guData] = await Promise.all([
@@ -84,6 +117,13 @@ for (const list of bjdBySgg.values()) list.sort((a, b) => a.dongName.localeCompa
 const gu = [];
 const coverage = [];
 const warnings = [];
+const filterSummary = { facility: 0, transit: 0, ongoing: 0, commerce: 0, "admin-org": 0, "historical-keep": 0 };
+
+function countFilters(value) {
+  if (!value) return;
+  for (const item of value.removed || []) filterSummary[item.label] = (filterSummary[item.label] || 0) + 1;
+  for (const item of value.historicalKeep || []) filterSummary["historical-keep"] = (filterSummary["historical-keep"] || 0) + 1;
+}
 
 for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
   const sgg = codeByGu.get(guName) || "";
@@ -128,7 +168,16 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
     if (exactEntry) {
       exact += 1;
       usedSourceNames.add(exactEntry.name);
-      dong.push({ dongName: geo.dongName, sourceName: exactEntry.name, bjdCode: geo.bjdCode, hanja: exactEntry.hanja, matchType: "exact", docIndex: exactEntry.docIndex, raw: exactEntry.raw });
+      dong.push({ dongName: geo.dongName, sourceName: exactEntry.name, bjdCode: geo.bjdCode, hanja: exactEntry.hanja, matchType: "exact", docIndex: exactEntry.docIndex, raw: exactEntry.raw, preGenerationFilter: filterBeforeGeneration(exactEntry.body) });
+      continue;
+    }
+
+    const renameSourceName = EXPLICIT_RENAME_MAP[sgg]?.[geo.dongName];
+    if (renameSourceName && exactByName.has(renameSourceName)) {
+      const renamedEntry = exactByName.get(renameSourceName);
+      exact += 1;
+      usedSourceNames.add(renamedEntry.name);
+      dong.push({ dongName: geo.dongName, sourceName: renamedEntry.name, bjdCode: geo.bjdCode, hanja: renamedEntry.hanja, matchType: "explicitRename", docIndex: renamedEntry.docIndex, raw: renamedEntry.raw, preGenerationFilter: filterBeforeGeneration(renamedEntry.body), mappingReason: "원문에 2000년 행정동명을 강일동으로 변경했다고 명시" });
       continue;
     }
 
@@ -153,7 +202,7 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
     if (compositeEntry) {
       composite += 1;
       usedSourceNames.add(compositeEntry.name);
-      dong.push({ dongName: geo.dongName, sourceName: compositeEntry.name, bjdCode: geo.bjdCode, hanja: compositeEntry.hanja, matchType: "composite", docIndex: compositeEntry.docIndex, raw: compositeEntry.raw });
+      dong.push({ dongName: geo.dongName, sourceName: compositeEntry.name, bjdCode: geo.bjdCode, hanja: compositeEntry.hanja, matchType: "composite", docIndex: compositeEntry.docIndex, raw: compositeEntry.raw, preGenerationFilter: filterBeforeGeneration(compositeEntry.body) });
       continue;
     }
 
@@ -186,8 +235,13 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
     .map(({ name, entry }) => ({ ...entrySource(entry), usedFor: dong.filter((item) => item.matchType === "composite" && item.sourceName === name).map((item) => item.dongName) }));
   const docOnly = entries.filter((entry) => !usedSourceNames.has(entry.name)).map(entrySource);
 
+  for (const item of dong) {
+    countFilters(item.preGenerationFilter);
+    for (const source of item.sources || []) countFilters(source.preGenerationFilter);
+  }
   const row = {
     slug, guName, sgg, eid: article.eid || "", sectionMissing: !dongSection,
+    source: { title: article.headword || `서울특별시 ${guName}`, eid: article.eid || "", fetchedAt: collection.fetchedAt || "" },
     dong, compositeSource, docOnly, missing, unresolved: [], warnings: guWarnings,
     sourceEntryCount: entries.length, residualLength: residual
   };
@@ -195,7 +249,7 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
   coverage.push({ guName, slug, sgg, geoCount: geoDongs.length, exact, composite, merged, dongDoc: 0, mention, missing: missing.length });
 }
 
-const output = { generatedAt: new Date().toISOString(), source: "한국민족문화대백과사전 OpenAPI", gu, coverage, warnings };
+const output = { generatedAt: new Date().toISOString(), source: "한국민족문화대백과사전 OpenAPI", filterSummary, gu, coverage, warnings };
 await mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
 await writeFile(OUTPUT_PATH, JSON.stringify(output, null, 2) + "\n", "utf8");
 
