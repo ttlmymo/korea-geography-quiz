@@ -1,6 +1,7 @@
 /* 서울 25개 자치구 클릭 가능 SVG 지도 생성기 */
 
-const mercY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2));
+// x(경도)가 도 단위이므로 Web Mercator y도 도 단위로 환산해 가로·세로 비율을 맞춘다.
+const mercY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2)) * 180 / Math.PI;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
