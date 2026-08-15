@@ -733,7 +733,7 @@ function seoulDynamicMapHtml(list, lang) {
       bounds = new naver.maps.LatLngBounds(
         new naver.maps.LatLng(D.bb[1], D.bb[0]),
         new naver.maps.LatLng(D.bb[3], D.bb[2]));
-      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      fitSeoulBounds();
       naver.maps.Event.addListener(map.data, "mouseover", function(e){
         map.data.revertStyle();
         map.data.overrideStyle(e.feature, { fillColor:"#e3a183", fillOpacity:0.62,
@@ -745,6 +745,13 @@ function seoulDynamicMapHtml(list, lang) {
         if (name && D.href[name]) window.location.href = D.href[name];
       });
     } catch(e) {}
+  }
+
+  function fitSeoulBounds(){
+    if (!map || !bounds) return;
+    map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+    // 서울 전체 보기보다 한 단계 확대한 기본 구도: 모바일 약 10km 축척.
+    map.setZoom(Math.min(map.getZoom() + 1, 15));
   }
 
   function init(){
@@ -761,9 +768,7 @@ function seoulDynamicMapHtml(list, lang) {
     setTimeout(draw, 300);
   }
 
-  if (resetBtn) resetBtn.addEventListener("click", function(){
-    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
-  });
+  if (resetBtn) resetBtn.addEventListener("click", function(){ fitSeoulBounds(); });
 
   function start(){
     if (started) return; started = true;
