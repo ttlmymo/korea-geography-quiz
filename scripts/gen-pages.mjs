@@ -207,7 +207,7 @@ ${people ? `<section><h2>인물과 이야기</h2><p>${esc(people)}</p>${imgHtml}
 function renderIndex(list) {
   const url = `${SITE_URL}/seoul/`;
   const items = list.map((g) =>
-    `<li><a href="${SITE_URL}/seoul/${g.slug}/">${esc(g.guName)}</a> <span>${g.dongCount}개 동</span></li>`).join("");
+    `<li><a href="${SITE_URL}/seoul/${g.slug}/" aria-label="${esc(g.guName)} 상세 페이지 보기"><strong>${esc(g.guName)}</strong><span>${g.dongCount}개 동</span></a></li>`).join("");
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -233,8 +233,10 @@ body{font-family:"Jua",sans-serif;background:var(--bg);color:var(--text);line-he
 h1{font-size:28px;font-weight:400;margin-bottom:10px}
 p.lead{color:var(--muted);font-size:15px;margin-bottom:22px}
 ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px}
-li{background:var(--card);border-radius:16px;padding:14px 17px;box-shadow:0 6px 14px rgba(150,135,108,.16)}
-li a{color:var(--text);text-decoration:none;font-size:16px}
+li{background:var(--card);border-radius:16px;box-shadow:0 6px 14px rgba(150,135,108,.16);overflow:hidden}
+li a{display:block;min-height:100%;padding:14px 17px;color:var(--text);text-decoration:none;font-size:16px}
+li a:hover{background:var(--bg);color:var(--sage-d)}
+li a:focus-visible{outline:3px solid var(--sage-d);outline-offset:-3px}
 li span{display:block;font-size:12px;color:var(--muted)}
 .cta{display:inline-block;margin-top:26px;padding:15px 34px;background:var(--peach);color:#fff;border-radius:16px;text-decoration:none}
 </style>
@@ -380,7 +382,7 @@ function renderIndexEn(list) {
   const url = `${SITE_URL}/en/seoul/`;
   const koUrl = `${SITE_URL}/seoul/`;
   const items = list.map((g) =>
-    `<li><a href="${SITE_URL}/en/seoul/${g.slug}/">${esc(g.en)}</a> <span>${g.dongCount} neighborhoods</span></li>`).join("");
+    `<li><a href="${SITE_URL}/en/seoul/${g.slug}/" aria-label="View ${esc(g.en)} details"><strong>${esc(g.en)}</strong><span>${g.dongCount} neighborhoods</span></a></li>`).join("");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -406,8 +408,10 @@ body{font-family:"Fredoka","Jua",sans-serif;background:var(--bg);color:var(--tex
 h1{font-size:28px;font-weight:400;margin-bottom:10px}
 p.lead{color:var(--muted);font-size:15px;margin-bottom:22px}
 ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:11px}
-li{background:var(--card);border-radius:16px;padding:14px 17px;box-shadow:0 6px 14px rgba(150,135,108,.16)}
-li a{color:var(--text);text-decoration:none;font-size:16px}
+li{background:var(--card);border-radius:16px;box-shadow:0 6px 14px rgba(150,135,108,.16);overflow:hidden}
+li a{display:block;min-height:100%;padding:14px 17px;color:var(--text);text-decoration:none;font-size:16px}
+li a:hover{background:var(--bg);color:var(--sage-d)}
+li a:focus-visible{outline:3px solid var(--sage-d);outline-offset:-3px}
 li span{display:block;font-size:12px;color:var(--muted)}
 .cta{display:inline-block;margin-top:26px;padding:15px 34px;background:var(--peach);color:#fff;border-radius:16px;text-decoration:none}
 </style>
