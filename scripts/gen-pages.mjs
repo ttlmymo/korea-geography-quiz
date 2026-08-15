@@ -1,7 +1,6 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { SEOUL_SLUGS } from "./seoul-slugs.mjs";
-import { buildSeoulSvg, SEOUL_SVG_CSS } from "./seoul-svg.mjs";
 
 /* ─── 설정: 실서비스로 옮길 때 이 두 줄만 바꾸면 됨 ─── */
 const BASE_PATH = "/korea-geography-quiz";
@@ -31,6 +30,19 @@ const MAP_CSS = `
 .gu-map-btn:hover{ background:#ded7c8; }
 .gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
 @media(max-width:600px){ .gu-map{ height:${MAP_H_MO}px; } }
+`;
+
+
+const SEOUL_INDEX_MAP_CSS = `
+.seoul-index-map{margin:0 0 22px}
+.seoul-index-canvas{position:relative;width:100%;height:${MAP_H_PC}px;border-radius:16px;overflow:hidden;background:#e8e2d5;box-shadow:0 6px 14px rgba(150,135,108,.16)}
+.seoul-index-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#a59c89}
+.seoul-index-cap{font-size:12px;color:var(--muted);margin:6px 0 0;text-align:center}
+.seoul-index-actions{display:flex;justify-content:flex-end;margin-top:10px}
+.seoul-index-btn{font-family:inherit;font-size:13.5px;color:var(--text);background:var(--bg);border:1px solid #d8cfbd;border-radius:12px;padding:8px 16px;cursor:pointer;line-height:1.4}
+.seoul-index-btn:hover{background:#ded7c8}
+.seoul-index-btn:focus-visible{outline:3px solid var(--sage-d);outline-offset:2px}
+@media(max-width:600px){.seoul-index-canvas{height:${MAP_H_MO}px}}
 `;
 
 const HEAD_COMMON = `
@@ -107,6 +119,15 @@ function featureBBox(feature) {
     minLon = Math.min(minLon, lon); minLat = Math.min(minLat, lat);
     maxLon = Math.max(maxLon, lon); maxLat = Math.max(maxLat, lat);
   });
+  return [minLon, minLat, maxLon, maxLat];
+}
+
+function featuresBBox(features) {
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  features.forEach((feature) => eachCoord(feature.geometry || feature, (lon, lat) => {
+    minLon = Math.min(minLon, lon); minLat = Math.min(minLat, lat);
+    maxLon = Math.max(maxLon, lon); maxLat = Math.max(maxLat, lat);
+  }));
   return [minLon, minLat, maxLon, maxLat];
 }
 
@@ -372,7 +393,7 @@ li a:hover{background:var(--bg);color:var(--sage-d)}
 li a:focus-visible{outline:3px solid var(--sage-d);outline-offset:-3px}
 li span{display:block;font-size:12px;color:var(--muted)}
 .cta{display:inline-block;margin-top:26px;padding:15px 34px;background:var(--peach);color:#fff;border-radius:16px;text-decoration:none}
-${SEOUL_SVG_CSS}
+${SEOUL_INDEX_MAP_CSS}
 </style>
 </head>
 <body><div class="wrap">
@@ -553,7 +574,7 @@ li a:hover{background:var(--bg);color:var(--sage-d)}
 li a:focus-visible{outline:3px solid var(--sage-d);outline-offset:-3px}
 li span{display:block;font-size:12px;color:var(--muted)}
 .cta{display:inline-block;margin-top:26px;padding:15px 34px;background:var(--peach);color:#fff;border-radius:16px;text-decoration:none}
-${SEOUL_SVG_CSS}
+${SEOUL_INDEX_MAP_CSS}
 </style>
 </head>
 <body><div class="wrap">
@@ -652,10 +673,11 @@ for (const [code, guName] of Object.entries(nameByCode)) {
 
 summary.sort((a, b) => koCmp(a.guName, b.guName));
 
-function seoulMapHtml(list, lang) {
+function seoulDynamicMapHtml(list, lang) {
+  const ko = lang !== "en";
   const items = list.map((g) => {
     const feature = featureByName[g.guName];
-    if (!feature) throw new Error(`서울 SVG Feature 없음: ${g.guName}`);
+    if (!feature) throw new Error(`서울 Dynamic Map Feature 없음: ${g.guName}`);
     return {
       name: g.guName,
       en: g.en,
@@ -665,14 +687,102 @@ function seoulMapHtml(list, lang) {
       feature
     };
   });
-  if (items.length !== 25) throw new Error(`서울 SVG 항목 수 오류: ${items.length}`);
-  return `<div class="seoul-map-wrap">${buildSeoulSvg(items, { lang })}</div>`;
+  if (items.length !== 25) throw new Error(`서울 Dynamic Map 항목 수 오류: ${items.length}`);
+
+  const bb = featuresBBox(items.map((item) => item.feature));
+  const payload = JSON.stringify({
+    f: { type: "FeatureCollection", features: items.map((item) => item.feature) },
+    bb,
+    href: Object.fromEntries(items.map((item) => [item.name, item.href]))
+  }).replace(/</g, "\\u003c");
+  const wait = ko ? "서울 지도를 불러오는 중…" : "Loading Seoul map…";
+  const cap = ko ? "서울특별시 25개 자치구 위치 지도" : "Map of the 25 districts of Seoul";
+  const btn = ko ? "↺ 서울 전체 보기" : "↺ Reset Seoul map";
+  const nojs = ko
+    ? "지도를 보려면 자바스크립트를 켜 주세요. 아래 목록에서 자치구를 선택할 수 있습니다."
+    : "Enable JavaScript to view the map. You can select a district from the list below.";
+
+  return `
+<section class="seoul-index-map" aria-label="${esc(cap)}">
+  <div id="seoulIndexMap" class="seoul-index-canvas"><span class="seoul-index-wait">${esc(wait)}</span></div>
+  <p class="seoul-index-cap">${esc(cap)}</p>
+  <div class="seoul-index-actions"><button type="button" class="seoul-index-btn" id="seoulIndexMapReset">${esc(btn)}</button></div>
+  <noscript><p class="seoul-index-cap">${esc(nojs)}</p></noscript>
+</section>
+<script>
+(function(){
+  var D = ${payload};
+  var el = document.getElementById("seoulIndexMap");
+  var resetBtn = document.getElementById("seoulIndexMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${NAVER_KEY}";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson(D.f);
+      map.data.setStyle({ fillColor:"#8aa97e", fillOpacity:0.34,
+        strokeColor:"#ffffff", strokeOpacity:0.95, strokeWeight:1.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      naver.maps.Event.addListener(map.data, "mouseover", function(e){
+        map.data.revertStyle();
+        map.data.overrideStyle(e.feature, { fillColor:"#e3a183", fillOpacity:0.62,
+          strokeColor:"#ffffff", strokeOpacity:1, strokeWeight:2 });
+      });
+      naver.maps.Event.addListener(map.data, "mouseout", function(){ map.data.revertStyle(); });
+      naver.maps.Event.addListener(map.data, "click", function(e){
+        var name = e.feature && e.feature.getProperty("sgg_nm");
+        if (name && D.href[name]) window.location.href = D.href[name];
+      });
+    } catch(e) {}
+  }
+
+  function init(){
+    var w = el.querySelector(".seoul-index-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780), zoom: 10,
+      scrollWheel: false, pinchZoom: true, mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: { style: naver.maps.ZoomControlStyle.SMALL, position: naver.maps.Position.TOP_RIGHT }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){ if (window.naver && naver.maps) init(); });
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>`;
 }
 
-await writeFile(path.join("seoul", "index.html"), renderIndex(summary, seoulMapHtml(summary, "ko")), "utf8");
+await writeFile(path.join("seoul", "index.html"), renderIndex(summary, seoulDynamicMapHtml(summary, "ko")), "utf8");
 
 const summaryEn = [...summary].sort((a, b) => a.en.localeCompare(b.en, "en"));
 await mkdir(path.join("en", "seoul"), { recursive: true });
-await writeFile(path.join("en", "seoul", "index.html"), renderIndexEn(summaryEn, seoulMapHtml(summaryEn, "en")), "utf8");
+await writeFile(path.join("en", "seoul", "index.html"), renderIndexEn(summaryEn, seoulDynamicMapHtml(summaryEn, "en")), "utf8");
 
 console.log(`\n완료: 한글 ${summary.length}개 + 영문 ${summaryEn.length}개 페이지, 목차 각 1개`);
