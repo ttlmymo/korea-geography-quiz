@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { SEOUL_SLUGS } from "./seoul-slugs.mjs";
+import { buildSeoulSvg, SEOUL_SVG_CSS } from "./seoul-svg.mjs";
 
 /* ─── 설정: 실서비스로 옮길 때 이 두 줄만 바꾸면 됨 ─── */
 const BASE_PATH = "/korea-geography-quiz";
@@ -204,7 +205,7 @@ ${people ? `<section><h2>인물과 이야기</h2><p>${esc(people)}</p>${imgHtml}
 </html>`;
 }
 
-function renderIndex(list) {
+function renderIndex(list, svgMap) {
   const url = `${SITE_URL}/seoul/`;
   const items = list.map((g) =>
     `<li><a href="${SITE_URL}/seoul/${g.slug}/" aria-label="${esc(g.guName)} 상세 페이지 보기"><strong>${esc(g.guName)}</strong><span>${g.dongCount}개 동</span></a></li>`).join("");
@@ -239,11 +240,13 @@ li a:hover{background:var(--bg);color:var(--sage-d)}
 li a:focus-visible{outline:3px solid var(--sage-d);outline-offset:-3px}
 li span{display:block;font-size:12px;color:var(--muted)}
 .cta{display:inline-block;margin-top:26px;padding:15px 34px;background:var(--peach);color:#fff;border-radius:16px;text-decoration:none}
+${SEOUL_SVG_CSS}
 </style>
 </head>
 <body><div class="wrap">
 <h1>서울특별시 25개 자치구</h1>
 <p class="lead">각 자치구의 위치, 법정동 목록, 역사와 유래를 확인해보세요.</p>
+${svgMap}
 <ul>${items}</ul>
 <div style="text-align:center"><a class="cta" href="${SITE_URL}/">🎮 지리 퀴즈 풀러 가기</a></div>
 </div></body></html>`;
@@ -378,7 +381,7 @@ ${people ? `<section><h2>People &amp; Stories</h2><p>${esc(people)}</p>${imgHtml
 </html>`;
 }
 
-function renderIndexEn(list) {
+function renderIndexEn(list, svgMap) {
   const url = `${SITE_URL}/en/seoul/`;
   const koUrl = `${SITE_URL}/seoul/`;
   const items = list.map((g) =>
@@ -414,11 +417,13 @@ li a:hover{background:var(--bg);color:var(--sage-d)}
 li a:focus-visible{outline:3px solid var(--sage-d);outline-offset:-3px}
 li span{display:block;font-size:12px;color:var(--muted)}
 .cta{display:inline-block;margin-top:26px;padding:15px 34px;background:var(--peach);color:#fff;border-radius:16px;text-decoration:none}
+${SEOUL_SVG_CSS}
 </style>
 </head>
 <body><div class="wrap">
 <h1>The 25 Districts of Seoul</h1>
 <p class="lead">Explore each district's location, neighborhoods, history and the origin of its name. · <a href="${koUrl}" lang="ko" hreflang="ko">한국어</a></p>
+${svgMap}
 <ul>${items}</ul>
 <div style="text-align:center"><a class="cta" href="${SITE_URL}/en/?region=seoul">🎮 Play the geography quiz</a></div>
 </div></body></html>`;
@@ -451,9 +456,11 @@ const [guGeo, bjdGeo] = await Promise.all([
 console.log("GeoJSON 로드 완료");
 
 const nameByCode = {};
+const featureByName = {};
 guGeo.features.forEach((f) => {
   const p = f.properties || {};
   if (p.sgg) nameByCode[p.sgg] = p.sgg_nm;
+  if (p.sgg_nm && f.geometry) featureByName[p.sgg_nm] = f;
 });
 
 const dongsByCode = {};
@@ -505,10 +512,28 @@ for (const [code, guName] of Object.entries(nameByCode)) {
 }
 
 summary.sort((a, b) => koCmp(a.guName, b.guName));
-await writeFile(path.join("seoul", "index.html"), renderIndex(summary), "utf8");
+
+function seoulMapHtml(list, lang) {
+  const items = list.map((g) => {
+    const feature = featureByName[g.guName];
+    if (!feature) throw new Error(`서울 SVG Feature 없음: ${g.guName}`);
+    return {
+      name: g.guName,
+      en: g.en,
+      href: lang === "en"
+        ? `${SITE_URL}/en/seoul/${g.slug}/`
+        : `${SITE_URL}/seoul/${g.slug}/`,
+      feature
+    };
+  });
+  if (items.length !== 25) throw new Error(`서울 SVG 항목 수 오류: ${items.length}`);
+  return `<div class="seoul-map-wrap">${buildSeoulSvg(items, { lang })}</div>`;
+}
+
+await writeFile(path.join("seoul", "index.html"), renderIndex(summary, seoulMapHtml(summary, "ko")), "utf8");
 
 const summaryEn = [...summary].sort((a, b) => a.en.localeCompare(b.en, "en"));
 await mkdir(path.join("en", "seoul"), { recursive: true });
-await writeFile(path.join("en", "seoul", "index.html"), renderIndexEn(summaryEn), "utf8");
+await writeFile(path.join("en", "seoul", "index.html"), renderIndexEn(summaryEn, seoulMapHtml(summaryEn, "en")), "utf8");
 
 console.log(`\n완료: 한글 ${summary.length}개 + 영문 ${summaryEn.length}개 페이지, 목차 각 1개`);
