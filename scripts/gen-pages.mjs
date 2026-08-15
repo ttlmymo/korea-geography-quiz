@@ -750,8 +750,8 @@ function seoulDynamicMapHtml(list, lang) {
   function fitSeoulBounds(){
     if (!map || !bounds) return;
     map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
-    // 서울 전체 보기보다 한 단계 확대한 기본 구도: 모바일 약 10km 축척.
-    map.setZoom(Math.min(map.getZoom() + 1, 15));
+    // Naver 지도 축척 10km 수준의 서울 자치구 기본·리셋 구도.
+    map.setZoom(10);
   }
 
   function init(){
