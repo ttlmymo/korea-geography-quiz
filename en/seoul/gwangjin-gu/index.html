@@ -49,6 +49,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -58,6 +72,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>Gwangjin-gu, Seoul</h1>
 <p class="lead"><span lang="ko">광진구</span> · 7 neighborhoods · Learn Korean administrative divisions with maps</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>Where is Gwangjin-gu in Seoul?</h2>
+  <p>The blue area shows Gwangjin-gu. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">Loading map…</span></div>
+  <p class="gu-map-cap">Location map of Gwangjin-gu, Seoul</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ Reset view</button>
+  </div>
+  <noscript><p class="gu-map-cap">Enable JavaScript to view the map. Gwangjin-gu is a district of Seoul.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11215","sgg_nm":"광진구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 광진구"},"geometry":{"type":"Polygon","coordinates":[[[127.079975,37.522952],[127.076942,37.522514],[127.068663,37.523871],[127.067479,37.524582],[127.065447,37.525053],[127.056225,37.52833],[127.064014,37.542228],[127.066125,37.54597],[127.067466,37.54833],[127.073736,37.559414],[127.072454,37.559932],[127.074092,37.564603],[127.076879,37.567929],[127.078202,37.57187],[127.083329,37.57137],[127.090495,37.569699],[127.095617,37.57061],[127.100863,37.573732],[127.104295,37.571451],[127.103506,37.57011],[127.102314,37.564313],[127.101251,37.561605],[127.102169,37.559186],[127.104941,37.556413],[127.109529,37.558554],[127.112297,37.559001],[127.115226,37.55676],[127.111547,37.55037],[127.111458,37.546956],[127.109239,37.543165],[127.108282,37.541408],[127.102024,37.53645],[127.091293,37.52795],[127.085633,37.524759],[127.079975,37.522952]]]}},"bb":[127.056225,37.522514,127.115226,37.573732],"t":"Gwangjin-gu, Seoul"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>About Gwangjin-gu</h2>
@@ -91,6 +186,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Gwangjin-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gwangjin-gu/"}]},{"@type":"Place","name":"Gwangjin-gu, Seoul","alternateName":"서울특별시 광진구","description":"Located in eastern Seoul, this autonomous district is nestled between the Han River and Mount Achasan. It is a vibrant, youthful area home to Children’s Grand Park, Konkuk University, and Sejong University. It is a place where the natural beauty of Ttukseom Han River Park and the Achasan area blends harmoniously with the riverside scenery leading to Walker Hill.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gwangjin-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Gwangjin-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gwangjin-gu/"}]},{"@type":"Place","name":"Gwangjin-gu, Seoul","alternateName":"서울특별시 광진구","description":"Located in eastern Seoul, this autonomous district is nestled between the Han River and Mount Achasan. It is a vibrant, youthful area home to Children’s Grand Park, Konkuk University, and Sejong University. It is a place where the natural beauty of Ttukseom Han River Park and the Achasan area blends harmoniously with the riverside scenery leading to Walker Hill.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gwangjin-gu/","geo":{"@type":"GeoCoordinates","latitude":37.548123000000004,"longitude":127.0857255},"containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
 </body>
 </html>

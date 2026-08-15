@@ -49,6 +49,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -58,6 +72,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>Eunpyeong-gu, Seoul</h1>
 <p class="lead"><span lang="ko">은평구</span> · 11 neighborhoods · Learn Korean administrative divisions with maps</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>Where is Eunpyeong-gu in Seoul?</h2>
+  <p>The blue area shows Eunpyeong-gu. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">Loading map…</span></div>
+  <p class="gu-map-cap">Location map of Eunpyeong-gu, Seoul</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ Reset view</button>
+  </div>
+  <noscript><p class="gu-map-cap">Enable JavaScript to view the map. Eunpyeong-gu is a district of Seoul.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11380","sgg_nm":"은평구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 은평구"},"geometry":{"type":"Polygon","coordinates":[[[126.911914,37.585823],[126.902057,37.576757],[126.900286,37.577236],[126.888887,37.58465],[126.882056,37.590793],[126.885004,37.593639],[126.885754,37.589566],[126.887159,37.588533],[126.896859,37.588567],[126.899644,37.589817],[126.898961,37.592678],[126.90183,37.595141],[126.901322,37.599366],[126.899982,37.60204],[126.902108,37.603742],[126.901726,37.605752],[126.900304,37.611191],[126.903361,37.618839],[126.905214,37.619868],[126.907117,37.621941],[126.906627,37.624496],[126.90861,37.626266],[126.908802,37.629088],[126.907294,37.630867],[126.907096,37.633398],[126.910854,37.635317],[126.910092,37.638509],[126.91226,37.644259],[126.91372,37.644756],[126.924123,37.646106],[126.930003,37.650164],[126.935705,37.651203],[126.937163,37.652316],[126.940128,37.656636],[126.9421,37.657722],[126.947565,37.659215],[126.947882,37.657126],[126.951376,37.65495],[126.954351,37.654595],[126.957108,37.652837],[126.957839,37.648048],[126.959027,37.646783],[126.959971,37.641462],[126.963328,37.633245],[126.959796,37.629786],[126.958417,37.629469],[126.951605,37.626545],[126.949656,37.625287],[126.948898,37.623263],[126.950797,37.613849],[126.950378,37.610594],[126.948766,37.609007],[126.946238,37.607379],[126.944163,37.606428],[126.939827,37.601873],[126.941377,37.600677],[126.940866,37.598733],[126.938698,37.597539],[126.937542,37.597868],[126.932792,37.596324],[126.930262,37.594565],[126.927766,37.591583],[126.927985,37.588388],[126.92389,37.587099],[126.922784,37.585533],[126.920859,37.582939],[126.915935,37.58309],[126.915697,37.58598],[126.912844,37.587222],[126.911914,37.585823]]]}},"bb":[126.882056,37.576757,126.963328,37.659215],"t":"Eunpyeong-gu, Seoul"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>About Eunpyeong-gu</h2>
@@ -91,6 +186,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Eunpyeong-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/eunpyeong-gu/"}]},{"@type":"Place","name":"Eunpyeong-gu, Seoul","alternateName":"서울특별시 은평구","description":"This autonomous district is located in a basin at the northwestern tip of Seoul, surrounded by the foothills of Mount Samgak (Bukhansan) and Mount Baekryeon. As a key stop along the old official road connecting Seoul to Uiju, it is home to many historic temples such as Jingwansa and Samcheonsa, and serves as a leading residential area in the northwest, featuring Eunpyeong New Town and the Yeonsinnae commercial district.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/eunpyeong-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Eunpyeong-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/eunpyeong-gu/"}]},{"@type":"Place","name":"Eunpyeong-gu, Seoul","alternateName":"서울특별시 은평구","description":"This autonomous district is located in a basin at the northwestern tip of Seoul, surrounded by the foothills of Mount Samgak (Bukhansan) and Mount Baekryeon. As a key stop along the old official road connecting Seoul to Uiju, it is home to many historic temples such as Jingwansa and Samcheonsa, and serves as a leading residential area in the northwest, featuring Eunpyeong New Town and the Yeonsinnae commercial district.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/eunpyeong-gu/","geo":{"@type":"GeoCoordinates","latitude":37.617986,"longitude":126.92269200000001},"containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
 </body>
 </html>

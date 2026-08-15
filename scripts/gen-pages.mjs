@@ -14,6 +14,24 @@ const CDN = "https://cdn.jsdelivr.net/gh/ttlmymo/korea-geography-quiz@main";
 const OG_IMAGE    = `${SITE_URL}/social-image/og-image-ko.jpg`;
 const OG_IMAGE_EN = `${SITE_URL}/social-image/og-image-en.jpg`;
 const ADJ_GRID = 0.007;
+const NAVER_KEY = "kizfnbhv3q";
+const MAP_H_PC = 420;   // px
+const MAP_H_MO = 300;   // px
+
+const MAP_CSS = `
+.gu-map{ position:relative; width:100%; height:${MAP_H_PC}px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:${MAP_H_MO}px; } }
+`;
 
 const HEAD_COMMON = `
 <meta name="google-adsense-account" content="ca-pub-1946710813485758">
@@ -83,7 +101,117 @@ function computeGuAdjacency(guGeo) {
 const fixImg = (src) =>
   /^https?:\/\//.test(src) ? src : `${SITE_URL}/${String(src).replace(/^\/+/, "")}`;
 
-function renderPage({ guName, slug, en, desc, history, people, images, dongs, adjNames }) {
+function featureBBox(feature) {
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  eachCoord(feature.geometry || feature, (lon, lat) => {
+    minLon = Math.min(minLon, lon); minLat = Math.min(minLat, lat);
+    maxLon = Math.max(maxLon, lon); maxLat = Math.max(maxLat, lat);
+  });
+  return [minLon, minLat, maxLon, maxLat];
+}
+
+function mapBlock(guName, enName, feature, bb, lang) {
+  const ko = lang !== "en";
+  const h2   = ko ? `${guName}는 서울 어디에 있나요?` : `Where is ${enName} in Seoul?`;
+  const lead = ko
+    ? `파란색으로 표시된 영역이 ${guName}입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.`
+    : `The blue area shows ${enName}. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.`;
+  const cap  = ko ? `서울특별시 ${guName} 위치 지도` : `Location map of ${enName}, Seoul`;
+  const btn  = ko ? "↺ 처음 위치로" : "↺ Reset view";
+  const wait = ko ? "지도를 불러오는 중…" : "Loading map…";
+  const nojs = ko
+    ? `지도를 보려면 자바스크립트를 켜 주세요. ${guName}는 서울특별시에 속한 자치구입니다.`
+    : `Enable JavaScript to view the map. ${enName} is a district of Seoul.`;
+
+  const payload = JSON.stringify({
+    f: feature,
+    bb,
+    t: ko ? `서울 ${guName}` : `${enName}, Seoul`
+  }).replace(/</g, "\\u003c");
+
+  return `
+<section class="sec gu-map-sec">
+  <h2>${esc(h2)}</h2>
+  <p>${esc(lead)}</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">${esc(wait)}</span></div>
+  <p class="gu-map-cap">${esc(cap)}</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">${esc(btn)}</button>
+  </div>
+  <noscript><p class="gu-map-cap">${esc(nojs)}</p></noscript>
+</section>
+<script>
+(function(){
+  var D = ${payload};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${NAVER_KEY}";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>`;
+}
+
+function renderPage({ guName, slug, en, desc, history, people, images, dongs, adjNames, feature, bb }) {
   const url = `${SITE_URL}/seoul/${slug}/`;
   const title = `${guName} 행정구역 지도·동 목록 | 전국 지리 마스터 퀴즈`;
   const metaDesc = `서울특별시 ${guName}의 위치와 법정동 ${dongs.length}개 목록, 인접 자치구, 역사와 유래를 지도와 함께 정리했습니다.`;
@@ -110,6 +238,7 @@ function renderPage({ guName, slug, en, desc, history, people, images, dongs, ad
       ]},
       { "@type": "Place", name: `서울특별시 ${guName}`, alternateName: `Seoul ${en}`,
         description: desc || metaDesc, url,
+        geo: { "@type": "GeoCoordinates", latitude: (bb[1] + bb[3]) / 2, longitude: (bb[0] + bb[2]) / 2 },
         containedInPlace: { "@type": "AdministrativeArea", name: "서울특별시" } }
     ]
   };
@@ -160,6 +289,7 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+${MAP_CSS}
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -169,6 +299,8 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 ${esc(guName)}</h1>
 <p class="lead">${esc(en)} · 법정동 ${dongs.length}개 · 지도로 배우는 대한민국 행정구역</p>
+
+${mapBlock(guName, en, feature, bb, "ko")}
 
 <section>
   <h2>${esc(guName)}는 어떤 곳인가요?</h2>
@@ -253,7 +385,7 @@ ${svgMap}
 }
 
 /* ─── 영문 페이지 ─── */
-function renderPageEn({ guName, slug, en, desc, history, people, images, dongs, adjNames }) {
+function renderPageEn({ guName, slug, en, desc, history, people, images, dongs, adjNames, feature, bb }) {
   const url = `${SITE_URL}/en/seoul/${slug}/`;
   const koUrl = `${SITE_URL}/seoul/${slug}/`;
   const title = `${en}, Seoul — Map & Neighborhood List | Korea Geography Master Quiz`;
@@ -284,6 +416,7 @@ function renderPageEn({ guName, slug, en, desc, history, people, images, dongs, 
       ]},
       { "@type": "Place", name: `${en}, Seoul`, alternateName: `서울특별시 ${guName}`,
         description: desc || metaDesc, url,
+        geo: { "@type": "GeoCoordinates", latitude: (bb[1] + bb[3]) / 2, longitude: (bb[0] + bb[2]) / 2 },
         containedInPlace: { "@type": "AdministrativeArea", name: "Seoul" } }
     ]
   };
@@ -335,6 +468,7 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+${MAP_CSS}
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -344,6 +478,8 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>${esc(en)}, Seoul</h1>
 <p class="lead"><span lang="ko">${esc(guName)}</span> · ${dongs.length} neighborhoods · Learn Korean administrative divisions with maps</p>
+
+${mapBlock(guName, en, feature, bb, "en")}
 
 <section>
   <h2>About ${esc(en)}</h2>
@@ -481,13 +617,16 @@ for (const [code, guName] of Object.entries(nameByCode)) {
 
   const f = features[guName] || {};
   const fe = featuresEn[guName] || featuresEn[meta.en] || {};
+  const feature = featureByName[guName];
+  if (!feature) throw new Error(`서울 지도 Feature 없음: ${guName}`);
+  const bb = featureBBox(feature);
   const dongs = [...(dongsByCode[code] || [])].sort(koCmp);
   const adjNames = [...(adj[code] || [])].map((c) => nameByCode[c]).filter(Boolean).sort(koCmp);
 
   const html = renderPage({
     guName, slug: meta.slug, en: meta.en,
     desc: f.desc, history: f.history, people: f.people, images: f.images,
-    dongs, adjNames
+    dongs, adjNames, feature, bb
   });
   const dir = path.join("seoul", meta.slug);
   await mkdir(dir, { recursive: true });
@@ -501,7 +640,7 @@ for (const [code, guName] of Object.entries(nameByCode)) {
     guName, slug: meta.slug, en: meta.en,
     desc: fe.desc, history: fe.history, people: fe.people,
     images: imagesEn,
-    dongs, adjNames
+    dongs, adjNames, feature, bb
   });
   const dirEn = path.join("en", "seoul", meta.slug);
   await mkdir(dirEn, { recursive: true });

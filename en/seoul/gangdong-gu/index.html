@@ -49,6 +49,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -58,6 +72,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>Gangdong-gu, Seoul</h1>
 <p class="lead"><span lang="ko">강동구</span> · 9 neighborhoods · Learn Korean administrative divisions with maps</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>Where is Gangdong-gu in Seoul?</h2>
+  <p>The blue area shows Gangdong-gu. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">Loading map…</span></div>
+  <p class="gu-map-cap">Location map of Gangdong-gu, Seoul</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ Reset view</button>
+  </div>
+  <noscript><p class="gu-map-cap">Enable JavaScript to view the map. Gangdong-gu is a district of Seoul.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11740","sgg_nm":"강동구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 강동구"},"geometry":{"type":"Polygon","coordinates":[[[127.153566,37.533665],[127.153933,37.53192],[127.152687,37.528529],[127.150402,37.526373],[127.147797,37.52215],[127.145666,37.521932],[127.144786,37.519624],[127.145077,37.516886],[127.143828,37.517039],[127.133868,37.521433],[127.119291,37.527873],[127.123442,37.538646],[127.122406,37.539017],[127.118877,37.541072],[127.113048,37.542979],[127.109239,37.543165],[127.111458,37.546956],[127.111547,37.55037],[127.11166,37.550378],[127.11431,37.554366],[127.115645,37.5577],[127.117339,37.559463],[127.122955,37.56349],[127.12861,37.56616],[127.134267,37.567954],[127.137666,37.568424],[127.145586,37.568431],[127.14895,37.568434],[127.156899,37.572954],[127.162007,37.576387],[127.166747,37.578976],[127.170251,37.579017],[127.175106,37.580267],[127.175683,37.574899],[127.179216,37.568918],[127.179584,37.565496],[127.181995,37.560993],[127.181757,37.55838],[127.18134,37.552965],[127.183119,37.551082],[127.182825,37.546344],[127.179331,37.546567],[127.175717,37.545208],[127.172107,37.545535],[127.166637,37.544252],[127.163162,37.544991],[127.160096,37.541515],[127.159583,37.541028],[127.157651,37.53927],[127.153566,37.533665]]]}},"bb":[127.109239,37.516886,127.183119,37.580267],"t":"Gangdong-gu, Seoul"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>About Gangdong-gu</h2>
@@ -91,6 +186,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Gangdong-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gangdong-gu/"}]},{"@type":"Place","name":"Gangdong-gu, Seoul","alternateName":"서울특별시 강동구","description":"Located at the southeastern tip of Seoul, south of the Han River, this autonomous district is an area steeped in history, home to the Amsa-dong Prehistoric Site. It consists primarily of residential areas and boasts a pleasant natural environment, including Ilja Mountain and the banks of the Han River.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gangdong-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Gangdong-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gangdong-gu/"}]},{"@type":"Place","name":"Gangdong-gu, Seoul","alternateName":"서울특별시 강동구","description":"Located at the southeastern tip of Seoul, south of the Han River, this autonomous district is an area steeped in history, home to the Amsa-dong Prehistoric Site. It consists primarily of residential areas and boasts a pleasant natural environment, including Ilja Mountain and the banks of the Han River.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gangdong-gu/","geo":{"@type":"GeoCoordinates","latitude":37.548576499999996,"longitude":127.146179},"containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
 </body>
 </html>

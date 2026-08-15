@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 서초구</h1>
 <p class="lead">Seocho-gu · 법정동 10개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>서초구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 서초구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 서초구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 서초구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11650","sgg_nm":"서초구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 서초구"},"geometry":{"type":"Polygon","coordinates":[[[127.049579,37.43027],[127.047369,37.430702],[127.046307,37.433453],[127.040053,37.438237],[127.035573,37.439004],[127.035172,37.440942],[127.037483,37.443267],[127.037744,37.449419],[127.036409,37.451497],[127.034754,37.452618],[127.037127,37.455208],[127.035016,37.457893],[127.033732,37.461237],[127.034693,37.464155],[127.029928,37.465352],[127.029316,37.462701],[127.025277,37.457494],[127.019692,37.455787],[127.017545,37.456135],[127.014509,37.454861],[127.010654,37.456038],[127.008531,37.458052],[127.004469,37.464073],[127.003675,37.46772],[126.996231,37.466608],[126.997371,37.463687],[126.996768,37.461873],[126.993354,37.461496],[126.988615,37.45821],[126.987504,37.460671],[126.988334,37.464002],[126.987246,37.467626],[126.983215,37.471571],[126.981681,37.477091],[126.982184,37.486729],[126.9828,37.492648],[126.98293,37.496994],[126.985387,37.499859],[126.980541,37.502691],[126.980399,37.506536],[126.982413,37.506546],[126.985533,37.506543],[126.990672,37.513102],[126.997512,37.51743],[126.998937,37.518328],[127.000176,37.519111],[127.003186,37.521167],[127.007651,37.524658],[127.009973,37.527014],[127.008595,37.52559],[127.013173,37.522592],[127.01523,37.524844],[127.017822,37.521812],[127.019525,37.516112],[127.021326,37.511102],[127.024485,37.504478],[127.031611,37.489555],[127.034087,37.484369],[127.041653,37.485143],[127.044005,37.479942],[127.045404,37.477113],[127.0509,37.47181],[127.048859,37.469893],[127.050952,37.467585],[127.05537,37.468761],[127.061449,37.468998],[127.065113,37.469371],[127.07041,37.471093],[127.075367,37.473496],[127.07669,37.474831],[127.079104,37.474663],[127.0847,37.475402],[127.08413,37.472787],[127.089038,37.468241],[127.092029,37.464941],[127.092097,37.462274],[127.095698,37.460993],[127.095231,37.456396],[127.090959,37.452783],[127.088327,37.448628],[127.088161,37.445385],[127.083862,37.443922],[127.082432,37.44158],[127.080171,37.441052],[127.07601,37.442139],[127.072138,37.442263],[127.072007,37.438857],[127.07376,37.43779],[127.071439,37.435863],[127.070629,37.432044],[127.065681,37.428985],[127.061145,37.429985],[127.05807,37.430011],[127.052169,37.42834],[127.049579,37.43027]]]}},"bb":[126.980399,37.42834,127.095698,37.527014],"t":"서울 서초구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>서초구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"서초구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/seocho-gu/"}]},{"@type":"Place","name":"서울특별시 서초구","alternateName":"Seoul Seocho-gu","description":"서울 남부, 청계산·우면산을 배경으로 한강에 면한 자치구로 강남과 더불어 서울을 대표하는 주거·업무 중심지입니다. 예술의전당과 국립중앙도서관, 대법원·대검찰청 등이 자리해 문화와 사법의 중심지 역할을 하며, 조선 왕릉인 헌릉과 인릉이 남아 있는 곳이기도 합니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/seocho-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"서초구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/seocho-gu/"}]},{"@type":"Place","name":"서울특별시 서초구","alternateName":"Seoul Seocho-gu","description":"서울 남부, 청계산·우면산을 배경으로 한강에 면한 자치구로 강남과 더불어 서울을 대표하는 주거·업무 중심지입니다. 예술의전당과 국립중앙도서관, 대법원·대검찰청 등이 자리해 문화와 사법의 중심지 역할을 하며, 조선 왕릉인 헌릉과 인릉이 남아 있는 곳이기도 합니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/seocho-gu/","geo":{"@type":"GeoCoordinates","latitude":37.477677,"longitude":127.0380485},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>

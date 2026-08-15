@@ -49,6 +49,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -58,6 +72,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>Seongbuk-gu, Seoul</h1>
 <p class="lead"><span lang="ko">성북구</span> · 39 neighborhoods · Learn Korean administrative divisions with maps</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>Where is Seongbuk-gu in Seoul?</h2>
+  <p>The blue area shows Seongbuk-gu. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">Loading map…</span></div>
+  <p class="gu-map-cap">Location map of Seongbuk-gu, Seoul</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ Reset view</button>
+  </div>
+  <noscript><p class="gu-map-cap">Enable JavaScript to view the map. Seongbuk-gu is a district of Seoul.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11290","sgg_nm":"성북구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 성북구"},"geometry":{"type":"Polygon","coordinates":[[[127.016206,37.581906],[127.015351,37.581936],[127.014833,37.582331],[127.014733,37.582304],[127.010974,37.580827],[127.008638,37.58046],[127.006753,37.582336],[127.006625,37.585595],[127.004081,37.587734],[127.004002,37.587803],[127.003463,37.58833],[127.003472,37.588415],[127.000953,37.592301],[126.998064,37.592389],[126.994474,37.591518],[126.989071,37.591397],[126.98574,37.59424],[126.983808,37.594428],[126.97672,37.597901],[126.977198,37.598648],[126.978522,37.600992],[126.98667,37.604024],[126.985638,37.611396],[126.986579,37.613972],[126.984536,37.615981],[126.983162,37.619235],[126.983645,37.621144],[126.981807,37.624345],[126.979604,37.62638],[126.978423,37.629288],[126.974948,37.628973],[126.975369,37.631698],[126.977804,37.633911],[126.981415,37.63483],[126.983706,37.636457],[126.986044,37.635693],[126.98941,37.634076],[126.995388,37.630243],[126.999273,37.626202],[127.007888,37.624027],[127.007216,37.620827],[127.010951,37.616287],[127.014474,37.614685],[127.016903,37.614841],[127.022117,37.611337],[127.026433,37.612694],[127.030177,37.612357],[127.030252,37.608975],[127.037357,37.612838],[127.039851,37.61559],[127.043949,37.618644],[127.046081,37.621875],[127.04973,37.62426],[127.057421,37.617481],[127.063285,37.614259],[127.070053,37.615429],[127.070177,37.615337],[127.070208,37.61532],[127.071709,37.613514],[127.071555,37.607573],[127.062295,37.605154],[127.05919,37.601068],[127.05731,37.601508],[127.052099,37.600146],[127.051315,37.601118],[127.050363,37.600457],[127.047331,37.596135],[127.04302,37.596954],[127.041091,37.595559],[127.038812,37.59139],[127.036223,37.591181],[127.035536,37.588943],[127.032061,37.585864],[127.029539,37.582684],[127.02642,37.580547],[127.024416,37.579194],[127.024408,37.579188],[127.023136,37.578018],[127.021822,37.578863],[127.018291,37.579049],[127.016731,37.581695],[127.016206,37.581906]]]}},"bb":[126.974948,37.578018,127.071709,37.636457],"t":"Seongbuk-gu, Seoul"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>About Seongbuk-gu</h2>
@@ -91,6 +186,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Seongbuk-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/seongbuk-gu/"}]},{"@type":"Place","name":"Seongbuk-gu, Seoul","alternateName":"서울특별시 성북구","description":"This autonomous district is situated on the rolling hills north of Seoul’s city walls, where the foothills of Mount Bukhansan extend into Mount Gaewun. It is an area where the historic cultural and arts village of Seongbuk-dong blends with the university district, and where traces of modern and contemporary culture—such as the Gansong Art Museum and Simu-jang—remain deeply embedded.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/seongbuk-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Seongbuk-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/seongbuk-gu/"}]},{"@type":"Place","name":"Seongbuk-gu, Seoul","alternateName":"서울특별시 성북구","description":"This autonomous district is situated on the rolling hills north of Seoul’s city walls, where the foothills of Mount Bukhansan extend into Mount Gaewun. It is an area where the historic cultural and arts village of Seongbuk-dong blends with the university district, and where traces of modern and contemporary culture—such as the Gansong Art Museum and Simu-jang—remain deeply embedded.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/seongbuk-gu/","geo":{"@type":"GeoCoordinates","latitude":37.6072375,"longitude":127.02332849999999},"containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
 </body>
 </html>

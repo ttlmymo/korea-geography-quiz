@@ -49,6 +49,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -58,6 +72,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>Gangseo-gu, Seoul</h1>
 <p class="lead"><span lang="ko">강서구</span> · 13 neighborhoods · Learn Korean administrative divisions with maps</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>Where is Gangseo-gu in Seoul?</h2>
+  <p>The blue area shows Gangseo-gu. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">Loading map…</span></div>
+  <p class="gu-map-cap">Location map of Gangseo-gu, Seoul</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ Reset view</button>
+  </div>
+  <noscript><p class="gu-map-cap">Enable JavaScript to view the map. Gangseo-gu is a district of Seoul.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11500","sgg_nm":"강서구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 강서구"},"geometry":{"type":"Polygon","coordinates":[[[126.799479,37.537767],[126.796042,37.53675],[126.793963,37.53736],[126.794944,37.541372],[126.79181,37.541903],[126.79076,37.54384],[126.788397,37.545018],[126.786946,37.545984],[126.777563,37.546712],[126.775293,37.548972],[126.771691,37.548307],[126.769789,37.551067],[126.767465,37.551951],[126.767407,37.554223],[126.764559,37.555444],[126.769867,37.55723],[126.776109,37.561864],[126.777709,37.560077],[126.777101,37.563719],[126.775132,37.565879],[126.78024,37.567445],[126.782408,37.573606],[126.787559,37.575563],[126.790586,37.577809],[126.790728,37.580612],[126.792864,37.580221],[126.794093,37.584253],[126.796685,37.584909],[126.80052,37.590309],[126.798801,37.591323],[126.798659,37.593668],[126.797082,37.597739],[126.797865,37.599896],[126.802581,37.605033],[126.811369,37.598961],[126.817526,37.59533],[126.818683,37.593716],[126.819302,37.59285],[126.826349,37.588429],[126.831759,37.585843],[126.84241,37.579262],[126.853632,37.571791],[126.854878,37.570197],[126.863039,37.564994],[126.880453,37.556255],[126.878048,37.551701],[126.880737,37.548134],[126.877959,37.547099],[126.87286,37.547035],[126.870338,37.547898],[126.86503,37.550991],[126.864207,37.551152],[126.862118,37.544491],[126.8637,37.54102],[126.863474,37.535635],[126.863969,37.529789],[126.84887,37.527897],[126.840477,37.526487],[126.834413,37.536456],[126.83516,37.537533],[126.833102,37.541849],[126.829985,37.541656],[126.830455,37.545775],[126.829758,37.547732],[126.827474,37.547447],[126.825978,37.54484],[126.82537,37.541674],[126.823755,37.541239],[126.822067,37.540673],[126.812334,37.540737],[126.80624,37.544408],[126.80185,37.542716],[126.798861,37.540293],[126.799479,37.537767]]]}},"bb":[126.764559,37.526487,126.880737,37.605033],"t":"Gangseo-gu, Seoul"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>About Gangseo-gu</h2>
@@ -91,6 +186,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Gangseo-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gangseo-gu/"}]},{"@type":"Place","name":"Gangseo-gu, Seoul","alternateName":"서울특별시 강서구","description":"Located on the Gimpo Plain along the lower reaches of the Han River at the western edge of Seoul, this autonomous district serves as the gateway to Seoul, home to Gimpo International Airport. The Hwagok-dong and Magok-dong areas have undergone large-scale development and grown into residential and business districts, while historic cultural heritage sites such as Yangcheon Hyanggyo and Heoga Rock remain preserved.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gangseo-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Gangseo-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gangseo-gu/"}]},{"@type":"Place","name":"Gangseo-gu, Seoul","alternateName":"서울특별시 강서구","description":"Located on the Gimpo Plain along the lower reaches of the Han River at the western edge of Seoul, this autonomous district serves as the gateway to Seoul, home to Gimpo International Airport. The Hwagok-dong and Magok-dong areas have undergone large-scale development and grown into residential and business districts, while historic cultural heritage sites such as Yangcheon Hyanggyo and Heoga Rock remain preserved.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gangseo-gu/","geo":{"@type":"GeoCoordinates","latitude":37.56576,"longitude":126.822648},"containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
 </body>
 </html>

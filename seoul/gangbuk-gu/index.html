@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 강북구</h1>
 <p class="lead">Gangbuk-gu · 법정동 4개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>강북구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 강북구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 강북구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 강북구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11305","sgg_nm":"강북구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 강북구"},"geometry":{"type":"Polygon","coordinates":[[[127.030252,37.608975],[127.030177,37.612357],[127.026433,37.612694],[127.022117,37.611337],[127.016903,37.614841],[127.014474,37.614685],[127.010951,37.616287],[127.007216,37.620827],[127.007888,37.624027],[126.999273,37.626202],[126.995388,37.630243],[126.98941,37.634076],[126.986044,37.635693],[126.985084,37.637314],[126.985224,37.641636],[126.983247,37.643683],[126.9851,37.645929],[126.983937,37.64961],[126.981048,37.652713],[126.979658,37.656039],[126.98301,37.657003],[126.987277,37.6606],[126.988268,37.664391],[126.992225,37.665232],[126.99356,37.667804],[126.994074,37.672761],[126.993247,37.677661],[126.994076,37.680324],[126.997311,37.683466],[127.006051,37.685054],[127.00863,37.683886],[127.009365,37.679581],[127.012122,37.679092],[127.013883,37.675239],[127.016219,37.673924],[127.018698,37.670862],[127.018415,37.668889],[127.015771,37.667003],[127.015322,37.66404],[127.016961,37.662209],[127.014607,37.661429],[127.012451,37.65216],[127.015093,37.649283],[127.020169,37.649089],[127.024687,37.647342],[127.025889,37.645723],[127.030857,37.64287],[127.030855,37.642868],[127.032416,37.641835],[127.034566,37.637783],[127.037818,37.636039],[127.039762,37.632197],[127.042546,37.630489],[127.047062,37.627522],[127.04973,37.62426],[127.046081,37.621875],[127.043949,37.618644],[127.039851,37.61559],[127.037357,37.612838],[127.030252,37.608975]]]}},"bb":[126.979658,37.608975,127.04973,37.685054],"t":"서울 강북구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>강북구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"강북구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/gangbuk-gu/"}]},{"@type":"Place","name":"서울특별시 강북구","alternateName":"Seoul Gangbuk-gu","description":"서울 동북쪽 끝, 서울의 진산인 북한산을 배경으로 한 자치구로 대부분이 쾌적한 주거지역입니다. 우이동 계곡과 도선사·화계사 같은 명찰, 그리고 국립 4·19민주묘지가 자리해 자연과 근현대사가 함께 어우러진 지역으로 잘 알려져 있습니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/gangbuk-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"강북구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/gangbuk-gu/"}]},{"@type":"Place","name":"서울특별시 강북구","alternateName":"Seoul Gangbuk-gu","description":"서울 동북쪽 끝, 서울의 진산인 북한산을 배경으로 한 자치구로 대부분이 쾌적한 주거지역입니다. 우이동 계곡과 도선사·화계사 같은 명찰, 그리고 국립 4·19민주묘지가 자리해 자연과 근현대사가 함께 어우러진 지역으로 잘 알려져 있습니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/gangbuk-gu/","geo":{"@type":"GeoCoordinates","latitude":37.6470145,"longitude":127.01469399999999},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>

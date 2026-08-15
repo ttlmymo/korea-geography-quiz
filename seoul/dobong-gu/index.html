@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 도봉구</h1>
 <p class="lead">Dobong-gu · 법정동 4개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>도봉구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 도봉구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 도봉구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 도봉구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11320","sgg_nm":"도봉구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 도봉구"},"geometry":{"type":"Polygon","coordinates":[[[127.053413,37.657502],[127.053948,37.650553],[127.055872,37.646559],[127.055151,37.64346],[127.055778,37.640625],[127.052971,37.641674],[127.051356,37.644816],[127.049064,37.642145],[127.046594,37.641118],[127.044323,37.634092],[127.041658,37.631467],[127.042546,37.630489],[127.039762,37.632197],[127.037818,37.636039],[127.034566,37.637783],[127.032416,37.641835],[127.030855,37.642868],[127.030857,37.64287],[127.025889,37.645723],[127.024687,37.647342],[127.020169,37.649089],[127.015093,37.649283],[127.012451,37.65216],[127.014607,37.661429],[127.016961,37.662209],[127.015322,37.66404],[127.015771,37.667003],[127.018415,37.668889],[127.018698,37.670862],[127.016219,37.673924],[127.013883,37.675239],[127.012122,37.679092],[127.009365,37.679581],[127.00863,37.683886],[127.008293,37.690115],[127.007621,37.691618],[127.009711,37.693363],[127.009666,37.6967],[127.013878,37.698801],[127.015415,37.701455],[127.019827,37.701017],[127.022148,37.699721],[127.025315,37.699581],[127.027687,37.700937],[127.029286,37.699292],[127.031026,37.693075],[127.032414,37.691839],[127.036763,37.69264],[127.041108,37.6953],[127.045973,37.692429],[127.048632,37.694063],[127.049966,37.69087],[127.04982,37.687977],[127.051803,37.685805],[127.051801,37.68261],[127.048844,37.675152],[127.048512,37.669176],[127.051452,37.66302],[127.051106,37.660737],[127.053413,37.657502]]]}},"bb":[127.007621,37.630489,127.055872,37.701455],"t":"서울 도봉구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>도봉구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"도봉구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/dobong-gu/"}]},{"@type":"Place","name":"서울특별시 도봉구","alternateName":"Seoul Dobong-gu","description":"서울 가장 북쪽의 관문으로, 우뚝 솟은 도봉산을 배경으로 중랑천이 흐르는 쾌적한 주거지역입니다. 도봉산 자락의 도봉서원과 여러 암자, 그리고 방학동의 연산군 묘와 김수영문학관 등 자연과 역사·문화가 함께 어우러진 지역으로 알려져 있습니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/dobong-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"도봉구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/dobong-gu/"}]},{"@type":"Place","name":"서울특별시 도봉구","alternateName":"Seoul Dobong-gu","description":"서울 가장 북쪽의 관문으로, 우뚝 솟은 도봉산을 배경으로 중랑천이 흐르는 쾌적한 주거지역입니다. 도봉산 자락의 도봉서원과 여러 암자, 그리고 방학동의 연산군 묘와 김수영문학관 등 자연과 역사·문화가 함께 어우러진 지역으로 알려져 있습니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/dobong-gu/","geo":{"@type":"GeoCoordinates","latitude":37.665972,"longitude":127.0317465},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>

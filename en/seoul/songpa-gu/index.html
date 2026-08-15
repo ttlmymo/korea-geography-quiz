@@ -49,6 +49,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -58,6 +72,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>Songpa-gu, Seoul</h1>
 <p class="lead"><span lang="ko">송파구</span> · 13 neighborhoods · Learn Korean administrative divisions with maps</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>Where is Songpa-gu in Seoul?</h2>
+  <p>The blue area shows Songpa-gu. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">Loading map…</span></div>
+  <p class="gu-map-cap">Location map of Songpa-gu, Seoul</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ Reset view</button>
+  </div>
+  <noscript><p class="gu-map-cap">Enable JavaScript to view the map. Songpa-gu is a district of Seoul.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11710","sgg_nm":"송파구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 송파구"},"geometry":{"type":"Polygon","coordinates":[[[127.111655,37.483794],[127.107005,37.490289],[127.103522,37.492698],[127.097403,37.495191],[127.09587,37.496298],[127.08211,37.500363],[127.076987,37.502072],[127.076166,37.502148],[127.069818,37.50274],[127.068868,37.5103],[127.067589,37.520876],[127.067479,37.524582],[127.068663,37.523871],[127.076942,37.522514],[127.079975,37.522952],[127.085633,37.524759],[127.091293,37.52795],[127.102024,37.53645],[127.108282,37.541408],[127.109239,37.543165],[127.113048,37.542979],[127.118877,37.541072],[127.122406,37.539017],[127.123442,37.538646],[127.119291,37.527873],[127.133868,37.521433],[127.143828,37.517039],[127.145077,37.516886],[127.143394,37.51387],[127.141278,37.512153],[127.140014,37.508525],[127.141016,37.505503],[127.143424,37.504414],[127.147695,37.503212],[127.150204,37.504743],[127.152109,37.502971],[127.156555,37.501895],[127.157729,37.503179],[127.16139,37.500201],[127.15978,37.496824],[127.160026,37.494375],[127.157659,37.490175],[127.158386,37.489571],[127.148683,37.484044],[127.147479,37.481774],[127.147145,37.477222],[127.144371,37.477332],[127.143526,37.473931],[127.132856,37.474627],[127.132845,37.471538],[127.130544,37.467739],[127.126373,37.468793],[127.123619,37.46734],[127.119718,37.472582],[127.116031,37.477598],[127.11603,37.4776],[127.1139,37.480463],[127.111655,37.483794]]]}},"bb":[127.067479,37.46734,127.16139,37.543165],"t":"Songpa-gu, Seoul"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>About Songpa-gu</h2>
@@ -91,6 +186,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Songpa-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/songpa-gu/"}]},{"@type":"Place","name":"Songpa-gu, Seoul","alternateName":"서울특별시 송파구","description":"Located in southeastern Seoul on the south bank of the Han River, this autonomous district is a historic area that served as the center of Hanseong Baekje, where the Baekje Kingdom first established its capital. Today, it has grown into a commercial and cultural hub of southeastern Seoul, represented by the Olympic facilities in the Jamsil area, Lotte World, and Seokchon Lake.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/songpa-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Songpa-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/songpa-gu/"}]},{"@type":"Place","name":"Songpa-gu, Seoul","alternateName":"서울특별시 송파구","description":"Located in southeastern Seoul on the south bank of the Han River, this autonomous district is a historic area that served as the center of Hanseong Baekje, where the Baekje Kingdom first established its capital. Today, it has grown into a commercial and cultural hub of southeastern Seoul, represented by the Olympic facilities in the Jamsil area, Lotte World, and Seokchon Lake.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/songpa-gu/","geo":{"@type":"GeoCoordinates","latitude":37.5052525,"longitude":127.1144345},"containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
 </body>
 </html>

@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 용산구</h1>
 <p class="lead">Yongsan-gu · 법정동 36개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>용산구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 용산구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 용산구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 용산구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11170","sgg_nm":"용산구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 용산구"},"geometry":{"type":"Polygon","coordinates":[[[126.980399,37.506536],[126.974053,37.507476],[126.964964,37.510817],[126.961859,37.51308],[126.955543,37.515702],[126.950204,37.517421],[126.949887,37.517526],[126.949877,37.527029],[126.947172,37.530632],[126.945492,37.532685],[126.94459,37.533786],[126.946415,37.535739],[126.948902,37.535627],[126.953397,37.537566],[126.956659,37.540594],[126.956583,37.540761],[126.958176,37.542312],[126.957815,37.545155],[126.959257,37.546004],[126.963339,37.548638],[126.963438,37.54867],[126.963896,37.549779],[126.962348,37.551512],[126.962406,37.551592],[126.966619,37.554429],[126.969186,37.555663],[126.969173,37.554878],[126.97334,37.554124],[126.97646,37.553517],[126.97646,37.553523],[126.976508,37.554223],[126.980871,37.553899],[126.985409,37.553717],[126.98772,37.551445],[126.992384,37.550072],[126.994757,37.547346],[126.995224,37.547229],[126.998345,37.549708],[127.004376,37.550166],[127.006134,37.548212],[127.005011,37.546198],[127.007209,37.543913],[127.009312,37.540022],[127.017263,37.537682],[127.017192,37.533799],[127.012464,37.52967],[127.009973,37.527014],[127.007651,37.524658],[127.003186,37.521167],[127.000176,37.519111],[126.998937,37.518328],[126.997512,37.51743],[126.990672,37.513102],[126.985533,37.506543],[126.982413,37.506546],[126.980399,37.506536]]]}},"bb":[126.94459,37.506536,127.017263,37.555663],"t":"서울 용산구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>용산구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"용산구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/yongsan-gu/"}]},{"@type":"Place","name":"서울특별시 용산구","alternateName":"Seoul Yongsan-gu","description":"남산 남쪽 사면에서 한강에 이르는, 서울 도심과 강남을 잇는 길목에 자리한 자치구입니다. 오래도록 군사기지와 철도의 요충이었으며 이태원을 비롯해 41개국 대사관이 모인 국제적인 지역이자, 국립중앙박물관·전쟁기념관·효창공원 등 역사와 문화가 어우러진 곳입니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/yongsan-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"용산구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/yongsan-gu/"}]},{"@type":"Place","name":"서울특별시 용산구","alternateName":"Seoul Yongsan-gu","description":"남산 남쪽 사면에서 한강에 이르는, 서울 도심과 강남을 잇는 길목에 자리한 자치구입니다. 오래도록 군사기지와 철도의 요충이었으며 이태원을 비롯해 41개국 대사관이 모인 국제적인 지역이자, 국립중앙박물관·전쟁기념관·효창공원 등 역사와 문화가 어우러진 곳입니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/yongsan-gu/","geo":{"@type":"GeoCoordinates","latitude":37.531099499999996,"longitude":126.98092650000001},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>

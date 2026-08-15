@@ -49,6 +49,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -58,6 +72,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>Seodaemun-gu, Seoul</h1>
 <p class="lead"><span lang="ko">서대문구</span> · 20 neighborhoods · Learn Korean administrative divisions with maps</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>Where is Seodaemun-gu in Seoul?</h2>
+  <p>The blue area shows Seodaemun-gu. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">Loading map…</span></div>
+  <p class="gu-map-cap">Location map of Seodaemun-gu, Seoul</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ Reset view</button>
+  </div>
+  <noscript><p class="gu-map-cap">Enable JavaScript to view the map. Seodaemun-gu is a district of Seoul.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11410","sgg_nm":"서대문구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 서대문구"},"geometry":{"type":"Polygon","coordinates":[[[126.927189,37.56179],[126.927191,37.561793],[126.928282,37.563332],[126.924732,37.565673],[126.916785,37.567807],[126.916773,37.567811],[126.915344,37.568437],[126.912859,37.569595],[126.909792,37.57099],[126.902085,37.576001],[126.900286,37.577236],[126.902057,37.576757],[126.911914,37.585823],[126.912844,37.587222],[126.915697,37.58598],[126.915935,37.58309],[126.920859,37.582939],[126.922784,37.585533],[126.92389,37.587099],[126.927985,37.588388],[126.927766,37.591583],[126.930262,37.594565],[126.932792,37.596324],[126.937542,37.597868],[126.938698,37.597539],[126.940866,37.598733],[126.941377,37.600677],[126.939827,37.601873],[126.944163,37.606428],[126.946238,37.607379],[126.948766,37.609007],[126.950378,37.610594],[126.953988,37.604752],[126.952521,37.602446],[126.953533,37.599469],[126.956341,37.598921],[126.958713,37.596375],[126.957529,37.593507],[126.95733,37.588723],[126.957848,37.585019],[126.95782,37.584993],[126.957809,37.584982],[126.957587,37.582251],[126.957202,37.579819],[126.953558,37.578749],[126.959406,37.573051],[126.960478,37.57199],[126.962913,37.569683],[126.962949,37.569639],[126.965575,37.566913],[126.967447,37.566576],[126.96698,37.565512],[126.967564,37.564877],[126.968658,37.563373],[126.96884,37.563123],[126.968081,37.561654],[126.968077,37.561653],[126.965449,37.560295],[126.96168,37.559027],[126.961646,37.55909],[126.959133,37.557243],[126.94894,37.55699],[126.948935,37.556995],[126.946512,37.556843],[126.94288,37.556633],[126.941068,37.556483],[126.936857,37.555099],[126.932791,37.556578],[126.926594,37.558849],[126.927189,37.56179]]]}},"bb":[126.900286,37.555099,126.96884,37.610594],"t":"Seodaemun-gu, Seoul"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>About Seodaemun-gu</h2>
@@ -91,6 +186,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Seodaemun-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/seodaemun-gu/"}]},{"@type":"Place","name":"Seodaemun-gu, Seoul","alternateName":"서울특별시 서대문구","description":"Located in northwestern Seoul, just outside Donuimun (Seodaemun)—one of the four major gates of the old capital—this autonomous district blends the green spaces at the foothills of Inwangsan and Ansan mountains with the university district of Sinchon. It is an educational hub with a high concentration of universities, including Yonsei University and Ewha Womans University, and a symbolic site of the anti-Japanese independence movement, home to Independence Gate and the Seodaemun Prison History Museum.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/seodaemun-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Seodaemun-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/seodaemun-gu/"}]},{"@type":"Place","name":"Seodaemun-gu, Seoul","alternateName":"서울특별시 서대문구","description":"Located in northwestern Seoul, just outside Donuimun (Seodaemun)—one of the four major gates of the old capital—this autonomous district blends the green spaces at the foothills of Inwangsan and Ansan mountains with the university district of Sinchon. It is an educational hub with a high concentration of universities, including Yonsei University and Ewha Womans University, and a symbolic site of the anti-Japanese independence movement, home to Independence Gate and the Seodaemun Prison History Museum.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/seodaemun-gu/","geo":{"@type":"GeoCoordinates","latitude":37.5828465,"longitude":126.934563},"containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
 </body>
 </html>

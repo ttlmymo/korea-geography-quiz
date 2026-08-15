@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 동작구</h1>
 <p class="lead">Dongjak-gu · 법정동 9개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>동작구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 동작구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 동작구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 동작구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11590","sgg_nm":"동작구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 동작구"},"geometry":{"type":"Polygon","coordinates":[[[126.961987,37.485177],[126.961967,37.488628],[126.960781,37.490825],[126.961378,37.492874],[126.958943,37.493616],[126.957478,37.491977],[126.953699,37.49061],[126.94877,37.493788],[126.940812,37.492888],[126.936554,37.49201],[126.929859,37.494003],[126.927479,37.495015],[126.924155,37.489964],[126.921299,37.490334],[126.916651,37.489548],[126.911923,37.486516],[126.906098,37.484961],[126.9032,37.485003],[126.90945,37.492599],[126.912362,37.49629],[126.919415,37.497603],[126.920249,37.498506],[126.920353,37.500034],[126.92539,37.512529],[126.926867,37.515544],[126.932387,37.515567],[126.939283,37.516077],[126.949887,37.517526],[126.950204,37.517421],[126.955543,37.515702],[126.961859,37.51308],[126.964964,37.510817],[126.974053,37.507476],[126.980399,37.506536],[126.980541,37.502691],[126.985387,37.499859],[126.98293,37.496994],[126.9828,37.492648],[126.982184,37.486729],[126.981681,37.477091],[126.970523,37.475376],[126.961063,37.483581],[126.961987,37.485177]]]}},"bb":[126.9032,37.475376,126.985387,37.517526],"t":"서울 동작구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>동작구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"동작구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/dongjak-gu/"}]},{"@type":"Place","name":"서울특별시 동작구","alternateName":"Seoul Dongjak-gu","description":"서울 남서부, 한강을 사이에 두고 용산·여의도와 마주한 자치구로 예로부터 노들나루(노량진)를 통해 삼남지방과 도성을 잇던 교통의 길목이었습니다. 국립서울현충원과 사육신묘가 자리한 충효의 고장이자, 노량진 수산시장과 학원가로도 널리 알려진 지역입니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/dongjak-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"동작구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/dongjak-gu/"}]},{"@type":"Place","name":"서울특별시 동작구","alternateName":"Seoul Dongjak-gu","description":"서울 남서부, 한강을 사이에 두고 용산·여의도와 마주한 자치구로 예로부터 노들나루(노량진)를 통해 삼남지방과 도성을 잇던 교통의 길목이었습니다. 국립서울현충원과 사육신묘가 자리한 충효의 고장이자, 노량진 수산시장과 학원가로도 널리 알려진 지역입니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/dongjak-gu/","geo":{"@type":"GeoCoordinates","latitude":37.49645099999999,"longitude":126.9442935},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>

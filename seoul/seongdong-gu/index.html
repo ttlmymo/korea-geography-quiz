@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 성동구</h1>
 <p class="lead">Seongdong-gu · 법정동 17개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>성동구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 성동구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 성동구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 성동구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11200","sgg_nm":"성동구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 성동구"},"geometry":{"type":"Polygon","coordinates":[[[127.021172,37.535824],[127.017192,37.533799],[127.017263,37.537682],[127.009312,37.540022],[127.007209,37.543913],[127.00967,37.547891],[127.013416,37.549761],[127.016202,37.552645],[127.018045,37.556838],[127.019664,37.557269],[127.022898,37.557862],[127.02335,37.560664],[127.026526,37.563391],[127.02679,37.565039],[127.023573,37.565779],[127.023391,37.571904],[127.027276,37.570913],[127.027717,37.570843],[127.030289,37.569807],[127.032169,37.570086],[127.036177,37.572152],[127.03813,37.572265],[127.042555,37.572697],[127.047954,37.570381],[127.056591,37.563943],[127.058761,37.562314],[127.071058,37.560555],[127.072003,37.560099],[127.072454,37.559932],[127.073736,37.559414],[127.067466,37.54833],[127.066125,37.54597],[127.064014,37.542228],[127.056225,37.52833],[127.048938,37.532568],[127.046514,37.533933],[127.039798,37.535825],[127.035807,37.535851],[127.021172,37.535824]]]}},"bb":[127.007209,37.52833,127.073736,37.572697],"t":"서울 성동구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>성동구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"성동구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/seongdong-gu/"}]},{"@type":"Place","name":"서울특별시 성동구","alternateName":"Seoul Seongdong-gu","description":"서울 도심 동쪽, 청계천과 중랑천이 만나 한강으로 흘러드는 왕십리 일대에 자리한 자치구입니다. 조선시대 임금의 사냥터였던 살곶이벌과 말 목장이 있던 곳으로, 오늘날에는 성수동 수제화 거리와 카페 거리로 대표되는 서울의 새로운 문화 명소로 떠오르고 있습니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/seongdong-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"성동구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/seongdong-gu/"}]},{"@type":"Place","name":"서울특별시 성동구","alternateName":"Seoul Seongdong-gu","description":"서울 도심 동쪽, 청계천과 중랑천이 만나 한강으로 흘러드는 왕십리 일대에 자리한 자치구입니다. 조선시대 임금의 사냥터였던 살곶이벌과 말 목장이 있던 곳으로, 오늘날에는 성수동 수제화 거리와 카페 거리로 대표되는 서울의 새로운 문화 명소로 떠오르고 있습니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/seongdong-gu/","geo":{"@type":"GeoCoordinates","latitude":37.550513499999994,"longitude":127.04047249999999},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>

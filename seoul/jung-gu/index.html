@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 중구</h1>
 <p class="lead">Jung-gu · 법정동 74개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>중구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 중구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 중구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 중구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11140","sgg_nm":"중구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 중구"},"geometry":{"type":"Polygon","coordinates":[[[126.968077,37.561653],[126.968081,37.561654],[126.96884,37.563123],[126.968658,37.563373],[126.967564,37.564877],[126.96698,37.565512],[126.967447,37.566576],[126.969101,37.568247],[126.969301,37.568172],[126.973204,37.56932],[126.975663,37.56938],[126.97619,37.569475],[126.977472,37.569255],[126.9779,37.569206],[126.979872,37.569032],[126.982575,37.569017],[126.98285,37.568973],[126.983194,37.568905],[126.986458,37.568257],[126.988195,37.568135],[126.988927,37.568102],[126.990915,37.568204],[126.992297,37.568334],[126.994587,37.568509],[126.996328,37.568652],[126.996352,37.568658],[127.001308,37.569477],[127.001449,37.569507],[127.005354,37.569607],[127.006903,37.569649],[127.009835,37.569765],[127.010035,37.569776],[127.015257,37.569735],[127.017363,37.570084],[127.019024,37.571013],[127.023361,37.571911],[127.023391,37.571904],[127.023573,37.565779],[127.02679,37.565039],[127.026526,37.563391],[127.02335,37.560664],[127.022898,37.557862],[127.019664,37.557269],[127.018045,37.556838],[127.016202,37.552645],[127.013416,37.549761],[127.00967,37.547891],[127.007209,37.543913],[127.005011,37.546198],[127.006134,37.548212],[127.004376,37.550166],[126.998345,37.549708],[126.995224,37.547229],[126.994757,37.547346],[126.992384,37.550072],[126.98772,37.551445],[126.985409,37.553717],[126.980871,37.553899],[126.976508,37.554223],[126.97646,37.553523],[126.97646,37.553517],[126.97334,37.554124],[126.969173,37.554878],[126.969186,37.555663],[126.966619,37.554429],[126.962406,37.551592],[126.961737,37.555],[126.963429,37.556956],[126.96168,37.559027],[126.965449,37.560295],[126.968077,37.561653]]]}},"bb":[126.96168,37.543913,127.02679,37.571911],"t":"서울 중구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>중구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"중구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/jung-gu/"}]},{"@type":"Place","name":"서울특별시 중구","alternateName":"Seoul Jung-gu","description":"청계천 남쪽, 남산 북사면에서 도심으로 이어지는 서울 분지의 절반을 차지한 자치구로 25개 구 가운데 면적이 가장 작은 도심지역입니다. 명동·을지로·소공동·충무로 일대에 금융·상업·언론·인쇄업이 밀집한 서울의 대표적인 중심업무지구이며, 남대문시장과 남산, 덕수궁 등 상업과 역사가 공존하는 곳입니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/jung-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"중구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/jung-gu/"}]},{"@type":"Place","name":"서울특별시 중구","alternateName":"Seoul Jung-gu","description":"청계천 남쪽, 남산 북사면에서 도심으로 이어지는 서울 분지의 절반을 차지한 자치구로 25개 구 가운데 면적이 가장 작은 도심지역입니다. 명동·을지로·소공동·충무로 일대에 금융·상업·언론·인쇄업이 밀집한 서울의 대표적인 중심업무지구이며, 남대문시장과 남산, 덕수궁 등 상업과 역사가 공존하는 곳입니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/jung-gu/","geo":{"@type":"GeoCoordinates","latitude":37.557912,"longitude":126.994235},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>

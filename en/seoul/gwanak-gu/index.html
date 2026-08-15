@@ -49,6 +49,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -58,6 +72,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>Gwanak-gu, Seoul</h1>
 <p class="lead"><span lang="ko">관악구</span> · 3 neighborhoods · Learn Korean administrative divisions with maps</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>Where is Gwanak-gu in Seoul?</h2>
+  <p>The blue area shows Gwanak-gu. Pan or zoom the map to see how it sits among the neighboring districts of Seoul.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">Loading map…</span></div>
+  <p class="gu-map-cap">Location map of Gwanak-gu, Seoul</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ Reset view</button>
+  </div>
+  <noscript><p class="gu-map-cap">Enable JavaScript to view the map. Gwanak-gu is a district of Seoul.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11620","sgg_nm":"관악구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 관악구"},"geometry":{"type":"Polygon","coordinates":[[[126.964289,37.446267],[126.964634,37.44204],[126.962943,37.440281],[126.960056,37.440401],[126.958966,37.43907],[126.955175,37.438692],[126.952411,37.43919],[126.948363,37.438713],[126.94509,37.437088],[126.941424,37.437404],[126.94022,37.435712],[126.937746,37.437386],[126.937864,37.440197],[126.936647,37.441746],[126.930554,37.445469],[126.930166,37.448384],[126.928398,37.450213],[126.926263,37.45254],[126.923342,37.454192],[126.922187,37.456624],[126.914981,37.457313],[126.914192,37.460998],[126.912348,37.465862],[126.908202,37.472669],[126.910745,37.47362],[126.911813,37.477794],[126.90946,37.478027],[126.908973,37.480096],[126.905239,37.480113],[126.898943,37.47894],[126.903195,37.484999],[126.9032,37.485003],[126.906098,37.484961],[126.911923,37.486516],[126.916651,37.489548],[126.921299,37.490334],[126.924155,37.489964],[126.927479,37.495015],[126.929859,37.494003],[126.936554,37.49201],[126.940812,37.492888],[126.94877,37.493788],[126.953699,37.49061],[126.957478,37.491977],[126.958943,37.493616],[126.961378,37.492874],[126.960781,37.490825],[126.961967,37.488628],[126.961987,37.485177],[126.961063,37.483581],[126.970523,37.475376],[126.981681,37.477091],[126.983215,37.471571],[126.987246,37.467626],[126.988334,37.464002],[126.987504,37.460671],[126.988615,37.45821],[126.982398,37.455891],[126.978477,37.455735],[126.974579,37.454413],[126.971753,37.451737],[126.970569,37.449453],[126.964289,37.446267]]]}},"bb":[126.898943,37.435712,126.988615,37.495015],"t":"Gwanak-gu, Seoul"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>About Gwanak-gu</h2>
@@ -91,6 +186,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Gwanak-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gwanak-gu/"}]},{"@type":"Place","name":"Gwanak-gu, Seoul","alternateName":"서울특별시 관악구","description":"Located southwest of Seoul, with the majestic Mount Gwanak as its backdrop, this autonomous district is a major residential area centered around Bongcheon-dong and Sillim-dong. Home to Seoul National University, it boasts a thriving university-area commercial district and is also well known for Nakseongdae, the birthplace of General Gang Gam-chan, a renowned military commander of the Goryeo Dynasty.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gwanak-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Korea Geography Master Quiz","item":"https://ttlmymo.github.io/korea-geography-quiz/en/"},{"@type":"ListItem","position":2,"name":"Seoul","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/"},{"@type":"ListItem","position":3,"name":"Gwanak-gu","item":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gwanak-gu/"}]},{"@type":"Place","name":"Gwanak-gu, Seoul","alternateName":"서울특별시 관악구","description":"Located southwest of Seoul, with the majestic Mount Gwanak as its backdrop, this autonomous district is a major residential area centered around Bongcheon-dong and Sillim-dong. Home to Seoul National University, it boasts a thriving university-area commercial district and is also well known for Nakseongdae, the birthplace of General Gang Gam-chan, a renowned military commander of the Goryeo Dynasty.","url":"https://ttlmymo.github.io/korea-geography-quiz/en/seoul/gwanak-gu/","geo":{"@type":"GeoCoordinates","latitude":37.4653635,"longitude":126.943779},"containedInPlace":{"@type":"AdministrativeArea","name":"Seoul"}}]}</script>
 </body>
 </html>

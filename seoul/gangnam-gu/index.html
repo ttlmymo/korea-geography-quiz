@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 강남구</h1>
 <p class="lead">Gangnam-gu · 법정동 14개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>강남구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 강남구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 강남구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 강남구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11680","sgg_nm":"강남구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 강남구"},"geometry":{"type":"Polygon","coordinates":[[[127.041653,37.485143],[127.034087,37.484369],[127.031611,37.489555],[127.024485,37.504478],[127.021326,37.511102],[127.019525,37.516112],[127.017822,37.521812],[127.01523,37.524844],[127.013173,37.522592],[127.008595,37.52559],[127.009973,37.527014],[127.012464,37.52967],[127.017192,37.533799],[127.021172,37.535824],[127.035807,37.535851],[127.039798,37.535825],[127.046514,37.533933],[127.048938,37.532568],[127.056225,37.52833],[127.065447,37.525053],[127.067479,37.524582],[127.067589,37.520876],[127.068868,37.5103],[127.069818,37.50274],[127.076166,37.502148],[127.076987,37.502072],[127.08211,37.500363],[127.09587,37.496298],[127.097403,37.495191],[127.103522,37.492698],[127.107005,37.490289],[127.111655,37.483794],[127.1139,37.480463],[127.11603,37.4776],[127.116031,37.477598],[127.119718,37.472582],[127.123619,37.46734],[127.121439,37.464372],[127.117474,37.462201],[127.116896,37.458641],[127.113271,37.460055],[127.11182,37.461645],[127.106467,37.462424],[127.104341,37.462175],[127.103941,37.460051],[127.101381,37.458973],[127.099096,37.456219],[127.095231,37.456396],[127.095698,37.460993],[127.092097,37.462274],[127.092029,37.464941],[127.089038,37.468241],[127.08413,37.472787],[127.0847,37.475402],[127.084939,37.475661],[127.078993,37.474916],[127.076924,37.475243],[127.07669,37.474831],[127.075367,37.473496],[127.07041,37.471093],[127.065113,37.469371],[127.061449,37.468998],[127.05537,37.468761],[127.050952,37.467585],[127.048859,37.469893],[127.0509,37.47181],[127.045404,37.477113],[127.044005,37.479942],[127.041653,37.485143]]]}},"bb":[127.008595,37.456219,127.123619,37.535851],"t":"서울 강남구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>강남구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"강남구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/gangnam-gu/"}]},{"@type":"Place","name":"서울특별시 강남구","alternateName":"Seoul Gangnam-gu","description":"서울 한강 이남 동쪽에 자리한 자치구로 테헤란로를 중심으로 한 대표적인 상업·업무 중심지입니다. 코엑스, 봉은사 등이 있으며 교육열이 높은 지역으로도 잘 알려져 있습니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/gangnam-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"강남구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/gangnam-gu/"}]},{"@type":"Place","name":"서울특별시 강남구","alternateName":"Seoul Gangnam-gu","description":"서울 한강 이남 동쪽에 자리한 자치구로 테헤란로를 중심으로 한 대표적인 상업·업무 중심지입니다. 코엑스, 봉은사 등이 있으며 교육열이 높은 지역으로도 잘 알려져 있습니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/gangnam-gu/","geo":{"@type":"GeoCoordinates","latitude":37.496035,"longitude":127.066107},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>

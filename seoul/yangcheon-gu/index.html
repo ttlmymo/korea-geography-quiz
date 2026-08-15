@@ -48,6 +48,20 @@ figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 a{color:var(--sage-d)}
 footer{text-align:center;margin-top:36px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
 footer a{color:var(--muted);text-decoration:none}
+
+.gu-map{ position:relative; width:100%; height:420px; border-radius:14px;
+  overflow:hidden; background:#e8e2d5; }
+.gu-map-wait{ position:absolute; inset:0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; color:#a59c89; }
+.gu-map-cap{ font-size:12px; color:#a59c89; margin:6px 0 0; text-align:center; }
+.gu-map-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+.gu-map-btn{ font-family:inherit; font-size:13.5px; color:#5f5749;
+  background:#e8e2d5; border:1px solid #d8cfbd; border-radius:12px;
+  padding:8px 16px; cursor:pointer; line-height:1.4; }
+.gu-map-btn:hover{ background:#ded7c8; }
+.gu-map-btn:focus-visible{ outline:3px solid #8aa97e; outline-offset:2px; }
+@media(max-width:600px){ .gu-map{ height:300px; } }
+
 @media(max-width:600px){h1{font-size:23px}section{padding:19px 17px}}
 </style>
 </head>
@@ -57,6 +71,87 @@ footer a{color:var(--muted);text-decoration:none}
 
 <h1>서울특별시 양천구</h1>
 <p class="lead">Yangcheon-gu · 법정동 3개 · 지도로 배우는 대한민국 행정구역</p>
+
+
+<section class="sec gu-map-sec">
+  <h2>양천구는 서울 어디에 있나요?</h2>
+  <p>파란색으로 표시된 영역이 양천구입니다. 지도를 움직이거나 확대해서 주변 자치구와의 위치 관계를 확인해 보세요.</p>
+  <div id="guMap" class="gu-map"><span class="gu-map-wait">지도를 불러오는 중…</span></div>
+  <p class="gu-map-cap">서울특별시 양천구 위치 지도</p>
+  <div class="gu-map-actions">
+    <button type="button" class="gu-map-btn" id="guMapReset">↺ 처음 위치로</button>
+  </div>
+  <noscript><p class="gu-map-cap">지도를 보려면 자바스크립트를 켜 주세요. 양천구는 서울특별시에 속한 자치구입니다.</p></noscript>
+</section>
+<script>
+(function(){
+  var D = {"f":{"type":"Feature","properties":{"sgg":"11470","sgg_nm":"양천구","sido":"11","sidonm":"서울특별시","full_nm":"서울특별시 양천구"},"geometry":{"type":"Polygon","coordinates":[[[126.863969,37.529789],[126.863474,37.535635],[126.8637,37.54102],[126.862118,37.544491],[126.864207,37.551152],[126.86503,37.550991],[126.870338,37.547898],[126.87286,37.547035],[126.877959,37.547099],[126.880737,37.548134],[126.884183,37.544556],[126.88545,37.542317],[126.886314,37.539782],[126.890155,37.534377],[126.890714,37.531692],[126.889527,37.529968],[126.887669,37.530353],[126.884332,37.52876],[126.88094,37.525908],[126.878749,37.525254],[126.87908,37.522613],[126.879032,37.522495],[126.878666,37.519703],[126.879166,37.517877],[126.878504,37.51642],[126.877357,37.51609],[126.877812,37.515472],[126.877528,37.514709],[126.877673,37.51384],[126.877941,37.513409],[126.877734,37.513282],[126.877483,37.513584],[126.877261,37.513717],[126.875734,37.512192],[126.873997,37.511293],[126.874,37.511018],[126.875041,37.507713],[126.873724,37.504634],[126.871864,37.504126],[126.862842,37.505805],[126.860316,37.506609],[126.858344,37.509868],[126.855593,37.509105],[126.852907,37.510643],[126.847252,37.509487],[126.845322,37.507809],[126.842724,37.505462],[126.841182,37.50582],[126.836414,37.503022],[126.832061,37.504619],[126.831018,37.507829],[126.827049,37.508536],[126.824694,37.508321],[126.823904,37.509095],[126.824436,37.513171],[126.823104,37.51622],[126.82568,37.52025],[126.825137,37.523005],[126.828179,37.525834],[126.828301,37.529077],[126.825568,37.529843],[126.821922,37.534828],[126.822434,37.536543],[126.821603,37.539756],[126.823755,37.541239],[126.82537,37.541674],[126.825978,37.54484],[126.827474,37.547447],[126.829758,37.547732],[126.830455,37.545775],[126.829985,37.541656],[126.833102,37.541849],[126.83516,37.537533],[126.834413,37.536456],[126.840477,37.526487],[126.84887,37.527897],[126.863969,37.529789]]]}},"bb":[126.821603,37.503022,126.890714,37.551152],"t":"서울 양천구"};
+  var el = document.getElementById("guMap");
+  var resetBtn = document.getElementById("guMapReset");
+  var map = null, bounds = null, started = false, drawn = false;
+
+  function loadScript(cb){
+    var s = document.createElement("script");
+    s.src = "https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q";
+    s.onload = cb;
+    s.onerror = function(){ el.innerHTML = ""; };
+    document.head.appendChild(s);
+  }
+
+  function draw(){
+    if (drawn) return; drawn = true;
+    try {
+      map.data.addGeoJson({ type:"FeatureCollection", features:[D.f] });
+      map.data.setStyle({ fillColor:"#1a73e8", fillOpacity:0.12,
+        strokeColor:"#1a73e8", strokeOpacity:0.95, strokeWeight:2.5 });
+      bounds = new naver.maps.LatLngBounds(
+        new naver.maps.LatLng(D.bb[1], D.bb[0]),
+        new naver.maps.LatLng(D.bb[3], D.bb[2]));
+      map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+      new naver.maps.Marker({ map: map, title: D.t,
+        position: new naver.maps.LatLng((D.bb[1]+D.bb[3])/2, (D.bb[0]+D.bb[2])/2) });
+    } catch(e){}
+  }
+
+  function init(){
+    var w = el.querySelector(".gu-map-wait"); if (w) w.remove();
+    map = new naver.maps.Map(el, {
+      center: new naver.maps.LatLng(37.5665, 126.9780),
+      zoom: 11,
+      scrollWheel: false,
+      pinchZoom: true,
+      mapDataControl: false,
+      logoControlOptions: { position: naver.maps.Position.BOTTOM_LEFT },
+      scaleControlOptions: { position: naver.maps.Position.BOTTOM_RIGHT },
+      zoomControl: true,
+      zoomControlOptions: {
+        style: naver.maps.ZoomControlStyle.SMALL,
+        position: naver.maps.Position.TOP_RIGHT
+      }
+    });
+    naver.maps.Event.once(map, "init", draw);
+    setTimeout(draw, 300);
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    if (map && bounds) map.fitBounds(bounds, { top:28, right:28, bottom:28, left:28 });
+  });
+
+  function start(){
+    if (started) return; started = true;
+    loadScript(function(){
+      if (window.naver && naver.maps) init();
+    });
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(es){
+      if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); start(); }
+    }, { rootMargin: "200px" });
+    io.observe(el);
+  } else { start(); }
+})();
+</script>
 
 <section>
   <h2>양천구는 어떤 곳인가요?</h2>
@@ -89,6 +184,6 @@ footer a{color:var(--muted);text-decoration:none}
   <div style="margin-top:4px">Copyright 2026. koquiz.support@gmail.com</div>
 </footer>
 </div>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"양천구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/yangcheon-gu/"}]},{"@type":"Place","name":"서울특별시 양천구","alternateName":"Seoul Yangcheon-gu","description":"서울 서남부, 안양천과 한강이 만나는 김포평야의 저지대에 자리한 자치구입니다. 목동 신시가지의 대규모 아파트단지와 학원가, 방송사들이 밀집한 미디어 거점으로 성장한 지역으로, '양천'이라는 옛 고을 이름을 되찾은 곳입니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/yangcheon-gu/","containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"전국 지리 마스터 퀴즈","item":"https://ttlmymo.github.io/korea-geography-quiz/"},{"@type":"ListItem","position":2,"name":"서울특별시","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/"},{"@type":"ListItem","position":3,"name":"양천구","item":"https://ttlmymo.github.io/korea-geography-quiz/seoul/yangcheon-gu/"}]},{"@type":"Place","name":"서울특별시 양천구","alternateName":"Seoul Yangcheon-gu","description":"서울 서남부, 안양천과 한강이 만나는 김포평야의 저지대에 자리한 자치구입니다. 목동 신시가지의 대규모 아파트단지와 학원가, 방송사들이 밀집한 미디어 거점으로 성장한 지역으로, '양천'이라는 옛 고을 이름을 되찾은 곳입니다.","url":"https://ttlmymo.github.io/korea-geography-quiz/seoul/yangcheon-gu/","geo":{"@type":"GeoCoordinates","latitude":37.527087,"longitude":126.85615849999999},"containedInPlace":{"@type":"AdministrativeArea","name":"서울특별시"}}]}</script>
 </body>
 </html>
