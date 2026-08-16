@@ -43,11 +43,16 @@ const MANUAL_MAP = {
     "진관동": ["진관내동", "진관외동", "구파발동"]
   }
 };
-// 원문에 행정동명 변경이 명시된 경우만 허용하는 비-fuzzy 별칭 매핑.
-const EXPLICIT_RENAME_MAP = {
+// 법정동의 유래·개칭 연혁과 다른 행정동 원문을 혼동하지 않도록 위치 문장만 제한적으로 쓰는 매핑.
+const LOCATION_ONLY_MAP = {
   "11740": {
-    "강일동": "하일동"
+    "강일동": { sourceName: "하일동", allow: /(?:구리시|하남시|고덕동)/ }
   }
+};
+// 관련 지명 문서 탐색이 필요한 대상. 현재 배치에서는 자동 본문을 만들지 않고 deferred로 남긴다.
+const DEFERRED_RELATED_PLACE_MAP = {
+  "11710": { "삼전동": { relatedQueries: ["삼전도"], relatedEids: ["E0026788"] } },
+  "11110": { "도렴동": { relatedQueries: ["도렴동"] } }
 };
 
 function splitDongSection(body) {
@@ -117,12 +122,21 @@ for (const list of bjdBySgg.values()) list.sort((a, b) => a.dongName.localeCompa
 const gu = [];
 const coverage = [];
 const warnings = [];
-const filterSummary = { facility: 0, transit: 0, ongoing: 0, commerce: 0, "admin-org": 0, "historical-keep": 0 };
+const filterSummary = {
+  scope: "서울 25개 구의 수집 성공 구 문서 # 동(洞) 절",
+  unit: "고유 원문 항목 1개 안의 문장 판정 1건",
+  dedupe: "sgg + docIndex + sourceName 기준으로 shared/composite 재사용 원문 항목을 한 번만 집계",
+  removed: { facility: 0, transit: 0, ongoing: 0, commerce: 0, "admin-org": 0 },
+  historicalKeep: 0,
+  note: "removed 라벨은 FILTER_RULES의 첫 일치 규칙으로 서로 배타적이다. historicalKeep은 제외 후보 문장을 역사 사실로 보존한 중첩 주석이므로 removed와 합산하지 않는다."
+};
+const countedFilterSources = new Set();
 
-function countFilters(value) {
-  if (!value) return;
-  for (const item of value.removed || []) filterSummary[item.label] = (filterSummary[item.label] || 0) + 1;
-  for (const item of value.historicalKeep || []) filterSummary["historical-keep"] = (filterSummary["historical-keep"] || 0) + 1;
+function countFilters(value, sourceKey) {
+  if (!value || countedFilterSources.has(sourceKey)) return;
+  countedFilterSources.add(sourceKey);
+  for (const item of value.removed || []) filterSummary.removed[item.label] = (filterSummary.removed[item.label] || 0) + 1;
+  filterSummary.historicalKeep += (value.historicalKeep || []).length;
 }
 
 for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
@@ -161,7 +175,7 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
   const usedSourceNames = new Set();
   const dong = [];
   const missing = [];
-  let exact = 0, composite = 0, merged = 0, mention = 0;
+  let exact = 0, composite = 0, merged = 0, locationOnly = 0, deferred = 0, mention = 0;
 
   for (const geo of geoDongs) {
     const exactEntry = exactByName.get(geo.dongName);
@@ -172,12 +186,20 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
       continue;
     }
 
-    const renameSourceName = EXPLICIT_RENAME_MAP[sgg]?.[geo.dongName];
-    if (renameSourceName && exactByName.has(renameSourceName)) {
-      const renamedEntry = exactByName.get(renameSourceName);
-      exact += 1;
-      usedSourceNames.add(renamedEntry.name);
-      dong.push({ dongName: geo.dongName, sourceName: renamedEntry.name, bjdCode: geo.bjdCode, hanja: renamedEntry.hanja, matchType: "explicitRename", docIndex: renamedEntry.docIndex, raw: renamedEntry.raw, preGenerationFilter: filterBeforeGeneration(renamedEntry.body), mappingReason: "원문에 2000년 행정동명을 강일동으로 변경했다고 명시" });
+    const locationRule = LOCATION_ONLY_MAP[sgg]?.[geo.dongName];
+    if (locationRule && exactByName.has(locationRule.sourceName)) {
+      const sourceEntry = exactByName.get(locationRule.sourceName);
+      const allowedSentences = splitSentences(sourceEntry.body).filter((sentence) => locationRule.allow.test(sentence));
+      locationOnly += 1;
+      usedSourceNames.add(sourceEntry.name);
+      dong.push({ dongName: geo.dongName, sourceName: sourceEntry.name, bjdCode: geo.bjdCode, hanja: sourceEntry.hanja, matchType: "locationOnly", docIndex: sourceEntry.docIndex, raw: sourceEntry.raw, allowedSentences, omittedTopics: ["origin", "renameHistory"], mappingReason: "하일동 원문은 강일동의 유래·법정동 개칭 근거로 사용하지 않고 위치 문장만 제한적으로 사용" });
+      continue;
+    }
+
+    const deferredRelatedPlace = DEFERRED_RELATED_PLACE_MAP[sgg]?.[geo.dongName];
+    if (deferredRelatedPlace) {
+      deferred += 1;
+      dong.push({ dongName: geo.dongName, bjdCode: geo.bjdCode, matchType: "deferred", relatedPlace: deferredRelatedPlace, reason: "동명 완전일치 실패 뒤 관련 지명 문서 탐색이 필요하여 자동 본문 생성을 보류" });
       continue;
     }
 
@@ -236,17 +258,17 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
   const docOnly = entries.filter((entry) => !usedSourceNames.has(entry.name)).map(entrySource);
 
   for (const item of dong) {
-    countFilters(item.preGenerationFilter);
-    for (const source of item.sources || []) countFilters(source.preGenerationFilter);
+    countFilters(item.preGenerationFilter, `${sgg}:${item.docIndex || ""}:${item.sourceName || item.dongName || ""}`);
+    for (const source of item.sources || []) countFilters(source.preGenerationFilter, `${sgg}:${source.docIndex || ""}:${source.name || ""}`);
   }
   const row = {
     slug, guName, sgg, eid: article.eid || "", sectionMissing: !dongSection,
     source: { title: article.headword || `서울특별시 ${guName}`, eid: article.eid || "", fetchedAt: collection.fetchedAt || "" },
-    dong, compositeSource, docOnly, missing, unresolved: [], warnings: guWarnings,
+    dong, compositeSource, docOnly, missing, unresolved: dong.filter((item) => item.matchType === "deferred"), warnings: guWarnings,
     sourceEntryCount: entries.length, residualLength: residual
   };
   gu.push(row);
-  coverage.push({ guName, slug, sgg, geoCount: geoDongs.length, exact, composite, merged, dongDoc: 0, mention, missing: missing.length });
+    coverage.push({ guName, slug, sgg, geoCount: geoDongs.length, exact, composite, merged, locationOnly, deferred, dongDoc: 0, mention, missing: missing.length });
 }
 
 const output = { generatedAt: new Date().toISOString(), source: "한국민족문화대백과사전 OpenAPI", filterSummary, gu, coverage, warnings };
@@ -256,6 +278,6 @@ await writeFile(OUTPUT_PATH, JSON.stringify(output, null, 2) + "\n", "utf8");
 for (const row of coverage) {
   const bodyRate = row.geoCount ? (row.exact + row.composite + row.merged + row.dongDoc) / row.geoCount * 100 : 0;
   const referenceRate = row.geoCount ? (row.exact + row.composite + row.merged + row.dongDoc + row.mention) / row.geoCount * 100 : 0;
-  console.log(`${row.guName}\t${row.sgg}\t${row.geoCount}\t${row.exact}\t${row.composite}\t${row.merged}\t${row.dongDoc}\t${row.mention}\t${row.missing}\t${bodyRate.toFixed(1)}%\t${referenceRate.toFixed(1)}%`);
+  console.log(`${row.guName}\t${row.sgg}\t${row.geoCount}\t${row.exact}\t${row.composite}\t${row.merged}\t${row.locationOnly}\t${row.deferred}\t${row.dongDoc}\t${row.mention}\t${row.missing}\t${bodyRate.toFixed(1)}%\t${referenceRate.toFixed(1)}%`);
 }
 for (const warning of warnings) console.log(`WARNING\t${warning.guName}\t${warning.type}\t${warning.detail}`);
