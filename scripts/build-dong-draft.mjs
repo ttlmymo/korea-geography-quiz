@@ -11,7 +11,7 @@ const ENTRY = /(?:^|\n)(\d+)\.\s*([^\n(]+?)\s*\(([^)\n]*)\)\s*\n([\s\S]*?)(?=\n\
 
 const FILTER_RULES = [
   { label: "facility", test: /(?:학교|병원|도서관|공원|아파트|사무소|전시관|박물관|사찰|체육시설|공공기관).*(?:있|자리|조성|운영|설치|밀집)/ },
-  { label: "transit", test: /(?:(?:현재|오늘날|지금).*(?:도로|지하철|역|터널|대교|인터체인지|고속도로|노선).*(?:지나|연결|통과|이르)|(?:도로|지하철|역|터널|대교|인터체인지|고속도로|노선).*(?:지나고 있|연결되어 있|통과하고 있|이용할 수 있|교통(?:이|의).*?(?:편리|요지)))/ },
+  { label: "transit", test: /(?:(?:현재|오늘날|지금).*(?:도로|지하철|(?<!지)역|터널|대교|인터체인지|고속도로|노선).*(?:지나|연결|통과|이르)|(?:도로|지하철|(?<!지)역|터널|대교|인터체인지|고속도로|노선).*(?:지나고 있|연결되어 있|통과하고 있|이용할 수 있|교통(?:이|의).*?(?:편리|요지)))/ },
   { label: "ongoing", test: /(?:(?:현재|최근|점차).*(?:개발|조성|재개발|변화)|(?:개발|조성|재개발).*(?:진행\s*중|예정|계획\s*(?:중|되어\s*있)))/ },
   { label: "commerce", test: /(?:상권|상가|시장|백화점|업소|유흥|상업지역|가구단지|학원가)/ },
   { label: "admin-org", test: /(?:(?:현재|현행|지금).*(?:행정동|동사무소|구청|출장소).*(?:담당|관할|운영)|(?:행정동|동사무소|구청|출장소).*(?:담당하고 있|관할하고 있|운영하고 있))/ }
@@ -26,11 +26,12 @@ function filterBeforeGeneration(text) {
   const kept = [], removed = [], historicalKeep = [];
   for (const sentence of splitSentences(text)) {
     const rule = FILTER_RULES.find((candidate) => candidate.test.test(sentence));
+    const matchedKeyword = rule ? (sentence.match(rule.test)?.[0] || "") : "";
     if (rule && !HISTORICAL_KEEP.test(sentence)) {
-      removed.push({ label: rule.label, sentence });
+      removed.push({ label: rule.label, matchedKeyword, sentence });
     } else {
       kept.push(sentence);
-      if (rule && HISTORICAL_KEEP.test(sentence)) historicalKeep.push({ label: "historical-keep", sentence, wouldMatch: rule.label });
+      if (rule && HISTORICAL_KEEP.test(sentence)) historicalKeep.push({ label: "historical-keep", matchedKeyword, sentence, wouldMatch: rule.label });
     }
   }
   return { kept, removed, historicalKeep };
@@ -53,6 +54,10 @@ const LOCATION_ONLY_MAP = {
 const DEFERRED_RELATED_PLACE_MAP = {
   "11710": { "삼전동": { relatedQueries: ["삼전도"], relatedEids: ["E0026788"] } },
   "11110": { "도렴동": { relatedQueries: ["도렴동"] } }
+};
+// 동 절이 없는 관악구 문서에서 법정동명을 직접 언급하는 문맥. V2 축약 설명의 근거로만 사용하며, 개별 동 항목과 같은 exact로 승격하지 않는다.
+const PARTIAL_MENTION_NAMES = {
+  "11620": new Set(["남현동", "봉천동", "신림동"])
 };
 
 function splitDongSection(body) {
@@ -149,7 +154,7 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
     const warning = { slug, guName, type: "collectionFailed", detail: collection?.error || "수집 인덱스 항목 없음" };
     warnings.push(warning);
     gu.push({ slug, guName, sgg, eid: collection?.eid || "", sectionMissing: true, dong: [], compositeSource: [], docOnly: [], missing: geoDongs.map((item) => item.dongName), unresolved: [], warnings: [warning] });
-    coverage.push({ guName, slug, sgg, geoCount: geoDongs.length, exact: 0, composite: 0, merged: 0, dongDoc: 0, mention: 0, missing: geoDongs.length });
+    coverage.push({ guName, slug, sgg, geoCount: geoDongs.length, exact: 0, composite: 0, merged: 0, partial: 0, locationOnly: 0, deferred: 0, dongDoc: 0, mention: 0, missing: geoDongs.length });
     continue;
   }
 
@@ -175,7 +180,7 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
   const usedSourceNames = new Set();
   const dong = [];
   const missing = [];
-  let exact = 0, composite = 0, merged = 0, locationOnly = 0, deferred = 0, mention = 0;
+  let exact = 0, composite = 0, merged = 0, partial = 0, locationOnly = 0, deferred = 0, mention = 0;
 
   for (const geo of geoDongs) {
     const exactEntry = exactByName.get(geo.dongName);
@@ -230,8 +235,13 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
 
     const context = firstMentionContext(body, geo.dongName);
     if (context) {
-      mention += 1;
-      dong.push({ dongName: geo.dongName, bjdCode: geo.bjdCode, matchType: "mention", raw: "", context });
+      if (PARTIAL_MENTION_NAMES[sgg]?.has(geo.dongName)) {
+        partial += 1;
+        dong.push({ dongName: geo.dongName, bjdCode: geo.bjdCode, matchType: "partial", partial: true, sourceType: "mention", raw: "", context, omittedTopics: ["origin"] });
+      } else {
+        mention += 1;
+        dong.push({ dongName: geo.dongName, bjdCode: geo.bjdCode, matchType: "mention", raw: "", context });
+      }
     } else {
       missing.push(geo.dongName);
     }
@@ -268,7 +278,7 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
     sourceEntryCount: entries.length, residualLength: residual
   };
   gu.push(row);
-    coverage.push({ guName, slug, sgg, geoCount: geoDongs.length, exact, composite, merged, locationOnly, deferred, dongDoc: 0, mention, missing: missing.length });
+    coverage.push({ guName, slug, sgg, geoCount: geoDongs.length, exact, composite, merged, partial, locationOnly, deferred, dongDoc: 0, mention, missing: missing.length });
 }
 
 const output = { generatedAt: new Date().toISOString(), source: "한국민족문화대백과사전 OpenAPI", filterSummary, gu, coverage, warnings };
@@ -276,8 +286,7 @@ await mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
 await writeFile(OUTPUT_PATH, JSON.stringify(output, null, 2) + "\n", "utf8");
 
 for (const row of coverage) {
-  const bodyRate = row.geoCount ? (row.exact + row.composite + row.merged + row.dongDoc) / row.geoCount * 100 : 0;
-  const referenceRate = row.geoCount ? (row.exact + row.composite + row.merged + row.dongDoc + row.mention) / row.geoCount * 100 : 0;
-  console.log(`${row.guName}\t${row.sgg}\t${row.geoCount}\t${row.exact}\t${row.composite}\t${row.merged}\t${row.locationOnly}\t${row.deferred}\t${row.dongDoc}\t${row.mention}\t${row.missing}\t${bodyRate.toFixed(1)}%\t${referenceRate.toFixed(1)}%`);
+  const lawDongRate = row.geoCount ? (row.exact + row.composite + row.merged + row.partial) / row.geoCount * 100 : 0;
+  console.log(`${row.guName}\t${row.sgg}\t${row.geoCount}\t${row.exact}\t${row.composite}\t${row.merged}\t${row.partial}\t${row.locationOnly}\t${row.deferred}\t${row.dongDoc}\t${row.mention}\t${row.missing}\t${lawDongRate.toFixed(1)}%`);
 }
 for (const warning of warnings) console.log(`WARNING\t${warning.guName}\t${warning.type}\t${warning.detail}`);

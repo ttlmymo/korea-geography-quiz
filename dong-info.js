@@ -15,7 +15,8 @@ window.DONG_INFO = {
           "금호동3가",
           "금호동4가"
         ],
-        "s": "성동구 동서부에 걸친 금호동1가부터 4가까지의 지역으로, 동쪽 행당동·응봉동과 남쪽 옥수동 사이에 놓여 있다."
+        "s": "성동구 동서부에 걸친 금호동1가부터 4가까지의 지역으로, 동쪽 행당동·응봉동과 남쪽 옥수동 사이에 놓여 있다.",
+        "shared": true
       },
       "seongsu": {
         "id": "seongsu",
@@ -24,26 +25,33 @@ window.DONG_INFO = {
           "성수동1가",
           "성수동2가"
         ],
-        "s": "성수동은 성동구 남동쪽에 자리한 법정동으로, 성덕정과 뚝섬수원지에서 이름이 비롯되었다."
+        "s": "성수동은 성동구 남동쪽에 자리한 법정동으로, 성덕정과 뚝섬수원지에서 이름이 비롯되었다.",
+        "shared": true
       }
     },
     "금호동1가": {
-      "g": "geumho"
+      "g": "geumho",
+      "shared": true
     },
     "금호동2가": {
-      "g": "geumho"
+      "g": "geumho",
+      "shared": true
     },
     "금호동3가": {
-      "g": "geumho"
+      "g": "geumho",
+      "shared": true
     },
     "금호동4가": {
-      "g": "geumho"
+      "g": "geumho",
+      "shared": true
     },
     "성수동1가": {
-      "g": "seongsu"
+      "g": "seongsu",
+      "shared": true
     },
     "성수동2가": {
-      "g": "seongsu"
+      "g": "seongsu",
+      "shared": true
     },
     "도선동": {
       "s": "도선동은 성동구 서북부에 자리한 법정동으로, 도선대사와 무학대사 설화에서 이름이 유래한 동이다."
@@ -94,11 +102,7 @@ window.DONG_INFO = {
       "s": "신사동은 은평구 남서부에 자리하며, 이름은 예전 마을의 새 절에서 나온 동이다."
     },
     "갈현동": {
-      "s": "갈현동은 은평구 서부에 자리하며 동쪽은 불광동, 서쪽은 봉산 너머 경기도 고양시 용두동과 맞닿는다.",
-      "partial": true,
-      "omittedTopics": [
-        "origin"
-      ]
+      "s": "갈현동은 이 일대에 칡이 많아 칡고개·갈고개·가루게라 부르던 이름을 한자로 갈현이라 옮긴 데서 비롯되었다."
     },
     "구산동": {
       "s": "봉산을 사이에 두고 경기도 향동동과 맞닿은 은평구 서쪽 경계의 동, 구산동이다."
@@ -139,7 +143,23 @@ window.DONG_INFO = {
       "eid": "E0066963",
       "fetchedAt": "2026-08-15T17:40:06.684Z"
     },
-    "_groups": {},
+    "_groups": {
+      "bongcheon-sillim": {
+        "id": "bongcheon-sillim",
+        "label": "봉천동·신림동 공통 연혁",
+        "members": [
+          "봉천동",
+          "신림동"
+        ],
+        "shared": true,
+        "partial": true,
+        "omittedTopics": [
+          "origin",
+          "location"
+        ],
+        "s": "봉천동과 신림동은 현재 관악구 지역이 경기도 시흥군 동면이었다가 1963년 서울시 확장으로 영등포구에 편입되고 1973년 관악구가 신설된 행정 변천을 공유한다."
+      }
+    },
     "남현동": {
       "s": "1980년 사당동 일부가 관악구에 편입되며 설치된 법정동으로, 이후 행정 개편을 거쳤다.",
       "partial": true,
@@ -148,7 +168,8 @@ window.DONG_INFO = {
       ]
     },
     "봉천동": {
-      "s": "관악산 북사면에 자리한 관악구의 법정동으로, 청룡산 능선을 경계로 신림동과 맞닿은 곳이다.",
+      "g": "bongcheon-sillim",
+      "shared": true,
       "partial": true,
       "omittedTopics": [
         "origin",
@@ -156,7 +177,8 @@ window.DONG_INFO = {
       ]
     },
     "신림동": {
-      "s": "관악산 북사면의 법정동으로 봉천동과 청룡산 능선을 경계로 맞닿은 곳이다.",
+      "g": "bongcheon-sillim",
+      "shared": true,
       "partial": true,
       "omittedTopics": [
         "origin",
