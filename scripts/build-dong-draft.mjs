@@ -11,10 +11,10 @@ const ENTRY = /(?:^|\n)(\d+)\.\s*([^\n(]+?)\s*\(([^)\n]*)\)\s*\n([\s\S]*?)(?=\n\
 
 const FILTER_RULES = [
   { label: "facility", test: /(?:학교|병원|도서관|공원|아파트|사무소|전시관|박물관|사찰|체육시설|공공기관).*(?:있|자리|조성|운영|설치|밀집)/ },
-  { label: "transit", test: /(?:도로|지하철|역|터널|대교|인터체인지|고속도로|노선).*(?:지나|연결|개통|통과|이르)/ },
-  { label: "ongoing", test: /(?:최근|현재|점차|개발되|조성되|계획되|신흥|재개발)/ },
+  { label: "transit", test: /(?:(?:현재|오늘날|지금).*(?:도로|지하철|역|터널|대교|인터체인지|고속도로|노선).*(?:지나|연결|통과|이르)|(?:도로|지하철|역|터널|대교|인터체인지|고속도로|노선).*(?:지나고 있|연결되어 있|통과하고 있|이용할 수 있|교통(?:이|의).*?(?:편리|요지)))/ },
+  { label: "ongoing", test: /(?:(?:현재|최근|점차).*(?:개발|조성|재개발|변화)|(?:개발|조성|재개발).*(?:진행\s*중|예정|계획\s*(?:중|되어\s*있)))/ },
   { label: "commerce", test: /(?:상권|상가|시장|백화점|업소|유흥|상업지역|가구단지|학원가)/ },
-  { label: "admin-org", test: /(?:행정동|동사무소|구청|출장소).*?(?:담당|관할|운영)/ }
+  { label: "admin-org", test: /(?:(?:현재|현행|지금).*(?:행정동|동사무소|구청|출장소).*(?:담당|관할|운영)|(?:행정동|동사무소|구청|출장소).*(?:담당하고 있|관할하고 있|운영하고 있))/ }
 ];
 const HISTORICAL_KEEP = /(?:\b(?:1[0-9]{3}|20[0-9]{2})년|조선|고려|백제|고구려|신라|일제|편입|신설|분구|개칭|통합|철거민|이주|정착|유래|유적|설화|전설|원찰|개명|창릉천|진관사)/;
 
@@ -192,7 +192,7 @@ for (const [guName, { slug }] of Object.entries(SEOUL_SLUGS)) {
       const allowedSentences = splitSentences(sourceEntry.body).filter((sentence) => locationRule.allow.test(sentence));
       locationOnly += 1;
       usedSourceNames.add(sourceEntry.name);
-      dong.push({ dongName: geo.dongName, sourceName: sourceEntry.name, bjdCode: geo.bjdCode, hanja: sourceEntry.hanja, matchType: "locationOnly", docIndex: sourceEntry.docIndex, raw: sourceEntry.raw, allowedSentences, omittedTopics: ["origin", "renameHistory"], mappingReason: "하일동 원문은 강일동의 유래·법정동 개칭 근거로 사용하지 않고 위치 문장만 제한적으로 사용" });
+      dong.push({ dongName: geo.dongName, sourceName: sourceEntry.name, bjdCode: geo.bjdCode, hanja: sourceEntry.hanja, matchType: "locationOnly", partial: true, docIndex: sourceEntry.docIndex, raw: sourceEntry.raw, allowedSentences, omittedTopics: ["origin", "renameHistory"], mappingReason: "하일동 원문은 강일동의 유래·법정동 개칭 근거로 사용하지 않고 위치 문장만 제한적으로 사용" });
       continue;
     }
 
