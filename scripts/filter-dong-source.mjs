@@ -5,169 +5,39 @@ import path from "node:path";
 
 const WORKBOOK = path.join("data", "dong-source.xlsx");
 const SHEET_PATH = path.join("xl", "worksheets", "sheet1.xml");
+const FIXED = Object.freeze([
+  [1, "행정동 관할", "delete", /(?:법정동으로\s*행정동|행정동.*(?:관할|담당)|동사무소.*(?:담당|관할)|(?:이\s*동|[가-힣]+\s*\d?동은).*(?:관할|담당))/],
+  [2, "현재 상권·시설", "delete", /(?:상가.*밀집|시장.*밀집|백화점|유흥업소|은행.*지점|상권이\s*형성|상업지역)/],
+  [3, "행정동 단위 현황", "delete", /(?:번\d동은|번\s*\d동은|가양\s*\d동은|[가-힣]+\s*\d동은).*(?:지역|관공서|상가|시설|담당|관할)/],
+  [6, "수치 현황", "delete", /(?:인구|면적|세대수|가구수|인구밀도|\d+(?:\.\d+)?(?:만\s*명|명|세대|㎢|km²))/],
+  [7, "경계", "keep", /(?:접해|접한다|경계로|경계를|맞닿|연접|동쪽은|서쪽은|남쪽은|북쪽은)/],
+  [8, "지명 유래", "keep", /(?:유래|연유|옛\s*이름|한자.*(?:뜻|표기)|불리게|지명.*(?:생겨|유래))/],
+  [9, "행정 변천", "keep", /(?:\d{4}년.*(?:소속|편입|분동|개칭|신설|통합)|(?:소속|편입|분동|개칭|신설|통합).*(?:\d{4}년|되었|되면서))/],
+  [10, "완료형 과거", "keep", /(?:되었다|들어섰다|발굴되었다|완공되었다|조성되었다|정비되었다|택지개발사업.*(?:시작|완료))/],
+  [11, "지리·교통 골격", "keep", /(?:하천|천\b|산\b|고개|대로|로\b|교\b|철도|지하철|노선|역\b|터널|대교|고속도로)/],
+  [12, "확정 유적", "keep", /(?:문화재|묘역|향교|보호수|집성촌|유적|사찰|서원|고인돌|성곽)/]
+]);
+const T4_KEEP = new Set(["기타+동","것이다+동","이름이다+동","기타+기타","이름이다+기타","기타+거리","동명이다+동"]);
+const T4_DELETE = new Set(["기타+문화","편이다+지역","기타+지구","되어있다+지역","기타+시설","효제동이다+지역"]);
+const T4_INDIVIDUAL = new Set(["기타+지역","기타+곳","곳이다+곳","기타+마을","기타+건물","일치한다+동"]);
 
-function decodeXml(value) {
-  return String(value ?? "")
-    .replace(/&#(x[0-9A-Fa-f]+|\d+);/g, (_, token) => String.fromCodePoint(token.startsWith("x") ? parseInt(token.slice(1), 16) : parseInt(token, 10)))
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-}
-
-function encodeXml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&apos;")
-    .replace(/\r/g, "&#13;").replace(/\n/g, "&#10;");
-}
-
-function cellValue(rowXml, column, rowNumber) {
-  const escaped = `${column}${rowNumber}`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const cell = rowXml.match(new RegExp(`<c r="${escaped}"[^>]*>([\\s\\S]*?)</c>`));
-  if (!cell) return "";
-  const text = cell[1].match(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/);
-  return text ? decodeXml(text[1]) : "";
-}
-
-function inlineCell(column, rowNumber, value, style) {
-  return `<c r="${column}${rowNumber}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${encodeXml(value)}</t></is></c>`;
-}
-
-function numberCell(column, rowNumber, value, style = 0) {
-  return `<c r="${column}${rowNumber}" s="${style}"><v>${Number(value)}</v></c>`;
-}
-
-function splitSentences(text) {
-  const source = String(text ?? "");
-  const out = [];
-  let start = 0;
-  for (let index = 0; index < source.length; index += 1) {
-    if (!/[.!?]/.test(source[index])) continue;
-    const next = source[index + 1] || "";
-    if (next && !/\s/.test(next)) continue;
-    const sentence = source.slice(start, index + 1).trim();
-    if (sentence) out.push(sentence);
-    start = index + 1;
-  }
-  const tail = source.slice(start).trim();
-  if (tail) out.push(tail);
-  return out;
-}
-
-function isDirectionIntro(text) {
-  const startsWithGuDirection = /^(?:(?:서울특별시\s*)?[가-힣]+구(?:의)?|구의?)\s*(?:(?:동|서|남|북)(?:북|남)?|중앙)\s*(?:쪽|부|끝)?(?:\s*(?:한강변|한강\s*변|일대|지역|끝|중앙))?.{0,36}(?:있는|위치한|자리한|위치하고|자리하고|위치한다|자리한다|있다)/.test(text);
-  const hasBoundary = /(?:접해|접한다|경계로|경계를|맞닿|연접|사이에)/.test(text);
-  return { startsWithGuDirection, hasBoundary, introOnly: startsWithGuDirection && !hasBoundary };
-}
-
-function classify(sentence, isFirst = false) {
-  const text = sentence.trim();
-  const intro = isDirectionIntro(text);
-  if (isFirst && intro.introOnly) return { bucket: "delete", hold: false, reasons: ["구 내 방위 도입"], introDeleted: true, introVariant: false };
-  const historical = /(?:\b(?:1[0-9]{3}|20[0-9]{2})년|조선|고려|백제|고구려|신라|일제|편입|신설|분구|개칭|통합|철거민|이주|정착|유래|유적|설화|전설|원찰|개명|발굴|보호수|고인돌|주거지|창릉천|진관사)/.test(text);
-  const location = /(?:북쪽|남쪽|동쪽|서쪽|중앙|한강변|기슭|경계|접해 있|맞닿|사이에 있|위치해 있|있는 동이다|동쪽에 있)/.test(text);
-  const origin = /(?:유래|연유|이름.*(?:생겨|유래|불리|변하)|한자.*(?:뜻|표기)|지명.*(?:생겨|유래))/.test(text);
-  const geography = /(?:하천|천\b|산\b|고개|대로|로\b|교\b|철도|지하철|노선|역\b|터널|대교|고속도로)/.test(text);
-  const administrativeHistory = /(?:\d{4}년.*(?:편입|신설|분구|개칭|통합|소속)|(?:편입|신설|분구|개칭|통합).*(?:\d{4}년|되었|되면서))/.test(text);
-  const keepSignal = historical || location || origin || geography || administrativeHistory;
-  const commercial = /(?:상권|상가|백화점|시장|유흥|상업지역|가구단지|학원가|업소|상점|점포|아파트단지)/.test(text);
-  const admin = /(?:동사무소|행정복지센터|주민센터|구청|출장소|행정동).*(?:담당|관할|운영)|(?:담당|관할).*(?:동사무소|행정복지센터|주민센터|구청|출장소|행정동)/.test(text);
-  const statistic = /(?:인구|세대수|가구수|면적|인구밀도|인구는|세대는)/.test(text);
-  const ongoing = /(?:(?:개발|조성|재개발|정비사업|공사).*(?:진행\s*중|예정|계획\s*(?:중|되어\s*있)|추진\s*중)|(?:진행\s*중|예정|추진\s*중).*(?:개발|조성|재개발|정비사업|공사))/.test(text) && !historical;
-  const evaluative = /(?:교통이\s*(?:매우\s*)?편리|교통.*?편리|쾌적|유명(?:하다|한)|살기\s*좋|중심지로서|요람으로|이름\s*높)/.test(text);
-  const deleteReasons = [commercial && "상권·상업시설", admin && "행정 관할", statistic && "수치 통계", ongoing && "진행·예정 사업", evaluative && "평가 표현"].filter(Boolean);
-  if (deleteReasons.length) {
-    // 연도·변천·유래가 분명한 문장은 현재 시설·관할 단어가 함께 있어도 확정 과거 사실로 보존한다.
-    if (historical || origin || administrativeHistory) return { bucket: "keep", hold: false, reasons: deleteReasons };
-    // 역명·노선 같은 골격에 편리성 평가가 결합된 문장은 문장 단위로 삭제한다.
-    if (evaluative) return { bucket: "delete", hold: false, reasons: deleteReasons };
-    if (!keepSignal) return { bucket: "delete", hold: false, reasons: deleteReasons };
-    return { bucket: "keep", hold: true, reasons: deleteReasons };
-  }
-  if (keepSignal) return { bucket: "keep", hold: false, reasons: [] };
-  return { bucket: "keep", hold: true, reasons: [] };
-}
-
-function selectBody(body) {
-  const sentences = splitSentences(body);
-  const keep = [], deleted = [], held = [], introVariants = [];
-  for (const [index, sentence] of sentences.entries()) {
-    const result = classify(sentence, index === 0);
-    const intro = isDirectionIntro(sentence.trim());
-    if (index === 0 && intro.startsWithGuDirection && !intro.introOnly) introVariants.push(sentence);
-    if (result.bucket === "delete") deleted.push(sentence);
-    else keep.push(sentence);
-    if (result.hold) held.push({ sentence, reasons: result.reasons });
-  }
-  return { keep, deleted, held, introVariants, introDeletedCount: deleted.filter((sentence, index) => index === 0 && isDirectionIntro(sentence).introOnly).length, selectedText: keep.join("\n"), deletedText: deleted.join("\n") };
-}
-
-const tempDir = await mkdtemp(path.join(os.tmpdir(), "filter-dong-source-"));
-try {
-  execFileSync("unzip", ["-q", WORKBOOK, "-d", tempDir]);
-  const sheetFile = path.join(tempDir, SHEET_PATH);
-  let sheetXml = await readFile(sheetFile, "utf8");
-  const groupSelections = new Map();
-  const rowResults = [];
-  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g, (full, rowString, rowInner) => {
-    const rowNumber = Number(rowString);
-    const withoutNewColumns = rowInner.replace(/<c r="[LMN]\d+"[\s\S]*?<\/c>/g, "");
-    if (rowNumber === 1) {
-      return full.replace(rowInner, `${withoutNewColumns}${inlineCell("L", rowNumber, "선별문", 1)}${inlineCell("M", rowNumber, "선별문글자수", 1)}${inlineCell("N", rowNumber, "버린문장", 1)}`);
-    }
-    const matchType = cellValue(rowInner, "G", rowNumber);
-    const groupId = cellValue(rowInner, "H", rowNumber);
-    const sourceBody = cellValue(rowInner, "I", rowNumber);
-    const existingNote = cellValue(rowInner, "K", rowNumber);
-    let selected = { selectedText: "", deletedText: "", held: [], introVariants: [], introDeletedCount: 0, keep: [], deleted: [] };
-    if (matchType !== "none" && sourceBody) {
-      if (matchType === "composite" && groupId && groupSelections.has(groupId)) selected = groupSelections.get(groupId);
-      else {
-        selected = selectBody(sourceBody);
-        if (matchType === "composite" && groupId) groupSelections.set(groupId, selected);
-      }
-    }
-    const note = selected.held.length && !existingNote.split(";").map((value) => value.trim()).includes("판정보류")
-      ? `${existingNote ? `${existingNote}; ` : ""}판정보류`
-      : existingNote;
-    rowResults.push({
-      rowNumber, guName: cellValue(rowInner, "B", rowNumber), dongName: cellValue(rowInner, "D", rowNumber), matchType, groupId,
-      sourceBody, selectedText: selected.selectedText, deletedText: selected.deletedText, held: selected.held, introVariants: selected.introVariants, introDeletedCount: selected.introDeletedCount, selectedLength: selected.selectedText.length
-    });
-    const withoutK = withoutNewColumns.replace(new RegExp(`<c r="K${rowNumber}"[\\s\\S]*?<\\/c>`), "");
-    const newCells = `${inlineCell("K", rowNumber, note, 2)}${inlineCell("L", rowNumber, selected.selectedText, 2)}${numberCell("M", rowNumber, selected.selectedText.length)}${inlineCell("N", rowNumber, selected.deletedText, 2)}`;
-    return full.replace(rowInner, `${withoutK}${newCells}`);
-  });
-  sheetXml = sheetXml.replace("</cols>", '<col min="12" max="12" width="100" customWidth="1"/><col min="13" max="13" width="14" customWidth="1"/><col min="14" max="14" width="100" customWidth="1"/></cols>');
-  sheetXml = sheetXml.replace(/<autoFilter ref="A1:K(\d+)"\/>/, '<autoFilter ref="A1:N$1"/>');
-  await writeFile(sheetFile, sheetXml, "utf8");
-  await rm(WORKBOOK, { force: true });
-  execFileSync("zip", ["-q", "-r", path.resolve(WORKBOOK), "."], { cwd: tempDir });
-  const nonNone = rowResults.filter((row) => row.matchType !== "none" && row.sourceBody);
-  const distribution = { "200자 이하": 0, "201~400자": 0, "401~600자": 0, "601자 초과": 0 };
-  for (const row of nonNone) {
-    if (row.selectedLength <= 200) distribution["200자 이하"] += 1;
-    else if (row.selectedLength <= 400) distribution["201~400자"] += 1;
-    else if (row.selectedLength <= 600) distribution["401~600자"] += 1;
-    else distribution["601자 초과"] += 1;
-  }
-  const report = {
-    rows: rowResults.length,
-    nonNone: nonNone.length,
-    distribution,
-    over400: nonNone.filter((row) => row.selectedLength > 400).map((row) => ({ guName: row.guName, dongName: row.dongName, length: row.selectedLength })),
-    fullyDeleted: nonNone.filter((row) => !row.selectedText && row.deletedText).map((row) => ({ guName: row.guName, dongName: row.dongName })),
-    held: nonNone.filter((row) => row.held.length).map((row) => ({ guName: row.guName, dongName: row.dongName, heldCount: row.held.length, sample: row.held[0].sentence })),
-    groups: groupSelections.size,
-    introDeleted: nonNone.filter((row) => row.introDeletedCount).map((row) => ({ guName: row.guName, dongName: row.dongName, sentence: splitSentences(row.sourceBody)[0] || "" })),
-    introVariants: nonNone.flatMap((row) => (row.introVariants || []).map((sentence) => ({ guName: row.guName, dongName: row.dongName, sentence }))),
-    sentenceCounts: { source: 0, selected: 0, deleted: 0 }
-  };
-  for (const row of nonNone) {
-    report.sentenceCounts.source += splitSentences(row.sourceBody).length;
-    report.sentenceCounts.selected += splitSentences(row.selectedText).length;
-    report.sentenceCounts.deleted += splitSentences(row.deletedText).length;
-  }
-  await writeFile("/tmp/q-filter-summary.json", JSON.stringify(report, null, 2) + "\n", "utf8");
-  console.log(JSON.stringify(report, null, 2));
-} finally {
-  await rm(tempDir, { recursive: true, force: true });
-}
+function decodeXml(v){return String(v??"").replace(/&#(x[0-9A-Fa-f]+|\d+);/g,(_,t)=>String.fromCodePoint(t.startsWith("x")?parseInt(t.slice(1),16):parseInt(t,10))).replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&");}
+function encodeXml(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;").replace(/\r/g,"&#13;").replace(/\n/g,"&#10;");}
+function cell(row,col,n){const m=row.match(new RegExp(`<c r="${col}${n}"[^>]*>([\\s\\S]*?)<\\/c>`));const t=m?.[1].match(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/);return t?decodeXml(t[1]):"";}
+function inline(col,n,v,s=2){return `<c r="${col}${n}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${encodeXml(v)}</t></is></c>`;}
+function num(col,n,v){return `<c r="${col}${n}"><v>${Number(v)}</v></c>`;}
+function sentences(text){const s=String(text??""),out=[];let p=0;for(let i=0;i<s.length;i++){if(!/[.!?]/.test(s[i])||s[i+1]&&!/\s/.test(s[i+1]))continue;const x=s.slice(p,i+1).trim();if(x)out.push(x);p=i+1;}const x=s.slice(p).trim();if(x)out.push(x);return out;}
+function pureIntro(text){return /^(?:(?:서울특별시\s*)?[가-힣]+구(?:의)?|구의?)\s*(?:(?:동|서|남|북)(?:북|남)?|중앙)\s*(?:쪽|부|끝)?(?:\s*(?:한강변|한강\s*변|일대|지역|끝|중앙))?.{0,42}(?:있는|위치한|자리한|위치하고\s*있는|자리하고\s*있는|위치하고|자리하고|위치한다|자리한다|있다)(?:\s*(?:동이다|동임|곳이다|동으로))?\.?$/.test(text);}
+function splitIntro(s){const m=s.match(/^(.*?)(으로|이며|인데)\s*((?:동|서|남|북)쪽은[\s\S]+)$/);if(!m)return null;const front=m[1]+m[2],rear=m[3];if(!pureIntro(front)||!/(?:접해|접한다|경계|맞닿|연접)/.test(rear))return null;return{front,rear};}
+function completed(text){return /(?:되었다|하였다|였다|들어섰다|설치되었다|폐지되었다|개통되었다|놓였다|발굴되었다|완공되었다|조성되었다|정비되었다)\.?$/.test(text)||/(?:진행되어|조성되어|개발되어).*(?:되었다|놓였다|개통되었다|완공되었다)/.test(text)||/(?:조선시대|고려시대|1960년대|옛\s*).*(?:있었|모습|터|되었)/.test(text);}
+function fixed(text){for(const [id,name,bucket,re]of FIXED)if(re.test(text))return{stage:"R-2",id,name,bucket,hold:false};return null;}
+function ending(text){return text.match(/([가-힣]{1,10}(?:되었다|하였다|였다|있다|한다|이다|된다|한다|편이다|이름이다|동명이다|일치한다))\.?$/)?.[1]||"기타";}
+function legacyPattern(text){const e=ending(text);const noun=text.match(/(지역|마을|주민|시설|건물|일대|동|거리|지구|생활|산업|문화|곳)/)?.[1]||"기타";return `${e}+${noun}`;}
+function general(text){if(/(?:상가|백화점|유흥|시장|동사무소|행정복지센터|주민센터|인구|면적|세대수|가구수|진행\s*중|예정|추진\s*중|편리|쾌적|유명|한적)/.test(text))return{stage:"Q-5",bucket:"delete",hold:false};if(/(?:접해|경계|유래|연유|한자.*(?:뜻|표기)|\d{4}년.*(?:편입|소속|개칭|신설|통합)|조선|고려|백제|고구려|신라|일제|유적|설화|전설|하천|산\b|고개|대로|철도|지하철|노선|역\b|교량)/.test(text))return{stage:"Q-4",bucket:"keep",hold:false};return null;}
+function topicBranch(text){const stable=/(?:유래|뜻|이름|지명|산\b|하천|천\b|골짜기|기슭|나루터|유적|문화재|터\b|설화|전설|인물|마을|행정|편입|개칭|분동|옛\s*)/;const dynamic=/(?:시설|기관|업체|학교|병원|아파트|체육|문화시설|상권|산업|경제|인구|통계|혼잡|생활|분위기|주민|개발|정비|계획)/;if(stable.test(text)&&!dynamic.test(text))return{stage:"T-3",bucket:"keep",hold:false};if(dynamic.test(text)&&!stable.test(text))return{stage:"T-3",bucket:"delete",hold:false};const last=ending(text);if(/(?:있다|한다|이다|된다)$/.test(last)&&dynamic.test(text))return{stage:"T-3",bucket:"delete",hold:false};if(/(?:되었다|하였다|였다)$/.test(last)||stable.test(text))return{stage:"T-3",bucket:"keep",hold:false};return{stage:"hold",bucket:"keep",hold:true};}
+function classify(text){if(completed(text))return{stage:"T-2",bucket:"keep",hold:false};const r=fixed(text);if(r)return r;const evaluation=/(?:편리하다|유명하다|쾌적하다|안성맞춤|명승지|황금바다|이름\s*높|한적한|최고급|살기\s*좋)/.test(text);if(evaluation)return{stage:"R-2",id:4,name:"평가·주관",bucket:"delete",hold:false};const incomplete=/(?:진행되고\s*있다|변모하고\s*있다|변하고\s*있다|발전하고\s*있다)/.test(text);if(incomplete)return{stage:"R-2",id:5,name:"진행·예정",bucket:"delete",hold:false};const q=general(text);if(q)return q;const pat=legacyPattern(text);if(T4_KEEP.has(pat))return{stage:"T-4",bucket:"keep",hold:false,pattern:pat};if(T4_DELETE.has(pat))return{stage:"T-4",bucket:"delete",hold:false,pattern:pat};if(T4_INDIVIDUAL.has(pat))return{...topicBranch(text),pattern:pat};return topicBranch(text);}
+function holdLabel(s){return `판정보류:「${s.slice(0,15)}…」`;}
+function cleanNote(note){return String(note||"").split(";").map(x=>x.trim()).filter(x=>x&&!x.startsWith("판정보류:")).join("; ");}
+function select(body){const keep=[],deleted=[],holds=[],decisions=[],splits=[];for(const raw of sentences(body)){const sp=splitIntro(raw);if(sp){deleted.push(sp.front);keep.push(sp.rear);decisions.push({stage:"T-1",bucket:"split",raw});splits.push(raw);continue;}if(pureIntro(raw)){deleted.push(raw);decisions.push({stage:"T-1",bucket:"delete",raw});continue;}const r=classify(raw);(r.bucket==="keep"?keep:deleted).push(raw);decisions.push({...r,raw});if(r.hold)holds.push(raw);}return{selectedText:keep.join("\n"),deletedText:deleted.join("\n"),holds,decisions,splits};}
+const temp=await mkdtemp(path.join(os.tmpdir(),"filter-dong-source-"));
+try{execFileSync("unzip",["-q",WORKBOOK,"-d",temp]);const f=path.join(temp,SHEET_PATH);let xml=await readFile(f,"utf8");const groups=new Map(),rows=[];xml=xml.replace(/<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g,(full,rs,inner)=>{const n=+rs,without=inner.replace(/<c r="[LMN]\d+"[\s\S]*?<\/c>/g,"");if(n===1)return full.replace(inner,`${without}${inline("L",n,"선별문",1)}${inline("M",n,"선별문글자수",1)}${inline("N",n,"버린문장",1)}`);const typ=cell(inner,"G",n),group=cell(inner,"H",n),source=cell(inner,"I",n);let r={selectedText:"",deletedText:"",holds:[],decisions:[],splits:[]};if(typ!=="none"&&source){if(typ==="composite"&&group&&groups.has(group))r=groups.get(group);else{r=select(source);if(typ==="composite"&&group)groups.set(group,r);}}const old=cleanNote(cell(inner,"K",n)),note=[old,...r.holds.map(holdLabel)].filter(Boolean).join("; ");rows.push({n,gu:cell(inner,"B",n),dong:cell(inner,"D",n),typ,group,source,note,...r,len:r.selectedText.length});const noK=without.replace(new RegExp(`<c r="K${n}"[\\s\\S]*?<\\/c>`),"");return full.replace(inner,`${noK}${inline("K",n,note)}${inline("L",n,r.selectedText)}${typ==="none"?"":num("M",n,r.selectedText.length)}${inline("N",n,r.deletedText)}`);});xml=xml.replace("</cols>",'<col min="12" max="12" width="100" customWidth="1"/><col min="13" max="13" width="14" customWidth="1"/><col min="14" max="14" width="100" customWidth="1"/></cols>');xml=xml.replace(/<autoFilter ref="A1:K(\d+)"\/>/,"<autoFilter ref=\"A1:N$1\"/>");await writeFile(f,xml);await rm(WORKBOOK,{force:true});execFileSync("zip",["-q","-r",path.resolve(WORKBOOK),"."],{cwd:temp});const non=rows.filter(r=>r.typ!=="none"&&r.source),all=non.flatMap(r=>r.decisions.map(d=>({...d,gu:r.gu,dong:r.dong}))),holds=all.filter(d=>d.hold),dist={"200자 이하":0,"201~400자":0,"401~600자":0,"601자 초과":0};for(const r of non){const z=r.len;dist[z<=200?"200자 이하":z<=400?"201~400자":z<=600?"401~600자":"601자 초과"]++;}const stages={};for(const d of all)stages[d.stage]=(stages[d.stage]||0)+1;const t3={keep:all.filter(d=>d.stage==="T-3"&&d.bucket==="keep").length,delete:all.filter(d=>d.stage==="T-3"&&d.bucket==="delete").length};const t4={};for(const d of all)if(d.stage==="T-4")t4[d.pattern]=(t4[d.pattern]||0)+1;const report={rows:rows.length,total:all.length,holds:holds.length,holdRate:all.length?holds.length/all.length:0,holdRows:non.filter(r=>r.holds.length).length,holdRowRate:non.length?non.filter(r=>r.holds.length).length/non.length:0,stages,t3,t4,dist,splits:non.filter(r=>r.splits.length).map(r=>({gu:r.gu,dong:r.dong,sentences:r.splits})),holdList:holds.map(d=>({gu:d.gu,dong:d.dong,sentence:d.raw,stage:d.stage})),over400:non.filter(r=>r.len>400).map(r=>({gu:r.gu,dong:r.dong,length:r.len})),empty:non.filter(r=>!r.selectedText&&r.deletedText).map(r=>({gu:r.gu,dong:r.dong})),groups:groups.size};await writeFile("/tmp/t-filter-summary.json",JSON.stringify(report,null,2)+"\n",'utf8');console.log(JSON.stringify(report,null,2));}finally{await rm(temp,{recursive:true,force:true});}
