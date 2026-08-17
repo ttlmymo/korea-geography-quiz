@@ -52,8 +52,16 @@ function splitSentences(text) {
   return out;
 }
 
-function classify(sentence) {
+function isDirectionIntro(text) {
+  const startsWithGuDirection = /^(?:(?:서울특별시\s*)?[가-힣]+구(?:의)?|구의?)\s*(?:(?:동|서|남|북)(?:북|남)?|중앙)\s*(?:쪽|부|끝)?(?:\s*(?:한강변|한강\s*변|일대|지역|끝|중앙))?.{0,36}(?:있는|위치한|자리한|위치하고|자리하고|위치한다|자리한다|있다)/.test(text);
+  const hasBoundary = /(?:접해|접한다|경계로|경계를|맞닿|연접|사이에)/.test(text);
+  return { startsWithGuDirection, hasBoundary, introOnly: startsWithGuDirection && !hasBoundary };
+}
+
+function classify(sentence, isFirst = false) {
   const text = sentence.trim();
+  const intro = isDirectionIntro(text);
+  if (isFirst && intro.introOnly) return { bucket: "delete", hold: false, reasons: ["구 내 방위 도입"], introDeleted: true, introVariant: false };
   const historical = /(?:\b(?:1[0-9]{3}|20[0-9]{2})년|조선|고려|백제|고구려|신라|일제|편입|신설|분구|개칭|통합|철거민|이주|정착|유래|유적|설화|전설|원찰|개명|발굴|보호수|고인돌|주거지|창릉천|진관사)/.test(text);
   const location = /(?:북쪽|남쪽|동쪽|서쪽|중앙|한강변|기슭|경계|접해 있|맞닿|사이에 있|위치해 있|있는 동이다|동쪽에 있)/.test(text);
   const origin = /(?:유래|연유|이름.*(?:생겨|유래|불리|변하)|한자.*(?:뜻|표기)|지명.*(?:생겨|유래))/.test(text);
@@ -80,14 +88,16 @@ function classify(sentence) {
 
 function selectBody(body) {
   const sentences = splitSentences(body);
-  const keep = [], deleted = [], held = [];
-  for (const sentence of sentences) {
-    const result = classify(sentence);
+  const keep = [], deleted = [], held = [], introVariants = [];
+  for (const [index, sentence] of sentences.entries()) {
+    const result = classify(sentence, index === 0);
+    const intro = isDirectionIntro(sentence.trim());
+    if (index === 0 && intro.startsWithGuDirection && !intro.introOnly) introVariants.push(sentence);
     if (result.bucket === "delete") deleted.push(sentence);
     else keep.push(sentence);
     if (result.hold) held.push({ sentence, reasons: result.reasons });
   }
-  return { keep, deleted, held, selectedText: keep.join("\n"), deletedText: deleted.join("\n") };
+  return { keep, deleted, held, introVariants, introDeletedCount: deleted.filter((sentence, index) => index === 0 && isDirectionIntro(sentence).introOnly).length, selectedText: keep.join("\n"), deletedText: deleted.join("\n") };
 }
 
 const tempDir = await mkdtemp(path.join(os.tmpdir(), "filter-dong-source-"));
@@ -107,7 +117,7 @@ try {
     const groupId = cellValue(rowInner, "H", rowNumber);
     const sourceBody = cellValue(rowInner, "I", rowNumber);
     const existingNote = cellValue(rowInner, "K", rowNumber);
-    let selected = { selectedText: "", deletedText: "", held: [], keep: [], deleted: [] };
+    let selected = { selectedText: "", deletedText: "", held: [], introVariants: [], introDeletedCount: 0, keep: [], deleted: [] };
     if (matchType !== "none" && sourceBody) {
       if (matchType === "composite" && groupId && groupSelections.has(groupId)) selected = groupSelections.get(groupId);
       else {
@@ -120,7 +130,7 @@ try {
       : existingNote;
     rowResults.push({
       rowNumber, guName: cellValue(rowInner, "B", rowNumber), dongName: cellValue(rowInner, "D", rowNumber), matchType, groupId,
-      sourceBody, selectedText: selected.selectedText, deletedText: selected.deletedText, held: selected.held, selectedLength: selected.selectedText.length
+      sourceBody, selectedText: selected.selectedText, deletedText: selected.deletedText, held: selected.held, introVariants: selected.introVariants, introDeletedCount: selected.introDeletedCount, selectedLength: selected.selectedText.length
     });
     const withoutK = withoutNewColumns.replace(new RegExp(`<c r="K${rowNumber}"[\\s\\S]*?<\\/c>`), "");
     const newCells = `${inlineCell("K", rowNumber, note, 2)}${inlineCell("L", rowNumber, selected.selectedText, 2)}${numberCell("M", rowNumber, selected.selectedText.length)}${inlineCell("N", rowNumber, selected.deletedText, 2)}`;
@@ -147,6 +157,8 @@ try {
     fullyDeleted: nonNone.filter((row) => !row.selectedText && row.deletedText).map((row) => ({ guName: row.guName, dongName: row.dongName })),
     held: nonNone.filter((row) => row.held.length).map((row) => ({ guName: row.guName, dongName: row.dongName, heldCount: row.held.length, sample: row.held[0].sentence })),
     groups: groupSelections.size,
+    introDeleted: nonNone.filter((row) => row.introDeletedCount).map((row) => ({ guName: row.guName, dongName: row.dongName, sentence: splitSentences(row.sourceBody)[0] || "" })),
+    introVariants: nonNone.flatMap((row) => (row.introVariants || []).map((sentence) => ({ guName: row.guName, dongName: row.dongName, sentence }))),
     sentenceCounts: { source: 0, selected: 0, deleted: 0 }
   };
   for (const row of nonNone) {
