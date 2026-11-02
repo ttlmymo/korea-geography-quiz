@@ -62,7 +62,7 @@ const jsonLd = {
           name: "Do I need to sign up?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "You sign in with a Google or Kakao account, then choose a nickname. Your scores are posted to the live leaderboard automatically. There is no lengthy registration form."
+            text: "No. You can use both study mode and game mode right away without signing in. Sign in with a Google or Kakao account and choose a nickname only if you want your scores on the live leaderboard. There is no lengthy registration form."
           }
         },
         {
@@ -140,7 +140,7 @@ const EN_GUIDE = `
 
      <h2 style="font-size:22px; margin:28px 0 8px;">Frequently asked questions</h2>
      <p><strong>Q. Do I need to sign up?</strong><br>
-     You sign in with a Google or Kakao account, then choose a nickname. Your scores are posted to the live leaderboard automatically. There is no lengthy registration form.</p>
+     No. You can use both study mode and game mode right away without signing in. Sign in with a Google or Kakao account and choose a nickname only if you want your scores on the live leaderboard. There is no lengthy registration form.</p>
      <p><strong>Q. Which regions can I study?</strong><br>
      Seoul, Incheon and Gyeonggi-do are covered down to the district and neighborhood level, and more regions are being added.</p>
      <p><strong>Q. Does it work on mobile?</strong><br>

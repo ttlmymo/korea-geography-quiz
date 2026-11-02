@@ -37,7 +37,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="전국 지리 마스터 퀴즈">
 <meta property="og:title" content="전국 지리 마스터 퀴즈 – 지도로 배우는 대한민국 행정구역">
-<meta property="og:description" content="지도에서 직접 찾는 시·도·구·군·읍·면·동 퀴즈. 구글·카카오 간편 로그인으로 무료 이용, 실시간 랭킹 지원.">
+<meta property="og:description" content="지도에서 직접 찾는 시·도·구·군·읍·면·동 퀴즈. 로그인 없이 무료 이용, 실시간 랭킹 지원.">
 <meta property="og:url" content="https://ttlmymo.github.io/korea-geography-quiz/">
 <meta property="og:image" content="https://ttlmymo.github.io/korea-geography-quiz/social-image/og-image-ko.jpg">
 <meta property="og:image:type" content="image/jpeg">
@@ -49,7 +49,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="전국 지리 마스터 퀴즈">
-<meta name="twitter:description" content="지도에서 직접 찾는 대한민국 행정구역 퀴즈. 간편 로그인 후 무료 이용, 실시간 랭킹.">
+<meta name="twitter:description" content="지도에서 직접 찾는 대한민국 행정구역 퀴즈. 로그인 없이 무료 이용, 실시간 랭킹.">
 <meta name="twitter:image" content="https://ttlmymo.github.io/korea-geography-quiz/social-image/og-image-ko.jpg">
 <meta name="twitter:image:alt" content="전국 지리 마스터 퀴즈 – 대한민국 행정구역 지도 일러스트">
 
@@ -80,7 +80,7 @@
           "name": "회원가입을 꼭 해야 하나요?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "구글 또는 카카오 계정으로 로그인한 뒤 닉네임을 정하면 바로 이용할 수 있습니다. 학습 모드와 게임 모드 모두 로그인이 필요하며, 점수는 실시간 랭킹에 자동으로 등록됩니다. 별도의 가입 절차나 비용은 없습니다."
+            "text": "아니요. 학습 모드와 게임 모드는 로그인 없이 바로 이용할 수 있습니다. 점수를 실시간 랭킹에 올리고 싶을 때만 구글 또는 카카오 계정으로 로그인한 뒤 닉네임을 정하면 됩니다. 별도의 가입 절차나 비용은 없습니다."
           }
         },
         {
@@ -300,6 +300,10 @@
   #auth-box { background:var(--card-2); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--inset); }
   #auth-box .label { font-size:16px; color:var(--muted); font-weight:400; text-align:center; }
   #login-area { display:flex; flex-direction:column; gap:14px; }
+  #pending-status { font-size:14px; color:var(--text); text-align:center; }
+  #result-login { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  #result-login .login-btn { width:auto; flex:1 1 auto; white-space:nowrap; padding:11px 12px; font-size:14px; gap:6px; }
+  #result-login .login-btn svg { width:18px; height:18px; }
   .login-btn { width:100%; padding:15px; border:none; border-radius:16px; font-size:16px; font-weight:400; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:transform .15s; box-shadow:var(--soft-sm); }
   .login-btn:hover { transform:translateY(-2px); box-shadow:var(--soft); }
   .login-btn:active { transform:translateY(0); box-shadow:var(--inset); }
@@ -462,38 +466,6 @@
         <div id="search-results"></div>
       </div>
 
-      <div id="auth-box">
-        <div id="login-area">
-          <span class="label" data-i18n="auth.rankNote">로그인하면 점수가 랭킹에 등록돼요</span>
-          <button id="google-login-btn" class="login-btn google">
-            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
-            <span data-i18n="auth.google">구글 로그인</span>
-          </button>
-          <button id="kakao-login-btn" class="login-btn kakao">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#191600" d="M12 3C6.477 3 2 6.582 2 11c0 2.86 1.92 5.37 4.81 6.78-.21.74-.76 2.68-.87 3.1-.14.52.19.51.4.37.16-.11 2.6-1.77 3.66-2.49.64.09 1.31.14 2 .14 5.523 0 10-3.582 10-8S17.523 3 12 3z"/></svg>
-            <span data-i18n="auth.kakao">카카오 로그인</span>
-          </button>
-        </div>
-<div id="nick-setup" class="hidden">
-  <span class="label" data-i18n="nick.prompt">랭킹에 표시할 닉네임을 정해주세요</span>
-  <input id="nick-input" class="nick-input" type="text" maxlength="16" data-i18n-ph="nick.placeholder" placeholder="닉네임 (최대 16자)" />
-  <button id="nick-save-btn" class="primary" style="padding:12px;" data-i18n="nick.save">닉네임 저장</button>
-  <button id="nick-back-btn" data-i18n="nick.back" style="background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; text-decoration:underline; padding:4px 0;">← 로그인 화면으로 돌아가기</button>
-    </div>
-
-    <div id="user-info" class="hidden">
-      <span class="uname">👤 <span id="user-nick">-</span></span>
-      <span id="inline-best" class="hidden">
-        <span class="ib-label" data-i18n="best.label">🏆 내 최고 점수</span>
-        <span class="ib-num"><span id="inline-best-score">0</span><span data-i18n="common.pts">점</span></span>
-      </span>
-      <div style="display:flex; gap:6px; align-items:center; flex:none;">
-        <button id="nick-edit-btn" data-i18n="nick.edit">닉네임 변경</button>
-        <button id="logout-btn" data-i18n="auth.logout">로그아웃</button>
-      </div>
-    </div>
-  </div>
-
       <button id="open-setup-btn" class="primary" data-i18n="home.start">시작하기</button>
 
       <div id="setup-area" class="hidden">
@@ -549,6 +521,39 @@
           <button id="start-btn" class="primary" data-i18n="setup.start">🎮 게임 시작!</button>
         </div>
       </div>
+
+      <div id="auth-box">
+        <div id="pending-status" class="hidden"></div>
+        <div id="login-area">
+          <span class="label" data-i18n="auth.rankNote">로그인하면 점수가 랭킹에 등록돼요</span>
+          <button id="google-login-btn" class="login-btn google">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+            <span data-i18n="auth.google">구글 로그인</span>
+          </button>
+          <button id="kakao-login-btn" class="login-btn kakao">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#191600" d="M12 3C6.477 3 2 6.582 2 11c0 2.86 1.92 5.37 4.81 6.78-.21.74-.76 2.68-.87 3.1-.14.52.19.51.4.37.16-.11 2.6-1.77 3.66-2.49.64.09 1.31.14 2 .14 5.523 0 10-3.582 10-8S17.523 3 12 3z"/></svg>
+            <span data-i18n="auth.kakao">카카오 로그인</span>
+          </button>
+        </div>
+<div id="nick-setup" class="hidden">
+  <span class="label" data-i18n="nick.prompt">랭킹에 표시할 닉네임을 정해주세요</span>
+  <input id="nick-input" class="nick-input" type="text" maxlength="16" data-i18n-ph="nick.placeholder" placeholder="닉네임 (최대 16자)" />
+  <button id="nick-save-btn" class="primary" style="padding:12px;" data-i18n="nick.save">닉네임 저장</button>
+  <button id="nick-back-btn" data-i18n="nick.back" style="background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; text-decoration:underline; padding:4px 0;">← 로그인 화면으로 돌아가기</button>
+    </div>
+
+    <div id="user-info" class="hidden">
+      <span class="uname">👤 <span id="user-nick">-</span></span>
+      <span id="inline-best" class="hidden">
+        <span class="ib-label" data-i18n="best.label">🏆 내 최고 점수</span>
+        <span class="ib-num"><span id="inline-best-score">0</span><span data-i18n="common.pts">점</span></span>
+      </span>
+      <div style="display:flex; gap:6px; align-items:center; flex:none;">
+        <button id="nick-edit-btn" data-i18n="nick.edit">닉네임 변경</button>
+        <button id="logout-btn" data-i18n="auth.logout">로그아웃</button>
+      </div>
+    </div>
+  </div>
 
       <div id="home-rank">
         <div class="hr-title" data-i18n="rank.top10">🏅 실시간 랭킹 TOP 10</div>
@@ -658,6 +663,16 @@
         <div id="result-msg"></div>
         <div id="new-best" class="hidden" style="text-align:center; color:var(--sage-d); font-weight:400; margin-top:6px;" data-i18n="result.newBest">🎉 내 최고 점수 갱신!</div>
         <div id="rank-save-status" style="text-align:center; color:var(--muted); font-size:12px; margin-top:6px;"></div>
+        <div id="result-login" class="hidden">
+          <button id="result-google-btn" class="login-btn google">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+            <span data-i18n="auth.google">구글 로그인</span>
+          </button>
+          <button id="result-kakao-btn" class="login-btn kakao">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#191600" d="M12 3C6.477 3 2 6.582 2 11c0 2.86 1.92 5.37 4.81 6.78-.21.74-.76 2.68-.87 3.1-.14.52.19.51.4.37.16-.11 2.6-1.77 3.66-2.49.64.09 1.31.14 2 .14 5.523 0 10-3.582 10-8S17.523 3 12 3z"/></svg>
+            <span data-i18n="auth.kakao">카카오 로그인</span>
+          </button>
+        </div>
       </div>
 
       <div style="display:flex; gap:8px; margin-top:8px;">
@@ -702,7 +717,7 @@
 
      <h2 style="font-size:22px; margin:28px 0 8px;">자주 묻는 질문 (FAQ)</h2>
      <p><strong>Q. 회원가입을 꼭 해야 하나요?</strong><br>
-     구글 또는 카카오 계정으로 로그인한 뒤 닉네임을 정하면 바로 이용할 수 있습니다. 학습 모드와 게임 모드 모두 로그인이 필요하며, 점수는 실시간 랭킹에 자동으로 등록됩니다. 별도의 가입 절차나 비용은 없습니다.</p>
+     아니요. 학습 모드와 게임 모드는 로그인 없이 바로 이용할 수 있습니다. 점수를 실시간 랭킹에 올리고 싶을 때만 구글 또는 카카오 계정으로 로그인한 뒤 닉네임을 정하면 됩니다. 별도의 가입 절차나 비용은 없습니다.</p>
      <p><strong>Q. 어떤 지역까지 학습할 수 있나요?</strong><br>
      서울을 비롯한 여러 지역의 시·군·구 및 읍·면·동 단위까지 세부적으로 학습할 수 있으며, 지역은 계속 추가되고 있습니다.</p>
      <p><strong>Q. 모바일에서도 이용할 수 있나요?</strong><br>
@@ -738,7 +753,7 @@
   <div id="loading-text" data-i18n="load.init">지도 및 경계 데이터를 불러오는 중…</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=kizfnbhv3q&submodules=geocoder"></script>
 <script src="roma.js?v=2"></script>
 <script src="features.js?v=1"></script>
@@ -795,14 +810,16 @@ const I18N = {
                          en:"Read the name and find it on the map. (practice)" },
   "common.home":       { ko:"← 처음으로", en:"← Back to Home" },
   "auth.rankNote":     { ko:"로그인하면 점수가 랭킹에 등록돼요", en:"Sign in to post your score to the leaderboard." },
-  "auth.loginRequired":{ ko:"로그인해야 퀴즈를 시작할 수 있어요", en:"Please sign in to start the quiz." },
   "auth.google":       { ko:"구글 로그인", en:"Sign in with Google" },
+  "auth.cancelled":    { ko:"로그인을 취소했어요.", en:"Sign-in was cancelled." },
+  "auth.failed":       { ko:"로그인하지 못했어요. 다시 시도해 주세요.", en:"Sign-in failed. Please try again." },
   "auth.kakao":        { ko:"카카오 로그인", en:"Sign in with Kakao" },
   "auth.logout":       { ko:"로그아웃", en:"Sign out" },
   "nick.prompt":       { ko:"랭킹에 표시할 닉네임을 정해주세요", en:"Choose a nickname for the leaderboard." },
   "nick.placeholder":  { ko:"닉네임 (최대 16자)", en:"Nickname (up to 16 characters)" },
   "nick.save":         { ko:"닉네임 저장", en:"Save Nickname" },
   "nick.back":         { ko:"← 로그인 화면으로 돌아가기", en:"← Back to sign in" },
+  "nick.cancel":       { ko:"취소", en:"Cancel" },
   "nick.edit":         { ko:"닉네임 변경", en:"Edit name" },
   "best.label":        { ko:"🏆 내 최고 점수", en:"🏆 My Best" },
   "common.pts":        { ko:"점", en:" pts" },
@@ -862,10 +879,16 @@ const I18N = {
   "report.myAnswer":   { ko:"내 답: {picked}", en:"Your answer: {picked}" },
   "report.replay":     { ko:"👆 눌러서 지도에서 위치 확인",
                          en:"👆 Tap to see it on the map" },
-  "rank.needLogin":    { ko:"ℹ️ 로그인하면 점수가 랭킹에 등록돼요. (처음 화면에서 로그인)",
-                         en:"ℹ️ Sign in to post your score. (sign in on the home screen)" },
-  "rank.needNick":     { ko:"ℹ️ 닉네임을 정하면 점수가 등록돼요. (처음 화면에서 닉네임 설정)",
-                         en:"ℹ️ Set a nickname to post your score. (set it on the home screen)" },
+  "rank.needLogin":    { ko:"ℹ️ 아래 버튼으로 로그인하면 이 점수가 랭킹에 올라가요.",
+                         en:"ℹ️ Sign in below to post this score to the leaderboard." },
+  "rank.needNick":     { ko:"ℹ️ 처음 화면에서 닉네임을 정하면 가장 최근 판 점수가 랭킹에 올라가요.",
+                         en:"ℹ️ Set a nickname on the home screen to post your most recent score." },
+  "rank.pendingNick":  { ko:"닉네임을 정하면 지난 판 점수 {n}점이 랭킹에 올라가요.",
+                         en:"Set a nickname to post your last score ({n} pts)." },
+  "rank.pendingSaved": { ko:"✅ 지난 판 점수 {n}점을 랭킹에 올렸어요.",
+                         en:"✅ Your last score ({n} pts) is on the leaderboard." },
+  "rank.pendingFail":  { ko:"⚠ 지난 판 점수를 랭킹에 올리지 못했어요. (네트워크 문제)",
+                         en:"⚠ Couldn't post your last score (network error)." },
   "rank.saving":       { ko:"랭킹에 점수 등록 중…", en:"Submitting your score…" },
   "rank.saved":        { ko:"✅ 랭킹에 등록되었습니다!", en:"✅ Score submitted!" },
   "rank.saveFail":     { ko:"⚠ 랭킹 등록 실패 (네트워크 문제)",
@@ -899,8 +922,6 @@ const I18N = {
 
   /* 학습 모드 공통 */
   "learn.viewLoc":     { ko:"위치 보기 ▸", en:"View on map ▸" },
-  "learn.lockAlert":   { ko:"먼저 로그인하고 닉네임을 정해주세요.",
-                         en:"Please sign in and set a nickname first." },
 
   /* 학습 - 이름→위치 */
   "type.label":        { ko:"문제 유형", en:"Question Type" },
@@ -1086,21 +1107,76 @@ try {
 
 let currentUser = null;
 let currentNick = null;
+let nickEditing = false;   // 닉네임 변경 중. 기존 닉네임(currentNick)은 그대로 두고 입력 화면만 보여 준다
+let pendingUi = null;      // 처음 화면 #pending-status 에 띄울 결과 { kind: saving|saved|fail|cancel|error, n }
 
-async function loginGoogle() {
+/* 로그인 왕복(OAuth 리디렉트) 동안 sessionStorage 에 보관하는 값:
+   어떤 로그인을 시작했는지(login_done 측정용), 랭킹에 올릴 지난 판 점수 */
+const SS_LOGIN = "kgq_login_start";
+const SS_PENDING = "kgq_pending_score";
+
+function markLoginStart(provider, from) {
+  track("login_start", evParams({ provider: provider, from: from }));
+  try { sessionStorage.setItem(SS_LOGIN, JSON.stringify({ provider: provider, from: from })); } catch (e) {}
+}
+
+/* 로그인으로 돌아온 직후 한 번만 login_done 을 보낸다.
+   결과 화면 버튼으로 시작한 로그인이면, 보관해 둔 비로그인 판 점수를 이 계정에 묶는다.
+   다른 길로 로그인했으면 묶이지 않은 보관 점수는 버린다(남의 판이 엉뚱한 계정에 올라가지 않게). */
+function noteLoginDone() {
+  let start = null;
+  try {
+    start = JSON.parse(sessionStorage.getItem(SS_LOGIN) || "null");
+    sessionStorage.removeItem(SS_LOGIN);
+  } catch (e) {}
+  if (!start || !currentUser) return;
+  track("login_done", evParams({ provider: start.provider, from: start.from }));
+  const p = peekPendingScore();
+  if (p && !p.uid) {
+    if (start.from === "result") { p.uid = currentUser.id; savePending(p); }
+    else clearPendingScore();
+  }
+}
+
+/* 로그인을 취소하거나 실패하면 Supabase 가 주소에 error 를 붙여 돌려보낸다.
+   그대로 두면 다음 로그인의 redirectTo 에 실려 로그인이 계속 실패하므로 빼고 보낸다. */
+const AUTH_ERR_KEYS = ["error", "error_code", "error_description", "sb"];
+function authRedirectUrl() {
+  const u = new URL(location.href);
+  u.hash = "";
+  AUTH_ERR_KEYS.forEach((k) => u.searchParams.delete(k));
+  return u.toString();
+}
+
+/* 돌아온 주소에 로그인 오류가 있으면 주소에서 지우고 짧게 알린다 */
+function consumeAuthError() {
+  const q = new URLSearchParams(location.search);
+  const h = new URLSearchParams(location.hash.replace(/^#/, ""));
+  const code = q.get("error") || h.get("error");
+  if (!code) return;
+  const u = new URL(authRedirectUrl());
+  history.replaceState(null, "", u.pathname + u.search);
+  try { sessionStorage.removeItem(SS_LOGIN); } catch (e) {}
+  pendingUi = { kind: code === "access_denied" ? "cancel" : "error" };
+  track("login_error", evParams({ code: String(code).slice(0, 40) }));
+}
+
+async function loginGoogle(from) {
   if (!sb) return;
+  markLoginStart("google", typeof from === "string" ? from : "home");
   await sb.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: window.location.href.split("#")[0] }
+    options: { redirectTo: authRedirectUrl() }
   });
 }
 
-async function loginKakao() {
+async function loginKakao(from) {
   if (!sb) return;
+  markLoginStart("kakao", typeof from === "string" ? from : "home");
   await sb.auth.signInWithOAuth({
     provider: "kakao",
     options: {
-      redirectTo: window.location.href.split("#")[0],
+      redirectTo: authRedirectUrl(),
       queryParams: { scope: "profile_nickname" }
     }
   });
@@ -1130,6 +1206,7 @@ async function fetchMyNick() {
 async function saveNick(nick) {
   const clean = (nick || "").trim().slice(0, 16);
   if (!clean) return false;
+  const prevNick = currentNick;
   if (sb && currentUser) {
     try {
       const { data: dup } = await sb
@@ -1153,7 +1230,7 @@ async function saveNick(nick) {
         const { error } = await sb.from("ranking").update({ nick: clean }).eq("user_id", currentUser.id);
         if (error) {
           alert(T("nick.dup"));
-          currentNick = null;
+          currentNick = prevNick;
           return false;
         }
       } else {
@@ -1166,7 +1243,7 @@ async function saveNick(nick) {
         });
         if (error) {
           alert(T("nick.dup"));
-          currentNick = null;
+          currentNick = prevNick;
           return false;
         }
       }
@@ -1187,6 +1264,75 @@ async function saveRankScore(sc) {
   }
 }
 
+/* 비로그인으로 끝낸 판의 점수를 로그인 왕복 동안 보관했다가, 로그인·닉네임이 갖춰지면 한 번만 올린다 */
+function stashPendingScore(sc, total) {
+  savePending({ score: sc, total: total, ts: Date.now(), uid: currentUser ? currentUser.id : null });
+}
+
+function savePending(p) {
+  try { sessionStorage.setItem(SS_PENDING, JSON.stringify(p)); } catch (e) {}
+}
+
+function clearPendingScore() {
+  try { sessionStorage.removeItem(SS_PENDING); } catch (e) {}
+}
+
+function validPending(p) {
+  return !!p && Number.isFinite(p.score) && Number.isFinite(p.total) && Number.isFinite(p.ts) &&
+         p.score >= 0 && p.score <= p.total * 10 && Date.now() - p.ts < 30 * 60 * 1000;
+}
+
+function peekPendingScore() {
+  try {
+    const p = JSON.parse(sessionStorage.getItem(SS_PENDING) || "null");
+    return validPending(p) ? p : null;
+  } catch (e) { return null; }
+}
+
+/* 지금 로그인한 계정의 보관 점수만 꺼낸다. 다른 계정 것이면 버린다 */
+function takePendingScore() {
+  const p = peekPendingScore();
+  if (!p || !currentUser) return null;
+  if (p.uid !== currentUser.id) {
+    if (p.uid) clearPendingScore();
+    return null;
+  }
+  clearPendingScore();   // 먼저 지워서 두 번 올라가지 않게 한다
+  return p;
+}
+
+async function flushPendingScore() {
+  if (currentUser && currentNick) {
+    const p = takePendingScore();
+    if (p) {
+      pendingUi = { kind: "saving", n: p.score };
+      renderPendingStatus();
+      const ok = await saveRankScore(p.score);
+      track("pending_score_post", evParams({ ok: ok ? 1 : 0 }));
+      pendingUi = { kind: ok ? "saved" : "fail", n: p.score };
+      if (ok) loadHomeRanking();
+    }
+  }
+  renderPendingStatus();
+}
+
+/* 처음 화면 로그인 상자 위의 안내 한 줄. 상태가 바뀔 때마다 여기서만 그린다 */
+function renderPendingStatus() {
+  const el = document.getElementById("pending-status");
+  if (!el) return;
+  let text = "";
+  if (pendingUi) {
+    const key = { saving: "rank.saving", saved: "rank.pendingSaved", fail: "rank.pendingFail",
+                  cancel: "auth.cancelled", error: "auth.failed" }[pendingUi.kind];
+    text = T(key, { n: pendingUi.n });
+  } else if (currentUser && !currentNick) {
+    const p = peekPendingScore();
+    if (p && p.uid === currentUser.id) text = T("rank.pendingNick", { n: p.score });
+  }
+  el.textContent = text;
+  el.classList.toggle("hidden", !text);
+}
+
 async function fetchTopRanks() {
   if (!sb) return null;
   try {
@@ -1203,36 +1349,6 @@ async function fetchTopRanks() {
   }
 }
 
-/* ===========================================================
-   로그인 필수화: 로그인+닉네임 완료 여부 판정 & UI 잠금
-=========================================================== */
-function isUnlocked() {
-  return !!(currentUser && currentNick);
-}
-
-function applyLockUI() {
-  const unlocked = isUnlocked();
-  const lockIds = ["search-box", "open-setup-btn", "verify-btn", "adj-verify-btn", "diag", "verify-result"];
-  lockIds.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle("hidden", !unlocked);
-  });
-  // 미완료 상태에서는 열려 있던 설정 영역도 확실히 닫는다.
-  if (!unlocked) {
-    const gameSetup = document.getElementById("game-setup");
-    if (gameSetup) gameSetup.classList.add("hidden");
-    const setupArea = document.getElementById("setup-area");
-    if (setupArea) setupArea.classList.add("hidden");
-    const obtn = document.getElementById("open-setup-btn");
-    if (obtn) obtn.textContent = T("home.start");
-  }
-  // 로그인 안내 문구를 상황에 맞게 변경
-  const loginLabel = document.querySelector("#login-area .label");
-  if (loginLabel) {
-    loginLabel.textContent = unlocked ? T("auth.rankNote") : T("auth.loginRequired");
-  }
-}
-
 function refreshAuthUI() {
   const loginArea = document.getElementById("login-area");
   const nickSetup = document.getElementById("nick-setup");
@@ -1240,15 +1356,19 @@ function refreshAuthUI() {
   const inlineBest = document.getElementById("inline-best");
 
   if (!currentUser) {
+    nickEditing = false;
+    if (pendingUi && ["saving", "saved", "fail"].indexOf(pendingUi.kind) !== -1) pendingUi = null;
     loginArea.classList.remove("hidden");
     nickSetup.classList.add("hidden");
     userInfo.classList.add("hidden");
     if (inlineBest) inlineBest.classList.add("hidden");
-  } else if (!currentNick) {
+  } else if (!currentNick || nickEditing) {
     loginArea.classList.add("hidden");
     nickSetup.classList.remove("hidden");
     userInfo.classList.add("hidden");
     if (inlineBest) inlineBest.classList.add("hidden");
+    /* 기존 닉네임을 바꾸는 중이면 '취소', 처음 정하는 중이면 '로그인 화면으로 돌아가기'(로그아웃) */
+    document.getElementById("nick-back-btn").textContent = T(currentNick ? "nick.cancel" : "nick.back");
   } else {
     loginArea.classList.add("hidden");
     nickSetup.classList.add("hidden");
@@ -1259,9 +1379,8 @@ function refreshAuthUI() {
       document.getElementById("inline-best-score").textContent = localStorage.getItem(LS_BEST) || "0";
     }
   }
-
-  // 로그인·닉네임 완료 여부에 따라 기능 UI 잠금/해제
-  applyLockUI();
+  document.getElementById("result-login").classList.toggle("hidden", !!currentUser);
+  renderPendingStatus();
 }
 
 /* ===========================================================
@@ -1388,11 +1507,14 @@ let guOverlays = [];
 let guLabelMarkers = [];
 
 const SIDO_NAME = { "11":"서울특별시", "28":"인천광역시", "41":"경기도" };
+/* 한글 시도 이름. 표에 없는 시도면 빈 문자열(문장에 'undefined' 가 찍히지 않게) */
+function sidoKo(code) { return SIDO_NAME[code] || ""; }
 function sidoLabel(code) {
   return (isEn() && SIDO_NAME_EN[code]) ? SIDO_NAME_EN[code] : (SIDO_NAME[code] || code);
 }
 
 let quizSet = [], currentIndex = 0, score = 0, answered = false;
+let roundMode = "game";   // "game" 새 판 / "retry" 틀린 문제만
 let answerLog = [];
 let totalQuestions = 10;
 let settings = { dir:"name", region:"all", type:"mix", count:10, timer:"off" };
@@ -1423,6 +1545,33 @@ function showScreen(name) {
   ["start","learn","quiz","result","rank"].forEach((s) => {
     document.getElementById(s + "-screen").classList.toggle("hidden", s !== name);
   });
+  scrollPanelTo(null);
+  /* 처음 화면을 떠나면 한 번 보여 준 결과 안내(올렸어요·취소했어요 등)는 지운다 */
+  if (name !== "start" && pendingUi && pendingUi.kind !== "saving") pendingUi = null;
+  renderPendingStatus();
+}
+
+/* 휴대폰에서는 #panel 이 스크롤된다. 화면이나 문제가 바뀌면 맨 위(또는 el 위치)로 올린다.
+   안 그러면 긴 설정 화면 아래쪽에서 시작했을 때 문제와 보기가 화면 위로 밀려 안 보인다. */
+function scrollPanelTo(el) {
+  const panel = document.getElementById("panel");
+  if (!panel) return;
+  if (!el) { panel.scrollTop = 0; return; }
+  const top = el.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop - 8;
+  panel.scrollTop = Math.max(0, top);
+}
+
+/* topEl~bottomEl 이 패널 안에 다 보이면 그대로 두고, 아니면 필요한 만큼만 움직인다.
+   (데스크톱처럼 다 보이는 화면에서 위쪽 지역·유형 선택 칸이 밀려 올라가지 않게) */
+function panelReveal(topEl, bottomEl) {
+  const panel = document.getElementById("panel");
+  if (!panel || !topEl || !bottomEl) return;
+  const pr = panel.getBoundingClientRect();
+  const t = topEl.getBoundingClientRect(), b = bottomEl.getBoundingClientRect();
+  let delta = 0;
+  if (t.top < pr.top) delta = t.top - pr.top - 8;
+  else if (b.bottom > pr.bottom) delta = Math.min(b.bottom - pr.bottom + 8, t.top - pr.top - 8);
+  if (delta) panel.scrollTop += delta;
 }
 
 /* ===========================================================
@@ -2256,6 +2405,7 @@ function handleGuLocateClick(latlng, context) {
 function finishLocateJudge(isCorrect, q, context) {
   if (context === "learn") {
     locateCurrent.done = true;
+    track("practice_answer", evParams({ region: locateRegion, type: q.qtype, correct: isCorrect ? 1 : 0 }));
     const fb = document.getElementById("locate-feedback");
     fb.classList.remove("hidden");
     fb.style.borderLeftColor = isCorrect ? "#22c55e" : "#ef4444";
@@ -2282,7 +2432,6 @@ function finishLocateJudge(isCorrect, q, context) {
           updateGuLabels()로 모드별 이름표 표시 갱신.
 =========================================================== */
 function openLearnMode() {
-if (!isUnlocked()) { alert(T("learn.lockAlert")); return; }
   clearHighlight();
   clearCandidates();
   clearGuOverlays();
@@ -2340,6 +2489,7 @@ function nextLearnLocate() {
   else { badge.className = "badge dong"; badge.textContent = T("type.dong"); }
   document.getElementById("locate-question").textContent = q.prompt;
   showLocateCandidates(q);
+  panelReveal(badge, document.getElementById("locate-next-btn"));
 }
 
 function buildLocateQuestion(region, qtype) {
@@ -2372,7 +2522,7 @@ function buildLocateQuestion(region, qtype) {
     const si = siNameOf(t.sggnm);
     const guLabel = (t.sggnm === si) ? si : t.sggnm;
     const nameKo = `${guLabel} ${t.dongName}`;
-    const fullKo = `${SIDO_NAME[t.sido]} ${guLabel} ${t.dongName}`;
+    const fullKo = `${sidoKo(t.sido)} ${guLabel} ${t.dongName}`.trim();
     return {
       dir:"locate", qtype:"dong", region, sgg: t.sgg, dongName: t.dongName,
       prompt: T("locate.prompt", { name: isEn() ? romanizeFull(nameKo) : nameKo }),
@@ -2489,9 +2639,11 @@ function showGuInfoCard(item) {
   else if (islandNote(item.matchName)) adjHtml = `<span style="color:var(--text);">${islandNote(item.matchName)}</span>`;
   else adjHtml = `<span class='ic-empty'>${T("info.noAdjGu")}</span>`;
 
-  const featKo = (typeof GU_FEATURE !== "undefined" &&
+  /* features.js 소개문은 서울 25개 구 것이다. 이름이 같은 다른 시도의 구(인천 중구 등)에 뜨지 않게 서울만 조회한다 */
+  const seoulFeat = item.sido === "11";
+  const featKo = (seoulFeat && typeof GU_FEATURE !== "undefined" &&
                   (GU_FEATURE[item.matchName] || GU_FEATURE[item.sgg_nm])) || null;
-  const featEn = (en && typeof GU_FEATURE_EN !== "undefined" &&
+  const featEn = (seoulFeat && en && typeof GU_FEATURE_EN !== "undefined" &&
                   (GU_FEATURE_EN[item.matchName] || GU_FEATURE_EN[item.sgg_nm])) || null;
   const feat = featEn || featKo;
   const soonNote = (en && !featEn && featKo)
@@ -2516,7 +2668,7 @@ function showGuInfoCard(item) {
     ).join("") + `</div>`;
   }
 
-  const sidoTxt = en ? (SIDO_NAME_EN[item.sido] || SIDO_NAME[item.sido]) : SIDO_NAME[item.sido];
+  const sidoTxt = en ? (SIDO_NAME_EN[item.sido] || sidoKo(item.sido)) : sidoKo(item.sido);
 
   card.innerHTML = `
     <div class="ic-title">${en ? bi(romanizeFull(item.name), item.name) : item.name}</div>
@@ -2535,7 +2687,7 @@ function showDongInfoCard(dong) {
   const card = document.getElementById("info-card");
   card.classList.remove("hidden");
   const si = siNameOf(dong.sggnm);
-  const belong = (dong.sggnm === si) ? `${SIDO_NAME[dong.sido]} ${si}` : `${SIDO_NAME[dong.sido]} ${dong.sggnm}`;
+  const belong = ((dong.sggnm === si) ? `${sidoKo(dong.sido)} ${si}` : `${sidoKo(dong.sido)} ${dong.sggnm}`).trim();
   const adj = getDongAdjNames(dong);
   const guItem = DB.find((d) => d.sggCode === dong.sgg);
   const guName = (guItem && guItem.matchName) || dong.sggnm || "";
@@ -2627,8 +2779,8 @@ function filteredDongPool() {
 }
 
 function startGame() {
-  if (!isUnlocked()) { alert(T("learn.lockAlert")); return; }
   appMode = "game";
+  roundMode = "game";
   updateGuLabels(); /* ★수정: 게임 모드는 이름표 숨김 (hideGuBaseColors 호출은 제거 — 은은한 색 유지) */
   totalQuestions = settings.count;
   quizSet = []; answerLog = [];
@@ -2671,6 +2823,8 @@ function startGame() {
   track("game_dir_" + settings.dir);        // game_dir_name / _locate / _mix
   track("game_count_" + settings.count);    // game_count_10 / _20
   track("game_timer_" + settings.timer);    // game_timer_on / _off
+  track("game_start", evParams({ region: settings.region, type: settings.type, dir: settings.dir,
+                                 count: settings.count, timer: settings.timer, mode: "game" }));
   showScreen("quiz");
   loadQuestion();
 }
@@ -2679,6 +2833,7 @@ function retryWrongOnly() {
   const wrongQs = answerLog.filter((a) => !a.correct).map((a) => a.q);
   if (!wrongQs.length) { alert(T("game.noWrong")); return; }
   appMode = "game";
+  roundMode = "retry";
   updateGuLabels();
   quizSet = shuffle(wrongQs);
   totalQuestions = quizSet.length;
@@ -2737,7 +2892,7 @@ function makeDongQuestion(pool) {
     wrongs = wrongs.concat(extra);
   }
   const si = siNameOf(target.sggnm);
-  const belong = `${SIDO_NAME[target.sido]} ${target.sggnm}`.replace(/\s+/g, " ").trim();
+  const belong = `${sidoKo(target.sido)} ${target.sggnm}`.replace(/\s+/g, " ").trim();
   return {
     dir:"name", type:"dong", qtype:"dong", dong: target, answerLabel: target.dongName, feats:[target.feature],
     options: shuffle([target.dongName, ...wrongs]),
@@ -2796,6 +2951,7 @@ function timeOut() {
 
 function loadQuestion() {
   answered = false;
+  scrollPanelTo(null);
   clearHighlight();
   clearCandidates();
   clearGuOverlays();
@@ -2909,7 +3065,9 @@ async function showResult() {
 
   const correctCnt = answerLog.filter((a) => a.correct).length;
   const pct = score / maxScore;
-  track("game_complete", { score: score, correct: correctCnt, total: totalQuestions });
+  track("game_complete", evParams({ score: score, correct: correctCnt, total: totalQuestions,
+                                    region: settings.region, type: settings.type, dir: settings.dir,
+                                    count: settings.count, mode: roundMode }));
   const msg = T(pct >= 0.9 ? "result.gradeA" : pct >= 0.7 ? "result.gradeB" : pct >= 0.5 ? "result.gradeC" : "result.gradeD");
   document.getElementById("result-msg").textContent =
     msg + "  " + T("result.count", { total: totalQuestions, correct: correctCnt });
@@ -2940,9 +3098,11 @@ async function showResult() {
   });
 
   const statusEl = document.getElementById("rank-save-status");
+  document.getElementById("result-login").classList.toggle("hidden", !!currentUser);
   if (!currentUser) {
     statusEl.textContent = T("rank.needLogin");
   } else if (!currentNick) {
+    stashPendingScore(score, totalQuestions);   // 처음 화면에서 닉네임을 정하면 이 점수가 올라간다
     statusEl.textContent = T("rank.needNick");
   } else {
     statusEl.textContent = T("rank.saving");
@@ -3071,21 +3231,29 @@ function setupTimerToggle() {
 async function initAuth() {
   if (!sb) return;
   const { data: { session } } = await sb.auth.getSession();
+  consumeAuthError();   // getSession 이 주소를 읽은 뒤에 지운다
   if (session && session.user) {
     currentUser = session.user;
     currentNick = await fetchMyNick();
+    noteLoginDone();
   }
   refreshAuthUI();
+  flushPendingScore();
 
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (session && session.user) {
-      currentUser = session.user;
-      currentNick = await fetchMyNick();
-    } else {
-      currentUser = null;
-      currentNick = null;
-    }
-    refreshAuthUI();
+  /* 콜백 안에서 다른 supabase 호출을 await 하면 멈출 수 있어(Supabase 문서 권고) 콜백 밖에서 처리한다 */
+  sb.auth.onAuthStateChange((event, session) => {
+    setTimeout(async () => {
+      if (session && session.user) {
+        currentUser = session.user;
+        currentNick = await fetchMyNick();
+        noteLoginDone();
+      } else {
+        currentUser = null;
+        currentNick = null;
+      }
+      refreshAuthUI();
+      flushPendingScore();
+    }, 0);
   });
 }
 
@@ -3100,6 +3268,11 @@ function closeSetupArea() {
   updateGuLabels();   /* ★수정: 처음 화면 복귀 시 이름표 상태 갱신 */
 }
 
+/* 이벤트 공통 매개변수. 지역이 늘어도 이벤트 이름은 그대로 두고 값으로 나눈다 */
+function evParams(extra) {
+  return Object.assign({ country: "kr", lang: isEn() ? "en" : "ko", data_ver: DATA_SCHEMA_VERSION }, extra || {});
+}
+
 /* GA4 맞춤 이벤트 전송 헬퍼 (gtag 없거나 실패해도 앱 동작엔 영향 없음) */
 function track(eventName, params) {
   try {
@@ -3112,11 +3285,15 @@ function updateInlineBest() {
   if (el) el.textContent = localStorage.getItem(LS_BEST) || "0";
 }
 
+/* 네이버 지도 인증 실패(키·등록 도메인 문제) 때 지도 API 가 부르는 전역 함수 */
+window.navermap_authFailure = function () { track("map_auth_fail", evParams()); };
+
 /* ===========================================================
    부팅
 =========================================================== */
 window.addEventListener("load", async () => {
   if (typeof naver === "undefined" || !naver.maps) {
+    track("map_load_fail", evParams());
     document.getElementById("loading-text").textContent = T("load.mapFail");
     return;
   }
@@ -3128,6 +3305,7 @@ window.addEventListener("load", async () => {
     if (missing.length) document.getElementById("diag").textContent = T("diag.guFail", { list: missing.join(", ") });
   } catch (e) {
     console.error(e);
+    track("geo_load_fail", evParams({ msg: String((e && e.message) || e).slice(0, 100) }));
     document.getElementById("loading-text").textContent = T("load.dataFail", { msg: e.message });
     return;
   }
@@ -3155,22 +3333,26 @@ window.addEventListener("load", async () => {
 
   document.getElementById("google-login-btn").addEventListener("click", loginGoogle);
   document.getElementById("kakao-login-btn").addEventListener("click", loginKakao);
+  document.getElementById("result-google-btn").addEventListener("click", () => { stashPendingScore(score, totalQuestions); loginGoogle("result"); });
+  document.getElementById("result-kakao-btn").addEventListener("click", () => { stashPendingScore(score, totalQuestions); loginKakao("result"); });
   document.getElementById("logout-btn").addEventListener("click", logout);
   document.getElementById("nick-save-btn").addEventListener("click", async () => {
     const v = document.getElementById("nick-input").value;
     if (!v.trim()) { alert(T("nick.empty")); return; }
     const ok = await saveNick(v);
-    if (ok) refreshAuthUI();
+    if (ok) { nickEditing = false; refreshAuthUI(); flushPendingScore(); }
   });
-  document.getElementById("nick-back-btn").addEventListener("click", logout);
+  document.getElementById("nick-back-btn").addEventListener("click", () => {
+    if (currentNick) { nickEditing = false; refreshAuthUI(); }   // 닉네임 변경 취소
+    else logout();                                                // 처음 정하는 중이면 로그아웃
+  });
   document.getElementById("nick-edit-btn").addEventListener("click", () => {
     document.getElementById("nick-input").value = currentNick || "";
-    currentNick = null;
+    nickEditing = true;
     refreshAuthUI();
   });
 
   document.getElementById("open-setup-btn").addEventListener("click", () => {
-    if (!isUnlocked()) { alert(T("learn.lockAlert")); return; }
     const area = document.getElementById("setup-area");
     const btn = document.getElementById("open-setup-btn");
     if (area.classList.contains("hidden")) {
