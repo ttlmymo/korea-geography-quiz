@@ -1,0 +1,75 @@
+{
+  "_note": "지역·단원·과 구성과 주소 이름(slug). 이름(한글)은 경계 데이터에서 오고, 여기서는 이름으로 찾는다. 파이프라인(pipeline/build-geo.mjs)이 코드로 바꿔 검사한다. screens = 지역 전체를 묻는 판(전체 연습·시험·넓은 복습)을 나눠 보이는 화면(없으면 지역 전체가 한 화면)",
+  "regions": [
+    {
+      "key": "seoul", "sido": "11", "ko": "서울", "full": "서울특별시", "en": "Seoul", "layer": "sgg",
+      "slugs": {
+        "강남구": "gangnam-gu", "강동구": "gangdong-gu", "강북구": "gangbuk-gu", "강서구": "gangseo-gu", "관악구": "gwanak-gu",
+        "광진구": "gwangjin-gu", "구로구": "guro-gu", "금천구": "geumcheon-gu", "노원구": "nowon-gu", "도봉구": "dobong-gu",
+        "동대문구": "dongdaemun-gu", "동작구": "dongjak-gu", "마포구": "mapo-gu", "서대문구": "seodaemun-gu", "서초구": "seocho-gu",
+        "성동구": "seongdong-gu", "성북구": "seongbuk-gu", "송파구": "songpa-gu", "양천구": "yangcheon-gu", "영등포구": "yeongdeungpo-gu",
+        "용산구": "yongsan-gu", "은평구": "eunpyeong-gu", "종로구": "jongno-gu", "중구": "jung-gu", "중랑구": "jungnang-gu"
+      },
+      "lessons": [
+        { "no": 1, "title": "도심과 서북", "en": "Downtown and northwest", "items": ["종로구", "중구", "용산구", "은평구", "서대문구", "마포구"] },
+        { "no": 2, "title": "한강 남쪽 동부", "en": "South of the Han, east", "items": ["동작구", "서초구", "강남구", "송파구", "강동구"] },
+        { "no": 3, "title": "한강 남쪽 서부", "en": "South of the Han, west", "items": ["강서구", "양천구", "구로구", "금천구", "영등포구", "관악구"] },
+        { "no": 4, "title": "동북 아래쪽", "en": "Northeast, lower", "items": ["성동구", "광진구", "동대문구", "중랑구"] },
+        { "no": 5, "title": "동북 위쪽", "en": "Northeast, upper", "items": ["성북구", "강북구", "도봉구", "노원구"] }
+      ]
+    },
+    {
+      "key": "incheon", "sido": "28", "ko": "인천", "full": "인천광역시", "en": "Incheon", "layer": "sgg",
+      "slugs": {
+        "강화군": "ganghwa-gun", "옹진군": "ongjin-gun", "제물포구": "jemulpo-gu", "영종구": "yeongjong-gu", "미추홀구": "michuhol-gu",
+        "연수구": "yeonsu-gu", "남동구": "namdong-gu", "부평구": "bupyeong-gu", "계양구": "gyeyang-gu", "서해구": "seohae-gu", "검단구": "geomdan-gu"
+      },
+      "lessons": [
+        { "no": 1, "title": "내륙 북쪽", "en": "Mainland north", "items": ["검단구", "서해구", "계양구", "부평구"] },
+        { "no": 2, "title": "내륙 남쪽", "en": "Mainland south", "items": ["제물포구", "미추홀구", "연수구", "남동구"] },
+        { "no": 3, "title": "섬과 바다", "en": "Islands and sea", "items": ["영종구", "강화군", "옹진군"] }
+      ],
+      "screens": [
+        { "key": "land", "ko": "내륙", "en": "mainland", "items": ["검단구", "서해구", "계양구", "부평구", "제물포구", "미추홀구", "연수구", "남동구"] },
+        { "key": "sea", "ko": "섬과 바다", "en": "islands", "items": ["영종구", "강화군", "옹진군"] }
+      ]
+    },
+    {
+      "key": "gyeonggi", "sido": "41", "ko": "경기", "full": "경기도", "en": "Gyeonggi", "layer": "si",
+      "slugs": {
+        "수원시": "suwon-si", "성남시": "seongnam-si", "의정부시": "uijeongbu-si", "안양시": "anyang-si", "부천시": "bucheon-si",
+        "광명시": "gwangmyeong-si", "평택시": "pyeongtaek-si", "동두천시": "dongducheon-si", "안산시": "ansan-si", "고양시": "goyang-si",
+        "과천시": "gwacheon-si", "구리시": "guri-si", "남양주시": "namyangju-si", "오산시": "osan-si", "시흥시": "siheung-si",
+        "군포시": "gunpo-si", "의왕시": "uiwang-si", "하남시": "hanam-si", "용인시": "yongin-si", "파주시": "paju-si",
+        "이천시": "icheon-si", "안성시": "anseong-si", "김포시": "gimpo-si", "화성시": "hwaseong-si", "광주시": "gwangju-si",
+        "양주시": "yangju-si", "포천시": "pocheon-si", "여주시": "yeoju-si", "연천군": "yeoncheon-gun", "가평군": "gapyeong-gun", "양평군": "yangpyeong-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "서울 서쪽", "en": "West of Seoul", "items": ["김포시", "부천시", "광명시", "시흥시", "안산시"] },
+        { "no": 2, "title": "서울 남쪽 가까이", "en": "Just south of Seoul", "items": ["과천시", "안양시", "군포시", "의왕시", "성남시"] },
+        { "no": 3, "title": "수원과 둘레", "en": "Suwon and around", "items": ["수원시", "화성시", "오산시", "용인시"] },
+        { "no": 4, "title": "남쪽 끝", "en": "Far south", "items": ["평택시", "안성시", "이천시", "여주시"] },
+        { "no": 5, "title": "서울 동쪽", "en": "East of Seoul", "items": ["구리시", "남양주시", "하남시", "광주시"] },
+        { "no": 6, "title": "동쪽 산간", "en": "Eastern hills", "items": ["양평군", "가평군", "포천시"] },
+        { "no": 7, "title": "북서부", "en": "Northwest", "items": ["고양시", "파주시", "양주시", "의정부시", "동두천시", "연천군"] }
+      ],
+      "screens": [
+        { "key": "nw", "ko": "북서부", "en": "northwest", "items": ["고양시", "파주시", "김포시", "양주시", "의정부시", "동두천시", "연천군"] },
+        { "key": "ne", "ko": "북동부", "en": "northeast", "items": ["포천시", "가평군", "남양주시", "구리시", "하남시", "양평군"] },
+        { "key": "sw", "ko": "남서부", "en": "southwest", "items": ["부천시", "광명시", "시흥시", "안산시", "안양시", "군포시", "의왕시", "과천시", "수원시", "화성시", "오산시"] },
+        { "key": "se", "ko": "남동부", "en": "southeast", "items": ["성남시", "용인시", "광주시", "이천시", "여주시", "평택시", "안성시"] }
+      ]
+    }
+  ],
+  "generalGu": {
+    "_note": "경기 일반구 24곳(시 이름 + 구 이름). 일반구 단원은 다음 단계(P1)",
+    "수원시 장안구": "suwon-si-jangan-gu", "수원시 권선구": "suwon-si-gwonseon-gu", "수원시 팔달구": "suwon-si-paldal-gu", "수원시 영통구": "suwon-si-yeongtong-gu",
+    "성남시 수정구": "seongnam-si-sujeong-gu", "성남시 중원구": "seongnam-si-jungwon-gu", "성남시 분당구": "seongnam-si-bundang-gu",
+    "안양시 만안구": "anyang-si-manan-gu", "안양시 동안구": "anyang-si-dongan-gu",
+    "부천시 원미구": "bucheon-si-wonmi-gu", "부천시 소사구": "bucheon-si-sosa-gu", "부천시 오정구": "bucheon-si-ojeong-gu",
+    "안산시 상록구": "ansan-si-sangnok-gu", "안산시 단원구": "ansan-si-danwon-gu",
+    "고양시 덕양구": "goyang-si-deogyang-gu", "고양시 일산동구": "goyang-si-ilsandong-gu", "고양시 일산서구": "goyang-si-ilsanseo-gu",
+    "용인시 처인구": "yongin-si-cheoin-gu", "용인시 기흥구": "yongin-si-giheung-gu", "용인시 수지구": "yongin-si-suji-gu",
+    "화성시 만세구": "hwaseong-si-manse-gu", "화성시 효행구": "hwaseong-si-hyohaeng-gu", "화성시 병점구": "hwaseong-si-byeongjeom-gu", "화성시 동탄구": "hwaseong-si-dongtan-gu"
+  }
+}

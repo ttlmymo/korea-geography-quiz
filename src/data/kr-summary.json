@@ -1,0 +1,348 @@
+{
+ "_note": "전국 시·도별 시·군·구와 읍·면·동 수(행정동 기준). pipeline/build-geo.mjs 가 만든다",
+ "source": "ver20261001/HangJeongDong_ver20261001.geojson",
+ "total": {
+  "sido": 16,
+  "si": 75,
+  "gun": 82,
+  "gu": 70,
+  "adminSi": 2,
+  "ilban": 39,
+  "ilbanSi": 13,
+  "eup": 238,
+  "myeon": 1165,
+  "dong": 2156
+ },
+ "sidos": [
+  {
+   "code": "11",
+   "name": "서울특별시",
+   "kind": "특별시",
+   "si": 0,
+   "gun": 0,
+   "gu": 25,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 0,
+   "myeon": 0,
+   "dong": 427
+  },
+  {
+   "code": "12",
+   "name": "전남광주통합특별시",
+   "kind": "통합특별시",
+   "si": 5,
+   "gun": 17,
+   "gu": 5,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 33,
+   "myeon": 196,
+   "dong": 164
+  },
+  {
+   "code": "26",
+   "name": "부산광역시",
+   "kind": "광역시",
+   "si": 0,
+   "gun": 1,
+   "gu": 15,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 4,
+   "myeon": 1,
+   "dong": 201
+  },
+  {
+   "code": "27",
+   "name": "대구광역시",
+   "kind": "광역시",
+   "si": 0,
+   "gun": 2,
+   "gu": 7,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 8,
+   "myeon": 9,
+   "dong": 133
+  },
+  {
+   "code": "28",
+   "name": "인천광역시",
+   "kind": "광역시",
+   "si": 0,
+   "gun": 2,
+   "gu": 9,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 1,
+   "myeon": 19,
+   "dong": 138
+  },
+  {
+   "code": "30",
+   "name": "대전광역시",
+   "kind": "광역시",
+   "si": 0,
+   "gun": 0,
+   "gu": 5,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 0,
+   "myeon": 0,
+   "dong": 82
+  },
+  {
+   "code": "31",
+   "name": "울산광역시",
+   "kind": "광역시",
+   "si": 0,
+   "gun": 1,
+   "gu": 4,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 6,
+   "myeon": 6,
+   "dong": 43
+  },
+  {
+   "code": "36",
+   "name": "세종특별자치시",
+   "kind": "특별자치시",
+   "si": 0,
+   "gun": 0,
+   "gu": 0,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 1,
+   "myeon": 9,
+   "dong": 15
+  },
+  {
+   "code": "41",
+   "name": "경기도",
+   "kind": "도",
+   "si": 28,
+   "gun": 3,
+   "gu": 0,
+   "adminSi": 0,
+   "ilban": 24,
+   "ilbanSi": [
+    "수원시",
+    "성남시",
+    "안양시",
+    "안산시",
+    "고양시",
+    "용인시",
+    "화성시",
+    "부천시"
+   ],
+   "ilbanGu": {
+    "수원시": [
+     "장안구",
+     "권선구",
+     "팔달구",
+     "영통구"
+    ],
+    "성남시": [
+     "수정구",
+     "중원구",
+     "분당구"
+    ],
+    "안양시": [
+     "만안구",
+     "동안구"
+    ],
+    "안산시": [
+     "상록구",
+     "단원구"
+    ],
+    "고양시": [
+     "덕양구",
+     "일산동구",
+     "일산서구"
+    ],
+    "용인시": [
+     "처인구",
+     "기흥구",
+     "수지구"
+    ],
+    "화성시": [
+     "효행구",
+     "만세구",
+     "동탄구",
+     "병점구"
+    ],
+    "부천시": [
+     "원미구",
+     "소사구",
+     "오정구"
+    ]
+   },
+   "eup": 38,
+   "myeon": 98,
+   "dong": 466
+  },
+  {
+   "code": "43",
+   "name": "충청북도",
+   "kind": "도",
+   "si": 3,
+   "gun": 8,
+   "gu": 0,
+   "adminSi": 0,
+   "ilban": 4,
+   "ilbanSi": [
+    "청주시"
+   ],
+   "ilbanGu": {
+    "청주시": [
+     "상당구",
+     "서원구",
+     "흥덕구",
+     "청원구"
+    ]
+   },
+   "eup": 17,
+   "myeon": 85,
+   "dong": 51
+  },
+  {
+   "code": "44",
+   "name": "충청남도",
+   "kind": "도",
+   "si": 8,
+   "gun": 7,
+   "gu": 0,
+   "adminSi": 0,
+   "ilban": 2,
+   "ilbanSi": [
+    "천안시"
+   ],
+   "ilbanGu": {
+    "천안시": [
+     "동남구",
+     "서북구"
+    ]
+   },
+   "eup": 25,
+   "myeon": 136,
+   "dong": 47
+  },
+  {
+   "code": "47",
+   "name": "경상북도",
+   "kind": "도",
+   "si": 10,
+   "gun": 12,
+   "gu": 0,
+   "adminSi": 0,
+   "ilban": 2,
+   "ilbanSi": [
+    "포항시"
+   ],
+   "ilbanGu": {
+    "포항시": [
+     "남구",
+     "북구"
+    ]
+   },
+   "eup": 38,
+   "myeon": 192,
+   "dong": 91
+  },
+  {
+   "code": "48",
+   "name": "경상남도",
+   "kind": "도",
+   "si": 8,
+   "gun": 10,
+   "gu": 0,
+   "adminSi": 0,
+   "ilban": 5,
+   "ilbanSi": [
+    "창원시"
+   ],
+   "ilbanGu": {
+    "창원시": [
+     "의창구",
+     "성산구",
+     "마산합포구",
+     "마산회원구",
+     "진해구"
+    ]
+   },
+   "eup": 21,
+   "myeon": 175,
+   "dong": 109
+  },
+  {
+   "code": "50",
+   "name": "제주특별자치도",
+   "kind": "특별자치도",
+   "si": 0,
+   "gun": 0,
+   "gu": 0,
+   "adminSi": 2,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 7,
+   "myeon": 5,
+   "dong": 31
+  },
+  {
+   "code": "51",
+   "name": "강원특별자치도",
+   "kind": "특별자치도",
+   "si": 7,
+   "gun": 11,
+   "gu": 0,
+   "adminSi": 0,
+   "ilban": 0,
+   "ilbanSi": [],
+   "ilbanGu": {},
+   "eup": 24,
+   "myeon": 90,
+   "dong": 74
+  },
+  {
+   "code": "52",
+   "name": "전북특별자치도",
+   "kind": "특별자치도",
+   "si": 6,
+   "gun": 8,
+   "gu": 0,
+   "adminSi": 0,
+   "ilban": 2,
+   "ilbanSi": [
+    "전주시"
+   ],
+   "ilbanGu": {
+    "전주시": [
+     "완산구",
+     "덕진구"
+    ]
+   },
+   "eup": 15,
+   "myeon": 144,
+   "dong": 84
+  }
+ ]
+}

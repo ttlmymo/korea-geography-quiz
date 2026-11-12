@@ -1,0 +1,29 @@
+---
+// 학습 가이드 목록(/guide/). 검수한 글이 하나도 없으면 배포 빌드에서는 '준비 중' 쪽(noindex)으로 둔다
+import Base from '../../layouts/Base.astro';
+import { href } from '../../lib/paths';
+import { visibleGuides } from '../../guides/registry';
+
+const list = visibleGuides();
+const anyReviewed = list.some((g) => g.reviewed);
+---
+<Base title="학습 가이드 – 채움지도" description="행정구역을 지도로 외우는 방법과 2026년에 바뀐 행정구역을 공공 자료로 정리한 글 모음이에요." ads={anyReviewed} noindex={!anyReviewed}>
+  <div class="wrap page">
+    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › 학습 가이드</nav>
+    <h1>학습 가이드</h1>
+    <p class="lead">행정구역을 지도로 외우는 방법과, 지도 공부에 필요한 행정구역 지식을 공공 자료로 정리해요.</p>
+    <p>글마다 정부·지자체 발표, 공공 데이터, 연구 논문 같은 1차 자료를 출처로 달고 고친 날을 적어요. 글 속 숫자 가운데 구·동 수나 맞닿은 곳처럼 지도로 셀 수 있는 것은 채움지도가 쓰는 경계 데이터로 다시 셌어요. 운영자가 원문과 대조해 확인한 글만 올리고, 틀린 곳을 알려 주시면 <a href={href('/contact/')}>문의</a>로 받아 고쳐요.</p>
+    {list.length ? (
+      <ul class="glist">{list.map((g) => (
+        <li><a href={href(`/guide/${g.slug}/`)}><b>{g.title}</b><span class="meta">{g.description}</span>{!g.reviewed && <span class="tag">검수 전</span>}</a></li>
+      ))}</ul>
+    ) : <p>첫 글을 준비하고 있어요.</p>}
+  </div>
+</Base>
+
+<style>
+  .glist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+  .glist a { display: flex; flex-direction: column; gap: 4px; padding: var(--sp-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); color: var(--ink); text-decoration: none; }
+  .glist b { font: 700 18px/26px var(--font-head); }
+  .tag { align-self: flex-start; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-pill); background: var(--due-soft); color: var(--due); }
+</style>

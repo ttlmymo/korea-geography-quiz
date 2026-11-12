@@ -1,0 +1,30 @@
+// 서울 25개 자치구: 주소 slug 는 옛 쪽(seoul/<slug>/)과 같게 둔다
+export interface Gu { ko: string; slug: string; en: string }
+
+export const SEOUL_GU: Gu[] = [
+  { ko: '강남구', slug: 'gangnam-gu', en: 'Gangnam-gu' },
+  { ko: '강동구', slug: 'gangdong-gu', en: 'Gangdong-gu' },
+  { ko: '강북구', slug: 'gangbuk-gu', en: 'Gangbuk-gu' },
+  { ko: '강서구', slug: 'gangseo-gu', en: 'Gangseo-gu' },
+  { ko: '관악구', slug: 'gwanak-gu', en: 'Gwanak-gu' },
+  { ko: '광진구', slug: 'gwangjin-gu', en: 'Gwangjin-gu' },
+  { ko: '구로구', slug: 'guro-gu', en: 'Guro-gu' },
+  { ko: '금천구', slug: 'geumcheon-gu', en: 'Geumcheon-gu' },
+  { ko: '노원구', slug: 'nowon-gu', en: 'Nowon-gu' },
+  { ko: '도봉구', slug: 'dobong-gu', en: 'Dobong-gu' },
+  { ko: '동대문구', slug: 'dongdaemun-gu', en: 'Dongdaemun-gu' },
+  { ko: '동작구', slug: 'dongjak-gu', en: 'Dongjak-gu' },
+  { ko: '마포구', slug: 'mapo-gu', en: 'Mapo-gu' },
+  { ko: '서대문구', slug: 'seodaemun-gu', en: 'Seodaemun-gu' },
+  { ko: '서초구', slug: 'seocho-gu', en: 'Seocho-gu' },
+  { ko: '성동구', slug: 'seongdong-gu', en: 'Seongdong-gu' },
+  { ko: '성북구', slug: 'seongbuk-gu', en: 'Seongbuk-gu' },
+  { ko: '송파구', slug: 'songpa-gu', en: 'Songpa-gu' },
+  { ko: '양천구', slug: 'yangcheon-gu', en: 'Yangcheon-gu' },
+  { ko: '영등포구', slug: 'yeongdeungpo-gu', en: 'Yeongdeungpo-gu' },
+  { ko: '용산구', slug: 'yongsan-gu', en: 'Yongsan-gu' },
+  { ko: '은평구', slug: 'eunpyeong-gu', en: 'Eunpyeong-gu' },
+  { ko: '종로구', slug: 'jongno-gu', en: 'Jongno-gu' },
+  { ko: '중구', slug: 'jung-gu', en: 'Jung-gu' },
+  { ko: '중랑구', slug: 'jungnang-gu', en: 'Jungnang-gu' },
+];

@@ -1,0 +1,106 @@
+/* SVG 백지도(설계서 5.2·6.2). 색은 모두 tokens.css 의 토큰. 선 굵기는 화면 px 고정(non-scaling-stroke) */
+
+.cmap {
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  background: var(--map-water);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.cmap.tap-only { touch-action: pan-x pan-y; }
+.cmap.static { touch-action: auto; cursor: default; }
+.cmap-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;       /* 줄이는 움직임 중에도 viewBox 밖이 보이게(자르기는 .cmap 이) */
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.cmap-svg path { vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+
+.cm-out-fill { fill: var(--map-out); }
+.cm-out-edge { fill: none; stroke: var(--map-edge); stroke-opacity: .45; stroke-width: 1; }
+
+.cm-cell { fill: var(--m0); transition: fill var(--t-fill); }
+.cm-cell.ctx, .cm-cell.dim { fill: var(--map-ctx); }
+.cm-cell.lv0 { fill: var(--m0); }
+.cm-cell.lv1 { fill: var(--m1); }
+.cm-cell.lv2 { fill: var(--m2); }
+.cm-cell.lv3 { fill: var(--m3); }
+.cm-cell.hl { fill: var(--hl); }
+
+.cm-water { fill: var(--map-water); }
+.cm-edge, .cm-bank { fill: none; stroke: var(--map-edge); stroke-width: 1; }
+.cm-edge.gap { stroke: var(--map-gap); stroke-width: 1.2; }   /* 채움 지도: 칸을 색종이 조각처럼 */
+.cm-rim { fill: none; stroke: var(--map-edge-strong); stroke-width: 2; }
+.cm-lesson-rim { fill: none; stroke: var(--map-edge-strong); stroke-width: 2.5; }
+
+/* 문제 칸: 형광펜 노랑 + 먹 테두리 */
+.cm-q { fill: var(--hl); stroke: var(--q-outline); stroke-width: 2.5; }
+.cm-q.breathe { animation: cm-breathe 1.6s ease-in-out infinite; }
+@keyframes cm-breathe { 50% { stroke-width: 5; } }
+
+/* 정답: 파랑 채움 + 실선 + ○ */
+.cm-ok { fill: var(--ok-fill); stroke: var(--ok); stroke-width: 2.5; }
+.cm-ok.pencil { animation: cm-pencil var(--t-pencil) ease-out both; }
+@keyframes cm-pencil { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.cm-ok.blink { animation: cm-blink 1s ease-in-out 2; }
+@keyframes cm-blink { 50% { fill-opacity: .15; stroke-opacity: .3; } }
+
+/* 오답: 주홍 채움 + 빗금 + 점선 + ✕ */
+.cm-no { fill: var(--no-fill); stroke: var(--no); stroke-width: 2.5; stroke-dasharray: 7 4; }
+.cm-no-hatch { stroke: none; }
+.cmap-svg .cm-hatch-line { stroke: var(--no); stroke-width: 1.4; stroke-opacity: .6; vector-effect: none; }   /* 무늬 안은 무늬 배율을 따른다 */
+
+/* px 묶음(그룹 하나가 화면 1px = 1단위): 기호·화살표 머리·이름표 */
+.cm-px path, .cm-labels path { vector-effect: none; }
+.cm-sym-bg { fill: var(--surface); stroke: var(--ink); stroke-opacity: .2; stroke-width: 1; }
+.cm-sym-ok { fill: none; stroke: var(--ok); stroke-width: 3.2; }
+.cm-sym-no { fill: none; stroke: var(--no); stroke-width: 3.2; stroke-linecap: round; }
+.cm-arrow { fill: none; stroke: var(--ink-2); stroke-width: 2.5; stroke-linecap: round; }
+.cm-arrow-head path { fill: var(--ink-2); }
+.cm-label text {
+  font: 700 15px/1 var(--font-head);
+  fill: var(--ink);
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+.cm-badge circle { fill: var(--due-badge); stroke: var(--surface); stroke-width: 2; }
+.cm-badge-arrow { fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cm-badges path { vector-effect: none; }
+.cm-label.sm text { font-size: 11px; stroke-width: 3px; }
+.cm-leader { stroke: var(--ink); stroke-width: 1.5; }
+/* 맥락 이름(층 7): 12~13px, 흐림. 누름은 막지 않는다 */
+.cm-ctx { pointer-events: none; }
+.cm-ctxname text { font: 700 13px/1 var(--font-ui); fill: var(--ink-3); stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; letter-spacing: .02em; }
+.cm-ctxname.water text { fill: var(--map-water-ink); stroke: var(--map-water); font-weight: 400; letter-spacing: .3em; }
+.cm-ctxname.cell text { font-size: 12px; font-weight: 400; stroke: var(--surface); }
+.cm-leader-dot { fill: var(--ink); }
+
+/* 섬 상자(먼 섬, 축척 다름) */
+.cm-inset {
+  position: absolute; left: 12px; top: 12px;
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--map-water); border: 1.5px solid var(--map-edge-strong); border-radius: var(--r-xs);
+  box-shadow: var(--e1); overflow: hidden;
+}
+.cm-inset[hidden] { display: none; }
+.cm-inset-svg { display: block; }
+.cm-inset-svg path { vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke: var(--map-edge-strong); stroke-width: 1; }
+.cm-inset-svg .cm-q, .cm-inset-svg .cm-ok, .cm-inset-svg .cm-no { stroke-width: 2; }
+.cm-inset-svg .cm-q { fill: var(--hl); }
+.cm-inset-svg .cm-ok { fill: var(--ok-fill); stroke: var(--ok); }
+.cm-inset-svg .cm-no { fill: var(--no-fill); stroke: var(--no); }
+.cm-inset-note { width: 100%; padding: 1px 4px 2px; background: var(--surface); color: var(--ink-2); font-size: 13px; line-height: 18px; text-align: center; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-q.breathe, .cm-ok.pencil, .cm-ok.blink { animation: none; }
+}

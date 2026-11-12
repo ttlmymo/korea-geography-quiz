@@ -1,0 +1,58 @@
+---
+// 정적 쪽 위치도: 빌드 때 경계 데이터로 그린 SVG(크롤러가 읽고 JS 없이 보임, 설계서 5.1·7.5).
+// highlight = 강조할 곳, tone = 곳마다 칠(a~e 다섯 가지, 권역 구분 등: 색은 TONE_FILL), labels = 이름(칸이 너무 작으면 뺌).
+// region 은 src/data/svg 의 파일 이름(incheon-before = 개편 전 인천, 곳 id 는 old:구이름)
+import { svgOf, nameOf, type Tone } from '../lib/geo';
+
+interface Props {
+  region: string;
+  label: string;
+  highlight?: string[];
+  tone?: Record<string, Tone>;
+  labels?: boolean;
+  /** 칸이 작아도 이름을 꼭 보일 곳(작은 글씨) */
+  alwaysLabel?: string[];
+  /** 이 곳들이 꽉 차게 확대(둘레 8%). 글자 크기도 화면에서 같게 맞춘다 */
+  fit?: string[];
+}
+const { region, label, highlight = [], tone = {}, labels = false, alwaysLabel = [], fit = [] } = Astro.props;
+const svg = svgOf(region);
+// 확대 상자: fit 곳들의 경로 좌표(정수 'x y' 짝)로 잰다. k = 보이는 폭 / 전체 폭(글자·이름 기준에 곱함)
+let vb = [0, 0, svg.w, svg.h];
+if (fit.length) {
+  let b = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const it of svg.items.filter((x) => fit.includes(x.id))) for (const m of it.d.matchAll(/(-?\d+) (-?\d+)/g)) {
+    const x = +m[1], y = +m[2];
+    b = [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)];
+  }
+  const pad = Math.max(b[2] - b[0], b[3] - b[1]) * 0.08;
+  vb = [b[0] - pad, b[1] - pad, b[2] - b[0] + pad * 2, b[3] - b[1] + pad * 2].map(Math.round);
+}
+const k = vb[2] / svg.w;
+const short = (it: (typeof svg.items)[number]) => it.name ?? nameOf(it.id).replace(/^\S+ /, '');   // '고양시 덕양구' → '덕양구'(시 층은 원래 짧음)
+---
+<svg class="rmap" viewBox={vb.join(' ')} role="img" aria-label={label} style={k < 1 ? `--k:${k.toFixed(3)}` : undefined}>
+  <rect width={svg.w} height={svg.h} class="sea" />
+  <path d={svg.out} class="out" />
+  {svg.items.map((it) => <path d={it.d} class={`cell${highlight.includes(it.id) ? ' hl' : ''}${tone[it.id] ? ` t-${tone[it.id]}` : ''}`} />)}
+  <path d={svg.water} class="river" />
+  {labels && svg.items.filter((it) => it.ir / k >= 14 || alwaysLabel.includes(it.id)).map((it) => (
+    <text x={it.lx} y={it.ly + 8 * k} class={it.ir / k >= 34 ? 'lb' : 'lb sm'}>{short(it)}</text>
+  ))}
+</svg>
+
+<style>
+  .rmap { display: block; width: 100%; height: auto; border-radius: var(--r-md); background: var(--map-water); }
+  .sea { fill: var(--map-water); }
+  .out { fill: var(--map-out); stroke: var(--map-edge); stroke-opacity: .35; stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .cell { fill: var(--m0); stroke: var(--map-edge); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .cell.t-a { fill: var(--grp-1); }
+  .cell.t-b { fill: var(--m0); }
+  .cell.t-c { fill: var(--grp-2); }
+  .cell.t-d { fill: var(--grp-3); }
+  .cell.t-e { fill: var(--grp-4); }
+  .cell.hl { fill: var(--hl); stroke: var(--q-outline); stroke-width: 2; }
+  .river { fill: var(--map-water); }
+  .lb { font: 700 calc(26px * var(--k, 1))/1 var(--font-ui); fill: var(--ink); stroke: var(--surface); stroke-width: calc(6px * var(--k, 1)); paint-order: stroke; stroke-linejoin: round; text-anchor: middle; }
+  .lb.sm { font-size: calc(20px * var(--k, 1)); stroke-width: calc(5px * var(--k, 1)); }
+</style>

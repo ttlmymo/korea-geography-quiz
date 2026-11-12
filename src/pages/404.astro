@@ -1,0 +1,34 @@
+---
+// 없는 주소: 한국어 안내 + 영어 한 줄. 색인하지 않고, 어느 주소에서나 같은 내용이라 canonical 도 달지 않는다.
+// 휴대폰에서는 메뉴가 접혀 있으므로 갈 만한 곳을 본문에 바로 둔다(JS 없음)
+import Base from '../layouts/Base.astro';
+import { href } from '../lib/paths';
+import { visibleGuides } from '../guides/registry';
+
+const GO = [
+  { t: '공부하기', d: '지역을 골라 첫 과부터', h: '/#/kr' },
+  { t: '서울 25개 구', d: '구마다 위치와 행정동', h: '/seoul/' },
+  { t: '인천 2군 9구', d: '2026년 7월 개편 반영', h: '/incheon/' },
+  { t: '경기 31개 시·군', d: '시·군과 일반구', h: '/gyeonggi/' },
+  ...(visibleGuides().length ? [{ t: '학습 가이드', d: '행정구역과 공부 방법', h: '/guide/' }] : []),
+];
+---
+<Base title="찾는 쪽이 없어요 – 채움지도" description="주소가 바뀌었거나 없는 쪽이에요. 공부하기나 지역 쪽에서 다시 찾아 주세요." noindex canonical={false}>
+  <div class="wrap page">
+    <h1>찾는 쪽이 없어요</h1>
+    <p class="lead">주소가 바뀌었거나 없는 쪽이에요. 가려던 곳을 아래에서 골라 주세요.</p>
+    <ul class="go">
+      {GO.map((g) => <li><a href={href(g.h)}><b>{g.t}</b><span>{g.d}</span></a></li>)}
+    </ul>
+    <p>링크를 눌러 이 쪽이 나왔다면 <a href={href('/contact/')}>문의</a>로 그 링크가 있던 곳을 알려 주세요.</p>
+    <p lang="en">This page doesn't exist. <a href={href('/en/')}>Go to the English home</a>.</p>
+  </div>
+</Base>
+
+<style>
+  .go { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-2); }
+  .go a { display: flex; flex-direction: column; gap: 2px; min-height: 56px; justify-content: center; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); text-decoration: none; }
+  .go a:active { background: var(--sunk); }
+  .go b { font-size: 17px; }
+  .go span { font-size: 14px; color: var(--ink-2); }
+</style>

@@ -1,0 +1,85 @@
+---
+// 지도 실험실(개발 서버에서만, 배포에 실리지 않음): S5 지도 그리기·확대·이동·판정 표시를 실제 데이터로 돌려 보고,
+// 휴대폰에서 끌기·집기 때 프레임 시간을 잰다. astro.config.mjs 의 chaeum-lab 이 `astro dev` 일 때만 경로를 붙인다
+import '../styles/tokens.css';
+import '../app/map/map.css';
+import { DATA_VER } from '../consts';
+const base = import.meta.env.BASE_URL;
+---
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="only light" />
+    <meta name="robots" content="noindex" />
+    <title>지도 실험실</title>
+    <style is:global>
+      html, body { height: 100%; }
+      body { margin: 0; overflow: hidden; }
+      .lab { height: 100dvh; display: flex; flex-direction: column; background: var(--paper); }
+      .lab-dev {
+        display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+        padding: 6px max(8px, env(safe-area-inset-right, 0px)) 6px max(8px, env(safe-area-inset-left, 0px));
+        background: var(--sunk); border-bottom: 1px solid var(--line); font-size: 13px;
+      }
+      .lab-dev select { font: inherit; font-size: 16px; padding: 2px 4px; }
+      .lab-fps { margin-left: auto; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+      .lab-band {
+        min-height: 52px; display: flex; align-items: center; justify-content: center; text-align: center;
+        padding: 0 var(--gutter); font: 700 20px/26px var(--font-head); background: var(--surface); border-bottom: 1px solid var(--line);
+      }
+      .lab-stage { position: relative; flex: 1; min-height: 0; }
+      .lab-map { position: absolute; inset: 0; }
+      .lab-reset {
+        position: absolute; top: 12px; right: 12px; min-height: 40px; padding: 0 12px;
+        border: 1.5px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); color: var(--ink);
+        font: 700 14px/20px var(--font-head); box-shadow: var(--e1);
+      }
+      .lab-toast {
+        position: absolute; left: 50%; top: 12px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px);
+        padding: 8px 14px; border-radius: var(--r-pill); background: var(--ink); color: var(--white); font-size: 15px; box-shadow: var(--e2);
+      }
+      .lab-sheet {
+        position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); box-shadow: var(--e3);
+        border-radius: var(--r-lg) var(--r-lg) 0 0; display: flex; flex-direction: column; gap: 6px;
+        padding: 12px max(var(--gutter), env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(var(--gutter), env(safe-area-inset-left, 0px));
+      }
+      .lab-sheet[hidden] { display: none; }
+      .lab-sheet .t1 { font: 700 20px/26px var(--font-head); }
+      .lab-sheet .t1.ok { color: var(--ok); }
+      .lab-sheet .t1.no { color: var(--no); }
+      .lab-sheet .t2 { font-size: 17px; line-height: 24px; color: var(--ink-2); }
+      .lab-sheet .t3 { font-size: 15px; line-height: 22px; color: var(--ink-3); }
+      .lab-sheet .row { display: flex; gap: 8px; margin-top: 4px; }
+      .lab-sheet .row > * { flex: 1; }
+      .lab-sheet .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="lab" data-base={base} data-ver={DATA_VER}>
+      <div class="lab-dev">
+        <select id="region" aria-label="지역"></select>
+        <select id="lesson" aria-label="과"></select>
+        <select id="mode" aria-label="모드">
+          <option value="find">찾기</option>
+          <option value="meet">만나기</option>
+          <option value="choose">고르기</option>
+          <option value="fill">채움 지도</option>
+          <option value="emd">서울 427동(부하)</option>
+        </select>
+        <span class="lab-fps" id="fps">끌어 보면 프레임을 잽니다</span>
+      </div>
+      <div class="lab-band" id="band">불러오는 중…</div>
+      <div class="lab-stage">
+        <div class="lab-map" id="map"></div>
+        <button class="lab-reset" id="reset" type="button" hidden>⤢ 전체 보기</button>
+        <div class="lab-toast" id="toast" role="status" hidden></div>
+        <section class="lab-sheet" id="sheet" aria-live="polite"></section>
+      </div>
+    </div>
+    <script>
+      import './map-lab.ts';
+    </script>
+  </body>
+</html>

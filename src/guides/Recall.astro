@@ -1,0 +1,79 @@
+---
+// G6 '지도 퀴즈로 행정구역 외우기'(애드센스 계획 7절). 연구 내용은 PubMed 초록으로 확인(본문은 못 봄 — registry.ts check).
+// 채움지도 규칙(복습 간격·다시 묻기·하루 한도)은 앱 코드의 상수에서 바로 가져와 글과 앱이 어긋나지 않게 한다
+import { href } from '../lib/paths';
+import { INTERVAL, MAX_BOX, GRAD_STREAK } from '../app/core/mastery';
+import { RETRY_GAP, MAX_RETRY } from '../app/core/deck';
+import { DAILY_CAP, ROUND } from '../app/core/next';
+
+const ORD = ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
+// 처음부터 끝까지 한 번에 맞힐 때의 복습 날짜(mastery.ts afterLesson·afterReview 와 같은 셈)
+const rows: { what: string; day: number; next: string }[] = [];
+let box = 1, day = 0, streak = 0;
+rows.push({ what: '과를 마친 날', day, next: `${INTERVAL[box]}일 뒤` });
+for (let n = 1; ; n++) {
+  day += INTERVAL[box];
+  if (box < MAX_BOX) box += 1; else streak += 1;
+  const grad = streak >= GRAD_STREAK;
+  rows.push({ what: `${ORD[n - 1] ?? n} 번째 복습`, day, next: grad ? '정기 복습 끝' : `${INTERVAL[box]}일 뒤` });
+  if (grad) break;
+}
+const gaps = [...new Set(INTERVAL.slice(1))].join('·');
+const doi = (d: string) => `https://doi.org/${d}`;
+---
+<div class="summary">
+  <b>이 글의 핵심</b>
+  <span>1. 같은 내용을 다시 읽는 것보다, 가린 채 스스로 떠올려 보는 쪽이 며칠 뒤에 더 많이 남아요. 지도로 한 실험에서도 그랬어요.</span>
+  <span>2. 틀렸을 때 바로 정답을 보는 것이 중요해요.</span>
+  <span>3. 한 번에 몰아서 하기보다 날을 나눠 다시 하는 편이 낫지만, 간격을 '점점 늘려야' 한다는 것은 연구마다 결과가 달라요.</span>
+</div>
+
+<h2>다시 읽기보다 떠올리기</h2>
+<p>지도를 펴 놓고 구 이름을 여러 번 읽으면 금방 다 아는 것 같은 느낌이 들어요. 그런데 그 느낌이 실제로 오래 기억하는지와는 다를 수 있어요. 로디거와 카피크(2006)는 학생들에게 짧은 글을 읽힌 뒤, 한쪽은 글을 다시 읽게 하고 다른 쪽은 글을 보지 않고 기억나는 내용을 떠올리는 시험을 보게 했어요. 5분 뒤 시험에서는 다시 읽은 쪽이 더 나았지만, 이틀 뒤와 일주일 뒤 시험에서는 떠올리는 시험을 본 쪽이 훨씬 많이 기억했어요. 다시 읽은 학생들은 자신이 잘 기억할 거라고 더 자신 있어 했는데도요.</p>
+<p>카피크와 로디거(2008)는 외국어 낱말을 한 번 맞힌 뒤에 어떻게 하는지가 중요하다는 것을 보였어요. 맞힌 낱말을 계속 다시 공부하는 것은 나중 기억에 효과가 없었고, 계속 떠올려 보게 하는 것은 큰 효과가 있었어요. 학생들이 스스로 예측한 점수는 실제 점수와 관련이 없었어요. 열 가지 공부법을 모아 살핀 던로스키 등(2013)의 총설도 연습 시험(스스로 떠올려 보기)과 나눠서 공부하기를 '효용 높음'으로, 다시 읽기와 밑줄 긋기를 '효용 낮음'으로 평가했어요.</p>
+
+<h2>지도에서도 그럴까</h2>
+<p>앞의 연구들은 글과 낱말로 했어요. 카펜터와 패슐러(2007)는 같은 효과가 지도에서도 나는지 실험했어요. 50명이 지도 두 장을 배웠는데, 한 장은 보통 방식으로 보며 공부하고, 다른 한 장은 길이나 강 같은 것을 하나 지운 지도를 보며 빠진 것과 그 자리를 속으로 떠올렸어요. 같은 시간을 들였는데도 30분 뒤 지도를 그려 보게 하자 떠올리며 배운 지도를 더 잘 그렸어요. 이름을 가린 지도에서 그곳을 찾아 누르는 것도 같은 원리예요. 지도를 보며 이름을 읽는 대신, 이름을 보고 지도에서 자리를 떠올려요.</p>
+
+<h2>틀리면 바로 정답을 봐요</h2>
+<p>떠올리기는 틀릴 수 있어요. 패슐러 등(2005)은 258명에게 낯선 외국어 낱말 짝을 가르치며 문제를 풀게 했는데, 틀린 답 뒤에 정답을 알려 주자 정답을 알려 주지 않았을 때보다 일주일 뒤 기억이 494% 늘었어요. 맞힌 답 뒤에 정답을 다시 보여 주는 것은 거의 차이가 없었어요. 그러니 틀린 문제에서 정답을 확인하는 데 시간을 쓰는 것이 좋아요.</p>
+
+<h2>날을 나눠 다시, 그런데 간격은?</h2>
+<p>한 번에 몰아서 하기보다 날을 나눠 다시 하는 것은 앞의 총설에서도 '효용 높음'으로 꼽혔어요. 세페다 등(2006)은 184편 논문의 317개 실험을 모아 분석해, 가장 좋은 복습 간격이 기억해야 할 기간이 길수록 길어진다는 결과를 냈어요. 세페다 등(2008)은 1,350명 넘는 사람에게 사실을 가르친 뒤 최대 3.5개월 간격으로 복습하고 최대 1년 뒤에 시험을 봤어요. 가장 좋은 간격은 시험이 멀수록 길어졌는데, 시험까지 기간에 견주면 일주일 뒤 시험에서는 그 기간의 20~40%, 1년 뒤 시험에서는 5~10% 정도였어요.</p>
+<p>그렇다면 간격을 하루, 이틀, 나흘처럼 점점 늘리는 것이 같은 간격보다 나을까요? 이건 정해지지 않았어요. 카피크와 로디거(2007)의 실험에서는 늘리는 간격이 10분 뒤 시험에는 도움이 됐지만, 이틀 뒤 시험에서는 같은 간격이 더 나았어요. 이 연구는 오래 기억하는 데 중요한 것이 간격을 늘리는 방식보다 첫 떠올리기를 조금 미뤄 더 어렵게 하는 것이라고 보았어요.</p>
+
+<h2>채움지도에서는 이렇게 해요</h2>
+<p>채움지도의 공부 순서는 위 연구를 바탕으로 정했어요. 다만 아래의 숫자(다시 묻는 시점, 복습 간격, 하루 한도)는 연구에서 계산한 값이 아니라, 하루 공부가 길어지지 않게 하려고 채움지도가 정한 값이에요.</p>
+<ol>
+  <li><b>두 곳씩 만나기</b>: 이름표를 보며 두 곳을 눌러 보고, 방금 만난 곳의 이름을 보기 네 개 중에서 골라요.</li>
+  <li><b>이름을 가리고 찾기</b>: 만난 곳을 이름 없이 지도에서 찾아요. 방금 만난 곳을 바로 다음 문제로 묻지 않고, 앞에서 만난 곳도 섞어서 물어요. 과 끝에는 그 과의 곳을 모두 섞어 한 번 더 찾아요.</li>
+  <li><b>틀리면</b>: 누른 곳에서 정답이 어느 방향인지 알려 주고, 정답을 한 번 눌러 보게 해요. 그곳은 {RETRY_GAP}문제쯤 뒤에 다시 물어요({MAX_RETRY}번까지). 그래도 틀리면 다음 날 복습 맨 앞에 와요.</li>
+  <li><b>다음 날부터 복습</b>: 과를 마친 곳은 다음 날 다시 나와요. 힌트 없이 처음에 맞히면 다음 복습까지 간격이 {gaps}일로 길어지고, 틀리거나 힌트·모르겠어요를 쓰면 간격이 짧아져 다음 날 다시 나와요. 복습과 새로 배운 곳을 합쳐 하루 {DAILY_CAP}곳을 넘지 않게 하고, 복습은 한 번에 {ROUND}곳씩 내요.</li>
+</ol>
+<p>한 번도 틀리지 않으면 복습은 이렇게 이어져요.</p>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">때</th><th scope="col">과를 마친 날부터</th><th scope="col">다음 복습</th></tr></thead>
+  <tbody>{rows.map((r) => <tr><td>{r.what}</td><td class="num">{r.day ? `${r.day}일 뒤` : '그날'}</td><td>{r.next}</td></tr>)}</tbody>
+</table></div>
+<p>간격이 점점 늘어나는 것은, 잘 아는 곳은 덜 자주 보고 헷갈리는 곳에 시간을 더 쓰게 하려는 실용적인 선택이에요. 위에서 본 것처럼 늘리는 간격이 같은 간격보다 더 낫다고 증명된 것은 아니에요. 그 대신 과 안에서도 방금 만난 곳을 바로 묻지 않고 다른 문제를 사이에 둬서, 첫 떠올리기를 조금 미뤄요.</p>
+
+<h2>혼자 공부할 때 기억할 것</h2>
+<ul>
+  <li>지도를 보며 이름을 읽는 시간보다, 이름을 가리고 떠올리는 시간을 늘려요. 종이 지도라면 이름을 포스트잇으로 가려도 돼요.</li>
+  <li>틀린 곳은 정답 자리를 확인하고, 이웃한 곳과 함께 다시 봐요.</li>
+  <li>다 안다고 느껴져도 다음 날 한 번 더 떠올려 봐요. 그날 바로 아는 느낌은 며칠 뒤 기억을 잘 말해 주지 못해요.</li>
+</ul>
+<div class="cta"><b>지도에서 바로 해 보기</b><a class="btn" href={href('/#/kr/seoul/sgg/p1')}>서울 1과 시작하기</a></div>
+
+<h2>출처</h2>
+<ul class="src">
+  <li>Roediger, H. L., &amp; Karpicke, J. D. (2006). Test-enhanced learning: Taking memory tests improves long-term retention. <i>Psychological Science</i>, 17(3), 249–255. <a href={doi('10.1111/j.1467-9280.2006.01693.x')}>doi:10.1111/j.1467-9280.2006.01693.x</a></li>
+  <li>Karpicke, J. D., &amp; Roediger, H. L. (2008). The critical importance of retrieval for learning. <i>Science</i>, 319(5865), 966–968. <a href={doi('10.1126/science.1152408')}>doi:10.1126/science.1152408</a></li>
+  <li>Dunlosky, J., Rawson, K. A., Marsh, E. J., Nathan, M. J., &amp; Willingham, D. T. (2013). Improving students' learning with effective learning techniques. <i>Psychological Science in the Public Interest</i>, 14(1), 4–58. <a href={doi('10.1177/1529100612453266')}>doi:10.1177/1529100612453266</a></li>
+  <li>Carpenter, S. K., &amp; Pashler, H. (2007). Testing beyond words: Using tests to enhance visuospatial map learning. <i>Psychonomic Bulletin &amp; Review</i>, 14(3), 474–478. <a href={doi('10.3758/BF03194092')}>doi:10.3758/BF03194092</a></li>
+  <li>Pashler, H., Cepeda, N. J., Wixted, J. T., &amp; Rohrer, D. (2005). When does feedback facilitate learning of words? <i>Journal of Experimental Psychology: Learning, Memory, and Cognition</i>, 31(1), 3–8. <a href={doi('10.1037/0278-7393.31.1.3')}>doi:10.1037/0278-7393.31.1.3</a></li>
+  <li>Cepeda, N. J., Pashler, H., Vul, E., Wixted, J. T., &amp; Rohrer, D. (2006). Distributed practice in verbal recall tasks: A review and quantitative synthesis. <i>Psychological Bulletin</i>, 132(3), 354–380. <a href={doi('10.1037/0033-2909.132.3.354')}>doi:10.1037/0033-2909.132.3.354</a></li>
+  <li>Cepeda, N. J., Vul, E., Rohrer, D., Wixted, J. T., &amp; Pashler, H. (2008). Spacing effects in learning: A temporal ridgeline of optimal retention. <i>Psychological Science</i>, 19(11), 1095–1102. <a href={doi('10.1111/j.1467-9280.2008.02209.x')}>doi:10.1111/j.1467-9280.2008.02209.x</a></li>
+  <li>Karpicke, J. D., &amp; Roediger, H. L. (2007). Expanding retrieval practice promotes short-term retention, but equally spaced retrieval enhances long-term retention. <i>Journal of Experimental Psychology: Learning, Memory, and Cognition</i>, 33(4), 704–719. <a href={doi('10.1037/0278-7393.33.4.704')}>doi:10.1037/0278-7393.33.4.704</a></li>
+  <li>채움지도의 규칙(복습 간격·다시 묻기·하루 한도)은 이 사이트의 앱 코드에서 바로 가져와 표로 만들었어요.</li>
+</ul>

@@ -1,0 +1,18 @@
+---
+// 개인정보처리방침(옛 주소 /privacy.html 유지). 본문은 S9 에서 새 앱에 맞게 다시 씀(설계서 8.5). 시행일은 consts 의 PRIVACY_EFFECTIVE
+import Base from '../layouts/Base.astro';
+import raw from '../data/legal/privacy-ko.html?raw';
+import { PRIVACY_EFFECTIVE } from '../consts';
+import { href } from '../lib/paths';
+const [y, m, d] = PRIVACY_EFFECTIVE.split('-').map(Number);
+const body = raw.replace('{{EFFECTIVE}}', `${y}년 ${m}월 ${d}일`).replace('{{HREF_EN}}', href('/privacy-en.html'));
+---
+<Base title="개인정보처리방침 · 채움지도" description="채움지도가 수집하는 개인정보와 이용 목적, 보관 기간, 이용자의 권리를 안내합니다." alternate={{ ko: '/privacy.html', en: '/privacy-en.html' }}>
+  <div class="wrap page">
+    <article class="prose legal" set:html={body} />
+  </div>
+</Base>
+
+<style>
+  .legal :global(.date) { font-size: 14px; color: var(--ink-3); }
+</style>

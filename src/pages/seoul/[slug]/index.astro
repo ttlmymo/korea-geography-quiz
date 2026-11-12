@@ -1,0 +1,98 @@
+---
+// 서울 구 쪽(옛 주소 /seoul/<slug>/). 쪽마다 데이터로 확인되는 고유 요소: 위치도·위치 한 줄·한강 남북·행정동과 법정동(서울시 대응표)·맞닿은 곳·과.
+// 소개 글은 1차 자료로 쓰고 사람이 검수한 뒤에만 배포에 넣는다(애드센스 계획 8절, src/data/seoul-intro.ts). 검수 전 초안은 개발 서버에서만 띠와 함께
+import Base from '../../../layouts/Base.astro';
+import RegionMap from '../../../components/RegionMap.astro';
+import { href } from '../../../lib/paths';
+import { SEOUL_GU, type Gu } from '../../../data/seoul';
+import { region, svgOf, neighborsOf, SEOUL_NORTH } from '../../../lib/geo';
+import { DATA_VER } from '../../../consts';
+import { guideIf } from '../../../guides/registry';
+import DONGMAP from '../../../data/seoul-dong-map.json';
+import LEGAL from '../../../data/legal-dong-seoul.json';
+import { introOf } from '../../../data/seoul-intro';
+
+export function getStaticPaths() {
+  return SEOUL_GU.map((g) => ({ params: { slug: g.slug }, props: { g } }));
+}
+const { g } = Astro.props as { g: Gu };
+const r = region('seoul');
+const item = r.items.find((it) => it.slug === g.slug)!;
+const svgItem = svgOf('seoul').items.find((it) => it.id === item.id)!;
+const lesson = r.lessons.find((l) => l.items.includes(item.id))!;
+const mates = lesson.items.filter((id) => id !== item.id).map((id) => r.items.find((it) => it.id === id)!.ko);
+const nbs = neighborsOf(r, item.id);
+const north = SEOUL_NORTH.has(item.id);
+const batchim = (w: string) => (w.charCodeAt(w.length - 1) - 0xac00) % 28 > 0;
+const josa = (w: string) => (batchim(w) ? '이' : '가');
+const eun = (w: string) => (batchim(w) ? '은' : '는');
+// 행정동 → 법정동(서울시 '자치구별 동 현황'). 행정동은 경계 데이터와 같아야 한다(파이프라인이 맞춰 보고, 판이 엇갈리면 여기서 멈춤)
+const map = (DONGMAP.byGu as Record<string, { adm: string; legal: string[] }[]>)[g.ko];
+if (!map || map.length !== svgItem.dongs.length || !map.every((r) => svgItem.dongs.includes(r.adm))) throw new Error(`${g.ko}: 동 대응표와 경계 데이터의 행정동이 다름`);
+const legalAll = [...new Set(map.flatMap((r) => r.legal))];
+// 법정동 수는 국토부 목록으로 센다(서울시 표는 '신문로1·2가'·'인현동'처럼 두 법정동을 한 이름으로 적은 칸이 있다)
+const legalList = (LEGAL.byGu as Record<string, string[]>)[g.ko];
+const legalN = legalList.length;
+// 서울시 표 표기가 국토부 목록과 다른 이름(표에는 그대로 두고 밑에 밝힌다): 그 이름으로 시작하는 국토부 법정동
+const odd = legalAll.filter((l) => !legalList.includes(l)).map((l) => ({ l, real: [...legalList.filter((x) => x.startsWith(l.replace(/[0-9].*$/, '').replace(/동$/, '')))].sort() }));
+// 예시 둘: 여러 행정동이 나눠 맡는 법정동 하나, 법정동을 가장 많이 맡는 행정동 하나(둘 이상일 때만)
+const split = legalAll.map((l) => ({ l, adms: map.filter((r) => r.legal.includes(l)).map((r) => r.adm) })).sort((a, b) => b.adms.length - a.adms.length)[0];
+const wide = [...map].sort((a, b) => b.legal.length - a.legal.length)[0];
+const g2 = guideIf('legal-vs-administrative-dong');
+const intro = introOf(g.slug);
+---
+<Base title={`${g.ko} 위치와 행정동 – 서울 · 채움지도`} description={`서울 ${g.ko}는 어디에 있을까요? ${item.line}. 한강 ${north ? '북쪽' : '남쪽'}, 행정동 ${svgItem.dongs.length}개, 맞닿은 곳 ${nbs.length}곳을 백지도로 익혀요.`} alternate={{ ko: `/seoul/${g.slug}/`, en: `/en/seoul/${g.slug}/` }} ads>
+  <div class="wrap page">
+    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › <a href={href('/seoul/')}>서울</a> › {g.ko}</nav>
+    <div class="stack">
+      <h1>{g.ko}</h1>
+      <p class="meta">{g.en} · 서울특별시 자치구</p>
+    </div>
+    <RegionMap region="seoul" highlight={[item.id]} label={`서울 지도에서 ${g.ko}의 위치`} />
+    <p class="lead">{item.line}</p>
+    <dl class="facts">
+      <dt>한강</dt><dd>{north ? '북쪽(강북 14개 구 가운데 하나)' : '남쪽(강남 11개 구 가운데 하나)'}</dd>
+      <dt>동</dt><dd>행정동 {svgItem.dongs.length}개 · 법정동 {legalN}개</dd>
+      <dt>맞닿은 곳</dt><dd>{nbs.map((n, i) => <>{i > 0 && ' · '}{n.inRegion ? <a href={href(`/seoul/${r.items.find((it) => it.id === n.id)!.slug}/`)}>{n.name}</a> : n.name}</>)}</dd>
+      <dt>채움지도</dt><dd>서울 {lesson.no}과 '{lesson.title}'에서 {mates.join('·')}와 함께 배워요</dd>
+    </dl>
+    {intro && (
+      <section class="stack intro">
+        {!intro.reviewed && <div class="draft" role="note"><b>검수 전 초안</b> — 공개 전에 운영자가 출처와 대조합니다.{intro.check.length > 0 && <> 확인할 것: {intro.check.join(' / ')}</>}</div>}
+        <h2>{g.ko}는 이런 곳이에요</h2>
+        {intro.paras.map((t) => <p>{t}</p>)}
+        <p class="meta">출처: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)} ({intro.read.replace(/-0?/g, '. ')}. 읽음{intro.reviewed && <>, {intro.reviewed.replace(/-0?/g, '. ')}. 검수</>})</p>
+      </section>
+    )}
+    <section class="stack">
+      <h2>행정동 {map.length}개와 법정동 {legalN}개</h2>
+      <p>주민센터가 있는 동은 행정동이고, 지번 주소에 쓰는 동은 법정동이에요. 아래 표는 {g.ko}의 행정동이 어느 법정동을 맡는지 서울시 자료로 정리한 것이에요.{split.adms.length > 1 && <> 법정동 {split.l}{eun(split.l)} {split.adms.length > 4 ? '행정동' : split.adms.join('·')} {split.adms.length}곳이 나눠 맡아요.</>}{wide.legal.length > 1 && <> {wide.adm}{eun(wide.adm)} 법정동 {wide.legal.length}곳을 맡아요.</>}{g2 && <> 둘의 차이는 <a href={href(`/guide/${g2.slug}/`)}>법정동과 행정동 글</a>에 정리했어요.</>}</p>
+      <div class="tbl"><table class="dongmap">
+        <thead><tr><th scope="col">행정동</th><th scope="col">맡는 법정동</th></tr></thead>
+        <tbody>{map.map((r) => <tr><td>{r.adm}</td><td>{r.legal.join(' · ')}</td></tr>)}</tbody>
+      </table></div>
+      {odd.length > 0 && <p class="meta">{odd.map((o) => `'${o.l}'`).join('·')}{eun(odd[odd.length - 1].l)} 서울시 자료의 표기 그대로예요. 국토교통부 법정동 목록에는 {odd.map((o) => o.real.join('·')).join(', ')}로 있어요.</p>}
+    </section>
+    <section class="cta">
+      <h2>지도에서 직접 찾아보기</h2>
+      <p>이름을 가린 백지도에서 {g.ko}{josa(g.ko)} 어디인지 찾아봐요. {lesson.no}과의 {lesson.items.length}곳을 하나씩 만나고 찾은 뒤, 다음 날 다시 풀어요.</p>
+      <a class="btn" href={href(`/#/kr/seoul/sgg/@${g.slug}`)}>서울 {lesson.no}과 연습하기</a>
+    </section>
+    <p class="meta">행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 2026년 10월 1일 판을 단순화해 씀 · 데이터 판 {DATA_VER}. 행정동과 법정동: 서울특별시 <a href={DONGMAP.source.url}>{DONGMAP.source.title}</a>({DONGMAP.source.modified.replace(/-0?/g, '. ')}. 수정). <a href={href('/sources/')}>데이터 출처</a></p>
+  </div>
+</Base>
+
+<style>
+  .facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-2) var(--sp-4); margin: 0; font-size: 16px; line-height: 24px; }
+  .facts dt { color: var(--ink-3); }
+  .facts dd { margin: 0; }
+  .intro p { margin: 0; }
+  .draft { background: var(--due-soft); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); font-size: 14px; line-height: 21px; color: var(--ink-2); }
+  .tbl { overflow-x: auto; }
+  .dongmap { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 22px; }
+  .dongmap th, .dongmap td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .dongmap th { font-size: 14px; color: var(--ink-3); font-weight: 600; white-space: nowrap; }
+  .dongmap td:first-child { white-space: nowrap; font-weight: 600; }
+  .cta { background: var(--brand-soft); border-radius: var(--r-lg); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); }
+  .cta p { margin: 0; }
+</style>

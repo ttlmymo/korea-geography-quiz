@@ -1,0 +1,100 @@
+---
+// 인천 허브: 2군 9구 지도와 표, 2026년 7월 행정체제 개편 대응표(옛 중구·동구·서구 → 새 구, 데이터로 만든 표). 사실은 1차 출처 링크로
+import Base from '../../layouts/Base.astro';
+import RegionMap from '../../components/RegionMap.astro';
+import { href } from '../../lib/paths';
+import { region, svgOf, kindsText, countKinds } from '../../lib/geo';
+import { DATA_VER } from '../../consts';
+import reform from '../../data/incheon-reform.json';
+import { guideIf } from '../../guides/registry';
+
+const r = region('incheon');
+const svg = svgOf('incheon');
+const dongsOf = (id: string) => svg.items.find((it) => it.id === id)!.dongs;
+const all = r.items.flatMap((it) => dongsOf(it.id));
+const k = countKinds(all);
+const NEW = new Set(['제물포구', '영종구', '서해구', '검단구']);
+const lessonOf = (id: string) => r.lessons.find((l) => l.items.includes(id))!;
+const ORDER = ['강화군', '옹진군', '검단구', '서해구', '계양구', '부평구', '제물포구', '영종구', '미추홀구', '연수구', '남동구'];
+const rows = ORDER.map((n) => r.items.find((it) => it.ko === n)!);
+const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
+// 개편 글(G3)이 이 빌드에 있으면 동 목록은 그 글에만 두고 여기에는 수만(계획 8절 8: 공통 설명은 한 곳에)
+const g3 = guideIf('incheon-reform-2026');
+const SRC = {
+  law: 'https://www.incheon.go.kr/IC01070105/3012613',
+  rename: 'https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833',
+};
+---
+<Base title="인천 2군 9구 지도와 2026년 7월 개편 – 채움지도" description={`인천광역시 2개 군·9개 구를 지도로 봐요. 2026년 7월 1일 개편으로 생긴 제물포구·영종구·검단구와 서해구, 옛 동이 어느 구로 갔는지 표로 정리했어요.`} ads>
+  <div class="wrap page">
+    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › 인천</nav>
+    <div class="stack">
+      <h1>인천 2군 9구</h1>
+      <p class="lead">인천광역시는 강화군·옹진군 2개 군과 9개 구로 나뉘어요. 2026년 7월 1일 행정체제 개편으로 옛 중구와 동구는 제물포구와 영종구로, 옛 서구는 서해구와 검단구로 바뀌었어요. 읍·면·동은 {k.읍}읍 {k.면}면 {k.동}동, 모두 {all.length}개예요(2026년 10월 1일 경계 기준).</p>
+    </div>
+    <a class="btn" href={href('/#/kr/incheon/sgg/p1')}>인천 1과부터 공부하기</a>
+    <figure class="stack fig">
+      <RegionMap region="incheon" labels highlight={rows.filter((it) => NEW.has(it.ko)).map((it) => it.id)} label="인천 2군 9구 지도: 2026년 7월에 새로 생기거나 이름이 바뀐 4개 구를 노랗게 표시" />
+      <figcaption class="meta">노란 곳: 2026년 7월 개편으로 새로 생기거나 이름이 바뀐 구. 백령도·대청도·연평도 같은 옹진군의 먼 섬은 지도 밖에 있어요.</figcaption>
+    </figure>
+
+    <section class="stack">
+      <h2>2026년 7월 개편, 무엇이 바뀌었나</h2>
+      <ul>
+        <li>「인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률」에 따라 2026년 7월 1일부터 옛 중구와 동구가 제물포구와 영종구로 통합·조정되고, 서구가 서구와 검단구로 나뉘었어요(<a href={SRC.law}>인천시 보도자료</a>).</li>
+        <li>같은 날 서구는 이름을 서해구로 바꿨어요. 「인천광역시 서구 명칭 변경에 관한 법률안」이 2026년 5월 국회에서 의결됐어요(<a href={SRC.rename}>행정안전부 보도자료, 2026.5.7.</a>).</li>
+        <li>그래서 인천은 2군 8구에서 2군 9구가 됐어요. 영종도·용유도 쪽은 영종구, 옛 중구의 내륙 쪽과 옛 동구는 제물포구예요.</li>
+      </ul>
+      <p>아래 표는 개편 전(2026년 4월 1일)과 개편 뒤(2026년 10월 1일) 행정동 경계를 동 이름으로 맞춰 본 것이에요.</p>
+      {g3 ? (
+        <>
+          <div class="tbl"><table>
+            <thead><tr><th scope="col">새 구</th><th scope="col">옛 구에서 온 행정동 수</th></tr></thead>
+            <tbody>{reform.reform.map((row) => <tr><td>{row.new}</td><td>{Object.entries(row.from).map(([old, list]) => `옛 ${old} ${(list as string[]).length}개`).join(' · ')}</td></tr>)}</tbody>
+          </table></div>
+          <p>동 이름 목록과 개편 전후 지도, 법과 날짜는 <a href={href(`/guide/${g3.slug}/`)}>{g3.title}</a>에 정리했어요.</p>
+        </>
+      ) : (
+        <div class="tbl"><table>
+          <thead><tr><th scope="col">새 구</th><th scope="col">옛 구에서 온 행정동</th></tr></thead>
+          <tbody>{reform.reform.map((row) => (
+            <tr><td>{row.new}<br /><span class="meta">{Object.values(row.from).flat().length}개</span></td>
+              <td>{Object.entries(row.from).map(([old, list]) => <p class="from"><b>옛 {old}</b> {(list as string[]).length}개: {(list as string[]).join(' · ')}</p>)}</td></tr>
+          ))}</tbody>
+        </table></div>
+      )}
+    </section>
+
+    <section class="stack">
+      <h2>채움지도에서 배우는 순서</h2>
+      <p>내륙 북쪽 4곳, 내륙 남쪽 4곳, 섬과 바다 3곳으로 세 과를 나눴어요. 마친 뒤에는 11곳을 섞어 찾는 전체 연습과 시험이 있고, 이때 지도는 내륙과 섬 두 화면으로 나뉘어요.</p>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">과</th><th scope="col">군·구</th></tr></thead>
+        <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/#/kr/incheon/sgg/p${l.no}`)}>{l.no}과 {l.title}</a></td><td>{l.items.map(nm).join(' · ')}</td></tr>)}</tbody>
+      </table></div>
+    </section>
+
+    <section class="stack">
+      <h2>11개 군·구 한눈에</h2>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">군·구</th><th scope="col">읍·면·동</th><th scope="col">과</th></tr></thead>
+        <tbody>{rows.map((it) => (
+          <tr><td>{it.ko}{NEW.has(it.ko) && <span class="tag">2026.7</span>}</td><td>{kindsText(dongsOf(it.id)).replace('행정동 ', '')}</td><td>{lessonOf(it.id).no}과</td></tr>
+        ))}</tbody>
+      </table></div>
+    </section>
+    <p class="meta">행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 2026년 10월 1일 판(개편 전 비교는 2026년 4월 1일 판) · 데이터 판 {DATA_VER}. <a href={href('/sources/')}>데이터 출처</a></p>
+  </div>
+</Base>
+
+<style>
+  .fig { margin: 0; }
+  .tbl { overflow-x: auto; }
+  .tbl table { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 22px; }
+  .tbl th, .tbl td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+  .tbl th { font-family: var(--font-head); color: var(--ink-2); font-size: 14px; }
+  .tbl td:first-child { white-space: nowrap; }
+  .from { margin: 0 0 6px; }
+  .tag { margin-left: 6px; font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: var(--r-pill); background: var(--hl-soft); color: #6B5200; }
+  ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--sp-2); }
+</style>

@@ -1,0 +1,98 @@
+---
+// G2 '법정동과 행정동은 어떻게 다를까'(애드센스 계획 7절). 정의는 지방자치법 제7조·제9조와 공간정보관리법 제2조,
+// 수는 국토교통부 법정동 목록(src/data/legal-dong-seoul.json)과 채움지도 행정동 경계(svg), 어느 행정동이 어느 법정동을 맡는지는 서울시 표(src/data/seoul-dong-map.json). 모두 pipeline/build-geo.mjs 가 만든다
+import { href } from '../lib/paths';
+import { region, svgOf } from '../lib/geo';
+import LEGAL from '../data/legal-dong-seoul.json';
+import DONGMAP from '../data/seoul-dong-map.json';
+
+const r = region('seoul');
+const svg = svgOf('seoul');
+const legalOf = (ko: string) => (LEGAL.byGu as Record<string, string[]>)[ko] ?? [];
+const MAP = DONGMAP.byGu as Record<string, { adm: string; legal: string[] }[]>;
+const covers = (gu: string, adm: string) => MAP[gu].find((r) => r.adm === adm)?.legal ?? [];
+const sharedBy = (gu: string, legal: string) => MAP[gu].filter((r) => r.legal.includes(legal)).map((r) => r.adm);
+const rows = r.items.map((it) => ({ ko: it.ko, legal: legalOf(it.ko).length, adm: svg.items.find((s) => s.id === it.id)!.dongs.length, dongs: svg.items.find((s) => s.id === it.id)!.dongs }))
+  .sort((a, b) => b.legal - b.adm - (a.legal - a.adm));
+const legalSum = rows.reduce((t, x) => t + x.legal, 0);
+const admSum = rows.reduce((t, x) => t + x.adm, 0);
+const max = Math.max(...rows.flatMap((x) => [x.legal, x.adm]));
+const more = rows.filter((x) => x.adm > x.legal).length;
+const same = rows.filter((x) => x.adm === x.legal).map((x) => x.ko);
+const row = (ko: string) => rows.find((x) => x.ko === ko)!;
+const jongno = row('종로구'), junggu = row('중구'), gwanak = row('관악구');
+const admRange = [Math.min(...rows.map((x) => x.adm)), Math.max(...rows.map((x) => x.adm))];
+const legalRange = [Math.min(...rows.map((x) => x.legal)), Math.max(...rows.map((x) => x.legal))];
+// 문장 근거 확인(데이터가 바뀌면 빌드가 멈춤)
+if (!jongno.dongs.includes('청운효자동') || !legalOf('종로구').includes('청운동') || !legalOf('종로구').includes('효자동')) throw new Error('G2 청운효자동 예시가 데이터와 다름');
+if (!['종로1가', '종로2가', '종로3가', '종로4가'].every((d) => legalOf('종로구').includes(d)) || !jongno.dongs.includes('종로1·2·3·4가동')) throw new Error('G2 종로1·2·3·4가동 예시가 데이터와 다름');
+const cheongun = covers('종로구', '청운효자동'), jongro14 = covers('종로구', '종로1·2·3·4가동');
+if (!['청운동', '효자동'].every((d) => cheongun.includes(d)) || !['종로1가', '종로2가', '종로3가', '종로4가'].every((d) => jongro14.includes(d))) throw new Error('G2 예시가 서울시 대응표와 다름');
+const bongcheon = sharedBy('관악구', '봉천동'), sillim = sharedBy('관악구', '신림동');
+const SRC = {
+  law: 'https://www.law.go.kr/법령/지방자치법',
+  land: 'https://www.law.go.kr/법령/공간정보의구축및관리등에관한법률',
+  bjd: 'https://www.data.go.kr/data/15063424/fileData.do',
+};
+---
+<div class="summary">
+  <b>이 글의 핵심</b>
+  <span>1. 법정동은 원래의 동이에요. 땅의 지번은 이 동·리 단위로 붙어서, 지번 주소에는 법정동 이름이 나와요.</span>
+  <span>2. 행정동은 주민센터를 두고 일하기 좋게 법정동을 묶거나 나눠 운영하는 동이에요.</span>
+  <span>3. 서울은 법정동이 {legalSum}개, 행정동이 {admSum}개예요. 채움지도는 행정동을 써요.</span>
+</div>
+
+<h2>두 동은 법에서 이렇게 나뉘어요</h2>
+<p>지방자치법 제7조는 읍·면·동의 이름과 구역을 종전과 같이 하고, 바꿀 때는 조례로 정하게 해요. 이렇게 이어져 온 동이 법정동이에요. 같은 조 ④항은 행정 능률과 주민 편의를 위해 하나의 동을 둘 이상으로 운영하거나 둘 이상의 동을 하나로 운영하는 '행정동'을 따로 둘 수 있다고 정해요. 그리고 제9조는 동의 사무소, 곧 주민센터의 동은 행정동을 말한다고 밝혀요.</p>
+<p>땅 쪽에서는 법정동을 써요. 공간정보관리법 제2조는 땅 한 필지에 붙이는 번호를 지번, 지번을 붙이는 단위 지역을 동·리라고 정해요. 그래서 지번 주소에는 법정동이, 주민센터 이름에는 행정동이 나와요. 예를 들어 서울시 자료를 보면 종로구의 행정동 '청운효자동'은 청운동·효자동을 비롯한 법정동 {cheongun.length}곳을, '종로1·2·3·4가동'은 종로1가~4가를 비롯한 법정동 {jongro14.length}곳을 맡아요. 행정동 이름에는 그 가운데 몇 곳의 이름만 들어가요.</p>
+
+<h2>묶은 구, 나눈 구</h2>
+<p>서울 25개 구 가운데 {more}개 구는 행정동이 법정동보다 많아요. 법정동 하나를 여러 행정동으로 나눠 운영하는 곳이 있기 때문이에요. 반대로 종로구와 중구는 법정동이 많아서({jongno.legal}·{junggu.legal}개), 여러 법정동을 묶어 행정동 몇 개로 운영해요.{same.length ? ` ${same.join('·')}는 두 수가 같지만, 수가 같다고 경계까지 같은 것은 아니에요.` : ''}</p>
+<ul>
+  <li><b>종로구</b>: 법정동 {jongno.legal}개 → 행정동 {jongno.adm}개</li>
+  <li><b>중구</b>: 법정동 {junggu.legal}개 → 행정동 {junggu.adm}개</li>
+  <li><b>관악구</b>: 법정동 {gwanak.legal}개({legalOf('관악구').join('·')}) → 행정동 {gwanak.adm}개</li>
+</ul>
+<div class="tbl"><table class="pair">
+  <thead><tr><th scope="col">구</th><th scope="col">법정동 · 행정동</th></tr></thead>
+  <tbody>{rows.map((x) => (
+    <tr><td>{x.ko}</td><td>
+      <div class="bar"><i class="b-legal" style={`width:${(x.legal / max) * 85}%`}></i><span class="num">{x.legal}</span></div>
+      <div class="bar"><i class="b-adm" style={`width:${(x.adm / max) * 85}%`}></i><span class="num">{x.adm}</span></div>
+    </td></tr>
+  ))}</tbody>
+</table></div>
+<p class="meta"><i class="key b-legal"></i>법정동 <i class="key b-adm"></i>행정동 · 법정동이 행정동보다 많은 구부터 차례로 놓았어요.</p>
+
+<h2>그래서 이름이 다를 수 있어요</h2>
+<p>관악구의 법정동은 {legalOf('관악구').join('·')} 셋뿐이에요. 그래서 관악구의 땅은 지번 주소로는 모두 이 세 동 가운데 하나에 있어요. 하지만 주민센터는 {gwanak.adm}곳이고, {gwanak.dongs.filter((d) => !legalOf('관악구').includes(d)).slice(0, 3).join('·')}처럼 법정동 목록에 없는 이름이 많아요. 서울시 자료로 보면 법정동 봉천동은 행정동 {bongcheon.length}곳이, 신림동은 {sillim.length}곳이 나눠 맡아요. 사는 곳의 동 이름이 지번 주소와 주민센터에서 다르게 보인다면, 하나는 법정동이고 하나는 행정동이기 때문이에요.</p>
+
+<h2>채움지도가 행정동을 쓰는 이유</h2>
+<ul>
+  <li><b>주민이 찾아가는 동</b>: 주민센터는 행정동마다 있어요. 주민센터 이름에 나오는 동이 행정동이에요.</li>
+  <li><b>연습 단위로 고르게</b>: 서울 구마다 행정동은 {admRange[0]}~{admRange[1]}개로 비슷한데, 법정동은 {legalRange[0]}~{legalRange[1]}개로 차이가 커요. 법정동으로 나누면 종로구 한 곳만 {jongno.legal}칸이 돼요.</li>
+  <li><b>경계 자료</b>: 통계청 SGIS 의 행정동 경계를 판마다 정리한 공개 자료(vuski/admdongkor)가 있어 바뀐 동을 빠르게 반영할 수 있어요. 지금은 2026년 10월 1일 판이에요.</li>
+</ul>
+<p>그래서 채움지도의 지도에 나오는 동은 모두 행정동이에요. 지번 주소의 동 이름과 다를 수 있어서, <a href={href('/seoul/')}>서울 구 쪽</a>마다 행정동이 맡는 법정동을 표로 함께 실었어요.</p>
+<div class="cta"><b>지도에서 바로 해 보기</b><a class="btn" href={href('/#/kr/seoul/sgg/p1')}>서울 1과 시작하기</a></div>
+
+<h2>출처</h2>
+<ul class="src">
+  <li>국가법령정보센터, <a href={SRC.law}>지방자치법</a>(법률 제21544호, 2026. 10. 15. 시행) 제7조·제9조</li>
+  <li>국가법령정보센터, <a href={SRC.land}>공간정보의 구축 및 관리 등에 관한 법률</a>(법률 제21447호, 2026. 7. 1. 시행) 제2조 제22호·제23호</li>
+  <li>법정동 수: 공공데이터포털, <a href={SRC.bjd}>국토교통부_전국 법정동</a>(2026. 7. 29. 수정, 이용허락범위 제한 없음). 리를 뺀 서울의 동 줄을 셌어요.</li>
+  <li>행정동 수: 통계청 SGIS · vuski/admdongkor(CC BY 4.0) 2026년 10월 1일 판(<a href={href('/sources/')}>데이터 출처</a>).</li>
+  <li>행정동이 맡는 법정동: 서울특별시, <a href={DONGMAP.source.url}>{DONGMAP.source.title}</a>(2025. 8. 18. 수정)</li>
+</ul>
+
+<style>
+  .bar { display: flex; align-items: center; gap: 6px; height: 14px; margin: 3px 0; }
+  .bar i { display: block; height: 10px; border-radius: 3px; min-width: 2px; }
+  .bar i { flex: none; }
+  .bar .num { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+  .b-legal { background: var(--grp-1); border: 1px solid var(--map-edge); }
+  .b-adm { background: var(--grp-2); border: 1px solid var(--map-edge); }
+  .key { display: inline-block; width: 12px; height: 10px; margin: 0 4px 0 8px; vertical-align: 0; border-radius: 2px; }
+  .key:first-child { margin-left: 0; }
+  table.pair td:last-child { width: 70%; }
+</style>

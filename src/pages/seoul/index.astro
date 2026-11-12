@@ -1,0 +1,63 @@
+---
+// 서울 허브(옛 주소 /seoul/): 한강 남북 지도, 25개 구 표(한강·행정동·과), 채움지도의 과 순서
+import Base from '../../layouts/Base.astro';
+import RegionMap from '../../components/RegionMap.astro';
+import { href } from '../../lib/paths';
+import { region, svgOf, SEOUL_NORTH } from '../../lib/geo';
+import { DATA_VER } from '../../consts';
+
+const r = region('seoul');
+const svg = svgOf('seoul');
+const dongs = (id: string) => svg.items.find((it) => it.id === id)!.dongs.length;
+const total = r.items.reduce((s, it) => s + dongs(it.id), 0);
+const tone = Object.fromEntries(r.items.map((it) => [it.id, SEOUL_NORTH.has(it.id) ? 'a' : 'b'])) as Record<string, 'a' | 'b'>;
+const lessonOf = (id: string) => r.lessons.find((l) => l.items.includes(id))!;
+const rows = [...r.items].sort((a, b) => Number(SEOUL_NORTH.has(b.id)) - Number(SEOUL_NORTH.has(a.id)) || a.ko.localeCompare(b.ko, 'ko'));
+const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
+---
+<Base title="서울 25개 구 지도로 익히기 – 채움지도" description={`서울특별시 25개 자치구를 한강 북쪽 14개와 남쪽 11개로 나눠 지도로 봐요. 구마다 행정동 수(모두 ${total}개)와 채움지도의 공부 순서를 정리했어요.`} alternate={{ ko: '/seoul/', en: '/en/seoul/' }} ads>
+  <div class="wrap page">
+    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › 서울</nav>
+    <div class="stack">
+      <h1>서울 25개 구</h1>
+      <p class="lead">서울특별시는 25개 자치구로 나뉘어요. 한강을 사이에 두고 북쪽에 14개, 남쪽에 11개 구가 있어요. 행정동은 모두 {total}개예요(2026년 10월 1일 경계 기준).</p>
+    </div>
+    <a class="btn" href={href('/#/kr/seoul/sgg/p1')}>서울 1과부터 공부하기</a>
+    <figure class="stack fig">
+      <RegionMap region="seoul" tone={tone} labels label="서울 25개 구 지도: 한강 북쪽 14개 구는 짙게, 남쪽 11개 구는 옅게" />
+      <figcaption class="meta"><span class="sw a"></span>한강 북쪽 14 <span class="sw b"></span>한강 남쪽 11</figcaption>
+    </figure>
+
+    <section class="stack">
+      <h2>채움지도에서 배우는 순서</h2>
+      <p>한 번에 외우기 좋게 4~6곳씩 다섯 과로 묶었어요. 도심에서 기준을 잡고, 한강 남쪽 동부와 서부를 거쳐 동북쪽으로 가요. 다섯 과를 마치면 25곳을 섞어 찾는 전체 연습과 시험이 있어요.</p>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">과</th><th scope="col">구</th></tr></thead>
+        <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/#/kr/seoul/sgg/p${l.no}`)}>{l.no}과 {l.title}</a></td><td>{l.items.map(nm).join(' · ')}</td></tr>)}</tbody>
+      </table></div>
+    </section>
+
+    <section class="stack">
+      <h2>25개 구 한눈에</h2>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">구</th><th scope="col">한강</th><th scope="col">행정동</th><th scope="col">과</th></tr></thead>
+        <tbody>{rows.map((it) => (
+          <tr><td><a href={href(`/seoul/${it.slug}/`)}>{it.ko}</a></td><td>{SEOUL_NORTH.has(it.id) ? '북쪽' : '남쪽'}</td><td class="num">{dongs(it.id)}</td><td>{lessonOf(it.id).no}과</td></tr>
+        ))}</tbody>
+      </table></div>
+    </section>
+    <p class="meta">행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 2026년 10월 1일 판 · 데이터 판 {DATA_VER}. 한강 남북은 강을 사이에 둔 구 경계로 나눴어요. <a href={href('/sources/')}>데이터 출처</a></p>
+  </div>
+</Base>
+
+<style>
+  .fig { margin: 0; }
+  .sw { display: inline-block; width: 14px; height: 14px; border: 1px solid var(--line-strong); border-radius: 3px; vertical-align: -2px; margin: 0 4px 0 8px; }
+  .sw.a { background: var(--sunk); }
+  .sw.b { background: var(--m0); }
+  .tbl { overflow-x: auto; }
+  .tbl table { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 22px; }
+  .tbl th, .tbl td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+  .tbl th { font-family: var(--font-head); color: var(--ink-2); font-size: 14px; }
+  .tbl td:first-child { white-space: nowrap; }
+</style>

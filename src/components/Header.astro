@@ -1,0 +1,72 @@
+---
+// 공통 머리글: 공부로 가는 입구는 '공부하기' 하나(설계서 7.1). 메뉴는 JS 없이도 열리는 <details>
+import Logo from './Logo.astro';
+import { href } from '../lib/paths';
+import { SITE_NAME, SITE_NAME_EN } from '../consts';
+import { visibleGuides } from '../guides/registry';
+
+interface Props { lang?: 'ko' | 'en' }
+const { lang = 'ko' } = Astro.props;
+const en = lang === 'en';
+const home = href(en ? '/en/' : '/');
+const items = en
+  ? [
+      { t: 'Study', h: href('/en/#/kr') },
+      { t: "Today's review", h: href('/en/#/review') },
+      { t: "Seoul's 25 districts", h: href('/en/seoul/') },
+      { t: '한국어', h: href('/') },
+    ]
+  : [
+      { t: '공부하기', h: href('/#/kr') },
+      { t: '오늘 복습', h: href('/#/review') },
+      { t: '서울 25개 구', h: href('/seoul/') },
+      { t: '인천 2군 9구', h: href('/incheon/') },
+      { t: '경기 31개 시·군', h: href('/gyeonggi/') },
+      ...(visibleGuides().length ? [{ t: '학습 가이드', h: href('/guide/') }] : []),
+      { t: '채움지도 소개', h: href('/about/') },
+      { t: 'English', h: href('/en/') },
+    ];
+---
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="logo" href={home}><Logo /><span>{en ? SITE_NAME_EN : SITE_NAME}</span></a>
+    <nav class="hdr-nav" aria-label={en ? 'Main' : '주 메뉴'}>
+      <a class="nav-study" href={items[0].h}>{items[0].t}</a>
+      <details class="menu">
+        <summary aria-label={en ? 'Open menu' : '메뉴 열기'}>
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" /></svg>
+        </summary>
+        <ul>
+          {items.map((i) => <li><a href={i.h}>{i.t}</a></li>)}
+        </ul>
+      </details>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .hdr { background: var(--paper); }
+  .hdr-in { min-height: var(--header-h); display: flex; align-items: center; gap: var(--sp-3); }
+  .logo { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--tap-min); color: var(--ink); text-decoration: none; }
+  .logo span { font: 800 20px/1 var(--font-head); letter-spacing: -.02em; }
+  .hdr-nav { margin-left: auto; display: flex; align-items: center; gap: var(--sp-1); position: relative; }
+  .nav-study {
+    min-height: 40px; padding: 0 var(--sp-3); border-radius: var(--r-sm); background: var(--brand-soft); color: var(--brand);
+    font: 700 15px/40px var(--font-head); text-decoration: none;
+  }
+  .menu summary {
+    list-style: none; width: var(--tap-min); height: var(--tap-min); display: grid; place-items: center;
+    border-radius: var(--r-md); cursor: pointer; color: var(--ink);
+  }
+  .menu summary::-webkit-details-marker { display: none; }
+  .menu[open] summary { background: var(--sunk); }
+  .menu ul {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 220px; margin: 0; padding: var(--sp-2);
+    list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--e2);
+  }
+  .menu li a {
+    display: flex; align-items: center; min-height: var(--btn-h); padding: 0 var(--sp-3); border-radius: var(--r-sm);
+    color: var(--ink); text-decoration: none; font-size: 16px;
+  }
+  .menu li a:hover { background: var(--sunk); }
+</style>

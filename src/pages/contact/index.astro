@@ -1,0 +1,33 @@
+---
+// 문의(광고 없음, 설계서 7.2). 주소는 눌러 보내는 링크 대신 고를 수 있는 글로도 보여 준다
+import Base from '../../layouts/Base.astro';
+import { href } from '../../lib/paths';
+import { CONTACT_EMAIL } from '../../consts';
+---
+<Base title="문의 – 채움지도" description="채움지도의 지명·경계 오류 신고, 기능 제안, 개인정보 관련 요청을 받는 연락처예요.">
+  <div class="wrap page">
+    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › 문의</nav>
+    <article class="prose">
+      <h1>문의</h1>
+      <p>채움지도에 관한 의견이나 요청은 이메일로 보내 주세요.</p>
+      <p class="mailbox"><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+
+      <h2>이런 내용을 받아요</h2>
+      <ul>
+        <li><b>지명·경계·개수가 틀렸을 때</b>: 쪽 주소나 과 번호, 어디가 어떻게 틀렸는지, 근거가 되는 자료(구청·시청 누리집 등)를 함께 적어 주시면 빨리 확인할 수 있어요.</li>
+        <li><b>공부하기 불편한 점이나 기능 제안</b>: 쓰는 기기(휴대폰·태블릿·컴퓨터)와 브라우저를 함께 알려 주세요.</li>
+        <li><b>개인정보 관련 요청</b>: 이전 랭킹 기능을 쓰신 분의 정보 열람·삭제 요청은 <a href={href('/privacy.html')}>개인정보처리방침</a> 5항을 참고하세요.</li>
+      </ul>
+
+      <h2>알아 두세요</h2>
+      <ul>
+        <li>공부 기록은 이용자의 브라우저에만 있어서, 운영자가 찾아 드리거나 옮겨 드릴 수 없어요.</li>
+        <li>한 사람이 운영하므로 답장이 늦을 수 있어요.</li>
+      </ul>
+    </article>
+  </div>
+</Base>
+
+<style>
+  .mailbox { font-size: 18px; user-select: all; }
+</style>

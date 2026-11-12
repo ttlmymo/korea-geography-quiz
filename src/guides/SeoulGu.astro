@@ -1,0 +1,73 @@
+---
+// G5 '서울 25개 구 쉽게 외우기'(애드센스 계획 7절). 사실: 한강 남북·맞닿음·과는 경계 데이터, 권역생활권 수는 서울도시공간포털.
+// 권역별 소속 구는 검수 목록에 있음(registry.ts check)
+import RegionMap from '../components/RegionMap.astro';
+import { href } from '../lib/paths';
+import { guideIf } from './registry';
+import { region, SEOUL_NORTH, neighborsOf, TONE_FILL, type Tone } from '../lib/geo';
+
+const r = region('seoul');
+const id = (ko: string) => r.items.find((it) => it.ko === ko)!.id;
+const north = r.items.filter((it) => SEOUL_NORTH.has(it.id)).map((it) => it.ko);
+const south = r.items.filter((it) => !SEOUL_NORTH.has(it.id)).map((it) => it.ko);
+const tone = Object.fromEntries(r.items.map((it) => [it.id, SEOUL_NORTH.has(it.id) ? 'a' : 'b'])) as Record<string, Tone>;
+// 서울생활권계획 권역생활권(권역별 지역생활권 수: 서울도시공간포털)
+const ZONES: { name: string; areas: number; gu: string[]; tone: Tone }[] = [
+  { name: '도심권', areas: 11, gu: ['종로구', '중구', '용산구'], tone: 'a' },
+  { name: '동북권', areas: 36, gu: ['성동구', '광진구', '동대문구', '중랑구', '성북구', '강북구', '도봉구', '노원구'], tone: 'c' },
+  { name: '서북권', areas: 14, gu: ['은평구', '서대문구', '마포구'], tone: 'd' },
+  { name: '서남권', areas: 33, gu: ['강서구', '양천구', '구로구', '금천구', '영등포구', '동작구', '관악구'], tone: 'e' },
+  { name: '동남권', areas: 22, gu: ['서초구', '강남구', '송파구', '강동구'], tone: 'b' },
+];
+const zoneTone = Object.fromEntries(ZONES.flatMap((z) => z.gu.map((g) => [id(g), z.tone]))) as Record<string, Tone>;
+const nm = (i: string) => r.items.find((it) => it.id === i)!.ko;
+const recall = guideIf('recall-practice');
+const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('서초구'));
+---
+<div class="summary">
+  <b>이 글의 핵심</b>
+  <span>1. 한강을 기준으로 북쪽 {north.length}개, 남쪽 {south.length}개 구로 먼저 나눠요.</span>
+  <span>2. 서울시는 25개 구를 다섯 개의 권역생활권으로 묶어 도시계획을 세워요. 권역으로 묶으면 위치가 덩어리로 기억돼요.</span>
+  <span>3. 한 번에 4~6곳씩 이름을 가린 지도에서 찾고, 다음 날 다시 풀면 오래 남아요.</span>
+</div>
+
+<h2>한강 북쪽 {north.length}개, 남쪽 {south.length}개</h2>
+<p>서울을 처음 외울 때는 한강부터 봐요. 한강이 서울을 동서로 가로지르고, 25개 구는 강 북쪽에 {north.length}개, 남쪽에 {south.length}개가 있어요. 한강 가운데 섬인 여의도는 남쪽의 영등포구에 속해요. 한강을 사이에 두고 마포구와 영등포구처럼 남북의 구가 마주 보는 곳이 많아서, 강 건너 짝을 함께 외우면 위치가 잘 잡혀요.</p>
+<RegionMap region="seoul" tone={tone} labels label={`한강 북쪽 ${north.length}개 구는 황토색, 남쪽 ${south.length}개 구는 흰색으로 칠한 서울 지도`} />
+<div class="tbl"><table>
+  <thead><tr><th scope="col">한강</th><th scope="col">구</th></tr></thead>
+  <tbody>
+    <tr><td><i class="sw" style={`background:${TONE_FILL.a}`} aria-hidden="true"></i>북쪽 {north.length}</td><td>{north.join(' · ')}</td></tr>
+    <tr><td><i class="sw" style={`background:${TONE_FILL.b}`} aria-hidden="true"></i>남쪽 {south.length}</td><td>{south.join(' · ')}</td></tr>
+  </tbody>
+</table></div>
+
+<h2>서울시가 나눈 다섯 권역생활권</h2>
+<p>서울시는 서울생활권계획에서 서울을 도심권·동북권·서북권·서남권·동남권의 다섯 권역생활권으로 나누고, 이를 다시 116개 지역생활권으로 나눠요. 권역마다 지역생활권 수는 도심권 11개, 동북권 36개, 서북권 14개, 서남권 33개, 동남권 22개예요. 위치가 가까운 구끼리 같은 권역이라, 외울 때도 다섯 덩어리로 나눠 보면 도움이 돼요.</p>
+<RegionMap region="seoul" tone={zoneTone} labels label="서울 다섯 권역생활권: 도심권·동북권·서북권·서남권·동남권을 다른 색으로 칠한 지도" />
+<div class="tbl"><table>
+  <thead><tr><th scope="col">권역</th><th scope="col">구</th><th scope="col">지역 생활권</th></tr></thead>
+  <tbody>{ZONES.map((z) => <tr><td><i class="sw" style={`background:${TONE_FILL[z.tone]}`} aria-hidden="true"></i>{z.name}</td><td>{z.gu.join(' · ')}</td><td class="num">{z.areas}</td></tr>)}</tbody>
+</table></div>
+
+<h2>채움지도의 다섯 과는 이렇게 묶었어요</h2>
+<p>채움지도는 한 번에 외우기 좋은 4~6곳씩 다섯 과로 묶었어요. 서울시 권역은 동북권이 8개 구로 크고 도심권·서북권은 3개씩이라, 권역을 그대로 쓰면 과마다 곳 수가 고르지 않아요. 그래서 도심과 서북을 한 과로 합치고, 동북권은 아래쪽과 위쪽 두 과로 나눴어요. 동작구는 권역으로는 서남권이지만{dongjakSeocho ? ' 서초구와 맞닿아 있어서' : ''} 한강 남쪽 동부 과에서 함께 익혀요.</p>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">과</th><th scope="col">구</th></tr></thead>
+  <tbody>{r.lessons.map((l) => <tr><td>{l.no}과 {l.title}</td><td>{l.items.map(nm).join(' · ')}</td></tr>)}</tbody>
+</table></div>
+
+<h2>이 순서로 연습해요</h2>
+<ol>
+  <li><b>큰 틀부터</b>: 한강 남북을 먼저 나누고, 그다음 권역이나 과처럼 4~6곳 덩어리로 봐요.</li>
+  <li><b>하나씩 만나기</b>: 이름표가 붙은 상태로 한 곳씩 눌러 보며 위치와 이웃을 봐요.</li>
+  <li><b>이름을 가리고 찾기</b>: 다시 읽는 것보다 지도에서 직접 떠올려 찾는 쪽이 기억에 남아요{recall && <>(<a href={href(`/guide/${recall.slug}/`)}>왜 그런지</a>)</>}. 틀리면 정답이 어느 쪽에 있는지 확인하고 한 번 눌러 봐요.</li>
+  <li><b>다음 날 다시</b>: 하루 뒤, 이틀 뒤처럼 간격을 두고 다시 풀어요. 다섯 과를 마치면 25곳을 섞어 찾는 전체 연습으로 넘어가요.</li>
+</ol>
+<div class="cta"><b>지도에서 바로 해 보기</b><a class="btn" href={href('/#/kr/seoul/sgg/p1')}>서울 1과 시작하기</a></div>
+
+<h2>출처</h2>
+<ul class="src">
+  <li>서울도시공간포털, <a href="https://urban.seoul.go.kr/view/html/PMNU3040000001">도시계획체계 › 서울생활권계획</a>(5개 권역생활권, 116개 지역생활권과 권역별 수)</li>
+  <li>행정동·구 경계: 통계청 SGIS · vuski/admdongkor(CC BY 4.0), 2026년 10월 1일 판. 한강 남북과 맞닿음은 이 경계로 셌어요(<a href={href('/sources/')}>데이터 출처</a>).</li>
+</ul>

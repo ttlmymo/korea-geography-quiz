@@ -1,0 +1,75 @@
+---
+// 모든 쪽의 바탕: 머리 정보(제목·설명·canonical·hreflang), 측정·광고 스크립트 자리, 머리글·바닥글
+import '../styles/tokens.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { href } from '../lib/paths';
+import { SITE_NAME, SITE_NAME_EN, TAGLINE, TAGLINE_EN, GA_ID, ADSENSE_ACCOUNT } from '../consts';
+
+interface Props {
+  title: string;
+  description: string;
+  lang?: 'ko' | 'en';
+  /** 한·영 짝 쪽의 사이트 안 경로(기준 경로 없이). 예: { ko: '/seoul/', en: '/en/seoul/' } */
+  alternate?: { ko: string; en: string };
+  noindex?: boolean;
+  /** 광고를 둘 수 있는 글 쪽인가(애드센스 스크립트는 승인 뒤, PUBLIC_ADS=on 일 때만) */
+  ads?: boolean;
+  /** canonical·og:url 을 달까(없는 주소마다 같은 내용을 주는 404 는 달지 않는다) */
+  canonical?: boolean;
+}
+const { title, description, lang = 'ko', alternate, noindex = false, ads = false, canonical: withCanonical = true } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const abs = (p: string) => new URL(href(p), Astro.site).href;
+// 로컬 빌드에는 GA·광고가 들어가지 않는다. 배포 워크플로가 PUBLIC_ANALYTICS=on 으로 빌드한다
+const analytics = import.meta.env.PUBLIC_ANALYTICS === 'on';
+const adsOn = ads && import.meta.env.PUBLIC_ADS === 'on';
+---
+<!doctype html>
+<html lang={lang} data-ads={ads ? '1' : undefined}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="only light" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {withCanonical && <link rel="canonical" href={canonical} />}
+    {alternate && (
+      <>
+        <link rel="alternate" hreflang="ko" href={abs(alternate.ko)} />
+        <link rel="alternate" hreflang="en" href={abs(alternate.en)} />
+        <link rel="alternate" hreflang="x-default" href={abs(alternate.ko)} />
+      </>
+    )}
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="google-adsense-account" content={ADSENSE_ACCOUNT} />
+    <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={lang === 'en' ? SITE_NAME_EN : SITE_NAME} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {withCanonical && <meta property="og:url" content={canonical} />}
+    <meta property="og:locale" content={lang === 'en' ? 'en_US' : 'ko_KR'} />
+    {/* 공유 그림: tools/og-image.mjs 로 만든 것. 루트 랜딩도 옛 주소 그대로 og-image-ko.jpg 를 부른다 */}
+    <meta property="og:image" content={abs(`/social-image/og-image-${lang}.jpg`)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={lang === 'en' ? `${SITE_NAME_EN}: ${TAGLINE_EN}` : `${SITE_NAME}: ${TAGLINE}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {analytics && <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>}
+    {analytics && (
+      <script is:inline define:vars={{ GA_ID }}>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){ dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', GA_ID);
+      </script>
+    )}
+    {adsOn && <script is:inline async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ACCOUNT}`} crossorigin="anonymous"></script>}
+  </head>
+  <body>
+    <Header lang={lang} />
+    <main id="main"><slot /></main>
+    <Footer lang={lang} />
+  </body>
+</html>

@@ -1,0 +1,85 @@
+---
+// G4 '자치구·일반구·특례시는 무엇이 다를까'(애드센스 계획 7절). 차이는 지방자치법 조문, 특례시는 정책브리핑·행안부,
+// 개수·표·같은 이름 구는 채움지도 경계 데이터(src/data/kr-summary.json, svg). 부천·화성 일반구 날짜는 보도라 검수 목록에
+import { href } from '../lib/paths';
+import { guideIf } from './registry';
+import { region } from '../lib/geo';
+import KR from '../data/kr-summary.json';
+
+const T = KR.total;
+const gg = region('gyeonggi');
+const ggSido = KR.sidos.find((s) => s.code === '41')!;
+// 일반구가 있는 시: 시·도 짧은 이름 + 시 + 일반구 이름(요약 데이터의 ilbanGu, 데이터 차례)
+const SHORT: Record<string, string> = { '41': '경기', '43': '충북', '44': '충남', '47': '경북', '48': '경남', '52': '전북' };
+const cities = KR.sidos.flatMap((s) => s.ilbanSi.map((si) => ({ sido: SHORT[s.code] ?? s.name, si, gu: (s.ilbanGu as Record<string, string[]>)[si] })));
+const SPECIAL = ['수원시', '고양시', '용인시', '창원시', '화성시'];
+const specialAll = SPECIAL.every((si) => cities.some((c) => c.si === si));
+if (!specialAll) throw new Error('G4: 특례시 가운데 일반구가 없는 곳이 생김 — 문장 고칠 것');
+const g1 = guideIf('korea-divisions-2026');
+const SRC = {
+  law: 'https://www.law.go.kr/법령/지방자치법',
+  launch: 'https://www.korea.kr/news/policyNewsView.do?newsId=148898045',
+  name: 'https://korea.kr/news/actuallyView.do?newsId=148855276',
+  hs: 'https://www.hscity.go.kr/office/intro.jsp',
+};
+---
+<div class="summary">
+  <b>이 글의 핵심</b>
+  <span>1. 자치구는 주민이 구청장과 구의원을 뽑는 자치단체이고, 일반구는 큰 시 안을 나눈 행정 구역이에요. 일반구의 구청장은 시장이 임명해요.</span>
+  <span>2. 자치구는 {T.gu}곳, 일반구는 {T.ilbanSi}개 시에 {T.ilban}곳이에요.</span>
+  <span>3. 특례시는 인구 100만 이상 시에 붙는 이름이에요. 새 종류의 자치단체가 아니라, 시에 권한을 더 주는 제도예요.</span>
+</div>
+
+<h2>자치구와 일반구</h2>
+<p>이름에 똑같이 '구'가 붙어도 둘은 전혀 달라요. 지방자치법 제2조에 따르면 자치단체인 구는 특별시·통합특별시·광역시 안의 구뿐이에요. 서울의 종로구나 부산의 해운대구가 자치구예요. 자치구에는 주민이 뽑는 구청장과 구의회가 있어요(제37조·제106조·제107조).</p>
+<p>일반구는 인구 50만 이상인 시가 그 안에 둘 수 있는 구예요(제3조 ③). 수원시 장안구, 성남시 분당구 같은 곳이에요. 일반구는 자치단체가 아니라서 구의회가 없고, 구청장은 일반직 공무원으로 시장이 임명해요(제132조 ①).</p>
+<div class="tbl"><table>
+  <thead><tr><th scope="col"></th><th scope="col">자치구</th><th scope="col">일반구</th></tr></thead>
+  <tbody>
+    <tr><td>어디에</td><td>특별시·통합특별시·광역시</td><td>인구 50만 이상인 시</td></tr>
+    <tr><td>자치단체인가</td><td>예</td><td>아니요(시의 행정 구역)</td></tr>
+    <tr><td>구청장</td><td>주민이 선거로</td><td>시장이 임명</td></tr>
+    <tr><td>구의회</td><td>있음</td><td>없음</td></tr>
+    <tr><td>지금 수</td><td class="num">{T.gu}곳</td><td class="num">{T.ilban}곳({T.ilbanSi}개 시)</td></tr>
+  </tbody>
+</table></div>
+
+<h2>일반구가 있는 {cities.length}개 시</h2>
+<p>2026년 10월 1일 경계 데이터로 세면 일반구가 있는 시는 다음과 같아요. 그 가운데 {cities.filter((c) => c.sido === '경기').length}곳이 경기도에 있어요.</p>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">시·도</th><th scope="col">시</th><th scope="col">일반구</th></tr></thead>
+  <tbody>{cities.map((c) => <tr><td>{c.sido}</td><td>{c.si}{SPECIAL.includes(c.si) && <span class="tag">특례시</span>}</td><td>{c.gu.join(' · ')} <span class="meta">({c.gu.length})</span></td></tr>)}</tbody>
+</table></div>
+
+<h2>특례시는 무엇일까</h2>
+<p>지방자치법 제198조는 인구 50만 이상 대도시에 행정·재정 특례를 둘 수 있게 하고, 그 가운데 인구 100만 이상 대도시를 '특례시'라고 불러요. 서울특별시·통합특별시·광역시·특별자치시는 여기서 빠져요. 2022년 1월 13일 개정 지방자치법이 시행되면서 수원·용인·고양·창원이 특례시가 됐고, 화성이 다섯 번째로 더해졌어요.</p>
+<p>특례시는 시·도처럼 새로 생긴 자치단체 종류가 아니에요. 정책브리핑은 특례시를 기초자치단체 지위를 유지하면서 광역시에 준하는 권한을 받는 시라고 설명했고, 행정안전부는 2018년에 특례시라는 이름을 붙여도 광역자치단체로 올라가는 것이 아니며 공부·주소·안내판도 종전과 같다고 밝혔어요. 그래서 주소에는 지금도 '경기도 수원시'처럼 써요.{specialAll && ' 다섯 특례시에는 모두 일반구가 있어요.'}</p>
+
+<h2>경기도의 일반구</h2>
+<p>경기도에는 {ggSido.ilbanSi.length}개 시에 일반구 {ggSido.ilban}곳이 있어요({ggSido.ilbanSi.join('·')}). 최근 바뀐 곳이 둘이에요.</p>
+<ul>
+  <li><b>부천시</b>는 2016년 원미구·소사구·오정구를 없앴다가 2024년 1월 1일 세 구를 다시 두었어요. 그 사이의 지도·통계 자료에는 부천에 구가 없어요.</li>
+  <li><b>화성시</b>는 2025년 8월 행정안전부의 일반구 설치 승인을 받아, 지금은 만세구·효행구·병점구·동탄구 네 구청이 있어요(<a href={SRC.hs}>화성특례시 구청 안내</a>).</li>
+</ul>
+
+<h2>채움지도에서는 이렇게 써요</h2>
+<ul>
+  <li>경기도는 일반구가 아니라 {gg.items.length}개 시·군으로 연습해요. 일반구는 자치단체가 아니고, 수원·성남처럼 시 하나를 먼저 익히는 편이 지도에서 덩어리가 잘 보이기 때문이에요. 시 안의 일반구는 <a href={href('/gyeonggi/')}>경기 지도</a> 표에 적었어요.</li>
+  <li>일반구 이름은 '수원시 장안구'처럼 시 이름을 앞에 붙여요. 포항시 남구·북구처럼 자치구(부산 남구, 대구 북구 등)와 이름이 같은 일반구가 있기 때문이에요.</li>
+  <li>'특례시'는 이름에 붙이지 않고 '수원시'로 써요. 주소와 공부가 바뀌지 않았기 때문이에요.</li>
+</ul>
+{g1 && <p>시·도와 시·군·구 전체 개수는 <a href={href(`/guide/${g1.slug}/`)}>{g1.title}</a>에 정리했어요.</p>}
+<div class="cta"><b>지도에서 바로 해 보기</b><a class="btn" href={href('/#/kr/gyeonggi/sgg/p1')}>경기 1과 시작하기</a></div>
+
+<h2>출처</h2>
+<ul class="src">
+  <li>국가법령정보센터, <a href={SRC.law}>지방자치법</a>(법률 제21544호, 2026. 10. 15. 시행) 제2조·제3조·제37조·제106조·제107조·제132조·제198조</li>
+  <li>정책브리핑, <a href={SRC.launch}>수원·용인·고양·창원특례시 출범···달라지는 점?</a>(2022. 1. 13.)</li>
+  <li>정책브리핑, <a href={SRC.name}>'특례시' 행정명칭 부여, 지자체 종류 신설 아냐</a>(행정안전부, 2018. 11. 2.)</li>
+  <li>화성특례시, <a href={SRC.hs}>구청 안내</a></li>
+  <li>일반구 수와 이름, 같은 이름의 구: 통계청 SGIS · vuski/admdongkor(CC BY 4.0) 2026년 10월 1일 판 행정동 경계로 셌어요(<a href={href('/sources/')}>데이터 출처</a>).</li>
+</ul>
+
+<style>
+  .tag { margin-left: 6px; font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: var(--r-pill); background: var(--sunk); color: var(--ink-2); white-space: nowrap; }
+</style>

@@ -1,0 +1,95 @@
+{
+ "version": "kr-20261001.1",
+ "source": {
+  "repo": "vuski/admdongkor",
+  "commit": "3bc00489b76696db864bdbea4b19985cdfa8b403",
+  "file": "ver20261001/HangJeongDong_ver20261001.geojson",
+  "bytes": 34652038,
+  "sha256": "843ece3a0b3429742cd4a1b699cc13987a88b5e5401f382e7fdaaa194ea5e605",
+  "license": "CC BY 4.0 (원자료: 통계청 SGIS, 공공누리 제1유형)"
+ },
+ "source_context": {
+  "repo": "nvkelso/natural-earth-vector",
+  "tag": "v5.1.2",
+  "file": "geojson/ne_10m_admin_0_countries.geojson",
+  "bytes": 13287234,
+  "sha256": "239eec57ac17f100a11e2536cffc56752c318b50ae765b0918ff7aab4ce8f255",
+  "license": "공개 도메인(Natural Earth)"
+ },
+ "built": "2026-11-06",
+ "simplify_m": {
+  "emd": 5,
+  "sgg": 20
+ },
+ "river_radius_m": 400,
+ "notes": [
+  "전국 요약: 시·도 16 · 시 75 군 82 자치구 70(기초 227) · 행정시 2 · 일반구 39(13개 시) · 읍 238 면 1165 동 2156",
+  "서울 법정동 467곳(구 25)",
+  "서울 동 대응표: 구 25 · 행정동 427 — 행정동은 경계 데이터와, 법정동은 국토부 목록과 같음(인현동은 1·2가 구분 없이 표기)",
+  "이웃 쌍: 동 3339 · 시군구 216 · 시(경기 31 기준) 169",
+  "바다 건너 이웃 3쌍(영종구 2, 옹진군 1)",
+  "한강 중심선 조각 48개",
+  "개수: 서울 25/427 · 인천 11/158 · 경기 47/602, 경기 시·군 층 31",
+  "점검 좌표 6곳 확인",
+  "인천 중구+동구 → 제물포구+영종구: 면적 차이 0.903%, 동 목록 같음",
+  "인천 서구 → 서해구+검단구: 면적 차이 0.112%, 동 목록 같음",
+  "인천 개편 대응표: 제물포구 ← 중구 7·동구 11 / 영종구 ← 중구 6 / 서해구 ← 서구 16 / 검단구 ← 서구 8",
+  "서울 과 화면 최소 칸(지름): 1과 38px · 2과 29px · 3과 30px · 4과 87px · 5과 65px",
+  "서울 넓은 화면 최소 칸(지름): 서울 21px(모호 4)",
+  "인천 과 화면 최소 칸(지름): 1과 63px · 2과 44px · 3과 24px",
+  "인천 넓은 화면 최소 칸(지름): 내륙 37px · 섬과 바다 18px(모호 1)",
+  "경기 과 화면 최소 칸(지름): 1과 32px · 2과 46px · 3과 17px(모호 1) · 4과 49px · 5과 26px · 6과 75px · 7과 37px",
+  "경기 넓은 화면 최소 칸(지름): 북서부 41px · 북동부 17px(모호 1) · 남서부 22px(모호 1) · 남동부 40px",
+  "위치 한 줄 67곳: 길이·금지 낱말·인천 옛 이름·명소 좌표·맞닿음·방향·끝·한강·크기 검사"
+ ],
+ "files": {
+  "seoul-sgg.topo.json": {
+   "bytes": 33485,
+   "gzip": 12069
+  },
+  "seoul-emd.topo.json": {
+   "bytes": 227617,
+   "gzip": 49319
+  },
+  "incheon-sgg.topo.json": {
+   "bytes": 86381,
+   "gzip": 30093
+  },
+  "incheon-emd.topo.json": {
+   "bytes": 138709,
+   "gzip": 36224
+  },
+  "gyeonggi-sgg.topo.json": {
+   "bytes": 184913,
+   "gzip": 59653
+  },
+  "gyeonggi-emd.topo.json": {
+   "bytes": 535163,
+   "gzip": 139060
+  },
+  "neighbors.json": {
+   "bytes": 14630,
+   "gzip": 1503
+  },
+  "neighbors-emd.json": {
+   "bytes": 159694,
+   "gzip": 17820
+  },
+  "labels.json": {
+   "bytes": 3889,
+   "gzip": 1251
+  },
+  "labels-emd.json": {
+   "bytes": 55794,
+   "gzip": 15730
+  },
+  "units.json": {
+   "bytes": 13788,
+   "gzip": 3700
+  },
+  "search.json": {
+   "bytes": 127696,
+   "gzip": 11740
+  }
+ }
+}

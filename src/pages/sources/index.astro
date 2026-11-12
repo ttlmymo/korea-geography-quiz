@@ -1,0 +1,66 @@
+---
+// 데이터 출처(설계서 5.4): 경계 원자료·판·해시, 가공 방법, 사실 확인에 쓴 1차 자료. 값은 manifest 와 같은 곳에서 읽는다
+import Base from '../../layouts/Base.astro';
+import { href } from '../../lib/paths';
+import { DATA_VER } from '../../consts';
+import fs from 'node:fs';
+import path from 'node:path';
+const manifest = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data/geo', DATA_VER, 'manifest.json'), 'utf8'));
+const src = manifest.source, ne = manifest.source_context;
+import LEGAL from '../../data/legal-dong-seoul.json';
+import DONGMAP from '../../data/seoul-dong-map.json';
+const bjd = LEGAL.source;
+const bjdCount = Object.values(LEGAL.byGu as Record<string, string[]>).reduce((t, l) => t + l.length, 0);
+const dm = DONGMAP.source;
+const dmRows = Object.values(DONGMAP.byGu).reduce((t, l) => t + l.length, 0);
+---
+<Base title="데이터 출처 – 채움지도" description="채움지도 백지도의 행정동 경계 원자료와 판, 단순화·합침 같은 가공 방법, 인천 행정체제 개편 등 사실 확인에 쓴 공공 자료를 밝혀요." ads>
+  <div class="wrap page">
+    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › 데이터 출처</nav>
+    <article class="prose">
+      <h1>데이터 출처</h1>
+      <p>채움지도의 모든 지도는 아래 자료로 직접 그려요. 데이터 판 이름은 <b>{DATA_VER}</b>이고, 앱과 쪽이 같은 판을 써요.</p>
+
+      <h2>행정동 경계</h2>
+      <ul>
+        <li>원자료: 통계청 SGIS 행정구역 경계(공공누리 제1유형)</li>
+        <li>정리본: <a href={`https://github.com/${src.repo}`}>{src.repo}</a> 의 <code>{src.file}</code>(커밋 <code>{src.commit.slice(0, 7)}</code>, {src.license}). 2026년 10월 1일 기준 행정동이에요.</li>
+        <li>파일 확인: {src.bytes.toLocaleString()}바이트, SHA-256 <code>{src.sha256.slice(0, 12)}…</code> — 지도를 만들 때마다 크기와 해시를 맞춰 보고, 다르면 멈춰요.</li>
+      </ul>
+
+      <h2>이웃 땅(북한)</h2>
+      <ul>
+        <li><a href="https://www.naturalearthdata.com/">Natural Earth</a> 10m 국가 경계({ne.tag}, {ne.license}). 휴전선 근처의 빈틈만 메우는 배경으로 써요.</li>
+      </ul>
+
+      <h2>법정동 목록</h2>
+      <ul>
+        <li><a href="https://www.data.go.kr/data/15063424/fileData.do">{bjd.provider}</a>의 <code>{bjd.file}</code>({bjd.modified} 수정, {bjd.license}). 서울 법정동 {bjdCount}개를 구마다 세어 법정동과 행정동을 견주는 데만 써요. 지도는 행정동으로 그려요.</li>
+        <li>파일 확인: {bjd.bytes.toLocaleString()}바이트, SHA-256 <code>{bjd.sha256.slice(0, 12)}…</code></li>
+      </ul>
+
+      <h2>행정동과 법정동 대응</h2>
+      <ul>
+        <li>{dm.provider} 누리집의 <a href={dm.url}>{dm.title}</a>({dm.modified} 수정, {dm.fetched}에 읽음). 서울 행정동 {dmRows}개가 어느 법정동을 맡는지 적은 표로, 서울 구 쪽의 '행정동과 법정동' 표에 써요.</li>
+        <li>맞춰 보기: 표의 행정동 이름은 위 행정동 경계와, 법정동 이름은 국토교통부 법정동 목록과 하나도 빠짐없이 같은지 확인해요. 표기만 다른 것(중계2,3동 → 중계2·3동, 상일1동 → 상일제1동)은 경계 데이터 표기로 고쳐 싣고, '신문로1·2가'·'인현동'처럼 두 법정동을 한 이름으로 적은 칸은 그 쪽에 밝혀 둬요.</li>
+      </ul>
+
+      <h2>가공 방법</h2>
+      <ul>
+        <li>단순화: 행정동은 {manifest.simplify_m.emd}m, 시·군·구 지도는 {manifest.simplify_m.sgg}m 간격으로 점을 줄여요. 이웃끼리 경계가 어긋나지 않게 한 번에 처리해요.</li>
+        <li>합치기: 행정동을 합쳐 시·군·구를 만들고, 경기도는 일반구를 시로 합친 31개 시·군 지도도 만들어요.</li>
+        <li>한강: 강을 사이에 둔 구 경계로 강 가운데 선을 만들고, 그 둘레 {manifest.river_radius_m}m를 칸에서 잘라내 강으로 그려요. 행정동 경계가 강 한가운데를 지나서, 따로 그리지 않으면 강북과 강남이 붙어 보이기 때문이에요.</li>
+        <li>맞닿음: 칸끼리 경계를 함께 쓰면 맞닿은 곳으로 봐요. 다리로만 이어진 바다 건너 이웃(영종구–서해구 등)은 따로 적어 두고 '옆'으로 치지 않아요.</li>
+        <li>위치 한 줄: '○○구 서쪽, ○○이 있는 곳' 같은 문장은 채움지도가 쓴 것이에요. 방향·맞닿음·한강 남북은 지도 데이터로 자동 확인하고, 명소는 좌표가 그 구 안에 있는지 확인해요.</li>
+      </ul>
+
+      <h2>사실 확인에 쓴 자료</h2>
+      <ul>
+        <li>인천 2026년 7월 행정체제 개편: <a href="https://www.incheon.go.kr/IC01070105/3012613">인천광역시 보도자료</a>(「인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률」), <a href="https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833">행정안전부 보도자료 '인천광역시 서구, 주민 뜻 모아 서해구로 새출발'(2026.5.7.)</a></li>
+        <li>개편 전 인천 경계(비교용): {src.repo} 2026년 4월 1일 판</li>
+      </ul>
+
+      <p>틀린 곳을 발견하면 <a href={href('/contact/')}>문의</a>로 알려 주세요.</p>
+    </article>
+  </div>
+</Base>

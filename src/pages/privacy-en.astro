@@ -1,0 +1,18 @@
+---
+// Privacy policy (old URL /privacy-en.html kept). Rewritten for the new app in S9 (design 8.5). Effective date: PRIVACY_EFFECTIVE in consts
+import Base from '../layouts/Base.astro';
+import raw from '../data/legal/privacy-en.html?raw';
+import { PRIVACY_EFFECTIVE } from '../consts';
+import { href } from '../lib/paths';
+const date = new Date(`${PRIVACY_EFFECTIVE}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+const body = raw.replace('{{EFFECTIVE}}', date).replace('{{HREF_KO}}', href('/privacy.html'));
+---
+<Base lang="en" title="Privacy Policy · Fill the Map" description="What personal information Fill the Map collects, why, how long it is kept, and your rights." alternate={{ ko: '/privacy.html', en: '/privacy-en.html' }}>
+  <div class="wrap page">
+    <article class="prose legal" set:html={body} />
+  </div>
+</Base>
+
+<style>
+  .legal :global(.date) { font-size: 14px; color: var(--ink-3); }
+</style>

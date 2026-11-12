@@ -1,0 +1,101 @@
+---
+// G3 '인천 2026년 7월 행정체제 개편'(애드센스 계획 7절). 법·날짜는 국가법령정보센터 원문과 인천시·행안부 보도자료,
+// 옛 동 → 새 구 대응·넓이·개편 전 그림은 파이프라인이 경계 데이터로 만든 것(src/data/incheon-reform.json, src/data/svg/incheon-before.json)
+import RegionMap from '../components/RegionMap.astro';
+import { href } from '../lib/paths';
+import { region, svgOf, countKinds } from '../lib/geo';
+import reform from '../data/incheon-reform.json';
+import { iGa } from '../app/text/ko';
+
+const r = region('incheon');
+const svg = svgOf('incheon');
+const idOf = (ko: string) => r.items.find((it) => it.ko === ko)!.id;
+const NEW = reform.reform.map((x) => x.new);
+const all = svg.items.flatMap((it) => it.dongs);
+const k = countKinds(all);
+const total = (row: (typeof reform.reform)[number]) => Object.values(row.from).flat().length;
+const biggest = [...reform.reform].sort((a, b) => b.area_km2 - a.area_km2)[0];
+const lessons = r.lessons.filter((l) => l.items.some((id) => NEW.map(idOf).includes(id)));
+const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
+const SRC = {
+  law: 'https://www.law.go.kr/법령/인천광역시제물포구ㆍ영종구및검단구설치등에관한법률',
+  city: 'https://www.incheon.go.kr/IC01070105/3012613',
+  rename: 'https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833',
+};
+---
+<div class="summary">
+  <b>이 글의 핵심</b>
+  <span>1. 2026년 7월 1일, 인천의 중구·동구가 제물포구·영종구로, 서구가 서해구·검단구로 바뀌었어요.</span>
+  <span>2. 인천은 2군 8구에서 2군 9구가 됐어요. 영종도 쪽이 영종구, 옛 동구와 나머지 옛 중구가 제물포구예요.</span>
+  <span>3. 옛 동이 어느 새 구로 갔는지는 아래 표에서 동 이름으로 찾을 수 있어요.</span>
+</div>
+
+<h2>개편 전과 뒤</h2>
+<p>「인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률」은 중구와 동구를 폐지하고 제물포구·영종구·검단구를 새로 두며, 서구에서 검단구가 될 지역을 떼어 내도록 했어요. 법 제1조는 그 목적을 주민생활의 편의를 높이고 균형 있는 지역 발전을 꾀하는 것이라고 밝혀요. 같은 날 서구는 이름을 서해구로 바꿨어요. 그래서 바뀐 곳은 옛 구 셋(중구·동구·서구), 지금 구 넷(제물포구·영종구·서해구·검단구)이에요.</p>
+<figure class="pair">
+  <div>
+    <RegionMap region="incheon-before" labels alwaysLabel={['old:동구']} highlight={['old:중구', 'old:동구', 'old:서구']} fit={['old:중구', 'old:동구', 'old:서구']} label="개편 전 인천 2군 8구 지도: 바뀐 옛 중구·동구·서구를 노랗게 표시" />
+    <p class="meta">개편 전(2026년 6월까지) · 2군 8구</p>
+  </div>
+  <div>
+    <RegionMap region="incheon" labels alwaysLabel={[idOf('제물포구')]} highlight={NEW.map(idOf)} fit={NEW.map(idOf)} label="개편 뒤 인천 2군 9구 지도: 새로 생기거나 이름이 바뀐 제물포구·영종구·서해구·검단구를 노랗게 표시" />
+    <p class="meta">개편 뒤(2026년 7월부터) · 2군 9구</p>
+  </div>
+</figure>
+<p class="meta">두 지도 모두 2026년 10월 1일 판 행정동 경계로 그렸어요. 개편 전 지도는 지금 행정동을 옛 구별로 묶은 것이라, 해안선은 두 지도가 같아요.</p>
+
+<h2>옛 구에서 새 구로</h2>
+<p>개편 전(2026년 4월 1일 판)과 개편 뒤(2026년 10월 1일 판) 행정동 경계를 동 이름으로 맞춰 보면, 옛 동은 모두 하나의 새 구로 옮겨 갔어요. 동이 둘로 쪼개지거나 두 구에 걸친 곳은 없어요. 넓이로는 {iGa(biggest.new)} 가장 넓어요.</p>
+<div class="tbl"><table class="nums">
+  <thead><tr><th scope="col">지금 구</th><th scope="col">옛 구</th><th scope="col">행정동</th><th scope="col">넓이(약, ㎢)</th></tr></thead>
+  <tbody>{reform.reform.map((row) => (
+    <tr><td>{row.new}</td><td>{Object.entries(row.from).map(([o, list]) => `${o} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{row.area_km2}</td></tr>
+  ))}</tbody>
+</table></div>
+<p class="meta">넓이는 행정동 경계 데이터로 잰 값이에요. 매립지·갯벌을 어떻게 넣느냐에 따라 공식 통계의 면적과 다를 수 있어요.</p>
+<h3>동 이름으로 찾기</h3>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">지금 구</th><th scope="col">옛 구에서 온 행정동</th></tr></thead>
+  <tbody>{reform.reform.map((row) => (
+    <tr><td>{row.new}</td><td>{Object.entries(row.from).map(([o, list]) => <p class="from"><b>옛 {o}</b> {(list as string[]).join(' · ')}</p>)}</td></tr>
+  ))}</tbody>
+</table></div>
+
+<h2>언제, 어떤 법으로</h2>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">날짜</th><th scope="col">일</th></tr></thead>
+  <tbody>
+    <tr><td>2024. 1. 30.</td><td>「인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률」 공포(법률 제20161호). 시행일은 2026년 7월 1일</td></tr>
+    <tr><td>2024. 9. 12.</td><td>인천시, 새 구의 조직·인력을 설계하는 연구용역 시작</td></tr>
+    <tr><td>2025. 12. 30.</td><td>같은 법 개정(법률 제21247호): 국가와 인천시가 새 구 설치 비용을 지원하는 특례 등을 더함</td></tr>
+    <tr><td>2026. 5.</td><td>「인천광역시 서구 명칭 변경에 관한 법률안」 국회 의결: 서구 → 서해구</td></tr>
+    <tr><td>2026. 7. 1.</td><td>법 시행. 제물포구·영종구·검단구 설치, 서구는 서해구로</td></tr>
+  </tbody>
+</table></div>
+<p>법 부칙은 새 구의 구청장과 구의회 의원을 7월 1일 전 지방선거일에 뽑고, 없어지는 중구·동구는 구청장 선거를 하지 않도록 정했어요. 인천시는 이 개편으로 인천의 행정체제가 1995년 이후 31년 만에 2군·8구에서 2군·9구로 늘었다고 소개했어요.</p>
+
+<h2>지금 인천은</h2>
+<p>인천광역시는 강화군·옹진군과 9개 구로 이루어져요. 읍·면·동은 {k.읍}읍 {k.면}면 {k.동}동, 모두 {all.length}개예요(2026년 10월 1일 판). 새로 바뀐 네 구는 모두 동으로만 이루어져 있고, 읍·면은 강화군과 옹진군에 있어요.</p>
+
+<h2>지도로 익힐 때</h2>
+<ul>
+  <li><b>영종구</b>는 인천국제공항이 있는 영종도와 그 서쪽 용유 쪽이에요. 섬 하나를 통째로 한 구로 떠올리면 쉬워요.</li>
+  <li><b>제물포구</b>는 인천역·동인천역이 있는 쪽이에요. 옛 동구 전체와, 옛 중구 가운데 영종도 쪽을 뺀 곳이 합쳐졌어요.</li>
+  <li><b>검단구</b>는 서해구의 북쪽 끝, 김포와 맞닿은 쪽이에요. <b>서해구</b>는 그 남쪽의 청라·가정·석남 쪽이에요.</li>
+  <li>채움지도에서는 {lessons.map((l) => `${l.no}과(${l.items.filter((id) => NEW.map(idOf).includes(id)).map(nm).join('·')})`).join(', ')}에서 새 구를 만나요.</li>
+</ul>
+<div class="cta"><b>지도에서 바로 해 보기</b><a class="btn" href={href(`/#/kr/incheon/sgg/p${lessons[0].no}`)}>인천 {lessons[0].no}과 시작하기</a></div>
+
+<h2>출처</h2>
+<ul class="src">
+  <li>국가법령정보센터, <a href={SRC.law}>인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률</a>(제정 법률 제20161호 2024. 1. 30., 개정 법률 제21247호 2025. 12. 30., 2026. 7. 1. 시행) 제1조·제2조·부칙</li>
+  <li>인천광역시, <a href={SRC.city}>인천시, 2026년 출범 4개 자치구 조직·인력 설계</a>(2024. 9. 12. 보도자료)</li>
+  <li>행정안전부, <a href={SRC.rename}>인천광역시 서구, 주민 뜻 모아 서해구로 새출발</a>(2026. 5. 7.)</li>
+  <li>행정동 경계: 통계청 SGIS · vuski/admdongkor(CC BY 4.0) 2026년 4월 1일 판(개편 전)·10월 1일 판(개편 뒤). 대응표·넓이·개편 전 지도는 이 경계로 만들었어요(<a href={href('/sources/')}>데이터 출처</a>).</li>
+</ul>
+
+<style>
+  .pair { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-4); }
+  .pair > div { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+  .from { margin: 0 0 6px; }
+</style>

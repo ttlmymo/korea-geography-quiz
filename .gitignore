@@ -1,3 +1,12 @@
 data/encykorea-raw/
 data/dong-draft.json
 data/dong-body.json
+
+# 새 사이트(Astro)
+node_modules/
+dist/
+.astro/
+.cache/
+
+# 설계·작업 기록은 이 공개 저장소에 올리지 않는다(설계서 결정 9: 비공개 저장소에 따로 보관)
+docs/

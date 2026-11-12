@@ -1,0 +1,53 @@
+---
+// English district page (old URL /en/seoul/<slug>/). Facts come from the boundary data (map, Han River side, neighborhoods, borders, lesson).
+// No ads on English pages (design 7.2). The one-line location hints and guides are Korean-only
+import Base from '../../../../layouts/Base.astro';
+import RegionMap from '../../../../components/RegionMap.astro';
+import { href } from '../../../../lib/paths';
+import { SEOUL_GU, type Gu } from '../../../../data/seoul';
+import { region, svgOf, neighborsEn, listEn, enNameOf, SEOUL_NORTH } from '../../../../lib/geo';
+import { DATA_VER } from '../../../../consts';
+
+export function getStaticPaths() {
+  return SEOUL_GU.map((g) => ({ params: { slug: g.slug }, props: { g } }));
+}
+const { g } = Astro.props as { g: Gu };
+const r = region('seoul');
+const item = r.items.find((it) => it.slug === g.slug)!;
+const dongs = svgOf('seoul').items.find((it) => it.id === item.id)!.dongs;
+const lesson = r.lessons.find((l) => l.items.includes(item.id))!;
+const mates = lesson.items.filter((id) => id !== item.id).map(enNameOf);
+const nbs = neighborsEn(r, item.id);
+const north = SEOUL_NORTH.has(item.id);
+---
+<Base lang="en" title={`${g.en} on the map – Seoul · Fill the Map`} description={`Where is ${g.en} in Seoul? It lies ${north ? 'north' : 'south'} of the Han River, has ${dongs.length} administrative neighborhoods and borders ${nbs.length} areas. Learn it on a blank map.`} alternate={{ ko: `/seoul/${g.slug}/`, en: `/en/seoul/${g.slug}/` }}>
+  <div class="wrap page">
+    <nav class="meta" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › <a href={href('/en/seoul/')}>Seoul</a> › {g.en}</nav>
+    <div class="stack">
+      <h1>{g.en}</h1>
+      <p class="meta"><span lang="ko">{g.ko}</span> · an autonomous district of Seoul</p>
+    </div>
+    <RegionMap region="seoul" highlight={[item.id]} label={`Map of Seoul showing where ${g.en} is`} />
+    <div class="prose">
+      <p>{g.en} is one of Seoul's 25 autonomous districts (gu). It lies on the {north ? 'north' : 'south'} side of the Han River, one of the {north ? '14 districts north' : '11 districts south'} of the river.</p>
+      <p>It borders {listEn(nbs)}. In the October 1, 2026 boundary data it is made up of {dongs.length} administrative neighborhoods (haengjeong-dong).</p>
+      <p>On Fill the Map you learn {g.en} in Seoul lesson {lesson.no}, "{lesson.en}", together with {listEn(mates)}.</p>
+    </div>
+    <section class="stack">
+      <h2>{dongs.length} neighborhoods</h2>
+      <ul class="donglist" lang="ko">{dongs.map((d) => <li>{d}</li>)}</ul>
+      <p class="meta">Neighborhood names are shown in Korean.</p>
+    </section>
+    <section class="cta">
+      <h2>Find it on the blank map</h2>
+      <a class="btn" href={href(`/en/#/kr/seoul/sgg/@${g.slug}`)}>Practice Seoul lesson {lesson.no}</a>
+    </section>
+    <p class="meta">Boundaries: Statistics Korea SGIS (KOGL Type 1) · vuski/admdongkor (CC BY 4.0), October 1, 2026 edition, simplified · data {DATA_VER}.</p>
+  </div>
+</Base>
+
+<style>
+  .donglist { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .donglist li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-pill); padding: 4px 10px; font-size: 14px; }
+  .cta { background: var(--brand-soft); border-radius: var(--r-lg); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); }
+</style>
