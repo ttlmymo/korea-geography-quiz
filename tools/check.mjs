@@ -1,7 +1,7 @@
 // 빌드 결과(dist) 점검. 하나라도 실패하면 1 로 끝나 배포를 막는다(설계서 8.4)
 //  1 링크: 사이트 안 링크·자원이 모두 dist 에 있다
 //  2 옛 주소: tests/legacy-urls.txt 의 주소가 모두 있다
-//  3 사이트맵: loc 가 모두 있고, 색인 쪽과 1:1 이며, lastmod 가 날짜다
+//  3 사이트맵: loc 가 모두 있고, 색인 쪽과 1:1 이며, lastmod 가 날짜다. robots.txt 가 이 사이트맵을 알린다
 //  4 쪽 머리: title·description·canonical(제 주소)·h1 하나·og:image(빌드에 있는 파일)
 //  5 본문: JS 없이 읽히는 본문 글자 수(색인 쪽 200자 미만은 실패, 400자 미만은 경고), 다른 쪽과 겹치는 문장 비율(50% 넘으면 실패)
 //  6 광고 자리: 광고를 둘 수 있다고 표시한 쪽(data-ads)은 글·허브·지역·소개·출처뿐. 홈(앱)·문의·방침·영문·404 에는 없다. ads.txt 가 광고 계정과 같다
@@ -132,6 +132,9 @@ for (const f of htmls) {
 const pub = (fs.readFileSync('src/consts.ts', 'utf8').match(/ADSENSE_ACCOUNT = 'ca-(pub-\d+)'/) || [])[1];
 const adsTxt = fs.existsSync(path.join(DIST, 'ads.txt')) ? fs.readFileSync(path.join(DIST, 'ads.txt'), 'utf8') : '';
 if (!pub || !adsTxt.includes(`google.com, ${pub}, DIRECT, f08c47fec0942fa0`)) err(6, `ads.txt 가 없거나 광고 계정(${pub})과 다름`);
+// robots.txt: 도메인 바로 아래에서 검색 로봇이 읽는다. 사이트맵 주소가 맞아야 한다(3)
+const robots = fs.existsSync(path.join(DIST, 'robots.txt')) ? fs.readFileSync(path.join(DIST, 'robots.txt'), 'utf8') : '';
+if (!robots.includes(`Sitemap: ${SITE}${BASE}/sitemap.xml`)) err(3, `robots.txt 가 없거나 사이트맵 주소(${SITE}${BASE}/sitemap.xml)를 알리지 않음`);
 
 /* 금지 문자열 */
 for (const f of htmls) {
