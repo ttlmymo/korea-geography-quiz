@@ -4,7 +4,7 @@ import '../styles/tokens.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { href } from '../lib/paths';
-import { SITE_NAME, SITE_NAME_EN, TAGLINE, TAGLINE_EN, GA_ID, ADSENSE_ACCOUNT } from '../consts';
+import { SITE_NAME, SITE_NAME_EN, TAGLINE, TAGLINE_EN, GA_ID, ADSENSE_ACCOUNT, NAVER_SITE_VERIFICATION } from '../consts';
 
 interface Props {
   title: string;
@@ -43,6 +43,7 @@ const adsOn = ads && import.meta.env.PUBLIC_ADS === 'on';
     )}
     {noindex && <meta name="robots" content="noindex" />}
     <meta name="google-adsense-account" content={ADSENSE_ACCOUNT} />
+    <meta name="naver-site-verification" content={NAVER_SITE_VERIFICATION} />
     <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={lang === 'en' ? SITE_NAME_EN : SITE_NAME} />

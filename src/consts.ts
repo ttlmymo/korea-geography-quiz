@@ -10,6 +10,8 @@ export const DATA_VER = 'kr-20261001.1';
 
 export const GA_ID = 'G-E5PLVYPNS2';
 export const ADSENSE_ACCOUNT = 'ca-pub-1946710813485758';
+// 네이버 서치어드바이저 소유 확인(HTML 태그 방식, 11-13 사용자가 받아 줌). 모든 쪽 머리에 넣는다
+export const NAVER_SITE_VERIFICATION = '60f3280060dd95437c21ff1fd2eef2b4bcdc2229';
 export const CONTACT_EMAIL = 'koquiz.support@gmail.com';
 
 // 쪽을 고친 날: 사이트맵 lastmod 로 쓴다(빌드한 날이 아니라 실제로 고친 날)
