@@ -22,7 +22,7 @@ import { initAnalytics, track } from './analytics.ts';
 interface NavState { s?: 'play' | 'summary' | 'result'; sum?: SummaryState; res?: ResultState; root?: true; src?: string }
 
 const root = document.getElementById('app') as HTMLElement;
-const BASE = (root.dataset.base ?? '').replace(/\/?$/, '/');   // '/korea-geography-quiz/'
+const BASE = (root.dataset.base ?? '').replace(/\/?$/, '/');   // 도메인 바로 아래면 '/'
 const VER = root.dataset.ver ?? '';
 const SITE_TITLE = document.title;
 // 화면 글: 홈 문서의 lang(/ 은 ko, /en/ 은 en)

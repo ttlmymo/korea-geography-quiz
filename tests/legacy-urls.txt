@@ -1,5 +1,5 @@
 # 옛 주소: 운영 사이트맵 56개 + 루트 랜딩(ttlmymo.github.io)이 직접 불러오는 지도 파일 1개와 공유 그림 1개(og:image).
-# 빌드 결과에 하나라도 없으면 배포하지 않는다(tools/check.mjs). 기준 경로(/korea-geography-quiz) 뒤의 경로만 적는다.
+# 빌드 결과에 하나라도 없으면 배포하지 않는다(tools/check.mjs). 기준 경로(옛 /korea-geography-quiz, 지금 도메인 바로 아래) 뒤의 경로만 적는다.
 /
 /en/
 /seoul/

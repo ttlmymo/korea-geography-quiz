@@ -1,5 +1,5 @@
-# 채움지도 배포: 허용한 파일만 GitHub Pages 에 올린다(저장소 파일 전체가 공개되던 것을 막음)
-# S0: 지금 사이트를 내용 그대로 올린다. 새 사이트를 출시할 때 '올릴 파일 모으기'만 npm 빌드·점검으로 바꾼다
+# 채움지도 배포: main 에 올리면 새 사이트(Astro)를 빌드·점검해 dist/ 만 GitHub Pages 에 올린다
+# 저장소 파일이 그대로 공개되지 않는다. 점검(단위 시험 + tools/check.mjs)이 실패하면 올리지 않는다
 name: Deploy to Pages
 
 on:
@@ -25,21 +25,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: 올릴 파일 모으기(허용 목록)
-        run: |
-          set -euo pipefail
-          mkdir -p _site/gu
-          cp index.html privacy.html privacy-en.html sitemap.xml features.js features_en.js roma.js _site/
-          cp -r en seoul Image social-image _site/
-          # 루트 안내 페이지(ttlmymo.github.io)가 이 파일을 Pages 주소로 직접 불러온다
-          cp gu/gu_11_seoul.geojson _site/gu/
-          echo "올릴 파일 $(find _site -type f | wc -l)개"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # GA·광고는 배포 빌드에만 넣는다(src/layouts/Base.astro)
+      - name: 빌드
+        run: npm run build
+        env:
+          PUBLIC_ANALYTICS: 'on'
+
+      - name: 점검
+        run: npm run check
 
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: _site
+          path: dist
 
       - id: deployment
         uses: actions/deploy-pages@v5
