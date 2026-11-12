@@ -16,7 +16,7 @@
   "sha256": "239eec57ac17f100a11e2536cffc56752c318b50ae765b0918ff7aab4ce8f255",
   "license": "공개 도메인(Natural Earth)"
  },
- "built": "2026-11-06",
+ "built": "2026-11-12",
  "simplify_m": {
   "emd": 5,
   "sgg": 20
@@ -84,8 +84,8 @@
    "gzip": 15730
   },
   "units.json": {
-   "bytes": 13788,
-   "gzip": 3700
+   "bytes": 13808,
+   "gzip": 3712
   },
   "search.json": {
    "bytes": 127696,
