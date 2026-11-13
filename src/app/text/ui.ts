@@ -13,6 +13,9 @@ const ends = (r: Region, ids?: string[]) => {
 
 /* ---------- 한국어 ---------- */
 
+/** 과 수를 세는 한글 수사(서울 다섯 과) */
+const KO_NUM = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
+
 export const UI_KO = {
   lang: 'ko' as 'ko' | 'en',
   site: '채움지도',
@@ -65,6 +68,27 @@ export const UI_KO = {
   confused: '헷갈린 곳',
   kind: { review: '오늘 복습', mix: '전체 연습', check: '시험' } as Record<string, string>,
   studying: '공부 중',
+  // 문제 화면(합본 디자인 3.3): 문제 이름은 큰 글씨, 나머지는 작은 글씨. 이어 붙이면 prompt 와 같은 문장(pre · big · post)
+  promptParts(reg: Registry, mode: 'meet' | 'choose' | 'find', id: string): { pre: string; big: string; post: string } {
+    const p = reg.place(id)!;
+    if (mode === 'meet') return { pre: '이곳은', big: p.item.ko, post: '' };
+    if (mode === 'choose') return { pre: '', big: '', post: `테두리 친 칸은 무슨 ${unitKo(p.region)}일까요?` };
+    return { pre: '', big: eulReul(p.item.ko), post: '찾아 누르세요' };
+  },
+  /** 왼쪽 열 맨 위 한 줄: 지금 문제의 종류 */
+  modeLabel: { meet: '만나기', choose: '고르기', find: '이름을 가린 지도에서 찾기' } as Record<string, string>,
+  findNote: '틀려도 괜찮아요. 정답이 어느 쪽에 있는지 알려 드려요',
+  /** 머리의 문제 수 낱말: '17 / 19 문제' */
+  qUnit: '문제',
+  /** '이번 판의 곳' 목록에서 지금 묻는 곳 */
+  stNow: '지금 문제',
+  /** 지도 위 캡션 */
+  mapCap: (mode: string): string => (mode === 'meet' ? '이름표를 보며 만나요' : '이름을 가린 지도'),
+  /** 지도 아래 조작 안내: [마우스, 터치] */
+  mapHelp: ['끌어서 옮기고, 휠로 확대해요', '끌어서 옮기고, 두 손가락으로 확대해요'],
+  /** 문제 지도 범례(한강은 legendRiver) */
+  /** ctxOther: 오늘 복습 판(과 범위 지도)의 바탕 칸 — 머리가 '오늘 복습'이라 '이번 과'가 무엇인지 맞지 않아서 */
+  playKey: { pick: '고를 칸', outlined: '테두리 친 칸', ctxLesson: '이번 과 아님', ctxScreen: '이번 화면 아님', ctxOther: '다른 과' },
   // 홈
   notes: { saved: '기록은 이 브라우저에만 저장돼요', noStore: '이 창에서는 기록이 저장되지 않아요. 창을 닫으면 처음으로 돌아가요', inApp: '앱 안에서 연 화면이에요. 기록은 이 앱 안에만 남아요 · 크롬·사파리 같은 브라우저로 열면 그 브라우저에 따로 쌓여요' },
   rangeMap: (r: string, no: string) => `${r} ${no} 범위 지도`,
@@ -76,21 +100,16 @@ export const UI_KO = {
   reviewTitle: (n: number) => `오늘 복습 ${n}곳`,
   reviewStart: '복습 시작',
   nextAfterReview: (x: string) => `다음: ${x} (복습 뒤에 추천)`,
-  doneStamp: (r: string) => `${r}<br>다 채움`,
   doneTitle: (r: string, count: string) => `${r} ${eulReul(count)} 모두 칠했어요`,
   doneSub: '다음 지역으로 넘어가 볼까요?',
   regionStart: (r: string) => `${r} 시작`,
   checkGo: (r: string) => `${r} 시험 보기`,
-  nextEyebrow: (rec: boolean) => (rec ? '다음 과' : '오늘은 충분히 했어요'),
-  nextTitle: (x: string) => `다음: ${x}`,
+  nextEyebrow: (rec: boolean): string => (rec ? '다음 과' : '오늘은 충분히 했어요'),
   reviewDone: (tomorrow: number) => `오늘 복습 끝${tomorrow ? ` · 내일 ${tomorrow}곳` : ''}`,
-  mine: '나의 채움 지도',
   fillMap: (r: string) => `${r} 채움 지도`,
   filled: (n: number, f: number, d: number) => (f ? `${n}곳 중 ${f}곳 채움 · 다 익힘 ${d}` : '아직 칠한 곳이 없어요. 공부한 곳이 여기에 칠해져요'),
-  whereFirst: '어디부터 공부할까요?',
   namedMap: (r: string) => `이름이 붙은 ${r} 지도 보기`,
   knowIt: (r: string) => `이미 알아요 · ${r} 시험 보기`,
-  otherRegions: '다른 지역:',
   how: '이렇게 공부해요',
   howSteps: [['① 만나기', '이름표를 보며 눌러 봐요'], ['② 찾기', '이름을 가리고 찾아요'], ['③ 복습', '다음 날 다시 나와요']],
   explore: '지역 알아보기',
@@ -98,10 +117,52 @@ export const UI_KO = {
   settings: '설정',
   autoNext: ['정답을 맞히면 잠시 뒤 저절로 다음 문제로 넘어가기', '처음 두 번은 위치 한 줄을 읽도록 늘 [다음]을 눌러요'],
   legend: ['아직', '익히는 중', '익히는 중', '다 익힘'],
+  // 홈(합본 디자인 3.2): 지역 탭 · 큰 제목 · 진도 · 과 카드 줄. 제목의 '\n' 은 줄바꿈
+  homeTabs: '지역 고르기',
+  tabDue: '오늘 복습 있음',
+  firstLesson: '첫 과',
+  legendNext: '다음 과',
+  legendRiver: '한강',
+  legendAria: '지도 색 풀이',
+  /** 큰 제목: '도심과 서북\n6개 구를 채워요'(형광펜은 count) */
+  lessonHead: (lesson: string, count: string) => `${lesson}\n${eulReul(count)} 채워요`,
+  places: (n: number) => `${n}곳`,
+  /** 복습 날 큰 제목: '채운 4곳을\n다시 만나요'(형광펜은 places(n)) */
+  reviewHead: (places: string) => `채운 ${places}을\n다시 만나요`,
+  reviewSub: '잊을 때쯤 다시 만나면 오래 남아요',
+  /** 복습 라벨의 지역별 수: '서울 4곳' / '서울 6 · 경기 4' */
+  reviewWhere: (parts: [string, number][]) => (parts.length === 1 ? `${parts[0][0]} ${parts[0][1]}곳` : parts.map(([r, n]) => `${r} ${n}`).join(' · ')),
+  doneLabel: (r: string) => `${r} · 다 채움`,
+  regionFull: (r: Region) => r.full,
+  asOf: (y: number, m: number) => `경계 ${y}년 ${m}월 기준`,
+  masteredNote: '다 익힌 곳은 지도에 이름이 남아요',
+  progAria: (r: string, n: number) => `${r} ${n}곳의 채움 정도`,
+  noLogin: '로그인 없이 바로 시작해요',
+  /** '서울 다섯 과' */
+  lessonsHead: (r: string, n: number) => `${r} ${KO_NUM[n] ?? n} 과`,
+  lessonsHelp: '과를 누르면 그 과부터 할 수 있어요',
+  mixGo: (r: string) => `${r} 전체 연습`,
+  /** 과 카드의 상태 한 줄 */
+  stFilled: (total: number, f: number, d: number, due: number) => `${f === total ? `${f}곳 채움` : `${total}곳 중 ${f}곳 채움`}${due ? ` · 오늘 복습 ${due}` : d ? ` · 다 익힘 ${d}` : ''}`,
+  stNext: (n: number) => `다음에 배울 ${n}곳`,
+  stAfterReview: (n: number) => `복습 뒤에 배울 ${n}곳`,
+  stFirst: (n: number) => `처음 배울 ${n}곳`,
+  stNotYet: (n: number) => `${n}곳 · 아직`,
+  /** 과 카드 네모 줄의 설명: '6곳 중 2곳 다 익힘, 4곳 익히는 중' / '5곳 모두 익히는 중' */
+  dotsAria: (total: number, parts: [string, number][]) => (parts.length === 1 ? `${total}곳 모두 ${parts[0][0]}` : `${total}곳 중 ${parts.map(([s, n]) => `${n}곳 ${s}`).join(', ')}`),
+  /** 과 카드의 짧은 이름: 종로구 → 종로 */
+  short: (it: Item) => it.ko.replace(/[구시군]$/, '') || it.ko,
+  /** 처음 온 사람의 진도 자리 안내(지도와 떨어진 글이라 '여기에' 대신 '지도에') */
+  filledNone: '아직 칠한 곳이 없어요. 공부한 곳이 지도에 칠해져요',
+  /** 칠한 곳이 없는 지역 탭의 진도 머리: '11곳 중 0곳 채움' */
+  filledZero: (n: number) => `${n}곳 중 0곳 채움`,
+  /** '지역 알아보기'에서 서울 밖 지역 탭의 허브 쪽(서울은 seoulHub). 영어 허브는 서울만 있다 */
+  hubs: { incheon: ['인천 2군 9구', '2026년 7월 개편과 군·구마다 위치 →'], gyeonggi: ['경기 31개 시·군', '시·군마다 위치와 읍·면·동 수 →'] } as Record<string, [string, string]>,
   // 지역 고르기
   regionsTitle: '어디를 공부할까요?',
   regionDesc: { seoul: ['한강을 사이에 두고 북쪽 14, 남쪽 11', ''], incheon: ['2026년 7월 새 구 이름(제물포·영종·서해·검단)', '새 이름'], gyeonggi: ['서울을 둘러싼 고리', ''] } as Record<string, [string, string]>,
-  regionStep: (r: string, count: string, n: number) => `${r} · ${count} · ${n}과`,
+  /** 지역 고르기 칸의 한 줄: '25개 구 · 5과' */
+  regionMeta: (count: string, n: number) => `${count} · ${n}과`,
   filledTag: (f: number, n: number) => `${f}/${n} 채움`,
   notYet: '아직',
   others: '다른 지역 (준비 중)',
@@ -109,7 +170,6 @@ export const UI_KO = {
   soon: '준비 중',
   // 단원
   unitMapLabel: (r: string) => `${r} 채움 지도. 칸을 누르면 그곳 이야기가 나와요`,
-  unitFilled: (f: number, n: number, d: number) => `${f}/${n} 채움 · 다 익힘 ${d}`,
   reviewChip: (n: number) => `오늘 복습 ${n} →`,
   order: '공부 순서',
   tagResume: (n: number, t: number) => `${n}/${t} 이어서`,
@@ -121,20 +181,21 @@ export const UI_KO = {
   dong: ['동까지 공부하기', '구 하나를 골라 그 구의 동을 익혀요'],
   more: '더 알아보기',
   seoulMore: '서울 25개 구 알아보기',
-  sep: '·',
   // 과 시작 카드
   newNames: '2026년 7월부터 새 구 이름이에요(검단구·서해구 등)',
-  startSub: (resume: boolean) => (resume ? '하던 곳부터 이어서 할 수 있어요' : '처음이면 하나씩 만나며 배워요'),
+  startSub: (resume: boolean): string => (resume ? '하던 곳부터 이어서 할 수 있어요' : '처음이면 하나씩 만나며 배워요'),
   resumeAt: (n: number, t: number) => `이어서 하기 · ${n}/${t}`,
   restart: '처음부터 다시',
   learn: '배우기 시작',
   quick: '이미 알아요 · 바로 찾기',
   quickNoteStart: (other: string | null) => `바로 찾기에서 맞힌 곳은 배우기를 건너뛰어요${other ? ` · 하던 ${other}는 새로 시작하면 처음부터예요` : ''}`,
+  /** 과 시작 지도 범례: 이 과의 칸(노랑 + 굵은 테두리) */
+  thisLesson: '이번 과',
   // 과 요약
-  sumStamp: (no: string) => `${no}<br>끝`,
+  /** 과 요약 숫자 칸 이름: [새로 채운 곳, 한 번에 맞힌 곳] */
+  sumStatNames: ['새로 채운 곳', '한 번에 맞힌 곳'],
   sumTitle: (no: string) => `${no} 끝!`,
   sumMap: '이번 과에서 칠한 곳',
-  sumStats: (newly: number, ok: number, t: number) => `새로 채운 곳 ${newly} · 한 번에 맞힌 곳 ${ok}/${t}`,
   nextLesson: (x: string) => `다음: ${x}`,
   nextMix: (r: string) => `다음: ${r} 전체 연습`,
   home: '홈으로',
@@ -143,6 +204,8 @@ export const UI_KO = {
   resultTitle: (r: string) => `${r} 시험 결과`,
   time: (s: number) => `${Math.floor(s / 60)}분 ${s % 60}초`,
   resultMap: '시험 결과 지도: 흰 칸이 틀린 곳',
+  /** 시험 결과 지도 범례: 맞힌 칸(틀린 칸은 wrongList) */
+  resultKey: '맞힌 곳',
   wrongList: '틀린 곳',
   answer: (n: string) => `정답 <b>${n}</b>`,
   mine2: (n: string) => `내 답 ${n}`,
@@ -184,6 +247,9 @@ const DIR_EN: Record<Dir8, string> = { E: 'east', NE: 'northeast', N: 'north', N
 const SIDO_EN: Record<string, string> = { '11': 'Seoul', '28': 'Incheon', '41': 'Gyeonggi', '51': 'Gangwon', '42': 'Gangwon', '43': 'Chungbuk', '44': 'Chungnam', '30': 'Daejeon', '36': 'Sejong', '47': 'Gyeongbuk', kp: 'North Korea' };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const unitEn = (r: Region) => { const e = ends(r); return [e.si && 'city', e.gun && 'county', e.gu && 'district'].filter(Boolean).join(' or '); };
+/** 과 카드 네모 줄 설명에서 칸 상태 이름을 문장 속 말로('6 places, all in the next lesson') */
+const EN_STATE: Record<string, string> = { 'Next lesson': 'in the next lesson', 'First lesson': 'in the first lesson', 'Not yet': 'not filled yet' };
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export const UI_EN: UI = {
   lang: 'en',
@@ -244,6 +310,19 @@ export const UI_EN: UI = {
   confused: 'Mixed up',
   kind: { review: "Today's review", mix: 'Full practice', check: 'Test' },
   studying: 'Studying',
+  promptParts(reg: Registry, mode: 'meet' | 'choose' | 'find', id: string) {
+    const p = reg.place(id)!;
+    if (mode === 'meet') return { pre: 'This is', big: enName(p.item), post: '' };
+    if (mode === 'choose') return { pre: '', big: '', post: `Which ${unitEn(p.region)} is outlined?` };
+    return { pre: 'Find and tap', big: enName(p.item), post: '' };
+  },
+  modeLabel: { meet: 'Meet', choose: 'Choose', find: 'Find it on the map with names hidden' },
+  findNote: "It's fine to miss. You'll see which way the answer is",
+  qUnit: 'questions',
+  stNow: 'Now',
+  mapCap: (mode: string) => (mode === 'meet' ? 'Meet it by its label' : 'Map with names hidden'),
+  mapHelp: ['Drag to move, scroll to zoom', 'Drag to move, pinch to zoom'],
+  playKey: { pick: 'Choices', outlined: 'Outlined', ctxLesson: 'Not this lesson', ctxScreen: 'Not on this screen', ctxOther: 'Other lessons' },
   notes: { saved: 'Your progress is saved in this browser only', noStore: "This window can't save progress. Closing it starts over", inApp: 'You opened this inside an app. Progress stays in that app · A browser such as Chrome or Safari keeps its own record' },
   rangeMap: (r: string, no: string) => `Map of ${r} ${no}`,
   newSub: 'Meet the places one by one on the map, then find them with the names hidden',
@@ -254,21 +333,16 @@ export const UI_EN: UI = {
   reviewTitle: (n: number) => `Today's review: ${plural(n, 'place', 'places')}`,
   reviewStart: 'Start review',
   nextAfterReview: (x: string) => `Next: ${x} (after the review)`,
-  doneStamp: (r: string) => `${r}<br>filled`,
   doneTitle: (r: string, count: string) => `You've filled all ${count} of ${r}`,
   doneSub: 'Ready for the next region?',
   regionStart: (r: string) => `Start ${r}`,
   checkGo: (r: string) => `Take the ${r} test`,
   nextEyebrow: (rec: boolean) => (rec ? 'Next lesson' : "That's plenty for today"),
-  nextTitle: (x: string) => `Next: ${x}`,
   reviewDone: (tomorrow: number) => `Today's review is done${tomorrow ? ` · ${plural(tomorrow, 'place', 'places')} tomorrow` : ''}`,
-  mine: 'My filled map',
   fillMap: (r: string) => `Filled map of ${r}`,
   filled: (n: number, f: number, d: number) => (f ? `${f} of ${n} filled · ${d} mastered` : 'Nothing filled yet. The places you study get colored here'),
-  whereFirst: 'Where would you like to start?',
   namedMap: (r: string) => `See the map of ${r} with names`,
   knowIt: (r: string) => `Already know it · Take the ${r} test`,
-  otherRegions: 'Other regions:',
   how: 'How it works',
   howSteps: [['① Meet', 'Tap each place with its name shown'], ['② Find', 'Find it with the names hidden'], ['③ Review', 'It comes back the next day']],
   explore: 'Explore regions',
@@ -276,16 +350,49 @@ export const UI_EN: UI = {
   settings: 'Settings',
   autoNext: ['Move to the next question by itself after a correct answer', 'The first two times you always press [Next]'],
   legend: ['Not yet', 'Learning', 'Learning', 'Mastered'],
+  homeTabs: 'Choose a region',
+  tabDue: 'review today',
+  firstLesson: 'First lesson',
+  legendNext: 'Next lesson',
+  legendRiver: 'Han River',
+  legendAria: 'Map key',
+  lessonHead: (lesson: string, count: string) => `${lesson}\nFill in ${count}`,
+  places: (n: number) => plural(n, 'place', 'places'),
+  reviewHead: (places: string) => `Meet the ${places}\nyou filled, again`,
+  reviewSub: 'Meeting them again just as they start to fade makes them stick',
+  reviewWhere: (parts: [string, number][]) => parts.map(([r, n]) => `${r} ${n}`).join(' · '),
+  doneLabel: (r: string) => `${r} · all filled`,
+  regionFull: (r: Region) => r.en,
+  asOf: (y: number, m: number) => `Boundaries as of ${MONTHS_EN[m - 1] ?? m} ${y}`,
+  masteredNote: 'Mastered places keep their names on the map',
+  progAria: (r: string, n: number) => `How much of ${r}'s ${n} places is filled`,
+  noLogin: 'No sign-in needed',
+  lessonsHead: (r: string, n: number) => `${r} in ${n} lessons`,
+  lessonsHelp: 'Pick a lesson to start from there',
+  mixGo: (r: string) => `Practice all of ${r}`,
+  stFilled: (total: number, f: number, d: number, due: number) => `${f === total ? `${f} filled` : `${f} of ${total} filled`}${due ? ` · ${due} to review today` : d ? ` · ${d} mastered` : ''}`,
+  stNext: (n: number) => `${n} to learn next`,
+  stAfterReview: (n: number) => `${n} to learn after the review`,
+  stFirst: (n: number) => `${n} to learn first`,
+  stNotYet: (n: number) => `${n} · not yet`,
+  dotsAria(total: number, parts: [string, number][]) {
+    const say = (s: string) => EN_STATE[s] ?? s.toLowerCase();
+    if (parts.length !== 1) return `${plural(total, 'place', 'places')}: ${parts.map(([s, n]) => `${n} ${say(s)}`).join(', ')}`;
+    return parts[0][0] === 'Not yet' ? `${plural(total, 'place', 'places')}, none filled yet` : `${plural(total, 'place', 'places')}, all ${say(parts[0][0])}`;
+  },
+  short: (it: Item) => enName(it).replace(/-(gu|si|gun)$/, ''),
+  filledNone: 'Nothing filled yet. The places you study get colored on the map',
+  filledZero: (n: number) => `0 of ${n} filled`,
+  hubs: {} as Record<string, [string, string]>,
   regionsTitle: 'Where would you like to study?',
   regionDesc: { seoul: ['14 north of the Han River, 11 south', ''], incheon: ['New district names from July 2026 (Jemulpo, Yeongjong, Seohae, Geomdan)', 'New names'], gyeonggi: ['The ring around Seoul', ''] },
-  regionStep: (r: string, count: string, n: number) => `${r} · ${count} · ${n} lessons`,
+  regionMeta: (count: string, n: number) => `${count} · ${n} lessons`,
   filledTag: (f: number, n: number) => `${f}/${n} filled`,
   notYet: 'Not yet',
   others: 'Other regions (coming soon)',
   otherList: ['Busan', 'Daegu', 'Gwangju–Jeonnam', 'Daejeon', 'Ulsan', 'Sejong', 'Gangwon', 'Chungbuk', 'Chungnam', 'Jeonbuk', 'Gyeongbuk', 'Gyeongnam', 'Jeju'],
   soon: 'Coming soon',
   unitMapLabel: (r: string) => `Filled map of ${r}. Tap a place to read about it`,
-  unitFilled: (f: number, n: number, d: number) => `${f}/${n} filled · ${d} mastered`,
   reviewChip: (n: number) => `Today's review ${n} →`,
   order: 'Study path',
   tagResume: (n: number, t: number) => `${n}/${t} continue`,
@@ -297,7 +404,6 @@ export const UI_EN: UI = {
   dong: ['Down to neighborhoods', 'Pick a district and learn its dong'],
   more: 'Read more',
   seoulMore: "About Seoul's 25 districts",
-  sep: ' · ',
   newNames: 'New district names from July 2026 (Geomdan-gu, Seohae-gu and more)',
   startSub: (resume: boolean) => (resume ? 'You can pick up where you left off' : 'New here? Meet them one by one'),
   resumeAt: (n: number, t: number) => `Continue · ${n}/${t}`,
@@ -305,10 +411,10 @@ export const UI_EN: UI = {
   learn: 'Start learning',
   quick: 'Already know them · Quick find',
   quickNoteStart: (other: string | null) => `Places you get right in quick find skip the lesson${other ? ` · Starting this resets your unfinished ${other}` : ''}`,
-  sumStamp: (no: string) => `${no.replace('lesson', 'Lesson')}<br>done`,
+  thisLesson: 'This lesson',
+  sumStatNames: ['Newly filled', 'Right first time'],
   sumTitle: (no: string) => `${no.replace('lesson', 'Lesson')} done!`,
   sumMap: 'What you filled in this lesson',
-  sumStats: (newly: number, ok: number, t: number) => `Newly filled ${newly} · Right first time ${ok}/${t}`,
   nextLesson: (x: string) => `Next: ${x}`,
   nextMix: (r: string) => `Next: all of ${r}`,
   home: 'Home',
@@ -316,6 +422,7 @@ export const UI_EN: UI = {
   resultTitle: (r: string) => `${r} test results`,
   time: (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`,
   resultMap: 'Test result map: white areas were wrong',
+  resultKey: 'Right',
   wrongList: 'Missed',
   answer: (n: string) => `Answer <b>${n}</b>`,
   mine2: (n: string) => `You: ${n}`,

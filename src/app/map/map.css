@@ -1,14 +1,22 @@
-/* SVG 백지도(설계서 5.2·6.2). 색은 모두 tokens.css 의 토큰. 선 굵기는 화면 px 고정(non-scaling-stroke) */
+/* SVG 백지도: 합본 디자인(docs/REDESIGN_PLAN_2026-11-13.md 3.1). 색은 모두 tokens.css 의 토큰.
+   바탕은 면색, 칸 경계는 먹색 가는 선, 지역 외곽선(해안·시도 경계·강가)은 굵게. 선 굵기는 화면 px 고정(non-scaling-stroke) */
 
 .cmap {
+  /* 선 굵기: 칸 경계 · 외곽선과 묶음 둘레 · 칸마다 굵은 테두리. 좁은 화면에서는 조금 가늘게 */
+  --cm-line: 1px;
+  --cm-rim: 2.2px;
+  --cm-bold: 2.4px;
   position: relative;
   overflow: hidden;
   touch-action: none;
-  background: var(--map-water);
+  background: var(--map-bg);
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
+}
+@media (max-width: 599px) {
+  .cmap { --cm-line: .9px; --cm-rim: 1.9px; --cm-bold: 2.2px; }
 }
 .cmap.tap-only { touch-action: pan-x pan-y; }
 .cmap.static { touch-action: auto; cursor: default; }
@@ -24,82 +32,103 @@
 }
 .cmap-svg path { vector-effect: non-scaling-stroke; stroke-linejoin: round; }
 
+/* 이웃 땅은 바탕과 같은 면색(이웃끼리 경계는 그리지 않는다) */
 .cm-out-fill { fill: var(--map-out); }
-.cm-out-edge { fill: none; stroke: var(--map-edge); stroke-opacity: .45; stroke-width: 1; }
 
+/* 칸: 아직 = 흰색, 익히는 중 = 한 가지 초록(1·2단계를 나누지 않는다), 다 익힘 = 진초록, 지금 배울 곳 = 노랑 */
 .cm-cell { fill: var(--m0); transition: fill var(--t-fill); }
 .cm-cell.ctx, .cm-cell.dim { fill: var(--map-ctx); }
 .cm-cell.lv0 { fill: var(--m0); }
-.cm-cell.lv1 { fill: var(--m1); }
-.cm-cell.lv2 { fill: var(--m2); }
+.cm-cell.lv1, .cm-cell.lv2 { fill: var(--m-learning); }
 .cm-cell.lv3 { fill: var(--m3); }
 .cm-cell.hl { fill: var(--hl); }
 
 .cm-water { fill: var(--map-water); }
-.cm-edge, .cm-bank { fill: none; stroke: var(--map-edge); stroke-width: 1; }
-.cm-edge.gap { stroke: var(--map-gap); stroke-width: 1.2; }   /* 채움 지도: 칸을 색종이 조각처럼 */
-.cm-rim { fill: none; stroke: var(--map-edge-strong); stroke-width: 2; }
-.cm-lesson-rim { fill: none; stroke: var(--map-edge-strong); stroke-width: 2.5; }
 
-/* 문제 칸: 형광펜 노랑 + 먹 테두리 */
-.cm-q { fill: var(--hl); stroke: var(--q-outline); stroke-width: 2.5; }
+/* 선(메쉬 path 몇 개): 칸끼리 = 가는 먹선, 강가·해안·시도 경계 = 굵은 외곽선 */
+.cm-edge, .cm-inner { fill: none; stroke: var(--map-edge); stroke-width: var(--cm-line); }
+.cm-bank, .cm-rim, .cm-part-rim, .cm-lesson-rim { fill: none; stroke: var(--map-edge-strong); stroke-width: var(--cm-rim); }
+/* 과 판(.part): 이번 과가 아닌 칸은 지역 외곽선까지 옅은 선으로 낮추고, 밝은 칸 묶음만 먹선(cm-inner)과 굵은 둘레(cm-part-rim)로 다시 긋는다 */
+.cmap.part .cm-edge, .cmap.part .cm-bank, .cmap.part .cm-rim { stroke: var(--map-ctx-edge); stroke-width: var(--cm-line); }
+/* 칸마다 굵은 테두리: 다음 과·복습할 칸(칸끼리 경계도 굵다) */
+.cm-bold { fill: none; stroke: var(--map-edge-strong); stroke-width: var(--cm-bold); }
+/* 강이 좁게 그려지는 보기(.thin-bank, 경기 전체 등): 굵은 강가 두 줄이 강을 덮지 않게 가는 선으로.
+   지역 강가(cm-bank)와 묶음의 강가(과 판 둘레·과 둘레·굵은 테두리가 따로 긋는 .cm-set-bank) 모두. 묶음 강가는 먹색 그대로 */
+.cmap.thin-bank .cm-bank, .cmap.thin-bank .cm-set-bank { stroke-width: var(--cm-line); }
+
+/* 문제 칸: 노랑 + 굵은 먹 테두리. 숨쉬기는 작은 칸에서 테두리가 노랑을 덮지 않게 조금만 굵어진다 */
+.cm-q { fill: var(--hl); stroke: var(--q-outline); stroke-width: var(--cm-bold); }
 .cm-q.breathe { animation: cm-breathe 1.6s ease-in-out infinite; }
-@keyframes cm-breathe { 50% { stroke-width: 5; } }
+@keyframes cm-breathe { 50% { stroke-width: 3.6px; } }
 
-/* 정답: 파랑 채움 + 실선 + ○ */
-.cm-ok { fill: var(--ok-fill); stroke: var(--ok); stroke-width: 2.5; }
+/* 맞힌 칸: 초록 + 굵은 테두리 + ○ */
+.cm-ok { fill: var(--ok-fill); stroke: var(--map-edge-strong); stroke-width: var(--cm-bold); }
 .cm-ok.pencil { animation: cm-pencil var(--t-pencil) ease-out both; }
 @keyframes cm-pencil { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+/* 정답 자리 알려 주기(틀렸을 때·모르겠어요): 노랑 + 굵은 테두리 + ○ */
+.cm-ok.tell { fill: var(--hl); }
 .cm-ok.blink { animation: cm-blink 1s ease-in-out 2; }
 @keyframes cm-blink { 50% { fill-opacity: .15; stroke-opacity: .3; } }
 
-/* 오답: 주홍 채움 + 빗금 + 점선 + ✕ */
-.cm-no { fill: var(--no-fill); stroke: var(--no); stroke-width: 2.5; stroke-dasharray: 7 4; }
-.cm-no-hatch { stroke: none; }
-.cmap-svg .cm-hatch-line { stroke: var(--no); stroke-width: 1.4; stroke-opacity: .6; vector-effect: none; }   /* 무늬 안은 무늬 배율을 따른다 */
+/* 잘못 누른 칸: 옅은 산호 + ✕. 겹층이 아니라 칸 채움을 바꾼다(선 층 아래라 과 둘레·강가의 굵은 선을 깎지 않는다).
+   테두리는 그대로 — 굵은 테두리는 맞는 자리에만 */
+.cm-cell.no { fill: var(--no-fill); }
 
-/* px 묶음(그룹 하나가 화면 1px = 1단위): 기호·화살표 머리·이름표 */
-.cm-px path, .cm-labels path { vector-effect: none; }
-.cm-sym-bg { fill: var(--surface); stroke: var(--ink); stroke-opacity: .2; stroke-width: 1; }
-.cm-sym-ok { fill: none; stroke: var(--ok); stroke-width: 3.2; }
-.cm-sym-no { fill: none; stroke: var(--no); stroke-width: 3.2; stroke-linecap: round; }
-.cm-arrow { fill: none; stroke: var(--ink-2); stroke-width: 2.5; stroke-linecap: round; }
-.cm-arrow-head path { fill: var(--ink-2); }
-.cm-label text {
-  font: 700 15px/1 var(--font-head);
-  fill: var(--ink);
-  stroke: var(--surface);
-  stroke-width: 4px;
-  stroke-linejoin: round;
-  paint-order: stroke;
-}
-.cm-badge circle { fill: var(--due-badge); stroke: var(--surface); stroke-width: 2; }
-.cm-badge-arrow { fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.cm-badges path { vector-effect: none; }
-.cm-label.sm text { font-size: 11px; stroke-width: 3px; }
-.cm-leader { stroke: var(--ink); stroke-width: 1.5; }
-/* 맥락 이름(층 7): 12~13px, 흐림. 누름은 막지 않는다 */
-.cm-ctx { pointer-events: none; }
-.cm-ctxname text { font: 700 13px/1 var(--font-ui); fill: var(--ink-3); stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; letter-spacing: .02em; }
-.cm-ctxname.water text { fill: var(--map-water-ink); stroke: var(--map-water); font-weight: 400; letter-spacing: .3em; }
-.cm-ctxname.cell text { font-size: 12px; font-weight: 400; stroke: var(--surface); }
+/* px 묶음(그룹 하나가 화면 1px = 1단위): 기호·화살표 머리·이름표·복습 점 */
+.cm-px path, .cm-labels path, .cm-badges path { vector-effect: none; }
+.cm-sym-bg { fill: var(--white); }
+.cm-sym-ok { fill: none; stroke: var(--ink); stroke-width: 2.6; }
+.cm-sym-no { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; }
+.cm-arrow { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; }
+.cm-arrow-head path { fill: var(--ink); }
+
+/* 이름표: 14px 이상(크기는 지도 폭에 따라 svgmap 이 --cm-label 로 준다), 후광 없이 칸 색 위에 바로. 다 익힌 칸 위는 흰 700, 그 밖은 먹 600 */
+.cm-label text { font: 600 var(--cm-label, 14px)/1 var(--font-ui); fill: var(--ink); }
+.cm-label.white text { fill: var(--white); font-weight: 700; }
+/* 칸 밖에 둔 이름표: 1px 지시선 + 칸 안의 점. 칸 위에 걸칠 때만 흰 판 */
+.cm-leader { fill: none; stroke: var(--ink); stroke-width: 1; }
 .cm-leader-dot { fill: var(--ink); }
+.cm-plate { fill: var(--white); stroke: var(--ink); stroke-width: 1; }
 
-/* 섬 상자(먼 섬, 축척 다름) */
+/* 복습할 곳: 먹색 점(흰 테두리) */
+.cm-badge circle { fill: var(--due-badge); stroke: var(--white); stroke-width: 2; }
+
+/* 맥락 이름(이웃 시도·한강)과 길잡이 이름(이번 과 밖의 이미 칠한 곳): 14px, 흐린 먹. 누름은 막지 않는다 */
+.cm-ctx { pointer-events: none; }
+.cm-ctxname text { font: 400 14px/1 var(--font-ui); fill: var(--ink-3); letter-spacing: .02em; }
+.cm-ctxname.water text { fill: var(--map-water-ink); }
+/* 한글 강 이름만 넓은 자간('한 강'). 영어 'Han River' 는 보통 자간(svgmap 의 글자 상자 폭도 같은 규칙) */
+.cm-ctxname.water.ko text { letter-spacing: .3em; }
+
+/* 섬 상자(먼 섬, 축척 다름): 흰 바탕 + 1px 틀 */
 .cm-inset {
   position: absolute; left: 12px; top: 12px;
   display: flex; flex-direction: column; align-items: center;
-  background: var(--map-water); border: 1.5px solid var(--map-edge-strong); border-radius: var(--r-xs);
-  box-shadow: var(--e1); overflow: hidden;
+  background: var(--white); border: 1px solid var(--ink); overflow: hidden;
 }
 .cm-inset[hidden] { display: none; }
+/* 섬 상자를 왼쪽 아래로: 왼쪽 위가 칸 조각을 더 가릴 때 ui/maps.ts 의 insetPad 가 붙인다 */
+.cmap.inset-bl .cm-inset { top: auto; bottom: 12px; }
 .cm-inset-svg { display: block; }
-.cm-inset-svg path { vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke: var(--map-edge-strong); stroke-width: 1; }
-.cm-inset-svg .cm-q, .cm-inset-svg .cm-ok, .cm-inset-svg .cm-no { stroke-width: 2; }
+.cm-inset-svg path { vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke: var(--map-edge); stroke-width: 1; }
+.cm-inset-svg .cm-cell.ctx { stroke: var(--map-ctx-edge); }
+.cm-inset-svg .cm-q, .cm-inset-svg .cm-ok, .cm-inset-svg .cm-bolded { stroke: var(--map-edge-strong); stroke-width: 2; }
 .cm-inset-svg .cm-q { fill: var(--hl); }
-.cm-inset-svg .cm-ok { fill: var(--ok-fill); stroke: var(--ok); }
-.cm-inset-svg .cm-no { fill: var(--no-fill); stroke: var(--no); }
-.cm-inset-note { width: 100%; padding: 1px 4px 2px; background: var(--surface); color: var(--ink-2); font-size: 13px; line-height: 18px; text-align: center; white-space: nowrap; }
+.cm-inset-svg .cm-ok { fill: var(--ok-fill); }
+.cm-inset-svg .cm-ok.tell { fill: var(--hl); }
+.cm-inset-svg .cm-no { fill: var(--no-fill); }
+.cm-inset-note { width: 100%; padding: 2px 6px 3px; border-top: 1px solid var(--line); background: var(--white); color: var(--ink-2); font-size: 14px; line-height: 20px; text-align: center; white-space: nowrap; }
+
+/* 축척 막대: 오른쪽 아래. 길이는 svgmap 이 보기에 맞춰 넣는다.
+   바탕은 지도 바탕색(테두리·그림자 없음): 바다·바탕 위에서는 보이지 않고, 칸 색·경계선 위에 걸칠 때만 글과 막대를 읽을 수 있게 가린다.
+   안쪽 여백만큼 자리를 옮겨 글·막대의 위치는 전과 같다(오른쪽 16, 아래 14) */
+.cm-scale {
+  position: absolute; right: 10px; bottom: 8px; z-index: 1; padding: 4px 6px 6px; background: var(--map-bg);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none;
+  color: var(--ink); font-size: 14px; line-height: 1;
+}
+.cm-scale[hidden] { display: none; }
+.cm-scale i { display: block; height: 6px; box-sizing: border-box; border: 2px solid var(--ink); border-top: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .cm-q.breathe, .cm-ok.pencil, .cm-ok.blink { animation: none; }

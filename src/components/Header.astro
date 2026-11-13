@@ -1,5 +1,5 @@
 ---
-// 공통 머리글: 공부로 가는 입구는 '공부하기' 하나(설계서 7.1). 메뉴는 JS 없이도 열리는 <details>
+// 공통 머리글. 넓은 화면은 가로 메뉴, 좁은 화면은 로고 + 접힌 메뉴. 메뉴는 JS 없이도 열리는 <details>
 import Logo from './Logo.astro';
 import { href } from '../lib/paths';
 import { SITE_NAME, SITE_NAME_EN } from '../consts';
@@ -9,64 +9,118 @@ interface Props { lang?: 'ko' | 'en' }
 const { lang = 'ko' } = Astro.props;
 const en = lang === 'en';
 const home = href(en ? '/en/' : '/');
-const items = en
-  ? [
-      { t: 'Study', h: href('/en/#/kr') },
-      { t: "Today's review", h: href('/en/#/review') },
-      { t: "Seoul's 25 districts", h: href('/en/seoul/') },
-      { t: '한국어', h: href('/') },
-    ]
+const guides = visibleGuides().length > 0;
+
+// 지금 쪽이 어느 메뉴에 드는가(넓은 화면 메뉴에서 굵게)
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const here = Astro.url.pathname.slice(base.length).replace(/^\/en(?=\/|$)/, '') || '/';
+const cur = here === '/' || here === '/index.html' ? 'study'
+  : /^\/(seoul|incheon|gyeonggi)(\/|$)/.test(here) ? 'map'
+  : /^\/guide(\/|$)/.test(here) ? 'guide'
+  : /^\/about(\/|$)/.test(here) ? 'about' : '';
+const on = (k: string) => (cur === k ? 'page' : undefined);
+// 펼친 목록(지역 지도▾ · 폰 메뉴)의 링크는 바로 그 쪽일 때만 aria-current — 굵은 글자만으로는 화면 읽기가 지금 쪽을 모른다
+const at = (h: string) => (Astro.url.pathname === h || Astro.url.pathname === `${h}index.html` ? 'page' : undefined);
+
+const study = en ? { t: 'Study', h: href('/en/#/kr') } : { t: '공부하기', h: href('/#/kr') };
+const review = en ? { t: "Today's review", h: href('/en/#/review') } : { t: '오늘 복습', h: href('/#/review') };
+const maps = en
+  ? [{ t: "Seoul's 25 districts", h: href('/en/seoul/') }]
   : [
-      { t: '공부하기', h: href('/#/kr') },
-      { t: '오늘 복습', h: href('/#/review') },
       { t: '서울 25개 구', h: href('/seoul/') },
       { t: '인천 2군 9구', h: href('/incheon/') },
       { t: '경기 31개 시·군', h: href('/gyeonggi/') },
-      ...(visibleGuides().length ? [{ t: '학습 가이드', h: href('/guide/') }] : []),
-      { t: '채움지도 소개', h: href('/about/') },
-      { t: 'English', h: href('/en/') },
     ];
+const more = en ? [] : [
+  ...(guides ? [{ k: 'guide', t: '학습 가이드', h: href('/guide/') }] : []),
+  { k: 'about', t: '채움지도 소개', h: href('/about/') },
+];
+// 다른 언어 링크: 그 말의 읽기 음성으로 읽히게 lang·hreflang 을 단다
+const other = en ? { t: '한국어', h: href('/'), lang: 'ko' } : { t: 'English', h: href('/en/'), lang: 'en' };
+const all = [study, review, ...maps, ...more, other];
 ---
 <header class="hdr">
   <div class="wrap hdr-in">
     <a class="logo" href={home}><Logo /><span>{en ? SITE_NAME_EN : SITE_NAME}</span></a>
     <nav class="hdr-nav" aria-label={en ? 'Main' : '주 메뉴'}>
-      <a class="nav-study" href={items[0].h}>{items[0].t}</a>
+      <div class="nav-wide">
+        <a href={study.h} aria-current={on('study')}>{study.t}</a>
+        {maps.length > 1 ? (
+          <details class="drop">
+            <summary class:list={{ cur: cur === 'map' }}>
+              {en ? 'Maps' : '지역 지도'}
+              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </summary>
+            <ul>{maps.map((i) => <li><a href={i.h} aria-current={at(i.h)}>{i.t}</a></li>)}</ul>
+          </details>
+        ) : (
+          <a href={maps[0].h} aria-current={on('map')}>{maps[0].t}</a>
+        )}
+        {more.map((i) => <a href={i.h} aria-current={on(i.k)}>{i.k === 'about' ? '소개' : '가이드'}</a>)}
+      </div>
+      <a class="nav-lang" href={other.h} lang={other.lang} hreflang={other.lang}>{other.t}</a>
       <details class="menu">
         <summary aria-label={en ? 'Open menu' : '메뉴 열기'}>
-          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" /></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none" /></svg>
         </summary>
-        <ul>
-          {items.map((i) => <li><a href={i.h}>{i.t}</a></li>)}
-        </ul>
+        <ul>{all.map((i) => <li><a href={i.h} aria-current={at(i.h)} lang={'lang' in i ? i.lang : undefined} hreflang={'lang' in i ? i.lang : undefined}>{i.t}</a></li>)}</ul>
       </details>
     </nav>
   </div>
 </header>
 
+<script>
+  // 열린 메뉴는 바깥을 누르거나, 안의 링크를 누르거나, Esc 를 누르면 닫는다(없어도 메뉴는 열리고 닫힌다)
+  const opened = () => document.querySelectorAll<HTMLDetailsElement>('.hdr details[open]');
+  document.addEventListener('click', (e) => {
+    const t = e.target as Element | null;
+    for (const d of opened()) if (!t || !d.contains(t) || t.closest('a')) d.open = false;
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    for (const d of opened()) { d.open = false; d.querySelector('summary')?.focus(); }
+  });
+</script>
+
 <style>
-  .hdr { background: var(--paper); }
+  .hdr { background: var(--paper); border-bottom: 1px solid var(--line); }
   .hdr-in { min-height: var(--header-h); display: flex; align-items: center; gap: var(--sp-3); }
   .logo { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--tap-min); color: var(--ink); text-decoration: none; }
-  .logo span { font: 800 20px/1 var(--font-head); letter-spacing: -.02em; }
-  .hdr-nav { margin-left: auto; display: flex; align-items: center; gap: var(--sp-1); position: relative; }
-  .nav-study {
-    min-height: 40px; padding: 0 var(--sp-3); border-radius: var(--r-sm); background: var(--brand-soft); color: var(--brand);
-    font: 700 15px/40px var(--font-head); text-decoration: none;
-  }
-  .menu summary {
-    list-style: none; width: var(--tap-min); height: var(--tap-min); display: grid; place-items: center;
-    border-radius: var(--r-md); cursor: pointer; color: var(--ink);
-  }
-  .menu summary::-webkit-details-marker { display: none; }
+  .logo span { font: 700 24px/1 var(--font-ui); letter-spacing: -.02em; }
+  .logo :global(svg) { width: 26px; height: 26px; flex: none; }
+  .hdr-nav { flex: 1; display: flex; align-items: center; justify-content: flex-end; position: relative; }
+  .nav-wide, .nav-lang { display: none; }
+
+  summary { list-style: none; cursor: pointer; }
+  summary::-webkit-details-marker { display: none; }
+  .menu summary { width: 48px; height: 48px; margin-right: -8px; display: grid; place-items: center; color: var(--ink); }
   .menu[open] summary { background: var(--sunk); }
-  .menu ul {
-    position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 220px; margin: 0; padding: var(--sp-2);
-    list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--e2);
+  .menu ul, .drop ul {
+    position: absolute; z-index: 30; min-width: 220px; margin: 0; padding: var(--sp-2) 0;
+    list-style: none; background: var(--surface); border: 1px solid var(--ink);
   }
-  .menu li a {
-    display: flex; align-items: center; min-height: var(--btn-h); padding: 0 var(--sp-3); border-radius: var(--r-sm);
-    color: var(--ink); text-decoration: none; font-size: 16px;
+  .menu ul { right: -8px; top: calc(100% + 4px); }
+  .menu li a, .drop li a {
+    display: flex; align-items: center; min-height: 48px; padding: 0 var(--sp-4);
+    color: var(--ink); text-decoration: none; font-size: var(--fs-16);
   }
-  .menu li a:hover { background: var(--sunk); }
+  .menu li a:hover, .drop li a:hover { background: var(--sunk); }
+
+  @media (min-width: 1024px) {
+    .hdr-in { gap: 44px; }
+    .logo { gap: 10px; }
+    .logo :global(svg) { width: 30px; height: 30px; }
+    .hdr-nav { justify-content: flex-start; }
+    .menu { display: none; }
+    .nav-wide { flex: 1; display: flex; align-items: center; gap: var(--sp-8); }
+    .nav-wide > a, .drop summary, .nav-lang {
+      display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap-min);
+      color: var(--ink-2); text-decoration: none; font-size: var(--fs-16); font-weight: 400;
+    }
+    .nav-wide > a:hover, .drop summary:hover, .nav-lang:hover { color: var(--ink); }
+    .nav-wide > a[aria-current='page'], .drop summary.cur { color: var(--ink); font-weight: 700; }
+    .drop { position: relative; }
+    .drop ul { left: calc(var(--sp-4) * -1); top: calc(100% + 4px); }
+    .drop[open] summary svg { transform: rotate(180deg); }
+  }
 </style>

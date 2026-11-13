@@ -120,5 +120,7 @@ export function restoreDeck(raw: unknown): Deck | null {
   if (!['lesson', 'quick', 'mix', 'check', 'review'].includes(d.kind)) return null;
   if (d.pos < 0 || d.pos > d.queue.length) return null;
   if (d.queue.some((q) => !q || typeof q.id !== 'string' || !['meet', 'choose', 'find'].includes(q.mode))) return null;
-  return { retries: {}, missed: [], toLearn: [], placed: [], right: {}, ...d };
+  // 옛 저장값에는 뒤에 생긴 칸이 없을 수 있어 빈 값을 먼저 깐다(타입상 d 에 늘 있어도 실제 저장값은 다를 수 있다)
+  const fill: Pick<Deck, 'retries' | 'missed' | 'toLearn' | 'placed' | 'right'> = { retries: {}, missed: [], toLearn: [], placed: [], right: {} };
+  return { ...fill, ...d };
 }

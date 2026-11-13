@@ -1,9 +1,13 @@
 // 경계(TopoJSON) → 화면에 그릴 path 와 판정용 다각형(설계서 5.2). 칸·한강 띠·이웃 땅은 같은 위상이라 경계 호를 함께 쓴다:
-// 칸끼리 = 얇은 선, 칸과 한강 = 얇은 선, 해안·다른 시도와의 경계 = 굵은 선. 공유 호는 한 번씩만 그린다
+// 칸끼리 = 가는 선, 칸과 한강·해안·다른 시도와의 경계 = 굵은 선(지역 외곽선). 공유 호는 한 번씩만 그린다.
+// 과·묶음에 따라 달라지는 선(과 안 경계, 묶음 둘레, 칸마다 굵은 테두리)도 칸마다 그리지 않고 메쉬 path 하나로 만든다(동 단위 수백 칸에서도 가볍게)
 import { feature, mesh } from 'topojson-client';
 import type { LabelsFile, Region } from '../types.ts';
 import { FINGER_PX, type TapProbe } from '../core/judge.ts';
 import { project, type Box } from './project.ts';
+import { edgeDist, inside } from './poly.ts';
+
+export { edgeDist, inside };
 
 type Pos = number[];
 interface Geo { type: string; coordinates: any }
@@ -27,15 +31,26 @@ export interface Shapes {
   ids: string[];
   cells: Map<string, Cell>;
   box: Box;           // 공부 칸 전체
-  outD: string;       // 이웃 땅(다른 시도·북한)
-  outEdgeD: string;   // 이웃 땅끼리 경계
+  outD: string;       // 이웃 땅(다른 시도·북한). 이웃 땅끼리 경계는 만들지 않는다(합본 디자인 — 이웃 땅은 바탕색 한 덩어리)
   waterD: string;     // 한강 띠
   water: Float64Array[];
   edgeD: string;      // 칸끼리
   bankD: string;      // 칸과 한강 사이
   rimD: string;       // 해안·다른 시도와의 경계
-  /** 칸 묶음(과)의 바깥 경계: 묶음 안과 밖을 가르는 칸끼리 경계 + 해안·시도 경계(한강 쪽은 빼고) */
-  rimOf(ids: ReadonlySet<string>): string;
+  /**
+   * 칸 묶음(과)의 바깥 경계: 묶음 안과 밖을 가르는 칸끼리 경계 + 해안·시도 경계.
+   * bank 를 켜면 한강 쪽 변도 넣는다(합본 디자인: 묶음 둘레는 강가도 굵다). 끄면 한강 쪽은 뺀다
+   */
+  rimOf(ids: ReadonlySet<string>, opt?: { bank?: boolean }): string;
+  /** 묶음 안 칸끼리의 경계(과 안의 가는 선). 모든 칸이면 edgeD 와 같다 */
+  innerOf(ids: ReadonlySet<string>): string;
+  /**
+   * 묶음 칸들의 모든 변: 칸끼리·한강 쪽·해안·시도 경계('칸마다 굵은 테두리'용). 두 칸이 함께 쓰는 변도 한 번만.
+   * bank: false 를 주면 한강 쪽 변은 뺀다(강가는 bankOf 로 따로 그어 강이 좁게 보일 때 가늘게 낮춘다)
+   */
+  outlineOf(ids: ReadonlySet<string>, opt?: { bank?: boolean }): string;
+  /** 묶음 칸과 한강 사이의 변(묶음의 강가). 강에 닿지 않는 묶음이면 '' */
+  bankOf(ids: ReadonlySet<string>): string;
   /** 먼 섬이 있으면 그 조각들과 범위 */
   far: { box: Box; parts: FarPart[] } | null;
   /** 맥락 이름(설계서 5.2 층 7): 이웃 땅·한강의 이름과 자리(파이프라인이 lp 로 싣는다) */
@@ -79,33 +94,6 @@ function boxOfRings(rings: Float64Array[]): Box {
     if (r[i + 1] > b[3]) b[3] = r[i + 1];
   }
   return b;
-}
-
-/** 짝홀 규칙: 구멍(섬 속 호수 등)도 맞게 본다 */
-export function inside(rings: Float64Array[], x: number, y: number): boolean {
-  let c = false;
-  for (const r of rings) {
-    for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
-      const xi = r[i], yi = r[i + 1], xj = r[j], yj = r[j + 1];
-      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
-    }
-  }
-  return c;
-}
-
-/** 점에서 경계까지 가장 가까운 거리 */
-export function edgeDist(rings: Float64Array[], x: number, y: number): number {
-  let best = Infinity;
-  for (const r of rings) {
-    for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
-      const ax = r[j], ay = r[j + 1], dx = r[i] - ax, dy = r[i + 1] - ay;
-      const l2 = dx * dx + dy * dy;
-      const t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
-      const d = Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
-      if (d < best) best = d;
-    }
-  }
-  return best;
 }
 
 /** 칸 층·id 이름·곳 목록. 보통은 지역(units.json)에서 오고, 동 층(P1·부하 시험)은 따로 준다 */
@@ -158,7 +146,7 @@ export function buildShapes(topo: Topology, spec: LayerSpec, labels: LabelsFile)
   const layer = topo.objects[spec.layer];
   if (!layer) throw new Error(`경계 파일에 ${spec.layer} 층이 없음`);
   const idKey = spec.idKey;
-  const tag = (gs: TopoGeom[] | undefined, k: string) => (gs ?? []).map((g) => ({ ...g, properties: { ...g.properties, k } }));
+  const tag = (gs: TopoGeom[] | undefined, k: string) => (gs ?? []).map((g): TopoGeom => ({ ...g, properties: { ...g.properties, k } }));
   const cellsT = tag(layer.geometries, 'c');
   const waterT = tag(topo.objects.water?.geometries, 'w');
   const outT = tag(topo.objects.out?.geometries, 'o');
@@ -191,13 +179,25 @@ export function buildShapes(topo: Topology, spec: LayerSpec, labels: LabelsFile)
   const outGeoms = feature(topo, outObj).features.map((f: { geometry: Geo }) => f.geometry);
   const outRings = outGeoms.flatMap(ringsOf);
   const landRings = [...outRings, ...ids.flatMap((id) => cells.get(id)!.rings)];
+  // 묶음별 메쉬는 문제마다 다시 불리므로 기억해 둔다(묶음 = 과·화면·복습할 곳이라 가짓수가 적다)
+  const memo = new Map<string, string>();
+  const meshOf = (kind: string, set: ReadonlySet<string>, make: () => string): string => {
+    if (!set.size) return '';
+    const key = kind + [...set].sort().join(',');
+    let d = memo.get(key);
+    if (d === undefined) {
+      if (memo.size > 120) memo.clear();
+      memo.set(key, d = make());
+    }
+    return d;
+  };
+  const inSet = (g: TopoGeom, set: ReadonlySet<string>) => k(g) === 'c' && set.has(idOf(g));
 
   return {
     ids,
     cells,
     box: boxOfRings(ids.flatMap((id) => cells.get(id)!.rings)),
     outD: outGeoms.map(polyD).join('') + extendD(landRings, boxOfRings(outRings.length ? landRings : [])),
-    outEdgeD: meshD(mesh(topo, outObj, (a, b) => a !== b)),
     waterD: water.map(polyD).join(''),
     water: water.flatMap(ringsOf),
     edgeD: meshD(mesh(topo, cellsObj, (a, b) => a !== b)),
@@ -212,13 +212,25 @@ export function buildShapes(topo: Topology, spec: LayerSpec, labels: LabelsFile)
         const [x, y] = project(lon, lat);
         return { text, x, y, kind, sido };
       }),
-    rimOf(set) {
-      return meshD(mesh(topo, all, (a, b) => {
-        const ia = k(a) === 'c' && set.has(idOf(a)), ib = k(b) === 'c' && set.has(idOf(b));
+    rimOf(set, opt) {
+      const bank = !!opt?.bank;
+      return meshOf(bank ? 'rb:' : 'r:', set, () => meshD(mesh(topo, all, (a, b) => {
+        const ia = inSet(a, set), ib = inSet(b, set);
         if (a === b) return ia;
-        if (k(a) === 'w' || k(b) === 'w') return false;
+        if (!bank && (k(a) === 'w' || k(b) === 'w')) return false;
         return ia !== ib;
-      }));
+      })));
+    },
+    innerOf(set) {
+      return meshOf('i:', set, () => meshD(mesh(topo, cellsObj, (a, b) => a !== b && set.has(idOf(a)) && set.has(idOf(b)))));
+    },
+    outlineOf(set, opt) {
+      const bank = opt?.bank !== false;
+      return meshOf(bank ? 'o:' : 'od:', set, () => meshD(mesh(topo, all, (a, b) =>
+        (inSet(a, set) || inSet(b, set)) && (bank || (k(a) !== 'w' && k(b) !== 'w')))));
+    },
+    bankOf(set) {
+      return meshOf('b:', set, () => meshD(mesh(topo, all, (a, b) => (inSet(a, set) && k(b) === 'w') || (k(a) === 'w' && inSet(b, set)))));
     },
   };
 }

@@ -10,24 +10,29 @@ import { TAGLINE_EN, DATA_VER } from '../../consts';
 <Base lang="en" title="Fill the Map – Learn Korea's administrative regions on a blank map" description="A blank-map quiz for the districts of Seoul, Incheon and Gyeonggi. Meet four to six places at a time, find them with the names hidden, and review them the next day." alternate={{ ko: '/', en: '/en/' }}>
   <div id="app" data-base={import.meta.env.BASE_URL} data-ver={DATA_VER}>
     <script is:inline>
-      // Returning visitors: hide the first-visit fallback before it flashes (progress is shared with the Korean app)
+      // Returning visitors: hide the first-visit fallback before it flashes (progress is shared with the Korean app).
+      // kgq-js: with JS on, hold the map's place so the page jumps less when the app draws. Without JS the empty map box stays hidden
+      document.documentElement.classList.add('kgq-js');
       try { if (localStorage.getItem('kgq_mastery_v1:p1')) document.documentElement.classList.add('kgq-ret'); } catch (e) {}
     </script>
-    <div class="page app-fallback">
-      <h1 class="title-26">Fill the Map</h1>
-      <p class="sub">{TAGLINE_EN}</p>
-      <section class="card" aria-labelledby="start">
-        <h2 class="title-22" id="start">Seoul lesson 1 · Downtown and northwest, 6 districts</h2>
-        <p class="t15">Meet the places one by one on the map, then find them with the names hidden</p>
-        <a class="btn" href={href('/en/seoul/')}>Seoul's 25 districts</a>
-        <noscript><p class="t13">The study screens need JavaScript</p></noscript>
-      </section>
+    <!-- Fallback: same frame and type sizes as the new home's first-visit screen (design 3.2). The h1 text stays as is (search decision) -->
+    <div class="page home app-fallback">
+      <div class="h-tabs" aria-hidden="true"><span class="h-tab"></span></div>
+      <div class="h-main">
+        <div class="h-head">
+          <p class="h-label">{TAGLINE_EN}</p>
+          <h1 class="h-title">Fill the Map</h1>
+        </div>
+        <div class="h-names">
+          <h2 class="h-places">Seoul lesson 1 · Downtown and northwest, 6 districts</h2>
+          <p class="h-desc">Meet the places one by one on the map, then find them with the names hidden</p>
+          <noscript><p class="h-note">The study screens need JavaScript</p></noscript>
+        </div>
+        <div class="h-acts"><a class="btn h-go" href={href('/en/seoul/')}>Seoul's 25 districts <span aria-hidden="true">→</span></a></div>
+        <div class="h-mapcol" style="--ar:1.23" aria-hidden="true"><div class="h-cap wide-only"><span class="h-ct">Seoul · 25 districts</span></div><div class="map-box h-map"></div></div>
+      </div>
     </div>
   </div>
-  <style is:global>
-    .kgq-ret .app-fallback { visibility: hidden; }
-    .app-fallback { min-height: 60vh; }
-  </style>
   <script>
     import '../../app/main.ts';
   </script>

@@ -1,5 +1,6 @@
 ---
-// 학습 가이드 글(/guide/{slug}/). 검수 전 글은 개발 서버에서만 만들어지고 '검수 전 초안' 띠와 noindex 가 붙는다(registry.ts)
+// 학습 가이드 글(/guide/{slug}/). 검수 전 글은 개발 서버에서만 만들어지고 '검수 전 초안' 띠와 noindex 가 붙는다(registry.ts).
+// 모양(합본 D5): 글은 34em(18px) 읽기 폭, 표·지도·지도 쌍은 조금 넓게(760px). 요약은 선 구획, 해 보기는 윗선 2px + 먹색 단추(공용 .cta)
 import Base from '../../../layouts/Base.astro';
 import { href } from '../../../lib/paths';
 import { visibleGuides, type Guide } from '../../../guides/registry';
@@ -21,7 +22,7 @@ const [y, m, d] = g.updated.split('-').map(Number);
 ---
 <Base title={`${g.title} – 채움지도`} description={g.description} ads={!!g.reviewed} noindex={!g.reviewed}>
   <div class="wrap page">
-    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › <a href={href('/guide/')}>학습 가이드</a></nav>
+    <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › <a href={href('/guide/')}>학습 가이드</a></nav>
     {!g.reviewed && (
       <div class="draft" role="note"><b>검수 전 초안</b> — 공개 전에 운영자가 1차 자료와 대조합니다. 확인할 것: {g.check.join(' / ')}</div>
     )}
@@ -34,20 +35,25 @@ const [y, m, d] = g.updated.split('-').map(Number);
 </Base>
 
 <style>
-  .draft { background: var(--due-soft); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); font-size: 14px; line-height: 21px; color: var(--ink-2); }
-  .article { max-width: var(--content-w); display: flex; flex-direction: column; gap: var(--sp-4); font-size: 17px; line-height: 28px; }
-  .article :global(h1) { font-size: 26px; line-height: 34px; }
-  .article :global(h2) { font-size: 22px; line-height: 30px; margin-top: var(--sp-2); }
+  .draft { max-width: 760px; }
+  /* 글 상자는 760px(표·지도), 그 안의 글 덩어리는 34em */
+  .article { max-width: 760px; display: flex; flex-direction: column; gap: var(--sp-4); font-size: var(--fs-18); line-height: 1.75; }
+  /* 글 덩어리는 글자 크기와 상관없이 같은 오른쪽 선(본문 18px 의 34em = 612px)에 맞춘다 */
+  .article > :global(:is(h1, h2, h3, p, ul, ol, .summary, .cta)) { max-width: calc(34 * var(--fs-18)); }
+  .article :global(h1) { font-size: var(--fs-title); line-height: 1.25; }
+  .article :global(h2) { font-size: var(--fs-24); line-height: 1.4; margin-top: var(--sp-6); }
+  .article :global(h3) { font-size: var(--fs-18); line-height: 1.45; margin-top: var(--sp-2); }
   .article :global(p) { margin: 0; }
-  .article :global(.summary) { background: var(--sunk); border-radius: var(--r-md); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 24px; }
-  .article :global(.tbl) { overflow-x: auto; }
-  .article :global(table) { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 22px; }
-  .article :global(th), .article :global(td) { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
-  .article :global(th) { font-family: var(--font-head); color: var(--ink-2); font-size: 14px; white-space: nowrap; }
-  .article :global(td:first-child) { white-space: nowrap; }
+  .article > :global(p.meta) { font-size: var(--fs-14); line-height: 1.6; }
+  /* 이 글의 핵심: 면색 상자 대신 위 2px 먹 · 아래 1px 약선 */
+  .article :global(.summary) { display: flex; flex-direction: column; gap: 6px; padding: 14px 0 16px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); font-size: var(--fs-16); line-height: 1.6; }
+  .article :global(.summary b) { font-size: var(--fs-16); }
+  /* 표 위아래 4px 는 공용 .tbl 의 안쪽 여백(초점 고리 자리)이 맡는다 */
+  .article :global(.tbl) { margin-block: 0; }
+  /* 숫자 칸(.num)만 오른쪽 맞춤: '옛 구'처럼 글인 칸은 왼쪽 그대로 */
+  .article :global(table.nums :is(th, td).num) { text-align: right; }
   .article :global(ol), .article :global(ul) { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: var(--sp-2); }
-  .article :global(.cta) { background: var(--brand-soft); border-radius: var(--r-lg); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); }
-  .article :global(.sw) { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border: 1px solid var(--map-edge); border-radius: 3px; vertical-align: -1px; }
-  .article :global(table.nums th:not(:first-child)), .article :global(table.nums td:not(:first-child)) { text-align: right; }
-  .article :global(.src) { font-size: 15px; line-height: 23px; color: var(--ink-2); }
+  .article :global(.cta) { margin-top: var(--sp-4); }
+  .article :global(.sw) { vertical-align: -3px; margin-right: 7px; }
+  .article :global(.src) { font-size: var(--fs-16); line-height: 1.6; color: var(--ink-2); }
 </style>

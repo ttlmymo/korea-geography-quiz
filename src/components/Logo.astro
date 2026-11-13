@@ -1,10 +1,10 @@
 ---
-// 로고: 세 폭으로 접힌 지도, 가운데 폭이 칠해져 있다(채움)
+// 로고: 세 폭으로 접힌 지도, 가운데 폭의 한 칸이 칠해져 있다(채움)
 interface Props { size?: number }
-const { size = 26 } = Astro.props;
+const { size = 30 } = Astro.props;
 ---
-<svg width={size} height={Math.round(size * 24 / 26)} viewBox="0 0 26 24" aria-hidden="true" class="logo-mark">
-  <path d="M1 4l7-3v19l-7 3z" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round" />
-  <path d="M8 1l9 3v19l-9-3z" fill="var(--m3)" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round" />
-  <path d="M17 4l8-3v19l-8 3z" fill="var(--m1)" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round" />
+<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true" class="logo-mark">
+  <path d="M9 9.5 15 11.5v5l-6-2z" fill="var(--m-learning)" stroke="none" />
+  <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" />
+  <path d="M9 4v14M15 6v14" />
 </svg>

@@ -1,5 +1,6 @@
 ---
-// 경기 허브: 31개 시·군 지도와 표(읍·면·동·일반구·과). 개수는 모두 경계 데이터로 센 것
+// 경기 허브: 31개 시·군 지도와 표(읍·면·동·일반구·과). 개수는 모두 경계 데이터로 센 것.
+// 배치(합본 D5): 넓은 화면은 홈 시안처럼 글 | 지도 2단, 지도는 범례 줄까지 첫 화면에 드는 높이(tokens.css .d-top.hub). 좁은 화면은 제목 → 지도 → 글
 import Base from '../../layouts/Base.astro';
 import RegionMap from '../../components/RegionMap.astro';
 import { href } from '../../lib/paths';
@@ -21,44 +22,39 @@ const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
 ---
 <Base title="경기 31개 시·군 지도로 익히기 – 채움지도" description={`경기도 31개 시·군(${si}개 시, ${gun}개 군)을 지도로 봐요. 일반구가 있는 ${withGu.length}개 시와 시·군마다 읍·면·동 수, 채움지도의 공부 순서를 정리했어요.`} ads>
   <div class="wrap page">
-    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › 경기</nav>
-    <div class="stack">
-      <h1>경기 31개 시·군</h1>
-      <p class="lead">경기도는 서울을 둘러싼 {si}개 시와 {gun}개 군, 모두 31개 시·군으로 이뤄져요. 이 가운데 {withGu.map((it) => it.ko.replace(/시$/, '')).join('·')} {withGu.length}개 시에는 일반구가 {guTotal}개 있어요. 읍·면·동은 모두 {all.length}개(읍 {k.읍}·면 {k.면}·동 {k.동})예요(2026년 10월 1일 경계 기준).</p>
+    <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › 경기</nav>
+    <div class="d-top hub">
+      <div class="d-head">
+        <h1 class="d-title">경기 31개 시·군</h1>
+      </div>
+      <div class="d-body">
+        <p class="lead">경기도는 서울을 둘러싼 {si}개 시와 {gun}개 군, 모두 31개 시·군으로 이뤄져요. 이 가운데 {withGu.map((it) => it.ko.replace(/시$/, '')).join('·')} {withGu.length}개 시에는 일반구가 {guTotal}개 있어요. 읍·면·동은 모두 {all.length}개(읍 {k.읍}·면 {k.면}·동 {k.동})예요(2026년 10월 1일 경계 기준).</p>
+        <div class="d-acts"><a class="btn" href={href('/#/kr/gyeonggi/sgg/p1')}>경기 1과부터 공부하기 <span aria-hidden="true">→</span></a></div>
+      </div>
+      <figure class="d-map">
+        <RegionMap region="gyeonggi" labels label="경기 31개 시·군 지도" />
+        <figcaption class="d-key">가운데 빈 곳이 서울, 서쪽이 인천이에요.</figcaption>
+      </figure>
     </div>
-    <a class="btn" href={href('/#/kr/gyeonggi/sgg/p1')}>경기 1과부터 공부하기</a>
-    <figure class="stack fig">
-      <RegionMap region="gyeonggi" labels label="경기 31개 시·군 지도" />
-      <figcaption class="meta">가운데 빈 곳이 서울, 서쪽이 인천이에요.</figcaption>
-    </figure>
 
-    <section class="stack">
+    <section class="d-sec">
       <h2>채움지도에서 배우는 순서</h2>
       <p>서울과 가까운 곳부터 일곱 과로 나눴어요. 일반구는 시 하나로 합쳐서 배워요(일반구 단원은 나중에 따로 생겨요). 마친 뒤 31곳을 섞어 찾는 전체 연습과 시험에서는 지도가 북서부·북동부·남서부·남동부 네 화면으로 나뉘어요. 한 화면에 31곳을 다 넣으면 구리시나 오산시처럼 작은 곳이 손가락으로 누르기 어려울 만큼 작아지기 때문이에요.</p>
       <div class="tbl"><table>
         <thead><tr><th scope="col">과</th><th scope="col">시·군</th></tr></thead>
-        <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/#/kr/gyeonggi/sgg/p${l.no}`)}>{l.no}과 {l.title}</a></td><td>{l.items.map(nm).join(' · ')}</td></tr>)}</tbody>
+        <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/#/kr/gyeonggi/sgg/p${l.no}`)}>{l.no}과 {l.title}</a></td><td>{l.items.map(nm).join('\u00a0· ')}</td></tr>)}</tbody>
       </table></div>
     </section>
 
-    <section class="stack">
+    <section class="d-sec">
       <h2>31개 시·군 한눈에</h2>
       <div class="tbl"><table>
         <thead><tr><th scope="col">시·군</th><th scope="col">읍·면·동</th><th scope="col">일반구</th><th scope="col">과 · 화면</th></tr></thead>
         <tbody>{rows.map((it) => (
-          <tr><td>{it.ko}</td><td>{kindsText(itemOf(it.id).dongs).replace('행정동 ', '')}</td><td>{itemOf(it.id).gu.join(' · ') || '—'}</td><td>{lessonOf(it.id).no}과 · {screenOf(it.id).ko}</td></tr>
+          <tr><td>{it.ko}</td><td>{kindsText(itemOf(it.id).dongs).replace('행정동 ', '')}</td><td>{itemOf(it.id).gu.join(' · ') || '—'}</td><td>{lessonOf(it.id).no}과 · {screenOf(it.id).ko}</td></tr>
         ))}</tbody>
       </table></div>
     </section>
     <p class="meta">행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 2026년 10월 1일 판 · 데이터 판 {DATA_VER}. <a href={href('/sources/')}>데이터 출처</a></p>
   </div>
 </Base>
-
-<style>
-  .fig { margin: 0; }
-  .tbl { overflow-x: auto; }
-  .tbl table { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 22px; }
-  .tbl th, .tbl td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
-  .tbl th { font-family: var(--font-head); color: var(--ink-2); font-size: 14px; }
-  .tbl td:first-child { white-space: nowrap; }
-</style>

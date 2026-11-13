@@ -6,35 +6,41 @@ import { SITE_NAME, SITE_NAME_EN, DATA_VER, CONTACT_EMAIL } from '../consts';
 interface Props { lang?: 'ko' | 'en' }
 const { lang = 'ko' } = Astro.props;
 const en = lang === 'en';
+// 다른 언어 링크에는 lang·hreflang 을 단다(그 말의 읽기 음성으로 읽히게)
 const links = en
-  ? [{ t: 'Privacy policy', h: href('/privacy-en.html') }, { t: '한국어', h: href('/') }]
+  ? [{ t: 'Privacy policy', h: href('/privacy-en.html') }, { t: '한국어', h: href('/'), lang: 'ko' }]
   : [
       { t: '소개', h: href('/about/') },
       { t: '문의', h: href('/contact/') },
       { t: '개인정보처리방침', h: href('/privacy.html') },
       { t: '데이터 출처', h: href('/sources/') },
-      { t: 'English', h: href('/en/') },
+      { t: 'English', h: href('/en/'), lang: 'en' },
     ];
 ---
 <footer class="foot">
   <div class="wrap foot-in">
-    <ul class="links">{links.map((l) => <li><a href={l.h}>{l.t}</a></li>)}</ul>
+    <ul class="links">{links.map((l) => <li><a href={l.h} lang={'lang' in l ? l.lang : undefined} hreflang={'lang' in l ? l.lang : undefined}>{l.t}</a></li>)}</ul>
     <p>
       {en ? 'Boundaries: Statistics Korea SGIS · ' : '행정동 경계: 통계청 SGIS · '}
       <a href="https://github.com/vuski/admdongkor">vuski/admdongkor</a>
       {en ? ' (CC BY 4.0), simplified · data ' : '(CC BY 4.0)를 단순화해 씀 · 데이터 판 '}<span class="num">{DATA_VER}</span>
       {en ? ' · North Korea: ' : ' · 북한 땅: '}<a href="https://www.naturalearthdata.com/">Natural Earth</a>{en ? ' (public domain)' : '(공개 도메인)'}
     </p>
-    <p>{en ? 'Contact' : '문의'}: <span class="mail">{CONTACT_EMAIL}</span></p>
-    <p>© {en ? SITE_NAME_EN : SITE_NAME}</p>
+    <p>{en ? 'Contact' : '문의'}: <span class="mail">{CONTACT_EMAIL}</span> · © {en ? SITE_NAME_EN : SITE_NAME}</p>
   </div>
 </footer>
 
 <style>
   .foot { border-top: 1px solid var(--line); margin-top: var(--sp-8); }
-  .foot-in { padding-block: var(--sp-6) calc(var(--sp-8) + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: var(--sp-2); font-size: 13px; line-height: 20px; color: var(--ink-3); }
-  .links { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); }
-  .links a { display: inline-flex; align-items: center; min-height: 32px; color: var(--ink-2); font-size: 14px; }
-  .foot a { color: var(--ink-2); }
+  .foot-in {
+    padding-block: var(--sp-2) calc(var(--sp-6) + env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column; gap: var(--sp-1);
+    font-size: var(--fs-14); line-height: 1.6; color: var(--ink-3);
+  }
+  .links { list-style: none; margin: 0 0 var(--sp-1); padding: 0; display: flex; flex-wrap: wrap; gap: 0 var(--sp-6); }
+  .links a { display: inline-flex; align-items: center; min-height: var(--tap-min); color: var(--ink-2); text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+  .foot p a { color: var(--ink-2); }
   .mail { user-select: all; }
+  @media (min-width: 1024px) { .links { gap: 0 28px; } }
 </style>

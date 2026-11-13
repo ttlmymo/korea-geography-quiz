@@ -48,7 +48,7 @@ const SRC = {
 <p>2026년 10월 1일 경계 데이터로 세면 일반구가 있는 시는 다음과 같아요. 그 가운데 {cities.filter((c) => c.sido === '경기').length}곳이 경기도에 있어요.</p>
 <div class="tbl"><table>
   <thead><tr><th scope="col">시·도</th><th scope="col">시</th><th scope="col">일반구</th></tr></thead>
-  <tbody>{cities.map((c) => <tr><td>{c.sido}</td><td>{c.si}{SPECIAL.includes(c.si) && <span class="tag">특례시</span>}</td><td>{c.gu.join(' · ')} <span class="meta">({c.gu.length})</span></td></tr>)}</tbody>
+  <tbody>{cities.map((c) => <tr><td>{c.sido}</td><td>{c.si}{SPECIAL.includes(c.si) && <span class="doc-tag">특례시</span>}</td><td>{c.gu.join(' · ')} <span class="meta">({c.gu.length})</span></td></tr>)}</tbody>
 </table></div>
 
 <h2>특례시는 무엇일까</h2>
@@ -80,6 +80,3 @@ const SRC = {
   <li>일반구 수와 이름, 같은 이름의 구: 통계청 SGIS · vuski/admdongkor(CC BY 4.0) 2026년 10월 1일 판 행정동 경계로 셌어요(<a href={href('/sources/')}>데이터 출처</a>).</li>
 </ul>
 
-<style>
-  .tag { margin-left: 6px; font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: var(--r-pill); background: var(--sunk); color: var(--ink-2); white-space: nowrap; }
-</style>

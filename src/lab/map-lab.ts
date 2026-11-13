@@ -122,7 +122,7 @@ async function build() {
   if (mode === 'emd') {
     // 부하 시험: 서울 427동 한 화면(설계서 5.3·결정 8)
     const [topo, labels] = await Promise.all([loadTopo(base, ver, 'seoul', 'emd'), loadJSON<LabelsFile>(geoUrl(base, ver, 'labels-emd.json'))]);
-    const geoms = topo.objects.emd.geometries as { properties: { id: string; name: string; sggName: string } }[];
+    const geoms = topo.objects.emd.geometries as unknown as { properties: { id: string; name: string; sggName: string } }[];
     const names = new Map(geoms.map((g) => [g.properties.id, `${g.properties.sggName} ${g.properties.name}`]));
     shapes = buildShapes(topo, { layer: 'emd', idKey: 'id', ids: geoms.map((g) => g.properties.id) }, labels);
     map = createSvgMap(ui.map, { shapes, onTap: (t) => toast(t.type === 'cell' ? names.get(t.id) ?? t.id : TAP_KO[t.type]), onZoomed, onCommit });
@@ -136,13 +136,17 @@ async function build() {
   const region = reg.region(ui.region.value)!;
   const topo = await loadTopo(base, ver, region.key);
   shapes = buildShapes(topo, specOf(region), geo.labels);
-  map = createSvgMap(ui.map, { shapes, onTap, onZoomed, onCommit });
+  map = createSvgMap(ui.map, { shapes, onTap, onZoomed, onCommit, scaleBar: true, scaleLift: true });
   if (mode === 'fill') {
     const r = rngFrom(3);
-    map.setFills(Object.fromEntries(shapes.ids.map((id) => [id, Math.floor(r() * 4)])));
+    const fills = Object.fromEntries(shapes.ids.map((id) => [id, Math.floor(r() * 4)]));
     map.setHome(boxOf(region.fit), { t: 12, r: 12, b: 12, l: 12 });
-    // 복습할 곳 배지(무작위 다섯 곳): 작은 칸은 지도 아래 목록으로
-    const small = map.setBadges(shuffle(shapes.ids, r).slice(0, 5));
+    map.setFills(fills);
+    // 홈 지도처럼: 다 익힌 칸의 이름(자리가 있을 때만), 복습할 곳 다섯(무작위) 굵은 테두리 + 먹색 점. 아주 작은 칸은 지도 아래 목록으로
+    const due = shuffle(shapes.ids, r).slice(0, 5);
+    map.setLabels(shapes.ids.filter((id) => fills[id] === 3 && !due.includes(id)).map((id) => ({ id, text: nm(id) })), { mode: 'fit', minWidth: 0 });
+    map.setBold(due);
+    const small = map.setBadges(due);
     ui.band.textContent = `${region.ko} 채움 지도(무작위 단계)`;
     setSheet(small.length ? [h('div', 't3', `복습할 곳(칸이 작아 목록으로): ${small.map(nm).join(', ')}`)] : []);
     return;

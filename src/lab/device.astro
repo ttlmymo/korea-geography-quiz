@@ -4,8 +4,8 @@
 import '../styles/tokens.css';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const SWATCH = [
-  ['--m0', '아직 안 칠한 곳'], ['--m1', '칠함 1'], ['--m2', '칠함 2'], ['--m3', '다 익힘'],
-  ['--ok', '정답'], ['--no', '오답'], ['--hl', '찾을 곳'], ['--map-water', '물'], ['--map-out', '바깥 땅'], ['--map-edge', '경계선'],
+  ['--m0', '아직 안 칠한 곳'], ['--m-learning', '익히는 중'], ['--m3', '다 익힘'],
+  ['--ok-fill', '맞힌 칸'], ['--no-fill', '잘못 누른 칸'], ['--hl', '찾을 곳'], ['--map-water', '물'], ['--map-bg', '바탕'], ['--map-edge', '경계선'],
 ];
 ---
 <!doctype html>
@@ -29,10 +29,10 @@ const SWATCH = [
       td { word-break: break-all; font-variant-numeric: tabular-nums; }
       .go { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .go a { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 10px; text-align: center;
-        border: 1.5px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font-weight: 700; text-decoration: none; }
+        border: 1.5px solid var(--ink); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font-weight: 700; text-decoration: none; }
       .sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
       .sw div { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
-      .sw i { display: block; height: 36px; border-radius: var(--r-sm); border: 1px solid var(--map-edge); }
+      .sw i { display: block; height: 36px; border-radius: var(--r-sw); border: 1px solid var(--map-edge); }
       .probe { position: fixed; left: -10px; top: 0; width: 1px; visibility: hidden; pointer-events: none; }
       .sent { font-size: 13px; color: var(--ink-3); }
     </style>

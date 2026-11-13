@@ -45,4 +45,7 @@ export default defineConfig({
   trailingSlash: 'ignore',
   // 'preserve': src/pages/privacy.astro → /privacy.html, src/pages/seoul/index.astro → /seoul/ (옛 주소 그대로)
   build: { format: 'preserve' },
+  // 글꼴 조각(woff2)은 4KB 아래여도 CSS 에 data: 로 넣지 않는다: 모든 쪽이 렌더를 막고 받는 글꼴 CSS(fonts.css)가
+  // 쓰지도 않는 조각까지 품어 커진다(gzip 약 22KB). 따로 두면 그 글자가 화면에 있을 때만 받는다
+  vite: { build: { assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined) } },
 });

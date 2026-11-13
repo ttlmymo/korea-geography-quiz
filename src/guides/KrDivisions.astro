@@ -14,7 +14,7 @@ const KIND_ORDER = ['특별시', '통합특별시', '광역시', '특별자치�
 const byKind = KIND_ORDER.map((k) => ({ kind: k, list: KR.sidos.filter((s) => s.kind === k).map((s) => s.name) }));
 const sggCell = (s: (typeof KR.sidos)[number]) => {
   const parts = [s.si && `시 ${s.si}`, s.gun && `군 ${s.gun}`, s.gu && `구 ${s.gu}`, s.adminSi && `행정시 ${s.adminSi}`].filter(Boolean);
-  return parts.length ? parts.join(' · ') + (s.ilban ? ` (일반구 ${s.ilban})` : '') : '없음';
+  return parts.length ? parts.join(' · ') + (s.ilban ? ` (일반구 ${s.ilban})` : '') : '없음';
 };
 const ilbanSi = KR.sidos.flatMap((s) => s.ilbanSi);
 // 표에 쓰는 짧은 이름(시·도 코드 → 흔히 쓰는 줄임)
@@ -27,7 +27,7 @@ const manyGunOk = manyGun.every((s) => s.myeon > s.dong);
 if (!manyGunOk || onlyGu.some((nm) => { const s = KR.sidos.find((x) => short(x) === nm)!; return s.eup + s.myeon > 0; })) throw new Error('G1 읍·면 문장이 데이터와 다름');
 const jg = KR.sidos.find((s) => s.kind === '통합특별시')!;
 const ic = KR.sidos.find((s) => s.name === '인천광역시')!;
-const covered = UNITS.regions.map((r) => `${r.ko} ${r.items.length}`).join(' · ');
+const covered = UNITS.regions.map((r) => `${r.ko} ${r.items.length}`).join(' · ');
 const g2 = guideIf('legal-vs-administrative-dong');
 const g3 = guideIf('incheon-reform-2026');
 const g4 = guideIf('autonomous-vs-general-gu');
@@ -73,7 +73,7 @@ const SRC = {
 <h2>읍·면·동은 무엇이 다를까</h2>
 <p>읍은 그 대부분이 도시 형태를 갖추고 인구가 2만 이상이어야 해요(지방자치법 제10조 ③). 시가 되려면 도시 형태에 인구 5만 이상이 필요해요(같은 조 ①). 군은 읍·면으로, 시와 구는 동으로 나누는 것이 기본이지만, 도시와 농촌이 섞인 시(도농 복합형태의 시)는 도시 지역에 동을, 그 밖의 지역에 읍·면을 둬요(제3조 ④). 경기도의 화성시나 남양주시에 동과 읍·면이 함께 있는 이유예요.</p>
 <div class="tbl"><table class="nums">
-  <thead><tr><th scope="col">시·도</th><th scope="col">읍</th><th scope="col">면</th><th scope="col">동</th><th scope="col">합계</th></tr></thead>
+  <thead><tr><th scope="col">시·도</th><th scope="col" class="num">읍</th><th scope="col" class="num">면</th><th scope="col" class="num">동</th><th scope="col" class="num">합계</th></tr></thead>
   <tbody>
     {KR.sidos.map((s) => <tr><td>{short(s)}</td><td class="num">{s.eup}</td><td class="num">{n(s.myeon)}</td><td class="num">{n(s.dong)}</td><td class="num">{n(s.eup + s.myeon + s.dong)}</td></tr>)}
     <tr><td><b>전국</b></td><td class="num">{T.eup}</td><td class="num">{n(T.myeon)}</td><td class="num">{n(T.dong)}</td><td class="num"><b>{n(emd)}</b></td></tr>

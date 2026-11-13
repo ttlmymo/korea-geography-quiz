@@ -1,8 +1,13 @@
 ---
-// 정적 쪽 위치도: 빌드 때 경계 데이터로 그린 SVG(크롤러가 읽고 JS 없이 보임, 설계서 5.1·7.5).
-// highlight = 강조할 곳, tone = 곳마다 칠(a~e 다섯 가지, 권역 구분 등: 색은 TONE_FILL), labels = 이름(칸이 너무 작으면 뺌).
+// 정적 쪽 위치도: 빌드 때 경계 데이터로 그린 SVG(크롤러가 읽고 JS 없이 보임, 설계서 5.1·7.5). 모양은 앱 지도와 같다(합본 디자인 3.1):
+// 면색 바탕 · 굵은 지역 외곽선 · 먹색 1px 칸 경계 · 1px 틀 · 각진 모서리 · 후광 없는 이름표.
+// highlight = 강조할 곳(노랑 + 굵은 테두리), tone = 곳마다 칠(a~e 다섯 가지, 권역 구분 등: 색은 TONE_FILL), labels = 이름.
+// 이름표는 SVG 글자가 아니라 지도 위에 얹은 HTML 글자(늘 14px)다. 지도 폭에 따라 줄어들지 않고,
+// 그 폭에서 글자 상자가 칸 안에 온전히 드는 이름만 보인다(문턱 폭과 자리는 빌드 때 잰다 — 좁은 화면에서는 이름이 줄고, 이름은 아래 표에 다 있다).
 // region 은 src/data/svg 의 파일 이름(incheon-before = 개편 전 인천, 곳 id 는 old:구이름)
 import { svgOf, nameOf, type Tone } from '../lib/geo';
+import { ringsOfD } from '../app/map/poly';
+import { fitBox, labelBox, staticLabel } from '../app/map/labelfit';
 
 interface Props {
   region: string;
@@ -10,15 +15,21 @@ interface Props {
   highlight?: string[];
   tone?: Record<string, Tone>;
   labels?: boolean;
-  /** 칸이 작아도 이름을 꼭 보일 곳(작은 글씨) */
+  /** 칸이 작아 이름이 안 들어가도 꼭 보일 곳(흰 판에 얹는다) */
   alwaysLabel?: string[];
-  /** 이 곳들이 꽉 차게 확대(둘레 8%). 글자 크기도 화면에서 같게 맞춘다 */
+  /** 이 곳들이 꽉 차게 확대(둘레 8%) */
   fit?: string[];
 }
 const { region, label, highlight = [], tone = {}, labels = false, alwaysLabel = [], fit = [] } = Astro.props;
-const svg = svgOf(region);
-// 확대 상자: fit 곳들의 경로 좌표(정수 'x y' 짝)로 잰다. k = 보이는 폭 / 전체 폭(글자·이름 기준에 곱함)
-let vb = [0, 0, svg.w, svg.h];
+const raw = svgOf(region);
+// 지역 전체 보기: 데이터 범위(0~w, 0~h) 밖의 섬 고리(인천 옹진군의 먼 섬 — 쪽 글이 따로 알린다)는 통째로 뺀다.
+// 가장자리 여백에 섬 조각이 틀에 잘린 채 비치지 않게(범위에 걸친 고리는 없다 — 데이터가 섬 단위로 나눈다)
+const inData = (part: string) => { const m = part.match(/(-?\d+) (-?\d+)/); return !!m && +m[1] >= 0 && +m[1] <= raw.w && +m[2] >= 0 && +m[2] <= raw.h; };
+const svg = fit.length ? raw : { ...raw, items: raw.items.map((it) => ({ ...it, d: it.d.split('M').filter(inData).map((p) => `M${p}`).join('') })) };
+// 보기 상자: 지역 전체면 가장자리에 지도 폭의 2.2% 여백(시안과 같게 — 굵은 외곽선이 틀에 붙거나 잘리지 않게).
+// 확대(fit)는 그 곳들의 경로 좌표(정수 'x y' 짝)로 잰 상자에 둘레 8%
+const edge = Math.round(svg.w * 0.022);
+let vb = [-edge, -edge, svg.w + 2 * edge, svg.h + 2 * edge];
 if (fit.length) {
   let b = [Infinity, Infinity, -Infinity, -Infinity];
   for (const it of svg.items.filter((x) => fit.includes(x.id))) for (const m of it.d.matchAll(/(-?\d+) (-?\d+)/g)) {
@@ -28,31 +39,111 @@ if (fit.length) {
   const pad = Math.max(b[2] - b[0], b[3] - b[1]) * 0.08;
   vb = [b[0] - pad, b[1] - pad, b[2] - b[0] + pad * 2, b[3] - b[1] + pad * 2].map(Math.round);
 }
-const k = vb[2] / svg.w;
 const short = (it: (typeof svg.items)[number]) => it.name ?? nameOf(it.id).replace(/^\S+ /, '');   // '고양시 덕양구' → '덕양구'(시 층은 원래 짧음)
+
+// 세로로 긴 지역(인천·경기)이 한 화면을 넘지 않게: 높이가 MAX_H 를 넘지 않는 폭까지만.
+// 쪽이 지도 높이를 화면 높이에 맞출 수 있게 가로세로 비(--rmap-ar)도 넘긴다(지역 허브의 PC 2단, tokens.css .d-top.hub)
+// 이름표 글자는 14px, 지도가 BIG_AT 보다 넓게 그려지면(PC 의 서울 지도) 16px
+const MAX_H = 880, LABEL_PX = 14, BIG_PX = 16, BIG_AT = 880;
+const maxW = Math.min(1100, Math.round((MAX_H * vb[2]) / vb[3]));
+
+// 이름표: 곳마다 '이 지도 폭부터 보인다'(--min)와 자리(%)를 잰다. 보이는 범위 밖의 곳은 뺀다
+const inView = (x: number, y: number) => x > vb[0] && x < vb[0] + vb[2] && y > vb[1] && y < vb[1] + vb[3];
+// 글자 상자(px 크기 그대로)가 틀 안에 온전히 드는 가장 좁은 지도 폭: 확대한 지도(fit)에서 가장자리에 걸친 칸의 이름이 틀에 잘리지 않게.
+// 지도가 넓을수록 상자가 지도 단위로 작아지므로, 변마다 '반 폭(+2px) ÷ 그 변까지 거리' 로 잰 폭 가운데 가장 큰 값
+const edgeMin = (text: string, px: number, x: number, y: number) => {
+  const b = labelBox(text, px);
+  const need = (half: number, room: number) => (room > 0 ? ((half + 2) * vb[2]) / room : Infinity);
+  return Math.ceil(Math.max(need(b.w / 2, x - vb[0]), need(b.w / 2, vb[0] + vb[2] - x), need(b.h / 2, y - vb[1]), need(b.h / 2, vb[1] + vb[3] - y)));
+};
+const names = !labels ? [] : svg.items.flatMap((it) => {
+  if (!inView(it.lx, it.ly)) return [];
+  const rings = ringsOfD(it.d);
+  let b: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const r of rings) for (let i = 0; i < r.length; i += 2) b = [Math.min(b[0], r[i]), Math.min(b[1], r[i + 1]), Math.max(b[2], r[i]), Math.max(b[3], r[i + 1])];
+  const text = short(it);
+  const s = staticLabel(rings, b, [it.lx, it.ly], text, LABEL_PX, vb[2], 240, maxW);
+  const pct = (x: number, y: number) => [`${(((x - vb[0]) / vb[2]) * 100).toFixed(2)}%`, `${(((y - vb[1]) / vb[3]) * 100).toFixed(2)}%`];
+  if (alwaysLabel.includes(it.id)) {
+    // 꼭 보일 곳: 가장 넓은 지도에서 드는 자리(없으면 이름표 점)에 늘 보이게, 흰 판에 얹어서
+    const k = vb[2] / maxW, bx = labelBox(text, LABEL_PX);
+    const at = fitBox(rings, b, [it.lx, it.ly], bx.w * k, bx.h * k, 3 * k) ?? [it.lx, it.ly];
+    return [{ text, min: 0, force: !s || s.minWidth > 320, at: pct(at[0], at[1]), big: null as null | { min: number; at: string[] } }];
+  }
+  if (!s) return [];
+  const min = Math.max(s.minWidth, edgeMin(text, LABEL_PX, s.x, s.y));
+  if (min > maxW) return [];
+  // 넓은 지도(BIG_AT 이상)에서는 큰 글자로 다시 잰다: 그 폭부터 큰 글자가 드는 자리. 안 들어가는 이름은 넓은 지도에서 빠진다
+  const l = maxW >= BIG_AT ? staticLabel(rings, b, [it.lx, it.ly], text, BIG_PX, vb[2], BIG_AT, maxW) : null;
+  const lmin = l ? Math.max(l.minWidth, edgeMin(text, BIG_PX, l.x, l.y)) : Infinity;
+  return [{ text, min, force: false, at: pct(s.x, s.y), big: l && lmin <= maxW ? { min: lmin, at: pct(l.x, l.y) } : null }];
+});
+// 이름이 한두 개만 덩그러니 보이는 폭(휴대폰의 서울 지도 등)에서는 아예 감춘다: 네 개(곳이 적으면 셋 중 하나)가 들어가는 폭부터
+const mins = names.filter((n) => !n.force && n.min > 0).map((n) => n.min).sort((a, b) => a - b);
+const floor = mins.length ? mins[Math.min(mins.length, Math.min(4, Math.ceil(mins.length / 3))) - 1] : 0;
+for (const n of names) if (!n.force && n.min > 0) n.min = Math.max(n.min, floor);
+const allD = svg.items.map((it) => it.d).join('');
+const hlD = svg.items.filter((it) => highlight.includes(it.id)).map((it) => it.d).join('');
+
+// 강: 물색은 지역 안의 물에만. 칸과 맞닿지 않는 강(인천 지도 구석의 한강)은 그리지 않는다.
+// 칸·강은 같은 위상에서 나와 맞닿은 변의 점이 같다 → 함께 쓰는 점이 있는지로 본다
+const pts = (d: string) => new Set(Array.from(d.matchAll(/-?\d+ -?\d+/g), (m) => m[0]));
+const riverRings = ringsOfD(svg.water);
+const cellPts = pts(allD);
+const touches = [...pts(svg.water)].filter((p) => cellPts.has(p)).length >= 4;
+// 강 띠의 평균 폭(지도 단위): 긴 띠는 넓이 ≈ 길이 × 폭, 둘레 ≈ 2 × 길이
+let area = 0, peri = 0;
+for (const r of riverRings) {
+  let a = 0;
+  for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) { a += r[j] * r[i + 1] - r[i] * r[j + 1]; peri += Math.hypot(r[i] - r[j], r[i + 1] - r[j + 1]); }
+  area += Math.abs(a) / 2;
+}
+// 가장 넓게 그려져도 강이 8px 보다 좁으면(경기) 강가를 가는 선으로: 강을 외곽선 위에 그려 굵은 선의 강 쪽 반을 덮는다
+const thinBank = peri > 0 && ((2 * area) / peri) * (maxW / vb[2]) < 8;
 ---
-<svg class="rmap" viewBox={vb.join(' ')} role="img" aria-label={label} style={k < 1 ? `--k:${k.toFixed(3)}` : undefined}>
-  <rect width={svg.w} height={svg.h} class="sea" />
-  <path d={svg.out} class="out" />
-  {svg.items.map((it) => <path d={it.d} class={`cell${highlight.includes(it.id) ? ' hl' : ''}${tone[it.id] ? ` t-${tone[it.id]}` : ''}`} />)}
-  <path d={svg.water} class="river" />
-  {labels && svg.items.filter((it) => it.ir / k >= 14 || alwaysLabel.includes(it.id)).map((it) => (
-    <text x={it.lx} y={it.ly + 8 * k} class={it.ir / k >= 34 ? 'lb' : 'lb sm'}>{short(it)}</text>
-  ))}
-</svg>
+<div class="rmap" role="img" aria-label={label} style={`--rmap-max:${maxW}px;--rmap-ar:${(vb[2] / vb[3]).toFixed(4)}`}>
+  <svg viewBox={vb.join(' ')} aria-hidden="true" focusable="false">
+    <rect x={vb[0]} y={vb[1]} width={vb[2]} height={vb[3]} class="bg" />
+    <path d={svg.out} class="out" />
+    {touches && !thinBank && <path d={svg.water} class="river" />}
+    <path d={allD} class="rim" />
+    {touches && thinBank && <path d={svg.water} class="river" />}
+    {svg.items.map((it) => <path d={it.d} class={`cell${highlight.includes(it.id) ? ' hl' : ''}${tone[it.id] ? ` t-${tone[it.id]}` : ''}`} />)}
+    {hlD && <path d={hlD} class="bold" />}
+  </svg>
+  {names.map((n) => <span class={n.force ? 'lb force' : 'lb'} style={`--x:${n.at[0]};--y:${n.at[1]};--min:${n.min}px${n.big ? `;--xl:${n.big.at[0]};--yl:${n.big.at[1]};--minl:${n.big.min}px` : ''}`} aria-hidden="true">{n.text}</span>)}
+</div>
 
 <style>
-  .rmap { display: block; width: 100%; height: auto; border-radius: var(--r-md); background: var(--map-water); }
-  .sea { fill: var(--map-water); }
-  .out { fill: var(--map-out); stroke: var(--map-edge); stroke-opacity: .35; stroke-width: 1; vector-effect: non-scaling-stroke; }
-  .cell { fill: var(--m0); stroke: var(--map-edge); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  /* 틀 1px · 각진 모서리. 이름표 문턱을 지도 폭으로 재려고 컨테이너로 둔다. 확대한 지도에서 가장자리 칸의 이름표가 틀 밖으로 삐져나오지 않게 자른다
+     선 굵기: 칸 경계 · 외곽선(칸이 안쪽 반을 덮어 보이는 굵기는 반) · 강조 칸 테두리. 좁은 화면에서는 조금 가늘게(앱 지도와 같게) */
+  .rmap { position: relative; width: 100%; max-width: var(--rmap-max, none); container-type: inline-size; overflow: hidden; background: var(--map-bg); outline: 1px solid var(--frame); outline-offset: -1px; --rm-line: 1px; --rm-rim: 3.2px; --rm-bold: 2.4px; }
+  @media (max-width: 599px) { .rmap { --rm-line: .9px; --rm-rim: 2.7px; --rm-bold: 2px; } }
+  svg { display: block; width: 100%; height: auto; }
+  path { vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .bg, .out { fill: var(--map-bg); }
+  .river { fill: var(--map-water); }
+  /* 지역 외곽선: 모든 칸을 굵은 선으로 먼저 긋고 칸이 안쪽 반을 덮는다(바깥 반만 남아 해안·시도 경계·강가가 굵다) */
+  .rim { fill: none; stroke: var(--map-edge-strong); stroke-width: var(--rm-rim); }
+  .cell { fill: var(--m0); stroke: var(--map-edge); stroke-width: var(--rm-line); }
   .cell.t-a { fill: var(--grp-1); }
   .cell.t-b { fill: var(--m0); }
   .cell.t-c { fill: var(--grp-2); }
   .cell.t-d { fill: var(--grp-3); }
   .cell.t-e { fill: var(--grp-4); }
-  .cell.hl { fill: var(--hl); stroke: var(--q-outline); stroke-width: 2; }
-  .river { fill: var(--map-water); }
-  .lb { font: 700 calc(26px * var(--k, 1))/1 var(--font-ui); fill: var(--ink); stroke: var(--surface); stroke-width: calc(6px * var(--k, 1)); paint-order: stroke; stroke-linejoin: round; text-anchor: middle; }
-  .lb.sm { font-size: calc(20px * var(--k, 1)); stroke-width: calc(5px * var(--k, 1)); }
+  .cell.hl { fill: var(--hl); }
+  /* 강조 칸: 노랑 + 칸마다 굵은 먹 테두리 */
+  .bold { fill: none; stroke: var(--q-outline); stroke-width: var(--rm-bold); }
+  /* 이름표: 늘 14px, 후광 없음. 지도 폭이 --min 보다 좁으면 폭 0 으로 접혀 안 보인다(컨테이너 단위를 모르는 브라우저에서는 숨은 채) */
+  .lb {
+    position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -50%);
+    font: 600 14px/1.4 var(--font-ui); color: var(--ink); white-space: nowrap; overflow: hidden; pointer-events: none;
+    max-width: 0;
+    max-width: clamp(0px, calc((100cqw - var(--min)) * 9999), 30em);
+  }
+  .lb.force { padding: 0 4px; background: var(--white); outline: 1px solid var(--ink); outline-offset: -1px; }
+  /* 넓은 지도(PC 의 서울): 16px. 큰 글자가 드는 자리(--xl·--yl)와 문턱(--minl)을 따로 쓴다 — 큰 글자가 안 드는 이름(--minl 없음)은 빠진다 */
+  @container (min-width: 880px) {
+    .lb:not(.force) { font-size: 16px; left: var(--xl, var(--x)); top: var(--yl, var(--y)); max-width: clamp(0px, calc((100cqw - var(--minl, 99999px)) * 9999), 30em); }
+  }
 </style>

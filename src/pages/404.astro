@@ -1,6 +1,7 @@
 ---
 // 없는 주소: 한국어 안내 + 영어 한 줄. 색인하지 않고, 어느 주소에서나 같은 내용이라 canonical 도 달지 않는다.
-// 휴대폰에서는 메뉴가 접혀 있으므로 갈 만한 곳을 본문에 바로 둔다(JS 없음)
+// 휴대폰에서는 메뉴가 접혀 있으므로 갈 만한 곳을 본문에 바로 둔다(JS 없음).
+// 모양(합본 D5): 갈 곳은 둥근 카드 대신 홈 '과 줄'과 같은 선(위 2px 먹 · 아래 1px 먹). 폰은 행, 768 이상은 한 줄 칸
 import Base from '../layouts/Base.astro';
 import { href } from '../lib/paths';
 import { visibleGuides } from '../guides/registry';
@@ -15,20 +16,39 @@ const GO = [
 ---
 <Base title="찾는 쪽이 없어요 – 채움지도" description="주소가 바뀌었거나 없는 쪽이에요. 공부하기나 지역 쪽에서 다시 찾아 주세요." noindex canonical={false}>
   <div class="wrap page">
-    <h1>찾는 쪽이 없어요</h1>
-    <p class="lead">주소가 바뀌었거나 없는 쪽이에요. 가려던 곳을 아래에서 골라 주세요.</p>
+    <div class="d-head">
+      <h1>찾는 쪽이 없어요</h1>
+      <p class="lead">주소가 바뀌었거나 없는 쪽이에요. 가려던 곳을 아래에서 골라 주세요.</p>
+    </div>
     <ul class="go">
-      {GO.map((g) => <li><a href={href(g.h)}><b>{g.t}</b><span>{g.d}</span></a></li>)}
+      {GO.map((g) => <li><a href={href(g.h)}><b>{g.t}</b><span class="gd">{g.d}</span><span class="ar" aria-hidden="true">→</span></a></li>)}
     </ul>
-    <p>링크를 눌러 이 쪽이 나왔다면 <a href={href('/contact/')}>문의</a>로 그 링크가 있던 곳을 알려 주세요.</p>
-    <p lang="en">This page doesn't exist. <a href={href('/en/')}>Go to the English home</a>.</p>
+    <p class="note">링크를 눌러 이 쪽이 나왔다면 <a href={href('/contact/')}>문의</a>로 그 링크가 있던 곳을 알려 주세요.</p>
+    <p class="note" lang="en">This page doesn't exist. <a href={href('/en/')}>Go to the English home</a>.</p>
   </div>
 </Base>
 
 <style>
-  .go { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-2); }
-  .go a { display: flex; flex-direction: column; gap: 2px; min-height: 56px; justify-content: center; padding: var(--sp-3) var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); text-decoration: none; }
-  .go a:active { background: var(--sunk); }
-  .go b { font-size: 17px; }
-  .go span { font-size: 14px; color: var(--ink-2); }
+  .d-head { gap: var(--sp-3); }
+  .d-head .lead { max-width: var(--content-w); }
+  .note { max-width: var(--content-w); font-size: var(--fs-16); line-height: 1.6; }
+  .go { list-style: none; margin: var(--sp-2) 0 0; padding: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .go li + li { border-top: 1px solid var(--line); }
+  .go a {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t ar" "d ar"; align-items: center; gap: 2px var(--sp-4);
+    min-height: 64px; padding: 14px 0; color: var(--ink); text-decoration: none;
+  }
+  .go b { grid-area: t; font-size: var(--fs-18); line-height: 1.45; font-weight: 700; }
+  .go .gd { grid-area: d; font-size: var(--fs-16); line-height: 1.5; color: var(--ink-2); }
+  .go .ar { grid-area: ar; font-size: var(--fs-18); }
+  .go a:hover b { text-decoration: underline; text-underline-offset: 4px; }
+  .go a:hover { background: var(--sunk); }
+  /* 768 이상: 한 줄 칸(칸 사이 1px 약선, 첫 칸은 왼쪽 여백 없이 — 홈 과 줄과 같다) */
+  @media (min-width: 768px) {
+    .go { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+    .go li + li { border-top: 0; border-left: 1px solid var(--line); }
+    .go a { height: 100%; grid-template-areas: "t t" "d ar"; align-items: end; align-content: start; gap: 8px 12px; padding: 18px 18px 16px; }
+    .go li:first-child a { padding-left: 0; }
+    .go li:last-child a { padding-right: 0; }
+  }
 </style>

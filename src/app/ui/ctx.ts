@@ -28,7 +28,7 @@ export interface Ctx {
   settings: Settings;
   /** 지역별 시험 최고 기록(이 브라우저) */
   bests: Bests;
-  /** 홈 '나의 채움 지도'에서 고른 지역 */
+  /** 홈 지역 탭에서 고른 지역(메모리에만 — 새로 고치거나 공부 판을 열면 잊고, 마지막으로 공부한 지역·주 카드의 지역으로 돌아간다) */
   homeRegion: string | null;
   today(): number;
   save(): void;

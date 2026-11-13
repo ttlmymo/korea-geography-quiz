@@ -47,9 +47,9 @@ const SRC = {
 <h2>옛 구에서 새 구로</h2>
 <p>개편 전(2026년 4월 1일 판)과 개편 뒤(2026년 10월 1일 판) 행정동 경계를 동 이름으로 맞춰 보면, 옛 동은 모두 하나의 새 구로 옮겨 갔어요. 동이 둘로 쪼개지거나 두 구에 걸친 곳은 없어요. 넓이로는 {iGa(biggest.new)} 가장 넓어요.</p>
 <div class="tbl"><table class="nums">
-  <thead><tr><th scope="col">지금 구</th><th scope="col">옛 구</th><th scope="col">행정동</th><th scope="col">넓이(약, ㎢)</th></tr></thead>
+  <thead><tr><th scope="col">지금 구</th><th scope="col">옛 구</th><th scope="col" class="num">행정동</th><th scope="col" class="num">넓이(약, ㎢)</th></tr></thead>
   <tbody>{reform.reform.map((row) => (
-    <tr><td>{row.new}</td><td>{Object.entries(row.from).map(([o, list]) => `${o} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{row.area_km2}</td></tr>
+    <tr><td>{row.new}</td><td>{Object.entries(row.from).map(([o, list]) => `${o} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{row.area_km2}</td></tr>
   ))}</tbody>
 </table></div>
 <p class="meta">넓이는 행정동 경계 데이터로 잰 값이에요. 매립지·갯벌을 어떻게 넣느냐에 따라 공식 통계의 면적과 다를 수 있어요.</p>
@@ -57,7 +57,7 @@ const SRC = {
 <div class="tbl"><table>
   <thead><tr><th scope="col">지금 구</th><th scope="col">옛 구에서 온 행정동</th></tr></thead>
   <tbody>{reform.reform.map((row) => (
-    <tr><td>{row.new}</td><td>{Object.entries(row.from).map(([o, list]) => <p class="from"><b>옛 {o}</b> {(list as string[]).join(' · ')}</p>)}</td></tr>
+    <tr><td>{row.new}</td><td>{Object.entries(row.from).map(([o, list]) => <p class="from"><b>옛 {o}</b> {(list as string[]).join(' · ')}</p>)}</td></tr>
   ))}</tbody>
 </table></div>
 
@@ -94,8 +94,9 @@ const SRC = {
   <li>행정동 경계: 통계청 SGIS · vuski/admdongkor(CC BY 4.0) 2026년 4월 1일 판(개편 전)·10월 1일 판(개편 뒤). 대응표·넓이·개편 전 지도는 이 경계로 만들었어요(<a href={href('/sources/')}>데이터 출처</a>).</li>
 </ul>
 
+
 <style>
-  .pair { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-4); }
+  /* 개편 전후 지도 쌍: 글 상자(760px) 안에 나란히, 좁으면 위아래로. 동 목록 문단 간격은 공용 .tbl */
+  .pair { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-5); }
   .pair > div { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
-  .from { margin: 0 0 6px; }
 </style>

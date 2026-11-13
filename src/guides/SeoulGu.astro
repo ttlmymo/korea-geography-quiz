@@ -33,12 +33,12 @@ const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('�
 
 <h2>한강 북쪽 {north.length}개, 남쪽 {south.length}개</h2>
 <p>서울을 처음 외울 때는 한강부터 봐요. 한강이 서울을 동서로 가로지르고, 25개 구는 강 북쪽에 {north.length}개, 남쪽에 {south.length}개가 있어요. 한강 가운데 섬인 여의도는 남쪽의 영등포구에 속해요. 한강을 사이에 두고 마포구와 영등포구처럼 남북의 구가 마주 보는 곳이 많아서, 강 건너 짝을 함께 외우면 위치가 잘 잡혀요.</p>
-<RegionMap region="seoul" tone={tone} labels label={`한강 북쪽 ${north.length}개 구는 황토색, 남쪽 ${south.length}개 구는 흰색으로 칠한 서울 지도`} />
+<RegionMap region="seoul" tone={tone} labels label={`한강 북쪽 ${north.length}개 구는 옅은 모래색, 남쪽 ${south.length}개 구는 흰색으로 칠한 서울 지도`} />
 <div class="tbl"><table>
   <thead><tr><th scope="col">한강</th><th scope="col">구</th></tr></thead>
   <tbody>
-    <tr><td><i class="sw" style={`background:${TONE_FILL.a}`} aria-hidden="true"></i>북쪽 {north.length}</td><td>{north.join(' · ')}</td></tr>
-    <tr><td><i class="sw" style={`background:${TONE_FILL.b}`} aria-hidden="true"></i>남쪽 {south.length}</td><td>{south.join(' · ')}</td></tr>
+    <tr><td><i class="sw" style={`background:${TONE_FILL.a}`} aria-hidden="true"></i>북쪽 {north.length}</td><td>{north.join(' · ')}</td></tr>
+    <tr><td><i class="sw" style={`background:${TONE_FILL.b}`} aria-hidden="true"></i>남쪽 {south.length}</td><td>{south.join(' · ')}</td></tr>
   </tbody>
 </table></div>
 
@@ -47,14 +47,14 @@ const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('�
 <RegionMap region="seoul" tone={zoneTone} labels label="서울 다섯 권역생활권: 도심권·동북권·서북권·서남권·동남권을 다른 색으로 칠한 지도" />
 <div class="tbl"><table>
   <thead><tr><th scope="col">권역</th><th scope="col">구</th><th scope="col">지역 생활권</th></tr></thead>
-  <tbody>{ZONES.map((z) => <tr><td><i class="sw" style={`background:${TONE_FILL[z.tone]}`} aria-hidden="true"></i>{z.name}</td><td>{z.gu.join(' · ')}</td><td class="num">{z.areas}</td></tr>)}</tbody>
+  <tbody>{ZONES.map((z) => <tr><td><i class="sw" style={`background:${TONE_FILL[z.tone]}`} aria-hidden="true"></i>{z.name}</td><td>{z.gu.join(' · ')}</td><td class="num">{z.areas}</td></tr>)}</tbody>
 </table></div>
 
 <h2>채움지도의 다섯 과는 이렇게 묶었어요</h2>
 <p>채움지도는 한 번에 외우기 좋은 4~6곳씩 다섯 과로 묶었어요. 서울시 권역은 동북권이 8개 구로 크고 도심권·서북권은 3개씩이라, 권역을 그대로 쓰면 과마다 곳 수가 고르지 않아요. 그래서 도심과 서북을 한 과로 합치고, 동북권은 아래쪽과 위쪽 두 과로 나눴어요. 동작구는 권역으로는 서남권이지만{dongjakSeocho ? ' 서초구와 맞닿아 있어서' : ''} 한강 남쪽 동부 과에서 함께 익혀요.</p>
 <div class="tbl"><table>
   <thead><tr><th scope="col">과</th><th scope="col">구</th></tr></thead>
-  <tbody>{r.lessons.map((l) => <tr><td>{l.no}과 {l.title}</td><td>{l.items.map(nm).join(' · ')}</td></tr>)}</tbody>
+  <tbody>{r.lessons.map((l) => <tr><td>{l.no}과 {l.title}</td><td>{l.items.map(nm).join(' · ')}</td></tr>)}</tbody>
 </table></div>
 
 <h2>이 순서로 연습해요</h2>

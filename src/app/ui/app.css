@@ -1,174 +1,698 @@
-/* 앱 화면(홈 문서 안): 시안 A '종이 백지도와 색연필'(docs/prototype)을 토큰으로 옮김.
-   쪽 화면은 한 손 폭(최대 520px) 한 줄, 문제 화면은 위 줄 · 문제 줄 · 지도 · 아래 시트(설계서 4.2) */
+/* 앱 화면(홈 문서 안, 합본 디자인 3.2·3.3). 쪽 화면(홈 · 단원 · 지역 고르기 · 과 시작 · 과 요약 · 시험 결과 · 복습 없음 · 랭킹)은
+   머리글 아래 넓은 틀(--page-w) 하나에 홈과 같은 말(라벨 → 큰 제목 → 단추 → 선으로 나눈 구역 · 틀 있는 지도)로 놓고,
+   문제 화면·둘러보기는 머리글·바닥글 없이 화면 전체(스크롤 없음). 상자 대신 선, 그림자 없음, 글자 14/16/18/24 + 제목, 색은 지도에만 */
 
 #app { word-break: keep-all; overflow-wrap: anywhere; }
 #app .page {
-  max-width: 520px; margin-inline: auto; display: flex; flex-direction: column; gap: var(--sp-6);
-  padding: var(--sp-2) max(var(--gutter), env(safe-area-inset-right, 0px)) var(--sp-8) max(var(--gutter), env(safe-area-inset-left, 0px));
+  max-width: var(--page-w); margin-inline: auto; display: flex; flex-direction: column; gap: 0;
+  padding: 0 max(var(--gutter), env(safe-area-inset-right, 0px)) 64px max(var(--gutter), env(safe-area-inset-left, 0px));
 }
 #app p { margin: 0; }
-#app .stack { display: flex; flex-direction: column; gap: var(--sp-3); }
 #app .row { display: flex; gap: var(--sp-2); align-items: center; }
-#app .wrap { flex-wrap: wrap; max-width: none; margin: 0; padding: 0; }
-#app .sub { font-size: 15px; line-height: 22px; color: var(--ink-2); }
-#app .card { gap: var(--sp-3); }
-#app .card.due { background: var(--due-soft); border-color: #F2D3A6; }
-#app .card.list { gap: 0; padding-block: var(--sp-1); }
-.eyebrow { font-size: 13px; line-height: 18px; color: var(--ink-3); font-weight: 700; }
-.eyebrow.due { color: var(--due); }
-.title-26 { font: 700 26px/34px var(--font-head); }
-.title-22 { font: 700 22px/30px var(--font-head); }
-.title-18 { font: 700 18px/26px var(--font-head); }
-.t15 { font-size: 15px; line-height: 22px; color: var(--ink-2); }
-.t14 { font-size: 14px; line-height: 20px; color: var(--ink-2); }
-.t13 { font-size: 13px; line-height: 18px; color: var(--ink-3); }
-.t13.warn { color: var(--due); }
 .num { font-variant-numeric: tabular-nums; }
 #app .btn, #app .btn2 { width: 100%; }
 #app .btn2.half, #app .btn.half { width: auto; flex: 1; }
 #app .btn:disabled, #app .btn2:disabled { opacity: .55; cursor: default; }
 
-.chip {
-  min-height: var(--chip-h); padding: 0 14px; border-radius: var(--r-pill); border: 1.5px solid var(--line-strong);
-  background: var(--surface); color: var(--ink); font-size: 14px; display: inline-flex; align-items: center; gap: 6px;
-  text-decoration: none; cursor: pointer; font-family: inherit;
-}
-.chip.on { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); font-weight: 700; }
-.chip.due { border-color: var(--due); color: var(--due); }
-.chip.static { cursor: default; }
-.linkrow {
-  min-height: var(--btn-h); display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2);
-  border: 0; border-bottom: 1px solid var(--line); background: none; padding: 0; text-align: left;
-  font-size: 15px; color: var(--ink); width: 100%; text-decoration: none; font-family: inherit;
-}
-.linkrow:last-child { border-bottom: 0; }
-.bar { height: 6px; border-radius: var(--r-pill); background: var(--sunk); overflow: hidden; flex: 1; }
-.bar i { display: block; height: 100%; width: 0; background: var(--brand); border-radius: var(--r-pill); transition: width var(--t-fill); }
-
-.map-box { position: relative; width: 100%; height: 200px; border-radius: var(--r-md); overflow: hidden; }
-.map-box.tall { height: 240px; }
-.map-box.explore { height: min(62dvh, 420px); }
-.map-box.map-fail { display: grid; place-items: center; padding: var(--sp-4); background: var(--sunk); color: var(--ink-2); font-size: 15px; text-align: center; }
-.map-wrap { position: relative; }
+.map-box { position: relative; width: 100%; height: 200px; overflow: hidden; }
+/* 지도 틀: 1px, 각진 모서리. 지도 그림(SVG) 위에 얹어야 가려지지 않는다 */
+.map-box::after { content: ''; position: absolute; inset: 0; border: 1px solid var(--frame); pointer-events: none; z-index: 2; }
+/* 지도를 불러오지 못한 자리(쪽 지도 · 둘러보기) */
+.map-fail { display: grid; place-items: center; padding: var(--sp-4); background: var(--sunk); color: var(--ink-2); font-size: 16px; line-height: 1.5; text-align: center; }
+/* '⤢ 전체 보기': 보조 단추 모양(먹 테두리, 그림자 없음). 문제 화면·둘러보기 지도 오른쪽 위 */
 .map-reset {
-  position: absolute; top: 12px; right: 12px; min-height: 40px; padding: 0 12px; z-index: 2;
-  border: 1.5px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); color: var(--ink);
-  font: 700 14px/20px var(--font-head); box-shadow: var(--e1); cursor: pointer;
+  position: absolute; top: 12px; right: 12px; min-height: 44px; padding: 0 14px; z-index: 5;
+  border: 1.5px solid var(--ink); border-radius: var(--r-btn); background: var(--surface); color: var(--ink);
+  font: 600 16px/22px var(--font-ui); cursor: pointer;
 }
-.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; line-height: 18px; color: var(--ink-2); }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.sw { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--line-strong); display: inline-block; }
-.sw.dot { border-style: dashed; }
+.map-reset:active { background: var(--sunk); }
+.legend { display: flex; gap: 8px 20px; flex-wrap: wrap; font-size: var(--fs-16); line-height: 24px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+/* 범례 네모 .sw 의 기본 모양은 tokens.css 한 곳에(정적 쪽과 같은 규칙). 여기에는 상태별 칠(.sw.s-*)만 */
 
-.topbar { min-height: 56px; display: flex; align-items: center; gap: 6px; }
-.topbar h1 { font-size: 18px; line-height: 26px; flex: 1; }
-.icon-btn { width: var(--tap-min); height: var(--tap-min); border-radius: var(--r-md); border: 0; background: none; color: var(--ink); display: grid; place-items: center; cursor: pointer; flex: none; }
-.stamp {
-  width: 92px; height: 92px; flex: none; border-radius: 50%; border: 3px solid var(--brand); color: var(--brand);
-  display: grid; place-items: center; text-align: center; transform: rotate(-8deg); font: 800 18px/22px var(--font-head); background: var(--brand-soft);
+/* 알림(먹색 띠, 그림자 없음): 문제 지도 위 가운데 · 앱 쪽 화면 아래 */
+.play-toast, .app-toast {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px);
+  padding: 8px 14px; background: var(--ink); color: var(--white); font-size: 16px; line-height: 24px;
+  text-align: center; z-index: 6; pointer-events: none;
 }
-.score { font: 800 40px/44px var(--font-head); }
+.app-toast { position: fixed; top: auto; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 60; }
+.play-toast[hidden], .app-toast[hidden] { display: none; }
 
-.toggle { display: flex; gap: var(--sp-3); align-items: flex-start; min-height: var(--btn-h); padding: var(--sp-3) var(--sp-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); font-size: 15px; line-height: 22px; cursor: pointer; }
-.toggle input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--brand); }
-.toggle > span { display: flex; flex-direction: column; gap: 2px; }
-
-/* 단원 경로 */
-.path { display: flex; flex-direction: column; gap: 10px; }
-.step {
-  display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
-  padding: 12px 14px; min-height: 72px; text-align: left; width: 100%; color: var(--ink); text-decoration: none;
-}
-.step .no { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line-strong); display: grid; place-items: center; font: 700 15px/1 var(--font-head); flex: none; background: var(--surface); }
-.step .no.done { background: var(--brand); border-color: var(--brand); color: var(--white); }
-.step .body { flex: 1; min-width: 0; }
-.step .name { font: 700 17px/24px var(--font-head); }
-.step .tag { font-size: 13px; line-height: 18px; font-weight: 700; padding: 3px 8px; border-radius: var(--r-pill); background: var(--sunk); color: var(--ink-2); flex: none; }
-.step .tag.rec { background: var(--hl-soft); color: #6B5200; }
-.step .tag.ok { background: var(--brand-soft); color: var(--brand); }
-.step.off { opacity: .6; }
-.steps3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
-.steps3 div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; }
-.steps3 b { font: 700 15px/22px var(--font-head); }
-details.fold { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 0 var(--sp-4); }
-details.fold summary { min-height: 52px; display: flex; align-items: center; font: 700 17px/24px var(--font-head); cursor: pointer; }
-details.fold[open] { padding-bottom: var(--sp-4); }
-
-/* 판정 글 */
-.fb-title { font: 700 20px/28px var(--font-head); }
-.ok-c { color: var(--ok); }
-.no-c { color: var(--no); }
-.fb-line { font-size: 17px; line-height: 26px; }
-.fb-hint { font-size: 15px; line-height: 22px; color: var(--ink-2); }
-.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
-.opt {
-  min-height: 56px; border-radius: var(--r-md); border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink);
-  font: 700 17px/24px var(--font-head); cursor: pointer; position: relative; padding: 0 var(--sp-6);
-}
-.opt .k { position: absolute; left: 10px; top: 6px; font-size: 12px; line-height: 1; color: var(--ink-3); font-weight: 400; }
-.opt.ok { background: var(--ok-soft); border: 2px solid var(--ok); color: var(--ok); }
-.opt.no { background: var(--no-soft); border: 2px dashed var(--no); color: var(--no); }
-.opt:disabled { cursor: default; }
-
-/* 문제 화면: 머리글·바닥글·메뉴·광고 없이 화면 전체(설계서 4.2) */
+/* ---------- 문제 화면(합본 디자인 3.3): 머리글·바닥글 없이 화면 전체, 스크롤 없음 ----------
+   좁은 화면(1023 이하) = 머리 56 → 문제 줄 → 지도(남은 높이) → 범례 한 줄 44 → 단추 띠.
+     판정 때는 단추 띠가 위로 늘어나고 지도 칸이 줄어든다(지도를 덮지 않는다 — 지도는 크기가 바뀌면 스스로 다시 맞춘다).
+   넓은 화면(1024 이상) = 머리 64 + 본문 2단: 왼쪽 열 약 400(판 종류 · 문제 · 안내 · 단추·판정 · 이번 판의 곳) | 오른쪽 틀 있는 지도(캡션·범례 · 지도 · 조작 안내).
+     떠 있는 시트는 없다. 지도 칸은 남은 높이를 채운다.
+   DOM 은 하나: 좁은 화면에서는 두 열 묶음을 display: contents 로 풀어 격자 한 줄로 놓는다. 색은 지도에만 — 글자·단추·막대는 먹색 */
 html.app-full, html.app-full body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 html.app-full .hdr, html.app-full .foot { display: none; }
 html.app-full #app { position: fixed; inset: 0; background: var(--paper); }
 .play { height: 100%; display: flex; flex-direction: column; }
-.play-top {
-  height: 48px; flex: none; display: flex; align-items: center; gap: 10px;
-  padding: env(safe-area-inset-top, 0px) max(8px, env(safe-area-inset-right, 0px)) 0 max(4px, env(safe-area-inset-left, 0px));
-  box-sizing: content-box;
+
+/* 머리: ✕ · 진행 막대 · 17 / 19(좁은 화면) / ← 그만하기 · 판 제목 · 17 / 19 문제 · 막대 220(넓은 화면) */
+.play-top { flex: none; border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+.pt-in {
+  height: 56px; display: flex; align-items: center; gap: 8px;
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(4px, env(safe-area-inset-left, 0px));
 }
-.play-top .pn { min-width: 48px; text-align: right; }
+.pt-exit { flex: none; width: 48px; height: 48px; padding: 0; border: 0; background: none; color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.pt-xt, .pt-title { display: none; }
+.pt-bar { order: 1; }
+.play .pn { order: 2; flex: none; padding-left: 6px; font-size: 16px; line-height: 24px; font-weight: 600; white-space: nowrap; }
+.play .pn b { font-weight: 600; }
+/* 진행 막대는 홈 '이어서 하기'와 같은 .h-bar(틀 1px · 지난 문제 옅은 초록 · 지금 문제 먹색) */
+.pt-bar.h-bar i, .pt-bar.h-bar b { transition: width var(--t-fill), left var(--t-fill); }
+
+/* 본문(좁은 화면): 문제 줄 · 지도 · 범례 한 줄 · [고르기 보기] · 단추 띠 */
+.play-body {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto; grid-template-areas: "q" "map" "key" "opts" "act";
+}
+.play-left, .play-right { display: contents; }
+.pl-q {
+  grid-area: q; min-height: 92px; display: flex; flex-direction: column; justify-content: center; gap: 2px; container-type: inline-size;
+  padding: 10px max(var(--gutter), env(safe-area-inset-right, 0px)) 10px max(var(--gutter), env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--ink);
+}
+.pl-eye { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ink-2); }
+.pl-mode, .pl-note { display: none; }
+/* 문제: 이름 큰 글씨 + 나머지 작은 글씨를 한 줄(기준선 맞춤), 길면 다음 줄로. 고르기는 이름 없이 한 문장 */
 .play-q {
-  min-height: 52px; flex: none; display: flex; align-items: center; justify-content: center; text-align: center;
-  padding: 0 max(var(--gutter), env(safe-area-inset-right, 0px)) 0 max(var(--gutter), env(safe-area-inset-left, 0px));
-  font: 700 20px/28px var(--font-head);
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; margin: 0;
+  font-size: 18px; line-height: 1.4; font-weight: 400; letter-spacing: 0; color: var(--ink-2); text-wrap: wrap;
 }
-.play-q b { background: var(--hl-soft); padding: 0 4px; border-radius: var(--r-xs); }
-.play-body { flex: 1; min-height: 0; display: flex; }
-.play-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.play-side { display: none; }
-.play-stage { position: relative; flex: 1; min-height: 0; }
+.pq-big { font-size: 34px; line-height: 1.2; font-weight: 700; letter-spacing: -.04em; color: var(--ink); }
+/* 긴 이름(영어)은 칸 폭에 맞춰 줄인다(--n = 글자 폭 어림, play.ts). 컨테이너 단위를 모르면 앞 줄 값 그대로 */
+.pq-big { font-size: clamp(24px, calc(100cqi / var(--n, 4) - 2px), 34px); }
+.pq-mid { font-size: 24px; line-height: 1.35; font-weight: 700; letter-spacing: -.02em; color: var(--ink); text-wrap: balance; }
+
+.play-stage { grid-area: map; position: relative; min-height: 0; background: var(--map-bg); }
 .play-map { position: absolute; inset: 0; }
-.play-toast, .app-toast {
-  position: absolute; left: 50%; top: 12px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px);
-  padding: 8px 14px; border-radius: var(--r-pill); background: var(--ink); color: var(--paper); font-size: 15px; line-height: 22px;
-  text-align: center; box-shadow: var(--e2); z-index: 5; pointer-events: none;
+/* (섬 상자를 왼쪽 아래로 옮기는 .inset-bl 은 map.css — 둘러보기·쪽 지도도 같은 규칙) */
+/* 지도 틀(넓은 화면): 1px, 각진 모서리. 지도 그림 위에 얹어야 가려지지 않는다(.map-box::after 와 같은 방식) */
+.play-stage::after { content: ''; position: absolute; inset: 0; border: 0 solid var(--frame); pointer-events: none; z-index: 4; }
+
+/* 범례 한 줄(좁은 화면은 지도 아래 44, 넓은 화면은 지도 위 캡션 줄 오른쪽) */
+.pr-cap {
+  grid-area: key; min-height: 44px; display: flex; align-items: center; gap: 4px 20px;
+  padding: 0 max(var(--gutter), env(safe-area-inset-right, 0px)) 0 max(var(--gutter), env(safe-area-inset-left, 0px));
+  border-top: 1px solid var(--ink);
 }
-.app-toast { position: fixed; top: auto; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 60; }
-.play-toast[hidden], .app-toast[hidden] { display: none; }
-.sheet {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; max-height: 48%; overflow: auto;
-  background: var(--surface); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--e3);
-  display: flex; flex-direction: column; gap: 10px; min-height: 80px; box-sizing: border-box;
-  padding: var(--sp-4) max(var(--gutter), env(safe-area-inset-right, 0px)) calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)) max(var(--gutter), env(safe-area-inset-left, 0px));
+.pr-ct { display: none; font-size: 16px; line-height: 24px; font-weight: 600; }
+.legend.pr-key { gap: 4px 14px; }
+.legend.pr-key span { gap: 6px; white-space: nowrap; }
+.pr-help { display: none; }
+.sw.s-pick { background: var(--m0); border: 2px solid var(--ink); }
+.sw.s-ctx { background: var(--map-ctx); border-color: var(--line-mid); }
+
+/* 단추·판정 띠(좁은 화면): 힌트(보조 단추) · 모르겠어요(밑줄 글자 단추) / 판정 글 + [다음].
+   고르기 보기는 읽기 자리(.pl-act, aria-live) 밖의 .pl-opts 에 따로 있다 — 묻는 동안은 보기 띠만, 답한 뒤는 판정 띠만 보인다(좁은 화면) */
+.pl-act, .pl-opts {
+  border-top: 1px solid var(--line);
+  padding: 10px max(var(--gutter), env(safe-area-inset-right, 0px)) max(19px, calc(10px + env(safe-area-inset-bottom, 0px))) max(var(--gutter), env(safe-area-inset-left, 0px));
 }
-.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(38, 35, 30, .35); display: flex; align-items: flex-end; justify-content: center; }
+.pl-act { grid-area: act; display: flex; flex-direction: column; gap: 8px; }
+.pl-opts { grid-area: opts; }
+.pl-act:empty { display: none; }
+.pl-btns { display: flex; gap: 10px; }
+#app .play .pl-btns > * { flex: 1 1 0; width: auto; min-height: 52px; }
+#app .play .pl-hint:disabled { opacity: 1; border-color: var(--frame); color: var(--ink-3); }
+.play .fb-title { font: 700 18px/26px var(--font-ui); letter-spacing: -.01em; }
+.play .fb-line { font-size: 16px; line-height: 24px; }
+.play .fb-hint { font-size: 16px; line-height: 24px; color: var(--ink-2); }
+.play .fb-note { font-size: 14px; line-height: 20px; color: var(--ink-3); }
+#app .play .pl-next { min-height: 52px; margin-top: 4px; }
+/* 고르기 보기: 보조 단추 모양(먹 테두리). 답한 뒤 정답 = ○ + 굵은 테두리, 고른 오답 = ✕ + 점선, 나머지는 흐리게 */
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.opt {
+  position: relative; min-height: 52px; padding: 0 24px; border: 1.5px solid var(--ink); border-radius: var(--r-btn);
+  background: var(--surface); color: var(--ink); font: 600 16px/22px var(--font-ui); cursor: pointer;
+}
+.opt:hover:not(:disabled) { background: var(--sunk); }
+.opt .k { position: absolute; left: 10px; top: 6px; font-size: 14px; line-height: 1; font-weight: 400; color: var(--ink-3); }
+.opt:disabled { cursor: default; }
+.opt.ok { border-width: 3px; font-weight: 700; }
+.opt.no { border-style: dashed; }
+.opt.off { opacity: .55; }
+/* 좁은 화면은 답한 뒤 보기를 접는다(판정 글이 정답을 말한다 — 지도 칸을 덜 줄이려고) */
+.play.judged .pl-opts { display: none; }
+.pl-list { display: none; }
+
+/* 그만하기 확인: 좁은 화면은 아래 띠, 넓은 화면은 가운데 상자(각진 모서리, 그림자 없음) */
+.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(21, 25, 26, .4); display: flex; align-items: flex-end; justify-content: center; }
 .scrim[hidden] { display: none; }
 .scrim .panel {
-  width: 100%; max-width: 520px; background: var(--surface); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--e3);
-  display: flex; flex-direction: column; gap: var(--sp-2);
-  padding: var(--sp-4) max(var(--gutter), env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(var(--gutter), env(safe-area-inset-left, 0px));
+  width: 100%; background: var(--surface); border-top: 1px solid var(--ink); display: flex; flex-direction: column; gap: 8px;
+  padding: 20px max(var(--gutter), env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(var(--gutter), env(safe-area-inset-left, 0px));
 }
-.scrim .panel .row { margin-top: var(--sp-2); }
+.scrim .panel h2 { font-size: var(--fs-24); line-height: 1.35; }
+.scrim .pq-t { font-size: 16px; line-height: 1.6; color: var(--ink-2); }
+.scrim .panel .row { margin-top: 12px; gap: 10px; }
 
-/* 데스크톱: 문제 줄은 지도 위 가운데, 시트는 지도 아래 가운데(최대 560px), 오른쪽 400px 패널(설계서 4.4) */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .play-q { font-size: 18px; }
+  .pq-big { font-size: 40px; font-size: clamp(28px, calc(100cqi / var(--n, 4) - 2px), 40px); }
+  /* 태블릿: 단추·보기·판정 글은 한 손 폭(560)까지만 */
+  .pl-act > *, .pl-opts > * { max-width: 560px; }
+}
+/* 낮은 폰: 판정 때는 범례 줄을 접어 지도 칸을 지킨다 */
+@media (max-width: 1023px) and (max-height: 700px) {
+  .play.judged .pr-cap { display: none; }
+}
+/* 가로로 눕힌 폰(폭 1023 이하 · 높이 500 이하 · 가로): 위아래로 쌓으면 머리·문제·범례·단추 띠가 높이를 거의 다 먹어
+   지도가 수십 px 로 줄어든다(844×390 고르기 약 50px). 그래서 2단: 왼쪽 열 340(문제 · 보기 · 단추·판정 — 넘치면 열만 스크롤) |
+   지도(화면 높이) + 범례 줄. 판정 띠가 늘어도 지도 칸 높이는 그대로다 */
+@media (max-width: 1023px) and (max-height: 500px) and (orientation: landscape) {
+  .play-body { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "left map" "left key"; }
+  .play-left { grid-area: left; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; border-right: 1px solid var(--ink); }
+  .pl-q { flex: none; min-height: 0; gap: 0; padding: 8px var(--gutter) 10px max(var(--gutter), env(safe-area-inset-left, 0px)); }
+  .play-q { font-size: 18px; }
+  .pq-big { font-size: clamp(24px, calc(100cqi / var(--n, 4) - 2px), 32px); }
+  .pl-opts, .pl-act { flex: none; padding: 10px var(--gutter) max(14px, calc(10px + env(safe-area-inset-bottom, 0px))) max(var(--gutter), env(safe-area-inset-left, 0px)); }
+  .pl-act > *, .pl-opts > * { max-width: none; }
+  .pr-cap { padding-left: var(--gutter); }
+  /* 범례 줄은 지도 아래 오른쪽 열이라 판정 때도 접지 않는다(지도 칸 높이가 바뀌지 않게) */
+  .play.judged .pr-cap { display: flex; }
+}
+
 @media (min-width: 1024px) {
-  .play-side {
-    display: flex; flex-direction: column; gap: var(--sp-3); width: 400px; flex: none; overflow: auto;
-    padding: var(--sp-4) var(--sp-6) var(--sp-8); border-left: 1px solid var(--line); background: var(--surface);
+  .pt-in { height: 64px; max-width: var(--page-w); margin-inline: auto; gap: 24px; padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px)) max(var(--gutter), env(safe-area-inset-right, 0px)); }
+  .pt-exit { width: auto; height: 44px; padding: 0 14px 0 0; font: 400 16px/24px var(--font-ui); color: var(--ink-2); }
+  .pt-exit:hover .pt-xt { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+  .pt-x { display: none; }
+  .pt-xt { display: inline; }
+  .pt-title { display: block; flex: 1 1 auto; min-width: 0; font-size: 18px; line-height: 26px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .play .pn { order: 0; padding: 0; font-weight: 400; color: var(--ink-2); }
+  .play .pn b { font-weight: 700; color: var(--ink); }
+  .pt-bar.h-bar { order: 0; flex: none; width: 220px; }
+
+  .play-body { display: flex; align-items: stretch; gap: 48px; width: 100%; max-width: var(--page-w); margin-inline: auto; padding: 32px var(--gutter); }
+  /* 글 폭 400. 좌우 10px 안쪽 여백(바깥 여백 −10)은 '지금 문제' 노랑 띠가 글보다 10px 넓게 나와도 잘리지 않게 */
+  .play-left {
+    display: flex; flex-direction: column; gap: 18px; flex: 0 1 420px; min-width: 320px; min-height: 0;
+    margin-inline: -10px; padding: 12px 10px 0; overflow-x: hidden; overflow-y: auto;
   }
-  .side-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-  .side-list li { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); min-height: 40px; border-bottom: 1px solid var(--line); font-size: 15px; }
-  .side-list li.now { font-weight: 700; background: var(--hl-soft); margin-inline: calc(-1 * var(--sp-2)); padding-inline: var(--sp-2); border-radius: var(--r-xs); }
-  .side-list li.ok .t13 { color: var(--ok); }
-  .side-list li.no .t13 { color: var(--no); }
-  .sheet { left: 50%; right: auto; transform: translateX(-50%); width: min(560px, 100% - 48px); bottom: 16px; border-radius: var(--r-xl); }
-  .map-box.tall { height: 300px; }
+  .play-right { display: flex; flex-direction: column; gap: 10px; flex: 1 1 600px; min-width: 0; min-height: 0; }
+
+  /* 문제·단추 덩이는 줄지 않는다(넘치면 왼쪽 열이 스크롤). 줄어드는 것은 목록뿐 */
+  .pl-q { flex: none; min-height: 0; justify-content: flex-start; gap: 18px; padding: 0; border: 0; }
+  .pl-mode { display: inline; }
+  .pl-title { display: none; }
+  .play-q { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 6px; font-size: 24px; line-height: 1.35; }
+  .pq-big { font-size: 72px; line-height: 1.1; font-size: clamp(36px, calc(100cqi / var(--n, 4) - 2px), 72px); }
+  .pq-mid { font-size: 36px; line-height: 1.3; }
+  .pl-note { display: block; font-size: 16px; line-height: 1.6; color: var(--ink-2); }
+  .pl-note:empty, .play.judged .pl-note { display: none; }
+
+  .pl-act, .pl-opts { flex: none; padding: 0; border: 0; }
+  .pl-act { gap: 12px; }
+  .pl-btns { flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  #app .play .pl-btns > * { flex: none; }
+  #app .play .pl-hint { padding: 0 28px; }
+  #app .play .pl-dk { padding: 0 14px; }
+  .play .fb-title { font-size: 24px; line-height: 32px; }
+  .play .fb-line { font-size: 18px; line-height: 28px; }
+  #app .play .pl-next { width: auto; min-width: 200px; min-height: 60px; margin-top: 6px; padding: 0 56px; align-self: flex-start; }
+  .opts { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .opt { min-height: 52px; padding: 0 20px 0 44px; text-align: left; font-size: 18px; line-height: 24px; }
+  .opt .k { left: 18px; top: 50%; transform: translateY(-50%); }
+  /* 답한 뒤에도 정답(○)과 고른 오답(✕) 보기는 남기고 나머지는 숨긴다 — 판정 글·[다음] 아래 '이번 판의 곳'이 밀려나지 않게 */
+  .play.judged .pl-opts:not([hidden]) { display: block; }
+  .play.judged .opt.off { display: none; }
+
+  /* 이번 판의 곳: 위 2px 먹 선 · 줄 40 · 이름 18 · 상태 16(기호 + 글). 긴 판은 목록만 스크롤 */
+  .pl-list { display: flex; flex-direction: column; flex: 1 1 0; min-height: 168px; margin-top: 14px; padding-top: 14px; border-top: 2px solid var(--ink); }
+  .pl-lh { margin: 0 0 6px; font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: 0; color: var(--ink-2); }
+  /* 목록 + 헷갈린 곳이 한 스크롤 칸(잘림은 열 맨 아래에서만). 좌우 10px 는 노랑 띠 자리 */
+  .pl-scroll { flex: 0 1 auto; min-height: 80px; margin: 0 -10px; padding: 0 10px; position: relative; overflow-x: hidden; overflow-y: auto; }
+  /* 아래에 더 있으면(.more, play.ts) 바닥 32px 를 흐리게: 마지막 줄이 반쯤 잘린 채 멈춘 것처럼 보이지 않게(색 없음 — 투명도만) */
+  .pl-scroll.more {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+  }
+  .side-list { list-style: none; margin: 0; padding: 0; }
+  .side-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; border-bottom: 1px solid var(--line); font-size: 18px; line-height: 24px; }
+  .side-list li:last-child { border-bottom: 0; }
+  .side-list .ls { flex: none; font-size: 16px; color: var(--ink-2); }
+  .side-list li.now { font-weight: 700; background: var(--hl-soft); margin-inline: -10px; padding-inline: 10px; }
+  .side-list li.now .ls { color: var(--ink); }
+  .pl-conf { flex: none; }
+  .pl-conf .pl-lh { margin-top: 20px; }
+  .pl-pairs { list-style: none; margin: 0; padding: 0; font-size: 16px; line-height: 24px; }
+  .pl-pairs li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .pl-pairs li:last-child { border-bottom: 0; }
+
+  /* 오른쪽: 캡션 줄(위 2px 먹 선 · '이름을 가린 지도' · 범례) → 지도(남은 높이) → 조작 안내(아래 1px 먹 선) */
+  .pr-cap { justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; min-height: 0; padding: 10px 0 0; border-top: 2px solid var(--ink); }
+  .pr-ct { display: block; }
+  .legend.pr-key { gap: 6px 18px; }
+  .legend.pr-key span { gap: 7px; }
+  .play-stage { flex: 1 1 0; min-height: 240px; }
+  .play-stage::after { border-width: 1px; }
+  .pr-help { display: block; margin: 0; padding: 2px 0 12px; border-bottom: 1px solid var(--ink); font-size: 14px; line-height: 20px; color: var(--ink-3); text-align: right; }
+  .pr-help .ht { display: none; }
+
+  .scrim { align-items: center; }
+  .scrim .panel { max-width: 480px; border: 1px solid var(--ink); gap: 10px; padding: 28px 32px 32px; }
+}
+/* 터치 화면이면 조작 안내를 두 손가락으로 */
+@media (min-width: 1024px) and (pointer: coarse) {
+  .pr-help .hm { display: none; }
+  .pr-help .ht { display: inline; }
+}
+@media (max-width: 1023px) {
+  /* 좁은 화면 머리의 '문제' 낱말은 읽어 주기만(시안 '17 / 19') */
+  .pn-u { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .bar i { transition: none; }
+/* ---------- 홈(합본 디자인 3.2): 지역 탭 · 주 구역(글 | 지도) · 과 카드 줄 · 아래 구역 ----------
+   폭 600 미만 = 폰 순서(제목 → 지도 → 범례 → 단추 → 이름 → 진도), 600~1099 = 같은 순서의 한 단(가운데 최대 760),
+   1100 이상 = 2단(글 5 : 지도 7). 상자 대신 선(윗선 2px 먹 · 사이 1px 약선), 그림자 없음, 글자 14/16/18/24 + 제목.
+   D4: 다른 앱 쪽(단원 · 과 시작 · 과 요약 · 시험 결과 등)도 같은 틀과 같은 조각(.h-*)을 쓴다 — 그 쪽만의 것은 아래 '앱 쪽' 절 */
+@media (max-width: 599px) { #app .wide-only { display: none !important; } }
+@media (min-width: 600px) { #app .narrow-only { display: none !important; } }
+/* 태블릿(한 단): 가운데 최대 760. 1024 이상은 머리글이 넓은 메뉴라 그 좌우 선에 맞춰 넓게 둔다 */
+@media (min-width: 600px) and (max-width: 1023px) { #app .page { max-width: calc(760px + 2 * var(--gutter)); } }
+/* JS 가 뜨기 전 대체 글(index.astro): 기록이 있는 사람에게는 가리고(자리는 그대로), 지도 자리는 JS 가 켜졌을 때만 잡아 둔다 */
+.kgq-ret .app-fallback { visibility: hidden; }
+.app-fallback .h-mapcol { display: none; }
+.kgq-js .app-fallback .h-mapcol { display: flex; }
+/* 대체 글의 둘째 제목(h2 — 옛 홈과 같은 제목 구조)은 앱의 이름 줄(.h-places)과 같은 모양 */
+.app-fallback h2.h-places { font-weight: 400; letter-spacing: 0; text-wrap: wrap; }
+
+/* 칸 상태 견본(범례·숫자·과 카드 네모 줄). 문제 화면 범례도 같은 견본을 쓴다(s-pick·s-ctx 는 그쪽에) */
+.sw.s-mastered { background: var(--m3); }
+.sw.s-learning { background: var(--m-learning); }
+.sw.s-next { background: var(--hl); border: 2px solid var(--ink); }
+.sw.s-next.thin { border: 1px solid var(--sw-edge); }
+.sw.s-none { background: var(--m0); }
+.sw.s-water { background: var(--map-water); }
+.sw.s-due { background: var(--ink); border: 0; border-radius: 50%; }
+
+/* 지역 탭: 켜진 탭은 아래 3px 먹 선 */
+.h-tabs { display: flex; gap: 36px; align-items: flex-end; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-top: 12px; }
+.h-tab {
+  height: 48px; padding: 0; border: 0; border-bottom: 3px solid transparent; background: transparent; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; font: 400 18px/24px var(--font-ui); color: var(--ink-2);
+}
+.h-tab .u { font-size: 16px; color: var(--ink-3); }
+.h-tab:hover { color: var(--ink); }
+.h-tab[aria-pressed="true"] { border-bottom-color: var(--ink); color: var(--ink); font-weight: 700; }
+.h-tab[aria-pressed="true"] .u { font-weight: 400; color: var(--ink-2); }
+.h-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); flex: none; align-self: flex-start; margin-top: 10px; }
+@media (max-width: 599px) {
+  /* 폰: 지역 수만큼 같은 폭, 화면 끝까지 */
+  .h-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; padding-top: 0; margin-inline: calc(-1 * var(--gutter)); }
+  .h-tab { height: 54px; justify-content: center; gap: 4px; white-space: nowrap; overflow-wrap: normal; }
+  .h-tab .u { font-size: 14px; }
+}
+/* 영어 단위 글('2 counties, 9 districts')은 폰 탭 한 칸에 들지 않고, 720 아래 태블릿에서는 탭 줄이 두 줄로 꺾인다 — 수는 진도 블록 머리에 있다 */
+@media (max-width: 719px) { html[lang="en"] .h-tab .u { display: none; } }
+
+/* 주 구역: 폰·한 단은 제목 → 지도 → 단추 → 이름 → 진도. 읽는 차례(DOM)는 제목 → 이름 → 단추 → 진도 → 지도 */
+.h-main { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "map" "acts" "names" "prog"; }
+.h-head { grid-area: head; display: flex; flex-direction: column; gap: 6px; padding: 14px 0 12px; }
+.h-mapcol { grid-area: map; min-width: 0; display: flex; flex-direction: column; }
+.h-acts { grid-area: acts; display: flex; flex-direction: column; gap: 10px; padding-top: 14px; }
+.h-names { grid-area: names; display: flex; flex-direction: column; gap: 4px; padding: 16px 0 20px; }
+.h-prog { grid-area: prog; display: flex; flex-direction: column; gap: 6px; border-top: 2px solid var(--ink); padding-top: 14px; }
+
+.h-label { display: flex; align-items: center; gap: 8px; font-size: 16px; line-height: 24px; font-weight: 600; }
+/* 먼저 할 일(고른 탭과 다른 지역의 이어서 하기·복습): 큰 제목 위 한 줄. 윗선 2px 먹(지도 캡션 선과 높이가 맞는다) · 아랫선 1px */
+.h-pend {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; margin: 0 0 6px; padding: 10px 0;
+  border: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); background: none; cursor: pointer;
+  color: var(--ink); font: 600 16px/24px var(--font-ui); text-align: left; text-decoration: none;
+}
+.h-pend .h-pw { flex: 1; min-width: 0; }
+.h-pend .h-pg { flex: none; font-weight: 400; color: var(--ink-2); white-space: nowrap; }
+.h-pend:hover .h-pw { text-decoration: underline; text-underline-offset: 4px; }
+.h-title { font-size: var(--fs-display); line-height: 1.25; font-weight: 700; letter-spacing: -.035em; text-wrap: balance; }
+html[lang="en"] .h-title { font-size: 28px; letter-spacing: -.02em; }
+/* 형광펜: 글자 아래쪽 절반(장식 — 글은 그대로 읽힌다). 다음·첫 과 = 노랑, 복습·다 채움 = 옅은 초록 */
+.h-hl { --mk: var(--hl); background: linear-gradient(to top, transparent .22em, var(--mk) .22em, var(--mk) .58em, transparent .58em); padding: 0 .06em; margin: 0 -.06em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.h-hl.ok { --mk: var(--m-learning); }
+.h-places { font-size: 16px; line-height: 1.6; }
+.h-desc { font-size: 16px; line-height: 1.6; color: var(--ink-2); }
+#app .page .btn2 { gap: var(--sp-2); }
+#app .h-acts .btn { min-height: 56px; }
+#app .h-acts .btn2 { min-height: 52px; }
+/* 밑줄 글자 단추(과 시작 '처음부터 다시'): 줄 첫머리에 올 때 글자가 위 단추·글의 왼쪽 선에 맞게 안쪽 여백 없이 */
+#app .h-acts .btn-text { padding-inline: 0; }
+.h-after { font-size: 16px; line-height: 1.5; color: var(--ink-2); }
+/* 이어서 하기: 진행 막대(틀 1px · 지난 문제 옅은 초록 · 지금 문제 먹색) + 문제 수 */
+.h-run { display: flex; align-items: center; gap: 12px; font-size: 16px; line-height: 24px; color: var(--ink-2); }
+.h-bar { position: relative; flex: 1; height: 10px; border: 1px solid var(--line-mid); background: var(--surface); }
+.h-bar i, .h-bar b { position: absolute; top: 0; bottom: 0; }
+.h-bar i { left: 0; background: var(--ok-fill); }
+.h-bar b { background: var(--ink); }
+
+/* 진도 블록 · 이렇게 공부해요 */
+.h-ph { display: flex; flex-direction: column; gap: 6px; }
+#app .h-pt { font-size: 18px; line-height: 1.45; font-weight: 700; letter-spacing: 0; }
+.h-pr { font-size: 16px; line-height: 1.5; color: var(--ink-2); }
+.h-note { font-size: 14px; line-height: 1.6; color: var(--ink-3); }
+.h-note.warn { display: flex; gap: 8px; color: var(--ink); }
+.h-note.warn b { flex: none; width: 18px; height: 18px; margin-top: 2px; border-radius: 50%; background: var(--ink); color: var(--white); display: inline-grid; place-items: center; font-size: 14px; line-height: 1; }
+.h-stats { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); }
+.h-stats > div { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px; border-left: 1px solid var(--line); }
+.h-stats > div:first-child { padding-left: 0; border-left: 0; }
+.h-stats > div:last-child { padding-right: 0; }
+.h-stats b { font-size: var(--fs-stat); line-height: 1; font-weight: 700; letter-spacing: -.03em; }
+.h-stats span { display: flex; align-items: center; gap: 8px; font-size: 16px; line-height: 24px; color: var(--ink-2); }
+.h-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.h-steps li { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); }
+.h-steps li:first-child { border-top: 0; padding-top: 4px; }
+.h-st { display: flex; align-items: center; gap: 8px; }
+.h-st b { font-size: 18px; line-height: 26px; font-weight: 700; }
+.h-sn { width: 26px; height: 26px; flex: none; border-radius: 50%; border: 1.5px solid var(--ink); display: inline-grid; place-items: center; font: 700 14px/1 var(--font-ui); font-style: normal; }
+/* 세 칸으로 나눈 좁은 폭(1100~1300)에서 낱말 하나만 다음 줄로 떨어지지 않게 */
+.h-sd { font-size: 16px; line-height: 1.5; color: var(--ink-2); text-wrap: balance; }
+
+/* 지도 칸: 높이는 지역 모양(--ar = 가로:세로)에 맞추고 화면 높이로 상한. 폰은 화면 끝까지(틀 좌우 없음) */
+.h-cap { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; border-top: 2px solid var(--ink); padding-top: 10px; }
+.h-ct { font-size: 16px; line-height: 24px; font-weight: 600; }
+.h-cs { font-size: 14px; line-height: 20px; color: var(--ink-3); }
+#app .h-map { height: auto; aspect-ratio: var(--ar, 1.23); max-height: min(60vh, 520px); background: var(--map-bg); }
+.h-legend { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 20px; flex-wrap: wrap; padding-top: 10px; }
+.h-lg { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; line-height: 20px; color: var(--ink-2); }
+.h-lg .lg { display: inline-flex; align-items: center; gap: 5px; }
+.h-lg .n { color: var(--ink); font-weight: 700; margin-left: 2px; }
+.h-rd { font-size: 14px; line-height: 20px; color: var(--ink-3); }
+@media (max-width: 599px) {
+  #app .h-map { width: calc(100% + 2 * var(--gutter)); margin-inline: calc(-1 * var(--gutter)); }
+  /* 낮은 폰(높이 660 안팎)에서도 지도 아래 주 단추가 첫 화면에 들게(계획서 3.3) 지도 높이를 화면 높이에 묶는다.
+     400 = 머리글 + 탭·뒤로 줄 + 라벨·두 줄 제목 + 범례 줄 + 주 단추(56) + 사이. 보통 폰(844)에서는 서울 지도가 줄지 않는다.
+     svh 를 모르는 브라우저는 이 줄을 버리고 위 규칙(min(60vh, 520px))을 쓴다 */
+  #app .h-map { max-height: min(60vh, 520px, max(220px, calc(100svh - 400px))); }
+  .h-map::after { border: 0; }
+}
+
+/* 과 카드 줄: 폰은 행(번호 · 이름 · 꼬리표 · → / 구 이름 / 네모 줄 · 상태), 600 이상은 칸 격자(칸 전체가 링크) */
+.h-path { padding-top: 30px; }
+.h-lhead { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding-bottom: 10px; }
+.h-lhelp { font-size: 16px; line-height: 24px; color: var(--ink-2); }
+.h-lcs { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.h-lc + .h-lc { border-top: 1px solid var(--line); }
+.h-lc a {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "no nm tag ar" "pl pl pl pl" "ft ft ft ft";
+  align-items: baseline; column-gap: 10px; row-gap: 6px; padding: 14px 0; color: var(--ink); text-decoration: none;
+}
+.h-lc .no { grid-area: no; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ink-2); }
+.h-lc .nm { grid-area: nm; font-size: 18px; line-height: 26px; font-weight: 700; }
+.h-lc .tag { grid-area: tag; font-size: 16px; line-height: 24px; font-weight: 600; white-space: nowrap; }
+.h-lc.rec .tag { font-weight: 700; }
+.h-lc .ar { grid-area: ar; font-size: 16px; line-height: 24px; }
+.h-lc .pl { grid-area: pl; font-size: 16px; line-height: 1.5; color: var(--ink-2); }
+.h-lc .ft { grid-area: ft; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.h-lc .dots { display: flex; flex-wrap: wrap; gap: 4px; }
+.h-lc .st { text-align: right; font-size: 14px; line-height: 20px; color: var(--ink-2); }
+.h-lc.rec { background: var(--hl-soft); margin-inline: calc(-1 * var(--gutter)); }
+.h-lc.rec a { padding-inline: var(--gutter); }
+.h-lc a:hover { background: var(--sunk); }
+.h-lc.rec a:hover { background: transparent; }
+.h-lc a:hover .nm { text-decoration: underline; text-underline-offset: 4px; }
+/* 영어 폰: 과 이름이 길어 꼬리표('Up next')가 이름 바로 뒤에 붙는다 — 사이를 넓히고 굵기를 낮춰 이름(700)과 한 문구로 읽히지 않게 */
+@media (max-width: 599px) {
+  html[lang="en"] .h-lc a { column-gap: 16px; }
+  html[lang="en"] .h-lc.rec .tag { font-weight: 600; }
+}
+
+/* 아래 글자 링크: 폰은 54px 줄, 600 이상은 밑줄 글자 */
+.h-links { display: flex; flex-direction: column; padding-top: 6px; }
+.h-link { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid var(--line); font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ink); text-decoration: none; }
+.h-link:last-child { border-bottom: 0; }
+.h-link i { font-style: normal; }
+.h-link.off { color: var(--ink-3); font-weight: 400; }
+.h-link.off em { font-style: normal; font-size: 14px; }
+
+/* 아래 구역: 이렇게 공부해요 · 지역 알아보기 · 설정 */
+.h-more { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; padding-top: 40px; }
+.h-mo { display: flex; flex-direction: column; gap: 12px; border-top: 2px solid var(--ink); padding-top: 14px; }
+.h-xl { display: flex; flex-direction: column; gap: 2px; min-height: 44px; justify-content: center; color: var(--ink); text-decoration: none; }
+.h-xt { font-size: 16px; line-height: 24px; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 5px; }
+.h-xs { font-size: 14px; line-height: 20px; color: var(--ink-2); }
+.h-toggle { display: flex; gap: 12px; align-items: flex-start; min-height: 44px; font-size: 16px; line-height: 1.5; cursor: pointer; }
+.h-toggle input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; accent-color: var(--ink); }
+.h-toggle small { display: block; margin-top: 2px; font-size: 14px; line-height: 1.5; color: var(--ink-3); }
+
+@media (min-width: 600px) {
+  .h-head { gap: 12px; padding: 24px 0 20px; }
+  .h-label { gap: 10px; }
+  .h-title { font-size: 44px; line-height: 1.2; }
+  html[lang="en"] .h-title { font-size: 40px; }
+  .h-mapcol { gap: 10px; }
+  .h-legend { padding: 4px 0 12px; border-bottom: 1px solid var(--ink); }
+  .h-lg { flex: 0 1 auto; justify-content: flex-start; gap: 8px 20px; font-size: 16px; line-height: 24px; }
+  .h-lg .lg { gap: 7px; }
+  .h-lg .n { display: none; }
+  /* 단추끼리 12px(시안), 옆에 붙는 글('다음: …')·진행 막대는 8px 더 띄운다 */
+  .h-acts { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 24px; }
+  .h-after, .h-run { margin-left: 8px; }
+  #app .h-acts .btn, #app .h-acts .btn2 { width: auto; min-height: 60px; }
+  #app .h-acts .h-go { padding: 0 56px; }
+  #app .h-acts .h-go2 { padding: 0 22px; }
+  /* 글이 짧은 단추('홈으로' · '다시 보기')만 작아 보이지 않게 최소 폭(문제 화면 [다음]의 200 과 같은 셈) */
+  #app .h-acts .h-go { min-width: 200px; }
+  #app .h-acts .h-go2 { min-width: 140px; }
+  .h-after { max-width: 7.5em; }
+  html[lang="en"] .h-after { max-width: 10em; }
+  .h-run { flex: 0 1 260px; }
+  .h-names { gap: 6px; padding: 20px 0 24px; }
+  .h-places { font-size: 18px; }
+  .h-prog { gap: 16px; padding-top: 16px; }
+  .h-ph { flex-direction: row; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+  .h-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .h-steps li, .h-steps li:first-child { border-top: 0; padding: 4px 12px; border-left: 1px solid var(--line); gap: 6px; }
+  .h-steps li:first-child { padding-left: 0; border-left: 0; }
+  .h-steps li:last-child { padding-right: 0; }
+
+  .h-path { padding-top: 44px; }
+  .h-lhead { padding-bottom: 12px; }
+  #app .h-lhead h2 { font-size: var(--fs-24); }
+  /* 열 수: 3과 = 3칸, 5과 = 3칸(1100 이상 5칸), 7과 = 4 + 3. 줄 첫 칸은 왼쪽 선·여백 없이(추천 칸은 바탕이 있어 여백을 둔다) */
+  .h-lcs { --cols: 3; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+  .h-lcs.g7 { --cols: 4; }
+  .h-lc { display: flex; border-left: 1px solid var(--line); }
+  .h-lc + .h-lc { border-top: 0; }
+  .h-lcs:not(.g7) .h-lc:nth-child(3n+1), .h-lcs.g7 .h-lc:nth-child(4n+1) { border-left: 0; --pl: 0px; }
+  .h-lcs:not(.g7) .h-lc:nth-child(3n), .h-lcs.g7 .h-lc:nth-child(4n) { --pr: 0px; }
+  .h-lcs:not(.g7) .h-lc:nth-child(n+4), .h-lcs.g7 .h-lc:nth-child(n+5) { border-top: 1px solid var(--line); }
+  /* 네모 줄의 행이 남는 높이를 받고 아래에 붙는다(시안 margin-top: auto) — 빈 행을 두면 사이가 8px 더 벌어진다 */
+  .h-lc a {
+    flex: 1; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 24px auto auto 1fr auto;
+    grid-template-areas: "no tag" "nm nm" "pl pl" "dots dots" "st ar";
+    align-items: center; row-gap: 8px; padding: 18px var(--pr, 18px) 16px var(--pl, 18px);
+  }
+  .h-lc .pl { text-wrap: balance; }
+  .h-lc .ft { display: contents; }
+  .h-lc .dots { grid-area: dots; align-self: end; padding-top: 6px; }
+  .h-lc .st { grid-area: st; text-align: left; }
+  .h-lc .ar { justify-self: end; }
+  .h-lc.rec { margin-inline: 0; }
+  .h-lc.rec a { padding-inline: 18px; }
+
+  .h-links { flex-direction: row; flex-wrap: wrap; gap: 0 32px; padding-top: 12px; }
+  .h-link { display: inline-block; min-height: 44px; padding: 10px 0; border-bottom: 0; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
+  .h-link.off { text-decoration: none; }
+  .h-more { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; padding-top: 56px; }
+  .h-more > .h-mo:first-child:not(:only-child):nth-last-child(3) { grid-column: 1 / -1; }
+}
+@media (min-width: 1024px) { .h-title { font-size: var(--fs-display); } }
+/* 한 단(600~1099): 지도 칸 비율을 지역 모양(--ar)에 맞춘다. 높이 상한에서 자르면 칸이 지역보다 넓어져 양옆이 비고 한강이 틀 안에서 끊긴다 —
+   그래서 높이 대신 지도 칸의 폭을 줄여 가운데 둔다. 다만 이름표 문턱(지도 칸 폭 560, svgmap COMPACT_PX)보다는 좁히지 않는다:
+   세로로 긴 경기·인천은 그 폭에서 높이 상한이 다시 걸려 양옆에 바탕이 조금 남는다(그쪽에는 틀 밖으로 흐르는 강이 없다).
+   캡션 줄(윗선 2px 먹)과 범례 줄(아랫선 1px 먹)은 본문 폭 그대로 둔다 — 쪽마다 지도 비율이 달라도 구획선의 좌우 끝이 제목·단추·과 카드 줄과 맞게 */
+@media (min-width: 600px) and (max-width: 1099px) {
+  #app .h-map { width: min(100%, max(560px, calc(min(60vh, 520px) * var(--ar, 1.23)))); margin-inline: auto; }
+}
+@media (min-width: 1100px) {
+  .h-main {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: 56px; padding-top: 28px;
+    grid-template-areas: "head map" "names map" "acts map" "prog map" ". map"; grid-template-rows: auto auto auto auto 1fr;
+  }
+  .h-head { gap: 20px; padding: 12px 0 0; }
+  .h-head.pend { padding-top: 0; }
+  .h-names { padding: 20px 0 0; }
+  .h-acts { padding-top: 26px; }
+  .h-prog { margin-top: 44px; }
+  html[lang="en"] .h-title { font-size: clamp(36px, 3.1vw, 48px); }
+  /* 높이 상한 = 화면 높이의 약 70%(계획서 3.1). 지도 위(머리글·탭·캡션 약 208px)와 아래 범례 줄(약 50px)까지 첫 화면에 들게
+     100vh − 260px 도 넘지 않는다. 낮은 창에서도 너무 작아지지 않게 480, 큰 화면에서 너무 길지 않게 760 */
+  #app .h-map { max-height: clamp(480px, min(70vh, 100vh - 260px), 760px); }
+  .h-lcs.g5 { --cols: 5; }
+  .h-lcs.g5 .h-lc:nth-child(n) { border-left: 1px solid var(--line); border-top: 0; --pl: 18px; --pr: 18px; }
+  .h-lcs.g5 .h-lc:first-child { border-left: 0; --pl: 0px; }
+  .h-lcs.g5 .h-lc:last-child { --pr: 0px; }
+  .h-more { grid-template-columns: minmax(0, 6fr) minmax(0, 3fr) minmax(0, 3fr); column-gap: 56px; padding-top: 64px; }
+  .h-more.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .h-more > .h-mo:first-child:not(:only-child):nth-last-child(3) { grid-column: auto; }
+  /* 왼쪽 글이 지도보다 길면(시험 결과의 틀린 곳 목록 등) 지도 묶음이 화면에 머문다 */
+  .h-main .h-mapcol { align-self: start; position: sticky; top: 16px; }
+}
+
+/* ---------- 앱 쪽(합본 디자인 3.3 마지막 항목): 단원 · 지역 고르기 · 과 시작 · 과 요약 · 시험 결과 · 복습 없음 · 랭킹 ----------
+   홈 틀(.h-main 2단 · 진도 블록 · 과 카드 줄)을 그대로 쓰고, 여기에는 그 쪽만의 조각만 둔다 */
+
+/* 맨 위 '← 뒤로' 줄: 홈 지역 탭 줄 자리(아래 1px 약선) */
+.pg-top { display: flex; align-items: center; min-height: 56px; border-bottom: 1px solid var(--line); }
+.pg-back {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 0; border: 0; background: none; cursor: pointer;
+  color: var(--ink-2); font: 400 16px/24px var(--font-ui);
+}
+.pg-back:hover { color: var(--ink); }
+.pg-back:hover .pg-bt { text-decoration: underline; text-underline-offset: 4px; }
+@media (min-width: 600px) { .pg-top { min-height: 61px; padding-top: 12px; align-items: flex-end; } }
+
+/* 시험 결과 점수: 맞힌 수는 700, '/ 전체'는 400 흐린 먹 */
+.h-title .h-of { font-weight: 400; color: var(--ink-2); }
+/* 헷갈린 곳 · 틀린 곳 목록: 줄 44 이상, 기호(✕ ○) + 글, 사이 1px 약선 */
+.pg-list { list-style: none; margin: 0; padding: 0; }
+.pg-list li {
+  display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 2px 16px;
+  min-height: 44px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 18px; line-height: 1.4;
+}
+.pg-list li:first-child { border-top: 0; padding-top: 2px; }
+.pg-list .pr { font-size: 16px; color: var(--ink-2); }
+.pg-list .sym, .pg-all .sym { display: inline-block; width: 1.3em; font-weight: 400; }
+.pg-all { font-size: 18px; line-height: 1.5; }
+/* 이름 줄의 숫자 칸(과 요약): 폰에서도 보인다 */
+.h-names .h-stats { padding-top: 4px; }
+/* 이름 줄 없이 단추 바로 아래 오는 구역(한 단 화면) */
+@media (max-width: 1099px) { .h-prog.gap { margin-top: 24px; } }
+
+/* 짧은 쪽(복습 없음 · 랭킹 · 불러오기 실패): 한 단, 최대 720 */
+.pg-one { display: flex; flex-direction: column; gap: 12px; max-width: 720px; padding-top: 28px; }
+.pg-title { font-size: var(--fs-title); line-height: 1.25; font-weight: 700; letter-spacing: -.035em; text-wrap: balance; }
+html[lang="en"] .pg-title { letter-spacing: -.02em; }
+.pg-one .h-acts { padding-top: 12px; }
+.pg-head { padding: 24px 0 20px; }
+@media (min-width: 1024px) {
+  .pg-one { gap: 16px; padding-top: 44px; }
+  .pg-head { padding: 44px 0 28px; }
+}
+
+/* 단원: 과 카드 줄 아래 전체 연습 · 시험(같은 표의 이어지는 줄) */
+.u-ends { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--ink); }
+.u-ends li + li { border-top: 1px solid var(--line); }
+.u-ends a {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nm ar" "pl pl";
+  align-items: baseline; column-gap: 10px; row-gap: 4px; padding: 14px 0; color: var(--ink); text-decoration: none;
+}
+.u-ends .nm { grid-area: nm; font-size: 18px; line-height: 26px; font-weight: 700; }
+.u-ends .pl { grid-area: pl; font-size: 16px; line-height: 1.5; color: var(--ink-2); }
+.u-ends .ar { grid-area: ar; font-size: 16px; line-height: 24px; }
+.u-ends a:hover { background: var(--sunk); }
+.u-ends a:hover .nm { text-decoration: underline; text-underline-offset: 4px; }
+@media (min-width: 600px) {
+  .u-ends { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .u-ends li + li { border-top: 0; border-left: 1px solid var(--line); }
+  .u-ends a { padding: 16px 18px; }
+  .u-ends li:first-child a { padding-left: 0; }
+  .u-ends li:last-child a { padding-right: 0; }
+}
+
+/* 지역 고르기: 지역 세 칸(과 카드 줄과 같은 칸 — 이름 · 꼬리표 / 곳 수 · 과 수 / 한 줄 / 네모 줄 / 채움) */
+.rg .h-lc .nm { font-size: 24px; line-height: 32px; }
+.rg .h-lc .no { font-weight: 400; }
+/* 네모가 25~31개라 줄이 길다: 네모 줄이 꺾이고 상태 글은 한 덩이로 */
+.rg .h-lc .dots { flex: 1 1 0; min-width: 0; }
+.rg .h-lc .st { flex: none; white-space: nowrap; }
+.rg .h-lc a { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "nm tag ar" "no no no" "pl pl pl" "ft ft ft"; align-items: center; }
+@media (min-width: 600px) {
+  .rg .h-lc a { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto 1fr auto; grid-template-areas: "nm tag" "no no" "pl pl" "dots dots" "st ar"; }
+}
+/* 다른 지역(준비 중): 접는 구역(윗선 2px 먹), 펼치면 이름 목록 */
+.rg-more { margin-top: 44px; border-top: 2px solid var(--ink); }
+.rg-more summary {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; cursor: pointer; list-style: none;
+  font-size: 18px; line-height: 26px; font-weight: 700;
+}
+.rg-more summary::-webkit-details-marker { display: none; }
+.rg-more summary::after { content: '+'; content: '+' / ''; font-size: 24px; font-weight: 400; line-height: 1; }
+.rg-more[open] summary::after { content: '−'; content: '−' / ''; }
+.rg-other { list-style: none; margin: 0; padding: 0 0 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); column-gap: 32px; }
+.rg-other li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 16px; line-height: 24px; }
+.rg-other em { flex: none; font-style: normal; font-size: 14px; color: var(--ink-3); }
+
+/* ---------- 둘러보기(합본 디자인 3.3): 화면 전체 지도 ----------
+   문제 화면의 머리(.play-top)·지도 칸(.play-stage)·캡션 줄(.pr-cap)·조작 안내(.pr-help)를 함께 쓴다.
+   좁은 화면 = 머리(← · 제목 / 토글 줄) → 지도(남은 높이) → [범례 줄 44: 채움 색일 때] → 정보 띠(위 1px 먹 선, 길면 띠만 스크롤)
+   넓은 화면 = 머리 64(← 뒤로 · 제목 · 토글) + 본문 2단: 왼쪽 열 400(고른 곳 정보 · 출처) | 오른쪽 틀 있는 지도 */
+.xpl .pt-in { flex-wrap: wrap; height: auto; min-height: 56px; row-gap: 2px; padding-top: 4px; }
+.xpl .pt-title {
+  display: block; flex: 1 1 0; min-width: 0; margin: 0; font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.x-tools { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 0 100%; padding: 0 0 10px 12px; }
+/* 토글: 먹 테두리 단추(누름 44), 켜지면 먹색 바탕 흰 글자 + ✓ */
+.tg {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; cursor: pointer; white-space: nowrap;
+  border: 1.5px solid var(--ink); border-radius: var(--r-btn); background: var(--surface); color: var(--ink); font: 600 16px/22px var(--font-ui);
+}
+.tg .tk { display: none; }
+.tg[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+.tg[aria-pressed="true"] .tk { display: inline; }
+.tg:hover { background: var(--sunk); }
+.tg[aria-pressed="true"]:hover { background: var(--action-press); }
+
+.x-body {
+  flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto; grid-template-areas: "map" "key" "band";
+}
+.x-side, .x-right { display: contents; }
+.xpl:not(.fill) .pr-cap { display: none; }
+.x-band {
+  grid-area: band; display: flex; flex-direction: column; gap: 10px; max-height: 48vh; max-height: 48dvh; overflow-y: auto;
+  border-top: 1px solid var(--ink);
+  padding: 12px max(var(--gutter), env(safe-area-inset-right, 0px)) max(16px, calc(10px + env(safe-area-inset-bottom, 0px))) max(var(--gutter), env(safe-area-inset-left, 0px));
+}
+.x-card { display: flex; flex-direction: column; gap: 8px; }
+.x-empty { font-size: 16px; line-height: 1.5; color: var(--ink-2); }
+.x-eye { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--ink-2); }
+.x-name { font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -.03em; }
+.x-line { font-size: 16px; line-height: 1.5; }
+/* 맞닿은 곳: 밑줄 글자 단추(누름 높이 44). 안쪽 여백 없이 사이를 띄워 꺾인 줄의 첫 글자가 왼쪽 선에 맞게 */
+.x-nb { display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px; font-size: 16px; line-height: 24px; }
+.x-nh { color: var(--ink-2); }
+.x-nb .btn-text { padding: 0; }
+.x-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding-top: 4px; }
+#app .xpl .x-acts .btn { width: auto; flex: 1 1 auto; min-height: 56px; padding: 0 20px; font-size: 18px; }
+.x-more { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 5px; }
+.x-src { font-size: 14px; line-height: 1.45; color: var(--ink-3); }
+.xpl .play-map.map-fail { position: absolute; }
+
+/* 600 이상(태블릿 포함): 머리 한 줄(← · 제목 · 토글 — 제목이 길면 줄임표), 주 단추는 제 폭(홈·과 시작 주 단추와 같은 규칙).
+   폰은 토글을 둘째 줄에 둔다(영어 토글 둘과 제목이 한 줄에 들지 않는다) */
+@media (min-width: 600px) {
+  .xpl .pt-in { flex-wrap: nowrap; padding-top: 0; }
+  .x-tools { flex: none; padding: 0; }
+  #app .xpl .x-acts .btn { flex: none; min-height: 60px; padding: 0 32px; }
+}
+@media (min-width: 1024px) {
+  .xpl .pt-in { flex-wrap: nowrap; height: 64px; padding-top: 0; }
+  .xpl .pt-title { flex: 1 1 auto; }
+  .x-tools { flex: none; padding: 0; gap: 10px; }
+  .x-body { display: flex; align-items: stretch; gap: 48px; width: 100%; max-width: var(--page-w); margin-inline: auto; padding: 32px var(--gutter); }
+  .x-side { display: flex; flex-direction: column; flex: 0 1 400px; min-width: 300px; min-height: 0; overflow-y: auto; padding-top: 12px; }
+  .x-right { display: flex; flex-direction: column; gap: 10px; flex: 1 1 600px; min-width: 0; min-height: 0; }
+  .xpl:not(.fill) .pr-cap { display: flex; }
+  .x-band { flex: 1 0 auto; max-height: none; overflow: visible; gap: 24px; border: 0; padding: 0; }
+  .x-card { gap: 14px; }
+  .x-empty { font-size: 18px; line-height: 1.6; }
+  .x-eye { font-size: 16px; line-height: 24px; }
+  .x-name { font-size: 36px; }
+  .x-line { font-size: 18px; line-height: 1.6; }
+  .x-acts { padding-top: 8px; }
+  #app .xpl .x-acts .btn { flex: none; min-height: 60px; padding: 0 32px; font-size: 18px; }
+  /* 출처는 왼쪽 열 맨 아래(#app p 의 margin 0 을 이기려고 #app 을 붙인다) */
+  #app .x-src { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
+}
+/* 가로로 눕힌 폰: 문제 화면과 같이 2단 — 머리 한 줄(← · 제목 · 토글), 왼쪽 정보 열 340(넘치면 열만 스크롤) | 지도(화면 높이) + [범례 줄] */
+@media (max-width: 1023px) and (max-height: 500px) and (orientation: landscape) {
+  .xpl .pt-in { flex-wrap: nowrap; padding-top: 0; }
+  .x-tools { flex: none; padding: 0; }
+  .x-body { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "band map" "band key"; }
+  .x-band { min-height: 0; max-height: none; border-top: 0; border-right: 1px solid var(--ink); padding-right: var(--gutter); }
 }

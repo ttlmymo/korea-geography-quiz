@@ -85,14 +85,15 @@ const SRC = {
   <li>행정동이 맡는 법정동: 서울특별시, <a href={DONGMAP.source.url}>{DONGMAP.source.title}</a>(2025. 8. 18. 수정)</li>
 </ul>
 
+
 <style>
-  .bar { display: flex; align-items: center; gap: 6px; height: 14px; margin: 3px 0; }
-  .bar i { display: block; height: 10px; border-radius: 3px; min-width: 2px; }
-  .bar i { flex: none; }
-  .bar .num { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
-  .b-legal { background: var(--grp-1); border: 1px solid var(--map-edge); }
-  .b-adm { background: var(--grp-2); border: 1px solid var(--map-edge); }
-  .key { display: inline-block; width: 12px; height: 10px; margin: 0 4px 0 8px; vertical-align: 0; border-radius: 2px; }
+  /* 막대(합본 D5): 색 대신 먹 채움(법정동)과 면색 + 먹 테두리(행정동)로 구분, 각진 모서리. 숫자 14px */
+  .bar { display: flex; align-items: center; gap: 8px; height: 18px; margin: 3px 0; }
+  .bar i { display: block; flex: none; height: 12px; min-width: 2px; box-sizing: border-box; }
+  .bar .num { font-size: var(--fs-14); line-height: 18px; color: var(--ink-2); white-space: nowrap; }
+  .b-legal { background: var(--ink); }
+  .b-adm { background: var(--sunk); border: 1px solid var(--ink); }
+  .key { display: inline-block; width: 16px; height: 16px; box-sizing: border-box; margin: 0 6px 0 14px; vertical-align: -3px; border-radius: var(--r-sw); }
   .key:first-child { margin-left: 0; }
   table.pair td:last-child { width: 70%; }
 </style>

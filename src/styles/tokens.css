@@ -1,74 +1,84 @@
-/* 채움지도 디자인 토큰: 시안 A '종이 백지도와 색연필', 밝은 화면 하나(설계서 6절, 부록 A)
-   색 하나에 뜻 하나 — 초록=채움·실행, 파랑=맞음, 주홍=틀림, 호박=복습, 노랑=문제 칸 */
+/* 채움지도 디자인 토큰: 합본(2026-11-13 확정) — 흰 바탕에 먹색 글자·단추·선, 색은 지도에만.
+   초록 두 단계 = 익힌 곳, 노랑 = 지금 배울 곳, 하늘 = 물. 글꼴은 IBM Plex Sans KR 하나(굵기 400·600·700) */
 :root {
   color-scheme: only light;
 
-  /* 바탕·글자 */
-  --paper: #F7F3EA;
-  --surface: #FFFDF8;
-  --sunk: #EFE9DC;
-  --line: #E3DACA;
-  --line-strong: #8C806B;
-  --ink: #26231E;
-  --ink-2: #4F483F;
-  --ink-3: #6E665A;
-
-  /* 뜻이 있는 색 */
-  --brand: #22663F;
-  --brand-press: #1A5233;
-  --brand-soft: #E3F1E8;
-  --hl: #FFD43B;
-  --hl-soft: #FFF3BF;
-  --ok: #1F5FCC;
-  --ok-fill: #4C86E8;
-  --ok-soft: #E3ECFC;
-  --no: #C4321F;
-  --no-fill: #F07F6A;
-  --no-soft: #FCE6E1;
-  --due: #A34E00;
-  --due-badge: #F5A524;
-  --due-soft: #FFEFD6;
+  /* 바탕·글자·선 */
+  --paper: #FFFFFF;
+  --surface: #FFFFFF;
+  --sunk: #EFF1EE;            /* 면: 지도 바탕, 눌린 자리 */
+  --line: #DCE0DD;            /* 약한 선: 칸 사이 */
+  --line-mid: #8A938F;        /* 중간 선: 막대 틀, 흐린 네모 테두리 */
+  --frame: #C9CFCB;           /* 지도 틀 */
+  --ink: #15191A;
+  --ink-2: #454D50;
+  --ink-3: #5F686B;
   --white: #FFFFFF;
 
-  /* 숙달 단계(지도 칠하기): 아직 · 익히는 중 · 익히는 중 · 다 익힘 */
-  --m0: #FFFDF8;
-  --m1: #D9EBA9;
-  --m2: #9ACF84;
-  --m3: #22663F;
+  /* 실행(단추·진행 막대)은 먹색 */
+  --action: #15191A;
+  --action-press: #2E3436;
 
-  /* 지도 */
-  --map-water: #CADDE8;
-  --map-out: #E4DDCE;
-  --map-ctx: #EFEADF;
-  --map-edge: #8C806B;
-  --map-edge-strong: #4A4234;
-  --map-water-ink: #4F7C95;   /* 강 이름 글자 */
-  --map-gap: #FFFDF8;
-  --q-outline: #26231E;
-  /* 묶음 칠: 정적 쪽 지도에서 한강 남북·권역 같은 무리를 나눌 때만(뜻 색·바깥 땅과 겹치지 않는 색연필 톤, 표에 색 견본을 함께 둔다) */
-  --grp-1: #F2DCA6;
-  --grp-2: #D4E0BF;
-  --grp-3: #DDD1EB;
-  --grp-4: #F2CEC3;
+  /* 뜻이 있는 색 */
+  --hl: #FFD84A;              /* 지금·다음에 배울 곳 */
+  --hl-soft: #FFF6CF;
+  /* 판정·복습: 색은 지도 칸에만 칠한다(-fill). 글자·기호·점은 먹색이고 뜻은 기호(○ ✕ ●)와 글이 맡는다 */
+  --ok-fill: #7FD0A8;         /* 맞힌 칸 = 익히는 중과 같은 초록 */
+  --no-fill: #F4A698;         /* 잘못 누른 칸: 옅은 산호 */
+  --due-badge: var(--ink);    /* 복습할 곳: 먹색 점 */
 
-  /* 글꼴: 본문은 시스템 고딕, 제목·문제·큰 숫자만 SUIT Bold(자가 호스팅은 나중 단계) */
-  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-  --font-head: 'SUIT', var(--font-ui);
+  /* 숙달 단계(지도 칠하기): 아직 · 익히는 중 · 다 익힘. 익히는 중(채움 1·2단계)은 한 색 */
+  --m0: #FFFFFF;
+  --m-learning: #7FD0A8;
+  --m3: #0D7B50;              /* 위에 흰 글자 5.29:1 */
 
-  /* 간격(4px 기준)·크기·모서리·그림자·움직임 */
+  /* 지도: 바탕(지역 밖·바다)은 면색, 물색은 한강 같은 지역 안 물에만. 선은 먹색(칸 경계 1px, 지역 외곽선 굵게) */
+  --map-bg: #EFF1EE;          /* 지도 바탕: 바다·이웃 땅 */
+  --map-water: #BEDCF3;
+  --map-out: #EFF1EE;
+  --map-ctx: #EFF1EE;         /* 이번 과가 아닌 칸 */
+  --map-ctx-edge: #C4CAC6;    /* 그 칸의 선 */
+  --map-edge: #15191A;
+  --map-edge-strong: #15191A;
+  --map-water-ink: #335E7A;   /* 강 이름 글자: 물색 위 4.87:1 · 바탕 위 6.1:1 */
+  --q-outline: #15191A;
+  --sw-edge: rgba(21, 25, 26, .55);   /* 범례 네모 테두리 */
+  /* 묶음 칠: 정적 쪽 지도에서 한강 남북·권역 같은 무리를 나눌 때만(표에 색 견본을 함께 둔다).
+     노랑(지금 배울 곳)·초록(익힌 곳)과 헷갈리지 않게 옅고 차분하게 */
+  --grp-1: #EADFC2;
+  --grp-2: #D5E2C8;
+  --grp-3: #DCD3EA;
+  --grp-4: #F0D3CA;
+
+  /* 글꼴: IBM Plex Sans KR 을 사이트에서 직접 준다(src/styles/fonts.css, tools/fonts.mjs 가 만든다) */
+  --font-ui: 'IBM Plex Sans KR', system-ui, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-head: var(--font-ui);
+  /* 글자 크기 단계: 14 · 16 · 18 · 24, 그 위는 제목. 13px 이하는 쓰지 않는다 */
+  --fs-14: 14px; --fs-16: 16px; --fs-18: 18px; --fs-24: 24px;
+  --fs-title: 32px;           /* 쪽 제목 */
+  --fs-display: 32px;         /* 홈의 큰 제목 */
+  --fs-stat: 36px;            /* 큰 숫자 */
+
+  /* 간격(4px 기준)·크기·모서리·움직임. 둥근 것은 단추와 범례 네모뿐이고 그림자는 쓰지 않는다(계획서 0.4) */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px;
   --gutter: 16px;
-  --tap-min: 44px; --btn-h: 48px; --btn-primary-h: 56px; --chip-h: 40px; --header-h: 52px;
-  --r-xs: 6px; --r-sm: 10px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px; --r-pill: 999px;
-  --e1: 0 1px 2px rgba(38, 35, 30, .08);
-  --e2: 0 4px 14px rgba(38, 35, 30, .12);
-  --e3: 0 -6px 24px rgba(38, 35, 30, .16);
-  --t-fast: 150ms; --t-fill: 250ms; --t-pencil: 400ms;
-  --content-w: 34em;
-  --page-w: 1080px;
+  --tap-min: 44px; --btn-h: 52px; --btn-primary-h: 56px; --header-h: 56px;
+  --r-btn: 14px;              /* 단추 */
+  --r-sw: 3px;                /* 범례 네모 */
+  --t-fill: 250ms; --t-pencil: 400ms;
+  --content-w: 34em;          /* 읽는 글 한 줄 */
+  --doc-w: 1160px;            /* 정적 쪽 본문 상자(좌우 여백 40 포함) = 글 폭 1080(계획서 3.4, --page-w 와 같은 셈) */
+  --page-w: 1560px;           /* 머리글·바닥글·공부 앱 홈의 상자 폭(좌우 여백 40 포함) = 글 폭 1480(시안: 최대 1480 + 좌우 40) */
 }
-@media (min-width: 1024px) { :root { --gutter: 24px; } }
-@media (prefers-reduced-motion: reduce) { :root { --t-fast: 0ms; --t-fill: 0ms; --t-pencil: 0ms; } }
+@media (min-width: 600px) { :root { --gutter: 24px; } }
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 40px; --header-h: 72px; --btn-primary-h: 60px;
+    --fs-title: 40px;
+    --fs-display: clamp(54px, 4.4vw, 72px);
+  }
+}
+@media (prefers-reduced-motion: reduce) { :root { --t-fill: 0ms; --t-pencil: 0ms; } }
 
 /* 기본 */
 *, *::before, *::after { box-sizing: border-box; }
@@ -77,18 +87,19 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font: 400 16px/24px var(--font-ui);
+  font: 400 16px/1.6 var(--font-ui);
   word-break: keep-all;          /* 한국어를 낱말 단위로 줄바꿈 */
   overflow-wrap: anywhere;
 }
-h1, h2, h3 { font-family: var(--font-head); font-weight: 700; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
-h1 { font-size: 26px; line-height: 34px; }
-h2 { font-size: 22px; line-height: 30px; }
-h3 { font-size: 18px; line-height: 26px; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: 700; margin: 0; text-wrap: balance; }
+h1 { font-size: var(--fs-title); line-height: 1.25; letter-spacing: -.035em; }
+h2 { font-size: var(--fs-24); line-height: 1.35; letter-spacing: -.02em; }
+h3 { font-size: var(--fs-18); line-height: 1.45; letter-spacing: -.01em; }
 p { margin: 0; }
-a { color: var(--ok); text-underline-offset: 3px; }
+a { color: var(--ink); text-underline-offset: 4px; }
 img, svg { max-width: 100%; }
-:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--paper), 0 0 0 5px var(--ok); border-radius: var(--r-sm); }
+button, input, select, textarea { font-family: inherit; }
+:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
 .num { font-variant-numeric: tabular-nums; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -100,27 +111,150 @@ img, svg { max-width: 100%; }
   padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
   padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
 }
-.stack { display: flex; flex-direction: column; gap: var(--sp-3); }
-.page { display: flex; flex-direction: column; gap: var(--sp-6); padding-block: var(--sp-4) var(--sp-10); }
+.page { max-width: var(--doc-w); display: flex; flex-direction: column; gap: var(--sp-6); padding-block: var(--sp-6) var(--sp-10); }
 
 /* 읽는 글 */
-.prose { max-width: var(--content-w); font-size: 17px; line-height: 28px; display: flex; flex-direction: column; gap: var(--sp-4); }
-.prose h2 { margin-top: var(--sp-4); }
-.prose ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--sp-1); }
-.meta { font-size: 13px; line-height: 18px; color: var(--ink-3); }
-.lead { font-size: 17px; line-height: 26px; color: var(--ink-2); }
+.prose { max-width: var(--content-w); font-size: var(--fs-18); line-height: 1.75; display: flex; flex-direction: column; gap: var(--sp-4); }
+.prose h2 { margin-top: var(--sp-6); }
+.prose ul, .prose ol { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--sp-2); }
+.meta { font-size: var(--fs-14); line-height: 1.5; color: var(--ink-3); }
+.lead { font-size: var(--fs-18); line-height: 1.6; color: var(--ink-2); }
 
-/* 버튼 */
+/* 버튼: 주 = 먹색, 보조 = 먹색 테두리, 글자 = 밑줄 */
 .btn {
-  min-height: var(--btn-primary-h); padding: 0 var(--sp-5);
-  border: 0; border-radius: var(--r-md); background: var(--brand); color: var(--white);
-  font: 700 17px/24px var(--font-head); box-shadow: var(--e1);
+  min-height: var(--btn-primary-h); padding: 0 var(--sp-6);
+  border: 0; border-radius: var(--r-btn); background: var(--action); color: var(--white);
+  font: 600 18px/24px var(--font-ui);
   display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); text-decoration: none; cursor: pointer;
 }
-.btn:active { background: var(--brand-press); }
+.btn:active { background: var(--action-press); }
 .btn2 {
-  min-height: var(--btn-h); padding: 0 var(--sp-4);
-  border: 1.5px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface); color: var(--ink);
-  font: 700 16px/24px var(--font-head); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer;
+  min-height: var(--btn-h); padding: 0 var(--sp-5);
+  border: 1.5px solid var(--ink); border-radius: var(--r-btn); background: var(--surface); color: var(--ink);
+  font: 600 16px/24px var(--font-ui); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer;
 }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); }
+.btn2:active { background: var(--sunk); }
+.btn-text {
+  min-height: var(--tap-min); padding: 0 var(--sp-1); border: 0; background: transparent; color: var(--ink);
+  font: 600 16px/24px var(--font-ui); text-decoration: underline; text-underline-offset: 4px;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* ── 정적 쪽(지역 허브 · 구 소개 · 가이드 · 소개·문의·출처·방침 · 404) — 합본 D5 ──
+   홈 시안과 같은 말: 큰 제목 · 먹색 주 단추 · 상자 대신 선(위 2px 먹 · 사이 1px 약선 · 아래 1px 먹) · 1px 틀 지도.
+   이름은 앱(app.css)과 겹치지 않게 골랐다(.sw 는 앱과 같은 값이라 겹쳐도 화면이 같다) */
+.page > .d-sec, .page > .cta { margin-top: var(--sp-4); }
+@media (min-width: 1024px) { .page > .d-sec, .page > .cta { margin-top: var(--sp-6); } }
+
+/* 현재 위치: 14px 글, 링크는 누름 높이 44px · 좌우로 8px 더(구분자 '›' 둘레 20px 를 넘지 않아 이웃 링크와 겹치지 않는다) */
+.crumb { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; margin-bottom: calc(-1 * var(--sp-4)); font-size: var(--fs-14); line-height: 20px; color: var(--ink-3); }
+.crumb a { display: inline-flex; align-items: center; min-height: var(--tap-min); padding-inline: 8px; margin-inline: -8px; color: var(--ink-2); }
+/* 현재 위치 줄이 없는 쪽(404 · 개인정보처리방침)도 제목이 같은 높이에서 시작하게: 그 줄 높이(44) − 아래 당김(16) + 쪽 사이(24) 만큼 내린다 */
+.wrap.page > :is(.d-head, .prose):first-child { margin-top: calc(var(--tap-min) - var(--sp-4) + var(--sp-6)); }
+
+/* 맨 위 묶음: 좁은 화면은 제목 → 지도 → 글(홈 폰과 같은 차례).
+   넓은 화면: .hub(지역 허브)는 홈 시안처럼 글 | 지도 2단, .split(구 쪽)은 글 | 위치도 1:1, 둘 다 아니면 제목 → 글 → 지도 한 단.
+   보이는 차례만 격자로 바꾸고 읽는 차례(DOM)는 쪽마다 원래 차례 그대로다(지도에는 누를 것이 없어 탭 차례가 어긋나지 않는다) */
+.d-top { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "map" "body"; row-gap: var(--sp-5); }
+.d-head { grid-area: head; display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.d-map { grid-area: map; min-width: 0; margin: 0; display: flex; flex-direction: column; }
+.d-body { grid-area: body; display: flex; flex-direction: column; gap: var(--sp-5); min-width: 0; }
+.d-title { font-size: 32px; line-height: 1.2; letter-spacing: -.035em; }
+.d-sub { font-size: var(--fs-16); line-height: 1.5; color: var(--ink-2); }
+.d-body > .lead, .d-body > .prose { max-width: var(--content-w); }
+.d-acts { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.d-acts .btn { flex: 1 1 100%; }
+/* 지도 아래 범례·설명 줄(홈 지도 칸의 범례 줄과 같다): 16px, 아래 1px 먹 */
+.d-key { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; padding: 10px 0 12px; border-bottom: 1px solid var(--ink); font-size: var(--fs-16); line-height: 24px; color: var(--ink-2); }
+.d-key > span { display: inline-flex; align-items: center; gap: 7px; }
+.d-key > .note { align-items: flex-start; }
+.d-key > .note .sw { margin-top: 4px; }
+/* 범례 네모: 정적 쪽과 공부 앱(app.css 의 .sw.s-* 상태 칠)이 함께 쓰는 기본 모양 — 이 한 곳에만 둔다 */
+.sw { width: 16px; height: 16px; box-sizing: border-box; border-radius: var(--r-sw); border: 1px solid var(--sw-edge); display: inline-block; flex: none; }
+.sw.s-hl { background: var(--hl); border: 2px solid var(--ink); }
+/* 폰: 지도는 화면 끝까지, 틀 없이(홈 폰과 같다). 가이드 글 속 지도·지도 쌍도 같게 */
+@media (max-width: 599px) {
+  .page .d-map .rmap, .page .article > .rmap, .page .article .pair .rmap { width: calc(100% + 2 * var(--gutter)); max-width: none; margin-inline: calc(-1 * var(--gutter)); outline: 0; }
+}
+@media (min-width: 600px) {
+  .d-title { font-size: 44px; }
+  .d-acts .btn { flex: 0 0 auto; padding: 0 var(--sp-10); }
+}
+@media (min-width: 1024px) {
+  .d-top { grid-template-areas: "head" "body" "map"; row-gap: var(--sp-6); }
+  .d-title { font-size: var(--fs-display); }
+  html[lang="en"] .d-title { font-size: clamp(44px, 3.6vw, 56px); }
+  /* 글 | 지도 2단(구 쪽 위치도): 지도 칸 위끝을 제목 위끝에 맞춘다 */
+  .d-top.split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "head map" "body map"; column-gap: var(--sp-12); align-items: start; }
+  .d-top.split .d-map, .d-top.hub .d-map { padding-top: 10px; }
+  /* 지역 허브: 홈 시안처럼 글(제목·리드·단추) | 지도 + 범례 줄. 지도와 범례 줄이 첫 화면에 들게 지도 높이를 화면 높이에 맞춘다
+     (위끝 약 158px + 범례 줄 47px · 범례가 여러 줄인 쪽은 --hub-key 만큼 더 뺀다, 아래 한계 440 · 위 한계 880).
+     지도 폭 = 그 높이 × 지도 비율(--rmap-ar), 제 상한(--rmap-max), 왼쪽 글 칸 360px 를 남기는 폭 가운데 가장 작은 값.
+     이름표는 지도 폭으로 문턱을 재므로 저절로 그 폭에 드는 것만 보인다 */
+  .d-top.hub {
+    container-type: inline-size;
+    --hub-h: clamp(440px, calc(100vh - 220px - var(--hub-key, 0px)), 880px);
+    grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr; grid-template-areas: "head map" "body map"; column-gap: var(--sp-8); align-items: start;
+  }
+  .d-top.hub .d-map .rmap { width: min(var(--rmap-max), calc(var(--hub-h) * var(--rmap-ar, 1)), calc(100cqw - 360px - var(--sp-8))); }
+  /* 범례 줄은 지도 폭에 맞춘다(제 글 길이로 칸을 넓히지 않게) */
+  .d-top.hub .d-key { width: 0; min-width: 100%; }
+}
+
+/* 구역: 제목(24px) → 글(18px, 34em) → 표. 표가 윗선 2px 먹을 갖는다 */
+.d-sec { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.d-sec > p, .d-sec > ul, .d-sec > ol { max-width: var(--content-w); font-size: var(--fs-18); line-height: 1.7; }
+.d-sec > ul, .d-sec > ol { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--sp-2); }
+.d-sec > p.meta { font-size: var(--fs-14); line-height: 1.5; }
+
+/* 표: 위 2px 먹 · 줄 사이 1px 약선 · 아래 1px 먹, 머리칸 14px 600, 본문 16px. 좁으면 표만 가로로 민다.
+   표 폭은 가이드 글과 같은 760px 까지. 스크롤 상자에 4px 여유(안쪽 여백 + 같은 만큼 바깥 당김)를 두어 첫 칸 링크의 초점 고리가 잘리지 않게 한다 */
+.tbl { overflow-x: auto; padding: 4px; margin: -4px; }
+.d-sec > .tbl { max-width: calc(760px + 8px); }
+.tbl table { width: 100%; border-collapse: collapse; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); font-size: var(--fs-16); line-height: 1.5; }
+.tbl th, .tbl td { padding: 12px 16px 12px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.tbl th:last-child, .tbl td:last-child { padding-right: 0; }
+.tbl thead th { padding-block: 10px; font-size: var(--fs-14); line-height: 20px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+/* 본문의 overflow-wrap: anywhere 는 칸의 최소 폭까지 글자 하나로 줄여 표 배치가 낱말 가운데서 끊는다('Yeongdeungp/o-gu').
+   표 칸은 낱말 단위로 재고, 정말 넘칠 때만 끊는다(넘치면 표만 가로로 민다) */
+.tbl th, .tbl td { overflow-wrap: break-word; }
+/* 첫 칸(이름) 폭을 고르게: 쪽마다 둘째 칸이 같은 자리에서 시작한다(더 긴 이름이면 그만큼 넓어진다).
+   폰에서는 풀어 둔다 — 4열 표(경기 31개 시·군)에서 나머지 칸이 70px 남짓으로 줄어 2~3줄로 꺾인다 */
+@media (min-width: 600px) { .tbl thead th:first-child { width: 9rem; } }
+/* 칸 안 링크(허브의 'N과 …', 구 이름): 줄 높이는 그대로, 누름 높이만 44px */
+.tbl td > a { display: inline-block; padding-block: 10px; margin-block: -10px; }
+.tbl tbody tr:last-child > * { border-bottom: 0; }
+.tbl td:first-child { white-space: nowrap; }
+/* 영어 폰: 첫 칸('1. Downtown and northwest')이 줄을 막으면 둘째 칸이 좁아져 이름이 하이픈에서 끊긴다 */
+@media (max-width: 599px) { html[lang="en"] .tbl td:first-child { white-space: normal; } }
+.tbl td p { margin: 0 0 6px; }
+.tbl td p:last-child { margin-bottom: 0; }
+.tbl .sw { vertical-align: -3px; margin-right: 7px; }
+
+/* 사실 목록(dl): 표와 같은 선. 이름 14px 600, 값 16px */
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); margin: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); font-size: var(--fs-16); line-height: 1.5; }
+.facts dt, .facts dd { margin: 0; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.facts dt { padding-right: var(--sp-5); font-size: var(--fs-14); line-height: 24px; font-weight: 600; color: var(--ink-2); }
+.facts dt:last-of-type, .facts dd:last-of-type { border-bottom: 0; }
+/* 링크가 이어진 값('맞닿은 곳'): 줄 사이를 32px 로 벌리고 링크마다 위아래 10px · 좌우 4px 누름 여유(글자 상자 24 + 20 = 높이 44px).
+   두 줄이 되어도 누름 상자가 겹치는 곳은 벌어진 줄 사이(글자 아래 빈 자리)뿐이고, 좌우 여유는 구분자(' · ' 약 13px)를 넘지 않는다 */
+.facts dd.links { line-height: 32px; padding-block: 8px; }
+.facts dd.links a { padding: 10px 4px; margin: 0 -4px; }
+
+/* 해 보기 구역(옛 초록 상자): 윗선 2px 먹 + 제목(구역 제목과 같은 24px) + 글 + 먹색 주 단추 */
+.cta { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-3); border-top: 2px solid var(--ink); padding-top: var(--sp-4); }
+.cta > p { max-width: var(--content-w); font-size: var(--fs-18); line-height: 1.7; }
+.cta > b { font-size: var(--fs-24); line-height: 1.35; letter-spacing: -.02em; font-weight: 700; }
+.cta .btn { margin-top: var(--sp-1); }
+/* 쪽 구역으로 쓸 때(구 쪽) 윗선 폭을 위 표(760px)에 맞춘다 */
+.page > .cta { max-width: 760px; }
+@media (min-width: 600px) { .cta { align-items: flex-start; } .cta .btn { padding: 0 var(--sp-10); } }
+
+/* 검수 전 초안 띠(개발 서버 전용): 면색 + 먹 글자 */
+.draft { background: var(--sunk); padding: var(--sp-3) var(--sp-4); font-size: var(--fs-16); line-height: 1.6; color: var(--ink); }
+/* 꼬리표('2026.7' · '특례시' · '검수 전'): 14px 600, 1px 먹 테두리, 색 바탕 없음 */
+.doc-tag { display: inline-block; margin-left: var(--sp-2); padding: 1px 6px; border: 1px solid var(--ink); font-size: var(--fs-14); line-height: 20px; font-weight: 600; color: var(--ink); white-space: nowrap; vertical-align: 1px; }
+
+/* 읽는 글(.prose)의 고정폭 글자: 브라우저 기본(13px 안팎)이 아니라 본문에 맞춘다.
+   고정폭 글꼴에 한글이 없으므로 한글(파일 이름 등)은 시스템 고정폭 한글(굴림체 등) 대신 본문 글꼴로 */
+.prose code, .article code { font: 400 .875em/1 ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', 'IBM Plex Sans KR', monospace; }

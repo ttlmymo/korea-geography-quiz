@@ -6,7 +6,7 @@ import { CONTACT_EMAIL } from '../../consts';
 ---
 <Base title="문의 – 채움지도" description="채움지도의 지명·경계 오류 신고, 기능 제안, 개인정보 관련 요청을 받는 연락처예요.">
   <div class="wrap page">
-    <nav class="meta" aria-label="현재 위치"><a href={href('/')}>홈</a> › 문의</nav>
+    <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › 문의</nav>
     <article class="prose">
       <h1>문의</h1>
       <p>채움지도에 관한 의견이나 요청은 이메일로 보내 주세요.</p>
@@ -29,5 +29,7 @@ import { CONTACT_EMAIL } from '../../consts';
 </Base>
 
 <style>
-  .mailbox { font-size: 18px; user-select: all; }
+  /* 메일 주소: 이 쪽의 주인공이라 24px 600, 위아래 선으로 두드러지게(색 없이). 누름 높이 44px 이상 */
+  .mailbox { padding: var(--sp-3) 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); font-size: var(--fs-24); line-height: 1.4; font-weight: 600; user-select: all; }
+  .mailbox a { display: inline-flex; align-items: center; min-height: var(--tap-min); text-underline-offset: 6px; text-decoration-thickness: 1.5px; }
 </style>

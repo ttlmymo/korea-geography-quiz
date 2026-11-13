@@ -39,7 +39,7 @@ async function boot() {
     geo = await loadGeo(BASE, VER);
   } catch (e) {
     track('geo_load_fail', { msg: String((e as Error)?.message ?? e).slice(0, 100) });
-    root.innerHTML = `<div class="page"><section class="card"><h2 class="title-22">${L.loadFail[0]}</h2><p class="t15">${L.loadFail[1]}</p></section></div>`;
+    root.innerHTML = `<div class="page"><div class="pg-one"><h1 class="pg-title">${L.loadFail[0]}</h1><p class="h-desc">${L.loadFail[1]}</p></div></div>`;
     return;
   }
   const reg = createRegistry(geo);
@@ -178,6 +178,8 @@ async function boot() {
   let current: { destroy?(): void; key?(e: KeyboardEvent): boolean } | null = null;
   let lastKey = '';
   let gen = 0;   // 화면이 바뀌면 늘어난다. 늦게 붙은 지도는 버린다
+  /** 화면 키: 경로 + 화면 상태(문제·요약·결과). 같은 키면 다시 그리지 않는다. 기록을 고친 분기(play 넣기·지우기)도 이 식으로 맞춘다 */
+  const keyOf = (route: Route, st: NavState) => JSON.stringify([toHash(route), st.s ?? '', st.sum?.no ?? '', st.res?.score ?? '']);
 
   function setFull(on: boolean) {
     document.documentElement.classList.toggle('app-full', on);
@@ -196,6 +198,8 @@ async function boot() {
   }
 
   function play(slot: Slot) {
+    // 공부를 시작하면 홈에서 고른 탭은 잊는다: 돌아온 홈은 방금 공부한 지역(ctx.last)이나 주 카드의 지역으로 열린다
+    ctx.homeRegion = null;
     setFull(true);
     document.title = titled(L.studying);
     current = mountPlay(root, ctx, slot, onEnd, () => ctx.go({ name: 'home' }));
@@ -206,7 +210,7 @@ async function boot() {
     if (parsed.fix !== null) history.replaceState(history.state, '', location.pathname + parsed.fix);
     const route = parsed.route;
     const st = (history.state ?? {}) as NavState;
-    const key = JSON.stringify([toHash(route), st.s ?? '', st.sum?.no ?? '', st.res?.score ?? '']);
+    const key = keyOf(route, st);
     if (!force && key === lastKey) return;
     const moved = key !== lastKey;
     lastKey = key;
@@ -225,7 +229,8 @@ async function boot() {
       case 'unit': return showPage(unitPage(ctx, route.region));
       case 'rank': return showPage(rankPage());
       case 'explore':
-        setFull(false);
+        // 둘러보기도 문제 화면처럼 화면 전체 지도(머리글·바닥글 없이, 스크롤 없음 — 합본 디자인 3.3)
+        setFull(true);
         document.title = titled(L.exploreTitle(L.region(reg.region(route.region)!)));
         current = mountExplore(root, ctx, route.region, route.slug);
         if (moved) track('learn_explore', { source: st.src ?? 'link', region: route.region });
@@ -236,20 +241,27 @@ async function boot() {
         const d = ctx.lessonDeck;
         if (st.s === 'play' && d && !isDone(d) && d.region === route.region && d.lesson === no) return play('lesson');
         if (st.s === 'summary' && st.sum) return showPage(summaryPage(ctx, st.sum));
+        if (st.s === 'play') {
+          // 문제 판 주소인데 판이 없다(새로 고치기 전에 저장값을 지웠거나 다른 탭에서 끝냄): 과 시작 카드로 두고 기록의 'play' 를 지운다.
+          // 안 지우면 [배우기 시작]이 같은 화면 키(lastKey)에 걸려 아무 일도 일어나지 않는다
+          const { s: _drop, ...rest } = st;
+          history.replaceState(rest, '', location.href);
+          lastKey = keyOf(route, rest);
+        }
         return showPage(startPage(ctx, route.region, no));
       }
       case 'mix': {
         const d = ctx.otherDeck;
         if (!(d && !isDone(d) && d.kind === 'mix' && d.region === route.region)) newMix(route.region);
         if (st.s !== 'play') history.replaceState(keepRoot({ s: 'play' }), '', location.href);
-        lastKey = JSON.stringify([toHash(route), 'play', '', '']);
+        lastKey = keyOf(route, { s: 'play' });
         return play('other');
       }
       case 'review': {
         const d = ctx.otherDeck;
         if (!(d && !isDone(d) && d.kind === 'review') && !newReview()) return showPage(noReviewPage(ctx));
         if (st.s !== 'play') history.replaceState(keepRoot({ s: 'play' }), '', location.href);
-        lastKey = JSON.stringify([toHash(route), 'play', '', '']);
+        lastKey = keyOf(route, { s: 'play' });
         return play('other');
       }
       case 'check': {
@@ -257,7 +269,7 @@ async function boot() {
         const d = ctx.checkDeck;
         if (!(st.s === 'play' && d && !isDone(d) && d.region === route.region)) newCheck(route.region);
         if (st.s !== 'play') history.replaceState(keepRoot({ s: 'play' }), '', location.href);
-        lastKey = JSON.stringify([toHash(route), 'play', '', '']);
+        lastKey = keyOf(route, { s: 'play' });
         return play('check');
       }
     }
@@ -266,17 +278,13 @@ async function boot() {
   /* ---------- 누르는 동작(data-act) ---------- */
 
   root.addEventListener('click', (e) => {
-    // 홈 주 카드(설계서 9 home_card_click): new · resume · review · next · done
+    // 홈 주 카드(설계서 9 home_card_click): new · resume · review · next · done. 합본 홈(D3)에서 더한 값: quick(홈의 바로 찾기) · lesson(과 카드·과 시작 카드 링크)
     const card = (e.target as HTMLElement).closest<HTMLElement>('[data-card]');
     if (card) track('home_card_click', { card: card.dataset.card });
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
     if (!b) return;
     const arg = b.dataset.arg ?? '';
     switch (b.dataset.act) {
-      case 'startFirst': {
-        const r = reg.regions[0];
-        return startLesson(r.key, r.lessons[0].no, false);
-      }
       case 'learn':
       case 'quick': {
         const [region, no] = arg.split(':');
@@ -300,8 +308,11 @@ async function boot() {
         return ctx.back(up);
       }
       case 'homeRegion':
+        // 홈 지역 탭(또는 '다 채움'의 다음 지역): 화면을 통째로 다시 그리므로 누른 지역의 탭으로 포커스를 되돌린다
         ctx.homeRegion = arg;
-        return render(true);
+        render(true);
+        root.querySelector<HTMLElement>(`.h-tab[data-arg="${arg}"]`)?.focus({ preventScroll: true });
+        return;
     }
   });
 
