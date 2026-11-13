@@ -1,7 +1,3 @@
-data/encykorea-raw/
-data/dong-draft.json
-data/dong-body.json
-
 # 새 사이트(Astro)
 node_modules/
 dist/
