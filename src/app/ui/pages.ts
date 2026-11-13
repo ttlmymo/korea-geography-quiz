@@ -541,8 +541,10 @@ export function summaryPage(ctx: Ctx, s: SummaryState): Page {
     ? `<div class="h-ph"><h2 class="h-pt" id="pg-conf">${esc(L.confused)} <span class="num">${s.confused.length}</span></h2></div>
       <ul class="pg-list">${s.confused.map((id) => `<li><span><span class="sym" aria-hidden="true">✕</span>${esc(nm(ctx, id))}</span></li>`).join('')}</ul>`
     : '';
+  // 내일 복습: 이 과의 곳 가운데 내일 복습일이 되는 곳만 센다(바로 찾기로 맞힌 곳은 모레, 다시 배운 과는 0일 수 있다). 0 이면 줄을 뺀다
+  const tomorrow = l.items.filter((id) => isDue(get(ctx.mastery, id), ctx.today() + 1)).length;
   const prog = `<section class="h-prog"${conf ? ' aria-labelledby="pg-conf"' : ''}>${conf}
-      <p class="h-pr">${esc(L.tomorrowReview(l.items.length))}</p>${storageNotes(ctx)}</section>`;
+      ${tomorrow ? `<p class="h-pr">${esc(L.tomorrowReview(tomorrow))}</p>` : ''}${storageNotes(ctx)}</section>`;
   const keys: KeyItem[] = [
     ...(t.mastered ? [{ s: 'mastered', label: L.legend[3] }] : []),
     ...(t.learning ? [{ s: 'learning', label: L.legend[1] }] : []),

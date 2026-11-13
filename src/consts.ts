@@ -18,4 +18,4 @@ export const CONTACT_EMAIL = 'koquiz.support@gmail.com';
 export const DEFAULT_UPDATED = '2026-11-06';
 
 // 개인정보처리방침 시행일: 새 사이트를 내보내는 날(S12)로 고친다. 방침 본문의 {{EFFECTIVE}} 자리에 들어간다
-export const PRIVACY_EFFECTIVE = '2026-11-13';
+export const PRIVACY_EFFECTIVE = '2026-11-14';
