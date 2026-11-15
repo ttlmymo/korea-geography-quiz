@@ -20,7 +20,7 @@ import { UI_EN, UI_KO, setLang } from '../../src/app/text/ui.ts';
 import type { EmdUnitFile } from '../../src/app/types.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, pickPage, regionsPage, unitPage } from '../../src/app/ui/pages.ts';
-import { OPENED_SINCE, geo, geoNoBusan, geoNoE12, reg, idOf } from './fixtures.ts';
+import { EN_OFF, EN_ON, OPENED_SINCE, geo, geoNoBusan, geoNoE12, reg, idOf } from './fixtures.ts';
 
 const T = 20000;
 const root = path.join(import.meta.dirname, '../..');
@@ -107,8 +107,9 @@ test('같은 이름(N12 · E11): 지역이 섞이는 화면(오늘 복습·복�
   // 한 지역 화면(과·만나기·찾기)은 이름만 — 곳 이름(item.ko)은 그대로
   assert.equal(reg.place(bj)!.item.ko, '중구');
   assert.equal(UI_KO.prompt(reg, 'find', bj, (s) => s), '중구를 찾아 누르세요');
-  // 영어: 'Jung-gu, Busan' · 앞 이름 'Busan'
-  const en = createRegistry(geo, { emd: false });
+  // 영어: 'Jung-gu, Busan' · 앞 이름 'Busan'(관문이 열린 영어 앱 — 시·군·구 이름은 끈 창과 같다)
+  const en = createRegistry(geo, EN_ON);
+  assert.deepEqual([UI_EN.fullName(createRegistry(geo, EN_OFF), bj), UI_EN.fullPre(createRegistry(geo, EN_OFF), bj)], ['Jung-gu, Busan', 'Busan']);
   assert.deepEqual([UI_EN.fullName(en, bj), UI_EN.fullName(en, sj), UI_EN.fullName(en, idOf('해운대구'))], ['Jung-gu, Busan', 'Jung-gu, Seoul', 'Haeundae-gu']);
   assert.equal(UI_EN.fullPre(en, bj), 'Busan');
   // 부산이 없는 판(E10 까지)에는 붙지 않는다 — 운영 화면이 부산을 열기 전과 같다
@@ -158,10 +159,10 @@ test('홈·지역 쪽·지역 고르기·구 고르기: 부산 탭과 쪽에 코
   const p = pickPage(ctxOf(reg), 'busan');
   assert.equal(p.maps!.pick.labels!.length, 16);
   assert.doesNotMatch(p.html, BAD);
-  // 영어 화면도
+  // 영어 화면도(관문이 열린 영어 앱 — EN_EMD)
   setLang('en');
   try {
-    const en = createRegistry(geo, { emd: false });
+    const en = createRegistry(geo, EN_ON);
     const e = homePage(ctxOf(en, { homeRegion: 'busan' })).html;
     assert.match(e, /data-arg="busan" aria-pressed="true">Busan <span class="u">15 districts, 1 county<\/span>/);
     assert.match(e, /Around Busan Port/);

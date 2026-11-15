@@ -24,7 +24,7 @@ import { UI_EN, UI_KO, setLang } from '../../src/app/text/ui.ts';
 import type { EmdUnitFile, Region } from '../../src/app/types.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, pickPage, regionsPage, unitPage } from '../../src/app/ui/pages.ts';
-import { E12_KEYS, OFF_KEY, OPENED_SINCE, geo, geoNoE12, geoNoE13, reg, idOf } from './fixtures.ts';
+import { EN_OFF, EN_ON, E12_KEYS, OFF_KEY, OPENED_SINCE, geo, geoNoE12, geoNoE13, reg, idOf } from './fixtures.ts';
 
 const T = 20000;
 const root = path.join(import.meta.dirname, '../..');
@@ -162,8 +162,8 @@ test('같은 이름(N12): 지역이 섞이는 화면(오늘 복습·복습 목�
   const m: Mastery = Object.fromEntries([j('seoul'), j('daegu'), j('daejeon'), idOf('남구', 'ulsan'), idOf('수성구')].map((id) => [id, rec(1, T)]));
   const h = sp(homePage(ctxOf(reg, { mastery: m, last: 'seoul' })).html);
   assert.match(h, /<p class="h-places">서울 중구 · 대구 중구 · 수성구 · 대전 중구 · 울산 남구<\/p>/);
-  // 영어: 'Jung-gu, Daegu'
-  const en = createRegistry(geo, { emd: false });
+  // 영어: 'Jung-gu, Daegu'(관문이 열린 영어 앱 — 시·군·구 이름은 끈 창과 같다)
+  const en = createRegistry(geo, EN_ON);
   assert.deepEqual([UI_EN.fullName(en, j('daegu')), UI_EN.fullName(en, j('daejeon')), UI_EN.fullName(en, idOf('수성구'))], ['Jung-gu, Daegu', 'Jung-gu, Daejeon', 'Suseong-gu']);
   // 동 단원 이름(섞인 화면): '대구 중구 삼덕동' — 단원 파일을 받기 전에도 동 색인으로
   const r = createRegistry(geo);
@@ -252,8 +252,22 @@ test('세종 홈(N4 — 과 없는 지역): 탭은 \'세종 25곳\', 주 구역�
   assert.equal(parseRoute('#/kr/sejong/sgg/p1', '', k).route.name, 'home');
   assert.deepEqual(parseRoute('#/kr/sejong/emd/sejong-si/p3', '', k).route, { name: 'lesson', region: 'sejong/sejong-si', no: 3 });
   assert.deepEqual(gaArgs(r, 'sejong/sejong-si'), { unit: 'emd', region: 'sejong', unit_id: '36110' });
-  // 영어 앱은 세종을 싣지 않는다(동만 있는 지역 — N26)
-  assert.equal(createRegistry(geo, { emd: false }).region('sejong'), undefined);
+  // 동을 끈 창(관문이 닫힌 영어 앱 — 2026-11-16 전 영어 앱, N26)은 세종을 싣지 않는다(동만 있는 지역)
+  assert.equal(createRegistry(geo, EN_OFF).region('sejong'), undefined);
+  // 관문이 열린 영어 앱은 세종을 싣는다(EN_EMD 1.2): 지역 주소가 그 단원 쪽, 단원 이름 'Sejong-si', 한글·숫자 slug 없음
+  const en = createRegistry(geo, EN_ON);
+  assert.ok(en.region('sejong'));
+  assert.deepEqual(parseRoute('#/kr/sejong', '', knownOf(en)).route, { name: 'unit', region: 'sejong' });
+  await registerUnits(en, ['sejong/sejong-si'], async (code) => unitFile(code), () => {});
+  setLang('en');
+  try {
+    const u = unitPage(ctxOf(en), 'sejong/sejong-si').html;
+    assert.match(u, /Sejong · Study path/);
+    assert.match(u, /<h1 class="h-title">Sejong-si 25 towns, townships and neighborhoods<\/h1>/);
+    assert.doesNotMatch(u, /[가-힣]/);
+    assert.doesNotMatch(u, BAD);
+    assert.equal(UI_EN.unitName(en, 'sejong/sejong-si'), 'Sejong-si');
+  } finally { setLang('ko'); }
 });
 
 test('지역 고르기(N23, 운영 판 여덟 지역): 권역마다 열린 칸 + 흐린 이름 한 줄 — 충청 대전·세종, 영남 부산·대구·울산', () => {
@@ -274,22 +288,28 @@ test('지역 고르기(N23, 운영 판 여덟 지역): 권역마다 열린 칸 +
   assert.match(p.html, /<span class="nm">세종<\/span><span class="no">25곳 · 5과<\/span>\s*<span class="pl">구·군 없이 1읍 9면 15동<\/span>/);
   assert.deepEqual(p.maps!.kr.active, ['11', '26', '27', '28', '30', '31', '36', '41'].map((c) => `kr:sido:${c}`));
   assert.doesNotMatch(p.html, BAD);
-  // 영어: 세종(동만 있는 지역)과 전남광주(영문 미확인)는 칸이 없다 — 일곱 곳 열림
+  // 영어(관문이 닫힌 영어 앱 — 2026-11-16 전): 세종(동만 있는 지역)과 전남광주(영문 미확인)는 칸이 없다 — 일곱 곳 열림.
+  // 관문이 열린 영어 앱은 세종도 연다(여덟 곳 — 한국어와 같음, EN_EMD 1.1 의 D23)
   setLang('en');
   try {
-    const e = sp(regionsPage(ctxOf(createRegistry(geoNoE13, { emd: false }))).html);
+    const e = sp(regionsPage(ctxOf(createRegistry(geoNoE13, EN_OFF))).html);
     assert.match(e, /7 of 16 regions open/);
     assert.doesNotMatch(e, /href="#\/kr\/sejong"/);
     assert.match(e, /href="#\/kr\/daegu"/);
     assert.doesNotMatch(e, BAD);
-    const eh = homePage(ctxOf(createRegistry(geo, { emd: false }), { last: 'daegu' })).html;
+    const eo = sp(regionsPage(ctxOf(createRegistry(geoNoE13, EN_ON))).html);
+    assert.match(eo, /8 of 16 regions open/);
+    assert.match(eo, /href="#\/kr\/sejong"/);
+    assert.doesNotMatch(eo, /[가-힣]/);
+    assert.doesNotMatch(eo, BAD);
+    const eh = homePage(ctxOf(createRegistry(geo, EN_ON), { last: 'daegu' })).html;
     assert.match(eh, /data-arg="daegu" aria-pressed="true">Daegu <span class="u">7 districts, 2 counties<\/span>/);
     assert.match(eh, /Around Jung-gu/);
     assert.doesNotMatch(eh, /[가-힣]{2,}구/, '영어 홈에 한글 곳 이름이 없음');
     assert.doesNotMatch(eh, BAD);
-    assert.doesNotMatch(unitPage(ctxOf(createRegistry(geo, { emd: false })), 'ulsan').html, BAD);
+    assert.doesNotMatch(unitPage(ctxOf(createRegistry(geo, EN_ON)), 'ulsan').html, BAD);
     // 과 수 머리: 과가 하나인 대전·울산은 단수 'in 1 lesson'(홈 탭·지역 쪽 — E12 검수: 'Daejeon in 1 lessons'), 대구는 복수
-    const enReg = createRegistry(geo, { emd: false });
+    const enReg = createRegistry(geo, EN_ON);
     for (const [k, head] of [['daejeon', 'Daejeon in 1 lesson'], ['ulsan', 'Ulsan in 1 lesson'], ['daegu', 'Daegu in 3 lessons']] as const) {
       assert.match(homePage(ctxOf(enReg, { last: k })).html, new RegExp(`<h2 id="h-path">${head}</h2>`), `${k} 홈`);
       assert.match(unitPage(ctxOf(enReg), k).html, new RegExp(`<h2 id="u-path">${head}</h2>`), `${k} 지역 쪽`);

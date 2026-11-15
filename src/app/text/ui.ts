@@ -1,9 +1,9 @@
 // 화면 글 두 벌(한국어·영어). 앱은 홈 문서의 lang 으로 하나를 고른다(설계서 7.2: /en/ 은 같은 앱, 영어 문구.
 // 위치 한 줄·가이드는 한국어만이라 영어 화면에는 위치 한 줄이 없다)
-import type { Dir8, Registry } from '../registry.ts';
+import type { Dir8, Registry, UnitRef } from '../registry.ts';
 import type { Tap, Wrong } from '../core/judge.ts';
-import type { Item, Lesson, Region, Screen } from '../types.ts';
-import { DIR_KO, TAP_KO, dontKnowKo, eulReul, eunNeun, guFirst, ieyo, koCount, meetKo, rightKo, unitKo, wrongKo } from './ko.ts';
+import type { CtxCell, Item, Lesson, Region, Screen } from '../types.ts';
+import { DIR_KO, TAP_KO, dontKnowKo, eulReul, eunNeun, guFirst, ieyo, koCount, meetKo, rightKo, unitKo, unitWordKo, wrongKo } from './ko.ts';
 import { SIDOS, partOf, sidoByCode } from '../sidos.ts';
 
 type TapMsg = Exclude<Tap['type'], 'cell'>;
@@ -18,6 +18,8 @@ const ends = (r: Region, ids?: string[]) => {
 };
 /** 동 단원의 곳 종류(읍·면·동 차례): '동' · '읍·면' · '읍·면·동'. 동 단원이 아니면 '' */
 const emdKinds = (e: ReturnType<typeof ends>) => (e.n && e.eup + e.myeon + e.dong === e.n ? [e.eup && '읍', e.myeon && '면', e.dong && '동'].filter(Boolean).join('·') : '');
+/** 구 고르기 낱말(L.unitWord): 홑 꼴(제목·'다른 ○ 고르기')과 겹 꼴(목록 머리 '25 districts'). 한국어는 둘이 같다 */
+export interface UnitWord { one: string; many: string }
 
 /* ---------- 한국어 ---------- */
 
@@ -49,7 +51,19 @@ export const UI_KO = {
     const kinds = guFirst(r.items.map((it) => it.ko), r.key) ? [e.si && '시', e.gu && '구', e.gun && '군'] : [e.si && '시', e.gun && '군', e.gu && '구'];
     return `${ids.length}개 ${emdKinds(e) || kinds.filter(Boolean).join('·') || '곳'}`;
   },
-  ctxName: (_sido: string, text: string) => text,
+  /** 지도 맥락 이름(이웃 땅·한강): 한국어는 칸의 글 그대로(map/shapes.ts — 시·도는 짧은 이름, 동 단원 지도의 이웃은 시·군·구 이름) */
+  ctxName: (n: CtxCell) => n.text,
+  /**
+   * 단원 이름(단원이 섞이는 화면 — 오늘 복습 라벨 '서울 6 · 종로구 4', 오늘 복습 문제 앞 이름 '종로구 ·', 계획서 N12 · E11): 레지스트리 mixName 그대로
+   * (같은 이름이 여러 시·도에 있으면 '부산 중구'). 지역 키면 지역 이름, 모르는 키는 undefined
+   */
+  unitName: (reg: Registry, key: string): string | undefined => reg.mixName(key),
+  /** 구 고르기 목록·최근 단추의 단원 이름(동 색인 — 단원 파일을 받기 전에도): '종로구' · '수원시 장안구' */
+  pickName: (u: UnitRef) => u.index.ko,
+  /** 구 고르기 낱말: 단원 이름 끝 글자로 모은다('구' · '시·군' · '시·군·구'). 없으면 fallback */
+  unitWord: (names: string[], region: string, fallback: string): UnitWord => { const w = unitWordKo(names, region) || fallback; return { one: w, many: w }; },
+  /** 일반구 단원 쪽 제목: '경기 일반구 24곳'('경기 일반구 24개 구'처럼 '구'가 겹치지 않게). parent = 지역 이름(영어만 씀) */
+  guTitle: (unit: string, _parent: string, n: number) => `${unit} ${n}곳`,
   dir: (d: Dir8) => DIR_KO[d],
   tap: (t: TapMsg) => TAP_KO[t],
   // 문제
@@ -228,11 +242,11 @@ export const UI_KO = {
   // 동 단원(계획서 E5): 구 고르기(#/kr/{지역}/emd) · 단원 쪽(#/kr/{지역}/emd/{단원})
   /** 구 고르기 큰 제목: '어느 구의 동을
 배울까요?'(word = 구 · 군·구 · 시·군·구) */
-  pickTitle: (word: string) => `어느 ${word}의 동을
+  pickTitle: (w: UnitWord) => `어느 ${w.one}의 동을
 배울까요?`,
-  pickSub: (word: string) => `${eulReul(word)} 하나 고르면 그 안의 동을 이웃끼리 묶은 과로 익혀요`,
+  pickSub: (w: UnitWord) => `${eulReul(w.one)} 하나 고르면 그 안의 동을 이웃끼리 묶은 과로 익혀요`,
   /** 구 고르기 목록 머리: '서울 25개 구' */
-  pickHead: (r: string, n: number, word: string) => `${r} ${n}개 ${word}`,
+  pickHead: (r: string, n: number, w: UnitWord) => `${r} ${n}개 ${w.one}`,
   pickHelp: '이름을 누르면 그곳의 과가 나와요',
   /** 구 고르기 지도 범례: 칸 하나 = 구 하나의 동 진도 */
   pickKey: ['아직', '동을 익히는 중', '동을 다 익힘'],
@@ -245,7 +259,7 @@ export const UI_KO = {
   /** 단원 쪽 라벨: '서울 · 동까지 공부하기' */
   emdLabel: (r: string) => `${r} · 동까지 공부하기`,
   emdDesc: (n: number) => `이웃한 곳끼리 ${n}과로 묶었어요`,
-  otherUnits: (word: string) => `다른 ${word} 고르기`,
+  otherUnits: (w: UnitWord) => `다른 ${w.one} 고르기`,
   toRegion: (r: string) => `${r} 과로 돌아가기`,
   // 일반구 단원(계획서 N5 · E7): #/kr/{지역}/gu
   /** 일반구 단원 쪽 라벨: '경기 · 일반구 공부하기' */
@@ -256,6 +270,10 @@ export const UI_KO = {
   /** 구 고르기 지도의 넓은 화면 고르기(전체 · 북서부 …) */
   pickAll: '전체',
   pickScreens: '지도 범위',
+  /** 구 고르기 넓은 화면 단추 글: '북서부'(지역 화면 이름 그대로) */
+  screenTab: (s: Screen) => s.ko,
+  /** 구 고르기 시 묶음 머리의 구 수: '수원시 4개 구' 의 '4개 구' */
+  siGu: (n: number) => `${n}개 구`,
   loading: '지도를 불러오는 중이에요',
   more: '더 알아보기',
   seoulMore: '서울 25개 구 알아보기',
@@ -305,6 +323,8 @@ export const UI_KO = {
   practice: (no: string) => `이곳이 든 ${no} 연습하기`,
   readMore: '자세히 읽기',
   source: '행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 단순화·합침 가공',
+  /** 동 단원 둘러보기의 출처 줄 덧말(영어만 — 동 영어 이름의 근거). 한국어는 없음 */
+  sourceEmd: '',
   // 그 밖
   mapFail: '지도를 불러오지 못했어요. 연결을 확인하고 새로 고쳐 주세요',
   loadFail: ['지도를 불러오지 못했어요', '연결을 확인하고 새로 고쳐 주세요'],
@@ -322,16 +342,47 @@ export type UI = typeof UI_KO;
 
 /* ---------- 영어 ---------- */
 
-const enName = (it: Item) => it.slug.replace(/^./, (c) => c.toUpperCase());
+const cap = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
+/** 일반구 주소 이름(slug)의 시·구: 'suwon-si-jangan-gu' → ['suwon-si', 'jangan-gu'] */
+const GU_SLUG = /^(.+?-si)-(.+)$/;
+/** 주소 이름 → 영어 이름: 'jongno-gu' → 'Jongno-gu', 'suwon-si-jangan-gu' → 'Suwon-si Jangan-gu'(src/lib/regions.ts enOfSlug 와 같은 셈 — 동 단원 파일 en 과 256/256 같다) */
+export const enOfSlug = (sl: string) => { const m = GU_SLUG.exec(sl); return m ? `${cap(m[1])} ${cap(m[2])}` : cap(sl); };
+/** 동 짧은 이름(설계안 EN_EMD 3.3 · D101 — tools/roma.mjs emdShort 와 같은 셈): '-dong' 만 떼고(남는 글이 4자 미만이면 그대로) '-eup'·'-myeon' 은 남긴다 */
+export const emdShortEn = (en: string) => { const s = en.replace(/-dong$/, ''); return s !== en && s.length >= 4 ? s : en; };
+/**
+ * 영어 곳 이름(설계안 EN_EMD 5.2): 동은 판의 en(옛 캐시라 없으면 한글 — 숫자 slug 는 어떤 경우에도 쓰지 않는다, 5.4), 시·도 단원의 곳은 지역 표 en('Jeonnam-Gwangju'),
+ * 일반구 단원의 곳은 주소 이름의 구('Jangan-gu' — 시는 fullName·fullPre 가 붙인다), 그 밖(시·군·구)은 주소 이름('Gangnam-gu')
+ */
+const enName = (it: Item): string => {
+  if (it.id.startsWith('kr:emd:')) return it.en || it.ko;
+  if (it.id.startsWith('kr:sido:')) return sidoByCode(it.id.slice(8))?.en ?? cap(it.slug);
+  const g = it.si ? GU_SLUG.exec(it.slug) : null;
+  return g ? cap(g[2]) : cap(it.slug);
+};
 const enPlace = (reg: Registry, id: string) => { const p = reg.place(id); return p ? enName(p.item) : id; };
 const DIR_EN: Record<Dir8, string> = { E: 'east', NE: 'northeast', N: 'north', NW: 'northwest', W: 'west', SW: 'southwest', S: 'south', SE: 'southeast' };
+/** 'a' · 'a or b' · 'a, b or c'(listAnd 는 'and') */
+const listOr = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} or ${xs[xs.length - 1]}`);
+const listAnd = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+/** 동 단원의 곳 갈래 낱말(읍·면·동 차례 — 한국어 emdKinds 와 같은 차례): [홑, 겹]. 동 단원이 아니면 [] */
+const emdWordsEn = (e: ReturnType<typeof ends>): [string, string][] =>
+  (emdKinds(e) ? ([e.eup && ['town', 'towns'], e.myeon && ['township', 'townships'], e.dong && ['neighborhood', 'neighborhoods']].filter(Boolean) as [string, string][]) : []);
+/** 동 단원 수 글: 한 갈래면 그 낱말('17 neighborhoods'), 여럿이면 '25 towns, townships and neighborhoods'. 동 단원이 아니면 '' */
+const emdCountEn = (e: ReturnType<typeof ends>) => { const w = emdWordsEn(e); return !w.length ? '' : w.length === 1 ? plural(e.n, w[0][0], w[0][1]) : `${e.n} ${listAnd(w.map((x) => x[1]))}`; };
 /**
  * 지도 맥락 이름(이웃 땅)의 영어: 시·도는 지역 표 en(16곳, 계획서 E8 · N26). 영어 이름을 확인하지 않은 시·도(enChecked false — Q5. 전남광주는 2026-11-15 켬)는 ''
  * (지도에 이름을 두지 않는다 — 한글을 영어 화면에 섞지 않게)
  */
 const sidoEn = (code: string) => { const s = sidoByCode(code); return s ? (s.enChecked ? s.en : '') : undefined; };
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-const unitEn = (r: Region) => { const e = ends(r); return [e.si && 'city', e.gun && 'county', e.gu && 'district'].filter(Boolean).join(' or '); };
+function plural(n: number, one: string, many: string) { return `${n} ${n === 1 ? one : many}`; }
+/** 고르기 문제의 단위 낱말: 시·도 단원 'province or city', 동 단원 'neighborhood' · 'town, township or neighborhood', 그 밖 'city or county' 등(전과 같음) */
+const unitEn = (r: Region) => {
+  if (r.layer === 'sido') return 'province or city';
+  const e = ends(r);
+  const w = emdWordsEn(e);
+  if (w.length) return listOr(w.map((x) => x[0]));
+  return [e.si && 'city', e.gun && 'county', e.gu && 'district'].filter(Boolean).join(' or ');
+};
 /** 과 카드 네모 줄 설명에서 칸 상태 이름을 문장 속 말로('6 places, all in the next lesson') */
 const EN_STATE: Record<string, string> = { 'Next lesson': 'in the next lesson', 'First lesson': 'in the first lesson', 'Not yet': 'not filled yet' };
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -343,11 +394,14 @@ export const UI_EN: UI = {
   path: (p: string) => `en/${p}`,
   name: enName,
   region: (r: Region) => r.en,
-  lesson: (l: Lesson) => l.en ?? l.title,
+  // 영어 과 이름이 없으면(옛 캐시 단원 파일 — 동·일반구 과) 한글 과 이름(EN_EMD 5.4)
+  lesson: (l: Lesson) => l.en || l.title,
   lessonNo: (no: number) => `lesson ${no}`,
   count(r: Region): string {
     if (r.layer === 'sido') return plural(r.items.length, 'province or city', 'provinces and cities');
     const e = ends(r);
+    const emd = emdCountEn(e);
+    if (emd) return emd;
     if (!e.si && e.gun && e.gu) return guFirst(r.items.map((it) => it.ko), r.key)
       ? `${plural(e.gu, 'district', 'districts')}, ${plural(e.gun, 'county', 'counties')}`
       : `${plural(e.gun, 'county', 'counties')}, ${plural(e.gu, 'district', 'districts')}`;
@@ -358,12 +412,45 @@ export const UI_EN: UI = {
     return plural(e.n, e.si ? 'city' : e.gun ? 'county' : 'district', e.si ? 'cities' : e.gun ? 'counties' : 'districts');
   },
   lessonCount(r: Region, ids: string[]): string {
+    if (r.layer === 'sido') return plural(ids.length, 'province or city', 'provinces and cities');
     const e = ends(r, ids);
+    const emd = emdCountEn(e);
+    if (emd) return emd;
     const kinds = [e.si && 'cities', e.gun && 'counties', e.gu && 'districts'].filter(Boolean);
     return `${ids.length} ${kinds.length === 1 ? kinds[0] : 'places'}`;
   },
-  // 강 띠는 한강, 북한은 'North Korea', 일본(E15 경남 지도의 대마도)은 'Japan', 시·도는 지역 표 영어 이름(확인하지 않은 시·도는 '' — 지도에 두지 않음), 그 밖은 원래 글
-  ctxName: (sido: string, text: string) => (sido === 'water' ? 'Han River' : sido === 'kp' ? 'North Korea' : sido === 'jp' ? 'Japan' : sidoEn(sido) ?? text),
+  // 강 띠는 한강, 북한은 'North Korea', 일본(E15 경남 지도의 대마도)은 'Japan'. 동 단원 지도의 이웃 땅(id 가 있는 칸)은 판의 영어 이름(en — 'Seongbuk-gu',
+  // 'Cheonan-si Dongnam-gu')이고 en 이 없으면(옛 캐시) '' — 한글을 영어 지도에 두지 않는다(EN_EMD 5.4). 일반구 단원의 나머지 칸은 ctxNamer 가 레지스트리 이름을 en 으로 넘긴다.
+  // 그 밖(지역 지도의 이웃 시·도)은 지역 표 영어 이름(확인하지 않은 시·도는 '' — 지도에 두지 않음), 표에 없으면 원래 글
+  ctxName: (n: CtxCell) => (n.sido === 'water' ? 'Han River' : n.sido === 'kp' ? 'North Korea' : n.sido === 'jp' ? 'Japan'
+    : n.en !== undefined ? n.en : n.id ? '' : sidoEn(n.sido) ?? n.text),
+  /**
+   * 단원 이름(오늘 복습 라벨·문제 앞): 동 단원은 단원 영어 이름('Jongno-gu'), 같은 이름이 여러 시·도에 있으면 지역(묶음) 이름을 붙인다('Jung-gu, Busan' ·
+   * 'Dong-gu, Jeonnam-Gwangju' — 한국어 mixName 과 같은 규칙). 단원 파일을 받기 전이면 동 색인 주소 이름으로(enOfSlug). 일반구 단원·시·도 단원·지역은 그 영어 이름
+   */
+  unitName(reg: Registry, key: string): string | undefined {
+    const r = reg.region(key);
+    if (r && (!r.unit || r.unit.gu)) return r.en;
+    const ref = reg.unit(key);
+    const base = r?.en || (ref ? enOfSlug(ref.index.slug) : undefined);
+    const mix = reg.mixName(key);
+    if (!base || mix === undefined || mix === (r?.ko ?? ref?.index.ko)) return base;
+    const area = reg.areaOf(key) ?? '';
+    return `${base}, ${partOf(area, ref?.code ?? r?.unit?.code ?? '')?.en ?? reg.region(area)?.en ?? ''}`;
+  },
+  pickName: (u: UnitRef) => enOfSlug(u.index.slug),
+  /**
+   * 시 → city, 군 → county, 구 → district(한국어 unitWordKo 와 같은 끝 글자·차례 — 구를 먼저 쓰는 지역은 'district or county'): 홑 꼴은 'or'('city, county or district'),
+   * 겹 꼴은 'and'('cities, counties and districts'). 시·군·구가 없으면 fallback 글자('구' · '시')로
+   */
+  unitWord(names: string[], region: string, fallback: string): UnitWord {
+    const EN: Record<string, [string, string]> = { 시: ['city', 'cities'], 군: ['county', 'counties'], 구: ['district', 'districts'] };
+    const of = (ks: string[]) => ks.filter((k) => EN[k]).map((k) => EN[k]);
+    const w = of(unitWordKo(names, region).split('·'));
+    const use = w.length ? w : of([fallback]).length ? of([fallback]) : [['place', 'places'] as [string, string]];
+    return { one: listOr(use.map((x) => x[0])), many: listAnd(use.map((x) => x[1])) };
+  },
+  guTitle: (_unit: string, parent: string, n: number) => `${parent} · ${plural(n, 'city district', 'city districts')}`,
   dir: (d: Dir8) => DIR_EN[d],
   tap: (t: TapMsg) => ({ ambiguous: 'Tap again, a little closer in', outside: 'Pick one of the bright areas', river: 'Tap on land' })[t],
   prompt(reg: Registry, mode: 'meet' | 'choose' | 'find', id: string, b: (s: string) => string): string {
@@ -373,10 +460,24 @@ export const UI_EN: UI = {
     return `Find and tap ${b(enName(p.item))}`;
   },
   line: () => '',
-  // 같은 이름이 여러 지역에 있는 곳(레지스트리가 full 을 붙임 — 영어 앱에는 일반구·동 단원이 없으므로 full 은 이것뿐)은 'Jung-gu, Busan'(N12 · E11).
+  // 단원이 섞이는 화면의 곳 이름(N12): 동은 '곳, 단원'('Cheongunhyoja-dong, Jongno-gu' · 'Jungang-dong, Jung-gu, Busan' — 단원 이름은 unitName),
+  // 일반구는 'Suwon-si Jangan-gu'(한국어 '수원시 장안구'와 같은 꼴), 같은 이름이 여러 지역에 있는 시·군·구(레지스트리가 full 을 붙임)는 'Jung-gu, Busan'(E11).
   // 지역 안 묶음(지역 표 parts — 전남광주의 자치구 5곳, E16)에 든 곳은 묶음 이름('Dong-gu, Jeonnam-Gwangju' — 2026-11-15 법정 약칭으로 바꾸며 지역 영어 이름과 맞춤, 전에는 'Dong-gu, Gwangju')
-  fullName: (reg: Registry, id: string) => { const p = reg.place(id); return p?.item.full && !p.region.unit ? `${enName(p.item)}, ${partOf(p.region.key, id)?.en ?? p.region.en}` : enPlace(reg, id); },
-  fullPre: (reg: Registry, id: string) => { const p = reg.place(id); return p?.item.full && !p.region.unit ? partOf(p.region.key, id)?.en ?? p.region.en : undefined; },
+  fullName(reg: Registry, id: string): string {
+    const p = reg.place(id);
+    if (!p) return id;
+    const g = p.region.unit?.gu ? GU_SLUG.exec(p.item.slug) : null;
+    if (g) return `${cap(g[1])} ${cap(g[2])}`;
+    if (p.region.unit && !p.region.unit.gu) return `${enName(p.item)}, ${UI_EN.unitName(reg, p.region.key) ?? p.region.en}`;
+    return p.item.full && !p.region.unit ? `${enName(p.item)}, ${partOf(p.region.key, id)?.en ?? p.region.en}` : enName(p.item);
+  },
+  // 오늘 복습 문제의 앞 이름: 일반구는 시('Suwon-si'), 같은 이름이 여러 지역에 있는 시·군·구는 지역('Busan'). 동은 play.ts 가 단원 이름(unitName)을 붙인다
+  fullPre(reg: Registry, id: string): string | undefined {
+    const p = reg.place(id);
+    const g = p?.region.unit?.gu ? GU_SLUG.exec(p.item.slug) : null;
+    if (g) return cap(g[1]);
+    return p?.item.full && !p.region.unit ? partOf(p.region.key, id)?.en ?? p.region.en : undefined;
+  },
   right: (reg: Registry, id: string, first: boolean) => (first ? `Correct! ${enPlace(reg, id)}` : enPlace(reg, id)),
   wrong(reg: Registry, w: Wrong, chose: boolean) {
     const t = enPlace(reg, w.target), p = enPlace(reg, w.picked);
@@ -476,7 +577,9 @@ export const UI_EN: UI = {
     if (parts.length !== 1) return `${plural(total, 'place', 'places')}: ${parts.map(([s, n]) => `${n} ${say(s)}`).join(', ')}`;
     return parts[0][0] === 'Not yet' ? `${plural(total, 'place', 'places')}, none filled yet` : `${plural(total, 'place', 'places')}, all ${say(parts[0][0])}`;
   },
-  short: (it: Item) => enName(it).replace(/-(gu|si|gun)$/, ''),
+  // 짧은 이름: 동은 '-dong' 만 뗀다(emdShortEn — 'Gaepo 1' · 'Bon-dong' · 'Byeollae-myeon', 영어 이름이 없는 옛 캐시는 한글 그대로),
+  // 시·도 단원의 곳은 줄이지 않는다('Jeonnam-Gwangju'), 시·군·구·일반구는 '-gu'·'-si'·'-gun' 을 뗀다('Jongno' · 'Jangan')
+  short: (it: Item) => (it.id.startsWith('kr:emd:') ? (it.en ? emdShortEn(it.en) : it.ko) : it.id.startsWith('kr:sido:') ? enName(it) : enName(it).replace(/-(gu|si|gun)$/, '')),
   filledNone: 'Nothing filled yet. The places you study get colored on the map',
   filledZero: (n: number) => `0 of ${n} filled`,
   hubs: fromTable((s) => s.hub?.en),
@@ -491,7 +594,8 @@ export const UI_EN: UI = {
   notYet: 'Not yet',
   soon: 'Coming soon',
   pickerMap: 'Map of Korea. Tap an open region to go there',
-  pickerCap: (open: number, all: number) => `${open} of ${all} regions open`,
+  // 모두 열렸으면(2026-11-16 영어 동 공부부터 세종·제주도 열림) 한국어 '전국 시·도 16곳'처럼 수만
+  pickerCap: (open: number, all: number) => (open === all ? `All ${all} provinces and cities` : `${open} of ${all} regions open`),
   koreaHead: 'Provinces at a glance',
   regionsCount: (n: number) => plural(n, 'region', 'regions'),
   pickerSub: 'Pick a region on the map or in the list. Regions not open yet are grayed out',
@@ -508,10 +612,10 @@ export const UI_EN: UI = {
   checkName: (r: string) => `${r} test`,
   checkSub: (n: number) => `${n} questions · timed`,
   dong: ['Down to neighborhoods', 'Pick a district and learn its dong'],
-  // 동 단원은 영어 앱에 열지 않는다(계획서 N26 — 동 색인을 읽지 않아 이 글은 보이지 않는다). 모양만 맞춘다
-  pickTitle: () => 'Which district?',
-  pickSub: () => 'Pick a district to learn its neighborhoods',
-  pickHead: (r: string, n: number) => `${r}: ${n}`,
+  // 동 단원(설계안 EN_EMD — 2026-11-16 전에는 영어 앱에 열지 않아 'Which district?' 하나였다). 낱말은 unitWord: 'Which city or county?' · 'Seoul: 25 districts'
+  pickTitle: (w: UnitWord) => `Which ${w.one}?`,
+  pickSub: (w: UnitWord) => `Pick a ${w.one} to learn its neighborhoods`,
+  pickHead: (r: string, n: number, w: UnitWord) => `${r}: ${n} ${n === 1 ? w.one : w.many}`,
   pickHelp: 'Pick a name to see its lessons',
   pickKey: ['Not yet', 'Learning', 'Mastered'],
   pickMap: (r: string) => `Map of ${r}`,
@@ -520,14 +624,17 @@ export const UI_EN: UI = {
   pickLastTag: 'Recent',
   emdLabel: (r: string) => `${r} · neighborhoods`,
   emdDesc: (n: number) => `${plural(n, 'lesson', 'lessons')} of neighbors`,
-  otherUnits: () => 'Pick another district',
+  otherUnits: (w: UnitWord) => `Pick another ${w.one}`,
   toRegion: (r: string) => `Back to ${r}`,
-  // 일반구 단원: 영어 앱은 등록하지 않는다(계획서 N26) — 모양만
+  // 일반구 단원(EN_EMD — 2026-11-16 부터 영어 앱에도 열림)
   guLabel: (r: string) => `${r} · city districts`,
   guDesc: 'One lesson per city with districts',
   guGo: (n: number) => `Learn ${plural(n, 'city district', 'city districts')}`,
   pickAll: 'All',
   pickScreens: 'Map area',
+  // 화면 영어 이름은 토스트 꼴('Gyeonggi, northwest' — 첫 글자 소문자)이라 단추에서는 첫 글자를 대문자로('All · Northwest · Northeast')
+  screenTab: (s: Screen) => cap(s.en || s.ko),
+  siGu: (n: number) => plural(n, 'district', 'districts'),
   loading: 'Loading the map',
   more: 'Read more',
   seoulMore: "About Seoul's 25 districts",
@@ -569,6 +676,8 @@ export const UI_EN: UI = {
   practice: (no: string) => `Practice ${no}, which has this place`,
   readMore: 'Read more',
   source: 'Boundaries: Statistics Korea SGIS (KOGL Type 1) · vuski/admdongkor (CC BY 4.0), simplified and merged',
+  // 동 단원 둘러보기에만 붙인다(동 이름이 보이는 곳 — 시·군·구 둘러보기와 관문이 닫힌 영어 앱에는 동 이름이 없다)
+  sourceEmd: ' · Neighborhood names: Revised Romanization of Korean (numbers as digits)',
   mapFail: "Couldn't load the map. Check your connection and reload",
   loadFail: ["Couldn't load the map", 'Check your connection and reload'],
   reviewEnd: "Today's review is done! Your filled places are stronger now",
@@ -576,7 +685,8 @@ export const UI_EN: UI = {
   back: 'Back',
   inset: 'Far islands',
   zoom: 'Zoomed in',
-  screenName: (r: string, s: Screen) => `${r}, ${s.en}`,
+  // 영어 화면 이름이 없으면(옛 캐시 단원 파일 — en '') 한글 화면 이름(EN_EMD 5.4)
+  screenName: (r: string, s: Screen) => `${r}, ${s.en || s.ko}`,
 };
 
 /** 지금 화면 글. main.ts 가 문서의 lang 을 보고 한 번 정한다 */
@@ -585,3 +695,21 @@ export function setLang(lang: string) {
   L = lang === 'en' ? UI_EN : UI_KO;
 }
 export const placeName = (reg: Registry, id: string) => { const p = reg.place(id); return p ? L.name(p.item) : id; };
+/**
+ * 지도 맥락 이름 함수(svgmap opt.ctxName): 일반구 단원의 나머지 칸(rest — 그 지역의 다른 시·군)은 레지스트리의 그 곳 이름(L.name — 'Uijeongbu-si')을 en 으로 넘긴다.
+ * 한국어는 칸의 글 그대로(L.ctxName 이 en 을 보지 않는다)
+ */
+export const ctxNamer = (reg: Registry) => (n: CtxCell): string => {
+  const it = n.rest && n.id ? reg.place(n.id)?.item : undefined;
+  return L.ctxName(it ? { ...n, en: L.name(it) } : n);
+};
+/**
+ * 오늘 복습(단원이 섞이는 판) 문제의 앞 이름(play.ts band — N12 · E11 · EN_EMD 7.1): 동은 단원 이름(unitName — '종로구' · 'Jongno-gu',
+ * 단원을 모르면 지역 이름), 일반구는 시('수원시' · 'Suwon-si'), 같은 이름이 여러 지역에 있는 시·군·구는 지역('부산' · 'Busan'). 그 밖은 undefined.
+ * 시험이 두 말을 견줄 수 있게 글 벌(T)을 받는다(기본 = 지금 화면 글)
+ */
+export function mixPre(reg: Registry, id: string, T: UI = L): string | undefined {
+  const p = reg.place(id);
+  if (id.startsWith('kr:emd:')) return (p && T.unitName(reg, p.region.key)) ?? (p ? T.region(p.region) : undefined);
+  return T.fullPre(reg, id);
+}

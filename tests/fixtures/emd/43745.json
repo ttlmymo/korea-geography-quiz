@@ -18,12 +18,14 @@
   {
    "id": "kr:emd:4374531000",
    "ko": "도안면",
+   "en": "Doan-myeon",
    "slug": "31000",
    "kind": "면"
   },
   {
    "id": "kr:emd:4374525000",
    "ko": "증평읍",
+   "en": "Jeungpyeong-eup",
    "slug": "25000",
    "kind": "읍"
   }
@@ -32,6 +34,7 @@
   {
    "no": 1,
    "title": "전체",
+   "en": "All",
    "items": [
     "kr:emd:4374531000",
     "kr:emd:4374525000"
@@ -50,7 +53,7 @@
   {
    "key": "all",
    "ko": "증평군",
-   "en": "",
+   "en": "Jeungpyeong-gun",
    "items": [
     "kr:emd:4374531000",
     "kr:emd:4374525000"

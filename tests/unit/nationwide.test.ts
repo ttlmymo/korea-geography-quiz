@@ -13,7 +13,7 @@ import type { Mastery, Rec } from '../../src/app/core/mastery.ts';
 import { homeCard, homeUnitOf, mainIds, mainUnitOf, regionDone, unitMain, type HomeInput } from '../../src/app/core/next.ts';
 import { gaUnit, onMissingUnit, registerUnits, studyKeys, unitsToLoad } from '../../src/app/core/units.ts';
 import { createDeck } from '../../src/app/core/deck.ts';
-import { createRegistry, type Registry } from '../../src/app/registry.ts';
+import { createRegistry, unitOptions, type Registry } from '../../src/app/registry.ts';
 import { parseRoute, toHash, type Known } from '../../src/app/router.ts';
 import { GROUPS, SIDOS, shownIn, sidoByCode, sidoOf } from '../../src/app/sidos.ts';
 import { SIDO_KO } from '../../src/app/text/ko.ts';
@@ -22,7 +22,7 @@ import type { EmdIndex, EmdUnitFile, GeoData, KoreaFile, Region } from '../../sr
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { KOREA_MAP } from '../../src/app/ui/maps.ts';
 import { KOREA_FIT, homePage, homeTabs, pickPage, regionsPage, unitPage } from '../../src/app/ui/pages.ts';
-import { geo, geoEn, geoEnNow, geoNoBusan, geoNoE12, geoNoKorea, reg, withEnHidden } from './fixtures.ts';
+import { EN_OFF, geo, geoEn, geoEnNow, geoNoBusan, geoNoE12, geoNoKorea, reg, withEnHidden } from './fixtures.ts';
 
 const T = 20000;
 const root = path.join(import.meta.dirname, '../..');
@@ -94,14 +94,14 @@ test('지역 표(E8): 앱이 지역 표를 읽는다 — 16 시·도, 시·도 �
 });
 
 test('영문 표기(SIDO_EN 16, Q5): 확인한 시·도만 영어 지도 맥락 이름 — 16곳 모두 확인(전남광주 2026-11-15), 확인하지 않은 지역은 숨김(가짜 지역 표)', () => {
-  assert.equal(UI_EN.ctxName('41', '경기도'), 'Gyeonggi');
-  assert.equal(UI_EN.ctxName('51', '강원특별자치도'), 'Gangwon');
-  assert.equal(UI_EN.ctxName('26', '부산광역시'), 'Busan');
-  assert.equal(UI_EN.ctxName('kp', '북한'), 'North Korea');
-  assert.equal(UI_EN.ctxName('water', '한강'), 'Han River');
+  assert.equal(UI_EN.ctxName({ sido: '41', text: '경기도' }), 'Gyeonggi');
+  assert.equal(UI_EN.ctxName({ sido: '51', text: '강원특별자치도' }), 'Gangwon');
+  assert.equal(UI_EN.ctxName({ sido: '26', text: '부산광역시' }), 'Busan');
+  assert.equal(UI_EN.ctxName({ sido: 'kp', text: '북한' }), 'North Korea');
+  assert.equal(UI_EN.ctxName({ sido: 'water', text: '한강' }), 'Han River');
   // 전남광주: 사용자 지시(11-15)로 짧은 이름 'Jeonnam-Gwangju' 를 켬(정식 영문은 docs/review/sido-en.md — 화면에는 다른 시·도처럼 짧은 이름)
   assert.equal(sidoByCode('12')?.enChecked, true);
-  assert.equal(UI_EN.ctxName('12', '전남광주통합특별시'), 'Jeonnam-Gwangju');
+  assert.equal(UI_EN.ctxName({ sido: '12', text: '전남광주통합특별시' }), 'Jeonnam-Gwangju');
   assert.equal(SIDOS.filter((s) => s.enChecked).length, 16);
   assert.equal(shownIn('en', 'jeonnam-gwangju'), true);
   assert.equal(shownIn('ko', 'jeonnam-gwangju'), true);
@@ -109,10 +109,10 @@ test('영문 표기(SIDO_EN 16, Q5): 확인한 시·도만 영어 지도 맥락 
   assert.equal(shownIn('en', 'korea'), true);
   // 규칙: 영어 이름을 확인하지 않은 지역(enChecked false)은 영어 화면에 없고 지도 맥락 이름도 비운다 — 운영 지역 표에는 이제 그런 행이 없어 가짜 지역 표로 본다
   withEnHidden('jeonnam-gwangju', () => {
-    assert.equal(UI_EN.ctxName('12', '전남광주통합특별시'), '');
+    assert.equal(UI_EN.ctxName({ sido: '12', text: '전남광주통합특별시' }), '');
     assert.equal(shownIn('en', 'jeonnam-gwangju'), false);
     assert.equal(shownIn('ko', 'jeonnam-gwangju'), true);
-    assert.equal(createRegistry(geoEnNow(), { emd: false }).region('jeonnam-gwangju'), undefined);
+    assert.equal(createRegistry(geoEnNow(), EN_OFF).region('jeonnam-gwangju'), undefined);
   });
   assert.equal(shownIn('en', 'jeonnam-gwangju'), true, '가짜 지역 표를 되돌림');
 });
@@ -218,21 +218,22 @@ test('지역별 격리·영어 숨김(E8 검수): 이 창에 실리지 않은 �
   // 영어 화면이 숨기는 지역(enChecked false — main.ts 가 싣지 않음): 그 지역 판·그 지역 곳(시·도 코드)이 든 복습 판을 지킨다.
   // E16 의 전남광주가 그랬고 2026-11-15 영문을 켠 뒤로 운영 지역 표에는 그런 지역이 없어, 가짜 지역 표(전남광주 enChecked false)로 본다
   withEnHidden('jeonnam-gwangju', () => {
-    const hid = createRegistry(geoEnNow(), { emd: false });   // 영어 앱이 받는 판(main.ts — 숨긴 지역을 뺌)
+    const hid = createRegistry(geoEnNow(), EN_OFF);   // 영어 앱이 받는 판(main.ts — 숨긴 지역을 뺌)
     assert.equal(hid.region('jeonnam-gwangju'), undefined);
     assert.equal(onMissingUnit(hid, createDeck('lesson', [q('kr:sgg:12110')], { region: 'jeonnam-gwangju', lesson: 1, seed: 1 })), true);
     assert.equal(onMissingUnit(hid, createDeck('review', [q(seo.items[0].id), q('kr:sgg:12110'), q('kr:emd:1211051000')], { seed: 1 })), true);
     // 지역 표에 없는 키는 지키지 않는다(옛 값)
     assert.equal(onMissingUnit(hid, createDeck('lesson', [q('kr:sgg:99110')], { region: 'atlantis', lesson: 1, seed: 1 })), false);
   });
-  // 지금 영어 앱(전남광주를 실음): 전남광주 과 판은 실린 지역의 판이라 쓸 수 있다(지키는 판이 아님 — false), 동 곳은 영어 앱이 동을 싣지 않아 지킨다(N26)
-  const en = createRegistry(geoEn, { emd: false });
+  // 관문이 닫힌 영어 앱(전남광주를 실음 — 동·일반구·시·도 단원을 끈 창, EN_EMD 5.1): 전남광주 과 판은 실린 지역의 판이라 쓸 수 있다(지키는 판이 아님 — false),
+  // 동 곳은 끈 창이 동을 싣지 않아 지킨다(N26)
+  const en = createRegistry(geoEn, EN_OFF);
   assert.ok(en.region('jeonnam-gwangju'));
   assert.equal(onMissingUnit(en, createDeck('lesson', en.region('jeonnam-gwangju')!.lessons[0].items.map(q), { region: 'jeonnam-gwangju', lesson: 1, seed: 1 })), false);
   assert.equal(onMissingUnit(en, createDeck('review', [q(seo.items[0].id), q('kr:sgg:12110'), q('kr:emd:1211051000')], { seed: 1 })), true);
 });
 
-test('과 없는 지역(N4): 동 색인이 있으면 싣고(곳 없음), 없거나 영어 앱이면 싣지 않는다', () => {
+test('과 없는 지역(N4): 동 색인이 있으면 싣고(곳 없음), 없거나 동을 끈 창(관문이 닫힌 영어 앱)이면 싣지 않는다 — 관문이 열린 영어 앱은 싣는다(EN_EMD 1.2)', () => {
   const r = createRegistry(geoMain());
   assert.deepEqual(r.regions.map((x) => x.key), ['incheon', 'gyeonggi', 'seoul']);
   assert.equal(unitMain(r, 'seoul'), true);
@@ -242,9 +243,12 @@ test('과 없는 지역(N4): 동 색인이 있으면 싣고(곳 없음), 없거�
   // 동 색인이 없으면 결함으로 빼고 알린다
   const noIdx = createRegistry({ ...geoMain(), units: { ...geoMain().units, emdUnits: {} } });
   assert.deepEqual([noIdx.regions.map((x) => x.key), noIdx.failed.map((f) => f.key)], [['incheon', 'gyeonggi'], ['seoul']]);
-  // 영어 앱은 동을 읽지 않으므로 과 없는 지역을 싣지 않는다(결함 아님)
-  const en = createRegistry(geoMain(), { emd: false });
+  // 동을 끈 창은 동을 읽지 않으므로 과 없는 지역을 싣지 않는다(결함 아님)
+  const en = createRegistry(geoMain(), EN_OFF);
   assert.deepEqual([en.regions.map((x) => x.key), en.failed], [['incheon', 'gyeonggi'], []]);
+  // 관문이 열린 영어 앱(판 enNames)은 한국어처럼 싣는다
+  const enOn = createRegistry(geoMain(), unitOptions('en', { enNames: true }));
+  assert.deepEqual([enOn.regions.map((x) => x.key), enOn.failed], [['incheon', 'gyeonggi', 'seoul'], []]);
   // 과가 있는 과 없는 지역은 결함
   const withL: GeoData = { ...geoMain(), units: { ...geoMain().units, regions: [RG('incheon'), { ...seoulMain, lessons: [RG('seoul').lessons[0]] }] } };
   assert.deepEqual(createRegistry(withL).failed.map((f) => f.why), ['과 없는 지역에 과가 있음']);
@@ -333,7 +337,7 @@ test('과 없는 지역(N4): 받을 단원 · 지역 주소 · 구 고르기 · 
   assert.doesNotMatch(unitPage(ctxOf(one), 'seoul/jongno-gu').html, /다른 구 고르기|서울 과로 돌아가기/);
 });
 
-test('시·도 단원(N30 · E8 모델): korea 는 지역처럼 — 등록·찾기·이웃·방위·GA·주소·홈·쪽, 영어 앱은 등록하지 않음', () => {
+test('시·도 단원(N30 · E8 모델): korea 는 지역처럼 — 등록·찾기·이웃·방위·GA·주소·홈·쪽, 시·도 단원을 끈 창(관문이 닫힌 영어 앱)은 등록하지 않음', () => {
   const r = createRegistry(geoKorea);
   const k = r.region('korea')!;
   assert.deepEqual([k.layer, k.items.length, k.unit], ['sido', 16, undefined]);
@@ -369,8 +373,9 @@ test('시·도 단원(N30 · E8 모델): korea 는 지역처럼 — 등록·찾�
   assert.equal((h.match(/class="h-tab"/g) ?? []).length, 4);
   // 지역 고르기에 시·도 단원 칸
   assert.match(regionsPage(ctxOf(r)).html, /href="#\/kr\/korea"/);
-  // 영어 앱은 등록하지 않고, korea 판은 지킨다(이 창에서 이어 할 수 없을 뿐)
-  const en = createRegistry(geoKorea, { emd: false });
+  // 시·도 단원을 끈 창(관문이 닫힌 영어 앱)은 등록하지 않고, korea 판은 지킨다(이 창에서 이어 할 수 없을 뿐). 관문이 열린 영어 앱은 등록한다
+  assert.ok(createRegistry(geoKorea, unitOptions('en', { enNames: true })).region('korea'));
+  const en = createRegistry(geoKorea, EN_OFF);
   assert.equal(en.region('korea'), undefined);
   const d = createDeck('lesson', [{ mode: 'meet', id: 'kr:sido:11' }], { region: 'korea', lesson: 1, seed: 1 });
   assert.equal(onMissingUnit(en, d), true);
@@ -495,7 +500,7 @@ test('지역 고르기(N23): 권역별 목록 + 전국 시·도 지도, 열지 �
   // 영어 이름을 확인하지 않은 지역은 목록에 없다(가짜 지역 표 — 전남광주 enChecked false, E16 까지의 모양 '11 other regions')
   setLang('en');
   try {
-    const page = () => sp(regionsPage(ctxOf(createRegistry(geoNoE12, { emd: false }))).html);
+    const page = () => sp(regionsPage(ctxOf(createRegistry(geoNoE12, EN_OFF))).html);
     const e = page();
     assert.match(e, /<li><b>Honam<\/b><span>Jeonnam-Gwangju · Jeonbuk<\/span><\/li>/);
     assert.match(e, /Busan/);

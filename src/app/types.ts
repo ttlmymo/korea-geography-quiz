@@ -12,7 +12,16 @@ export interface Item {
   kind?: '동' | '읍' | '면';   // 동 단원의 곳만
   full?: string;  // 단원이 섞이는 화면의 이름(계획서 N12): 일반구 단원의 곳 '수원시 장안구', 여러 지역에 같은 이름이 있는 시·군·구 '부산 중구'(레지스트리가 붙임, E11)
   si?: string;    // 일반구 단원의 곳만: 그 일반구가 든 시 층 id(kr:sgg:41110 — 지역 지도에서 그곳이 든 칸)
+  // 동 단원의 곳만: 영어 이름('Cheongunhyoja-dong' — 판 .2 단원 파일 items[].en, 손 표 pipeline/data/emd-en.json, 설계안 EN_EMD 3절).
+  // 옛 캐시 단원 파일에는 없다 — 영어 화면은 그때 한글 이름을 쓴다(숫자 slug 는 쓰지 않는다, EN_EMD 5.4)
+  en?: string;
 }
+
+/**
+ * 지도 맥락 이름 칸(이웃 땅·한강 — map/shapes.ts Shapes.names, 화면 글 text/ui.ts ctxName 이 받는다). sido = 시·도 코드(한강 'water', 북한 'kp', 일본 'jp').
+ * 동 단원 지도의 이웃 땅은 id(kr:sgg:…)·en(판 .2 topo out 의 영어 이름)이 있고, 일반구 단원의 나머지 칸(rest)은 id = 그 칸의 시·군 곳 id
+ */
+export interface CtxCell { sido: string; text: string; id?: string; en?: string; rest?: boolean }
 
 export interface Lesson {
   no: number;
@@ -99,7 +108,7 @@ export interface EmdUnitFile {
   layer: 'emd';
   si?: string;
   fit: BBox;
-  items: { id: string; ko: string; slug: string; kind: '동' | '읍' | '면' }[];
+  items: { id: string; ko: string; slug: string; kind: '동' | '읍' | '면'; en?: string }[];   // en: 판 .2 부터(옛 캐시에는 없음)
   lessons: Lesson[];
   screens: Screen[];
   neighbors: Record<string, string[]>;    // 단원 안 이웃
@@ -128,7 +137,7 @@ export interface GuUnitFile {
 
 /**
  * 시·도 단원(units.json korea, 계획서 N30 · E8 모델 · E10 데이터): 16 시·도를 맞히는 단원. 경계는 판 폴더의 전국 시·도 지도(sido.topo.json, 지역 고르기와 같은 파일),
- * 이름표 점·이웃은 이 파일에(labels.json·neighbors.json 에 시·도 층을 더하지 않는다). 영어 앱은 등록하지 않는다(N26)
+ * 이름표 점·이웃은 이 파일에(labels.json·neighbors.json 에 시·도 층을 더하지 않는다). 영어 앱은 판에 enNames 가 있을 때만 등록한다(EN_EMD 5.1 — 전에는 N26 으로 등록하지 않음)
  */
 export interface KoreaFile {
   key: 'korea';
@@ -150,7 +159,11 @@ export interface KoreaFile {
  * korea: 시·도 단원이 켜졌을 때만(E10 — E8 에서는 --preview 미리보기에만 임시 과로 실린다)
  */
 /** sameNames(E11 · N12): 전국에서 두 시·도 이상에 있는 시·군·구 이름(중구·동구·서구·남구·북구·강서구·고성군) — 지역이 섞이는 화면에서 시·도 이름을 붙인다 */
-export interface UnitsFile { version: string; regions: Region[]; emdUnits?: Record<string, EmdIndex[]>; guUnits?: Record<string, GuUnitFile>; korea?: KoreaFile; sameNames?: string[] }
+/**
+ * enNames(설계안 EN_EMD 5.1): 이 판의 동 단원 파일·일반구 단원에 영어 이름(곳·과·화면·이웃 땅 en)이 실렸다는 표시. 영어 앱은 이것이 true 일 때만
+ * 동·일반구·시·도 단원을 싣는다(registry.ts unitOptions — 배포 직후 옛 캐시 units.json 을 받은 새 JS 는 지금 영어 앱처럼 셋을 끈다)
+ */
+export interface UnitsFile { version: string; enNames?: boolean; regions: Region[]; emdUnits?: Record<string, EmdIndex[]>; guUnits?: Record<string, GuUnitFile>; korea?: KoreaFile; sameNames?: string[] }
 
 export interface NeighborsFile {
   sgg: Record<string, string[]>;

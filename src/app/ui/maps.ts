@@ -11,7 +11,7 @@ import { fitView, toMap, type Pad } from '../map/view.ts';
 import type { Tap } from '../core/judge.ts';
 import type { BBox, LabelsFile, Lesson, Region } from '../types.ts';
 import type { Ctx } from './ctx.ts';
-import { L } from '../text/ui.ts';
+import { L, ctxNamer } from '../text/ui.ts';
 import { track } from '../analytics.ts';
 
 const cache = new Map<string, Promise<Shapes>>();
@@ -227,7 +227,7 @@ export async function mountMap(ctx: Ctx, host: HTMLElement, spec: MapSpec): Prom
   // 전국 시·도 지도(지역 고르기·시·도 단원)는 흰 판 이름표를 남의 시·도 칸 위에 두지 않는다(E10 검수 — 휴대폰에서 '충북' 판이 경기·충남 경계 위에 놓였다)
   const plateHome = spec.region === KOREA_MAP || region?.layer === 'sido';
   const map = createSvgMap(host, {
-    shapes, interaction: spec.interaction ?? 'none', contextNames: spec.contextNames, scaleBar: spec.scaleBar, scaleMinWidth: spec.scaleMinWidth, ctxName: L.ctxName, insetNote: L.inset, onTap: spec.onTap, onZoomed: spec.onZoomed, plateHome,
+    shapes, interaction: spec.interaction ?? 'none', contextNames: spec.contextNames, scaleBar: spec.scaleBar, scaleMinWidth: spec.scaleMinWidth, ctxName: ctxNamer(ctx.reg), insetNote: L.inset, onTap: spec.onTap, onZoomed: spec.onZoomed, plateHome,
     ...(spec.whole ? { insetAlways: true } : {}),
   });
   // 보기를 먼저 맞춘다(이름표 자리는 배율에 달려 있다)

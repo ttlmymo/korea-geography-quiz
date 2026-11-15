@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DATA_VER } from '../../src/consts.ts';
-import { createRegistry, type Registry } from '../../src/app/registry.ts';
+import { createRegistry, unitOptions, type Registry } from '../../src/app/registry.ts';
 import { gaUnit, lessonCompleteParams, onMissingUnit, studyKeys, unitsToLoad } from '../../src/app/core/units.ts';
 import { createDeck } from '../../src/app/core/deck.ts';
 import { usableDeck } from '../../src/app/core/session.ts';
@@ -17,7 +17,7 @@ import { buildShapes, specOf, type Topology } from '../../src/app/map/shapes.ts'
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import type { GeoData, GuUnitFile } from '../../src/app/types.ts';
 import { TAP_FAIL } from '../../pipeline/emd-lib.mjs';
-import { LIVE_BY_OPEN, geo, geoNoEmd } from './fixtures.ts';
+import { EN_OFF, LIVE_BY_OPEN, geo, geoNoEmd } from './fixtures.ts';
 
 const root = path.join(import.meta.dirname, '../..');
 const dir = path.join(root, 'public/data/geo', DATA_VER);
@@ -90,7 +90,7 @@ test('경기 일반구 단원 규격: 24곳(= 일반구 단위 47 − 시 층 31
   assert.equal(dirOf('기흥구'), '용인시 서쪽');
 });
 
-test('앱 등록: 부팅 때 reg.units 에(지역 목록은 그대로) · 찾기·이웃·방위 · 영어 앱과 옛 캐시는 등록하지 않음 · 모양이 틀리면 그 단원만 빠진다', () => {
+test('앱 등록: 부팅 때 reg.units 에(지역 목록은 그대로) · 찾기·이웃·방위 · 일반구를 끈 창(관문이 닫힌 영어 앱)과 옛 캐시는 등록하지 않음(관문이 열린 영어 앱은 등록 — EN_EMD 1.2) · 모양이 틀리면 그 단원만 빠진다', () => {
   const reg = createRegistry(geo);
   const u = reg.region('gyeonggi/gu')!;
   assert.ok(u && u.unit?.gu);
@@ -107,13 +107,16 @@ test('앱 등록: 부팅 때 reg.units 에(지역 목록은 그대로) · 찾기
   assert.equal(reg.dir8(gwonseon, jangan), 'N');
   assert.equal(reg.unit('gyeonggi/gu'), undefined, '동 색인에는 없다(받을 단원 파일이 없음)');
   assert.deepEqual(unitsToLoad(reg, { mastery: {}, deck: null, deck2: null, lastUnit: 'gyeonggi/gu', daily: null, dailyEmd: null, today: T }), []);
-  // 영어 앱(N26) · 옛 캐시(guUnits 없음)
+  // 일반구를 끈 창(관문이 닫힌 영어 앱 — 2026-11-16 전 영어 앱, N26) · 옛 캐시(guUnits 없음). 관문이 열린 영어 앱은 한국어처럼 등록한다
+  const en = createRegistry(geo, unitOptions('en', geo.units));
+  assert.deepEqual(en.region('gyeonggi/gu')?.items.map((it) => it.id), u.items.map((it) => it.id));
+  assert.equal(en.known(jangan), true);
   // 한국어 앱의 오늘 복습 판(kgq_deck2_v1)에 일반구 곳이 섞였으면, 이어 할 수는 없어도 저장소에서 지우지 않는다(E7 검수 — 동 판과 같은 N26 '기록은 남음')
   const guReview = createDeck('review', [{ mode: 'find' as const, id: 'kr:sgg:41110' }, { mode: 'find' as const, id: jangan }], { seed: 5 });
   const sggReview = createDeck('review', [{ mode: 'find' as const, id: 'kr:sgg:41110' }, { mode: 'find' as const, id: 'kr:sgg:11305' }], { seed: 6 });
   const goneReview = createDeck('review', [{ mode: 'find' as const, id: 'kr:sgg:41110' }, { mode: 'find' as const, id: 'kr:sgg:28115' }], { seed: 7 });
   assert.equal(onMissingUnit(reg, guReview), false, '등록된 한국어 창에서는 쓸 수 있다');
-  for (const r of [createRegistry(geo, { emd: false }), createRegistry(geoNoEmd)]) {
+  for (const r of [createRegistry(geo, EN_OFF), createRegistry(geoNoEmd)]) {
     assert.equal(r.region('gyeonggi/gu'), undefined);
     assert.equal(r.known(jangan), false);
     assert.deepEqual([usableDeck(r, guReview), onMissingUnit(r, guReview)], [null, true], '일반구가 섞인 판은 남긴다');

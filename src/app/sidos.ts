@@ -49,7 +49,7 @@ export function byOpenOrder<T>(xs: readonly T[], keyOf: (x: T) => string): T[] {
 }
 /**
  * 그 말 화면에 지역을 보이는가: 영어 화면은 영어 이름을 확인한 지역만(지역 표 enChecked — Q5, 계획서 N26). 표에 없는 키(시·도 단원 korea 등)는 막지 않는다
- * — korea 는 영어 앱이 등록하지 않는다(registry emd:false)
+ * — korea 는 레지스트리 옵션(registry.ts unitOptions)이 정한다
  */
 export const shownIn = (lang: string, key: string) => lang !== 'en' || sidoOf(key)?.enChecked !== false;
 export const sidoByCode = (code: string): SidoRow | undefined => byCode.get(code);

@@ -1,7 +1,7 @@
 // 채움지도 앱: 홈 문서 안의 해시 경로(설계서 7.3). 경계 데이터와 기록을 읽고 화면을 그린다.
 // 화면이 바뀔 때만 기록(history)을 쌓고 문제마다 쌓지 않는다. 과 요약·시험 결과는 replaceState
 import { loadGeo, loadUnitFile, loadUnitTopo } from './data.ts';
-import { createRegistry } from './registry.ts';
+import { createRegistry, unitKeyReads, unitOptions } from './registry.ts';
 import { parseRoute, toHash, type Known, type Route } from './router.ts';
 import { better, browserKV, checkBests, checkBestUnits, checkDaily, checkDeck, checkLast, checkLastUnit, checkMastery, checkSettings, DEFAULT_SETTINGS, keys, openStore } from './store.ts';
 import { createDeck, isDone, type Deck } from './core/deck.ts';
@@ -44,11 +44,15 @@ async function boot() {
     root.innerHTML = `<div class="page"><div class="pg-one"><h1 class="pg-title">${L.loadFail[0]}</h1><p class="h-desc">${L.loadFail[1]}</p></div></div>`;
     return;
   }
-  // 영어 앱은 동 단원을 등록하지 않고 동 색인(emdUnits)도 읽지 않는다(계획서 N26). 동 키(kgq_lastunit·dailyemd·bestunit)도 읽지 않는다
-  const emdOn = L.lang !== 'en';
+  // 동·일반구·시·도 단원(설계안 EN_EMD 5.1): 한국어 앱은 모두 싣는다. 영어 앱은 판이 영어 이름을 실었을 때만(units.json enNames — 관문) 스위치
+  // EN_EMD·EN_GU·EN_KOREA(registry.ts) 대로 싣는다. 2026-11-16 전에는(계획서 N26) 영어 앱이 셋을 모두 싣지 않았고 동 키도 읽지 않았다.
+  // 끈 단원의 키는 읽지 않는다: 동을 끄면 오늘 푼 동 수(kgq_dailyemd_v1), 동·일반구를 모두 끄면 마지막 단원·단원 시험 기록(kgq_lastunit_v1·kgq_bestunit_v1)
+  const opts = unitOptions(L.lang, geo.units);
+  const keyReads = unitKeyReads(opts);
+  const unitKeys = keyReads.unitKeys;
   // 영어 화면은 영어 이름을 확인하지 않은 지역(지역 표 enChecked false — Q5. E16 의 전남광주가 그랬고 2026-11-15 영문을 켠 뒤로는 없음)을 싣지 않는다(E8). 기록은 그대로 남는다
   geo = { ...geo, units: { ...geo.units, regions: geo.units.regions.filter((r) => shownIn(L.lang, r.key)) } };
-  const reg = createRegistry(geo, { emd: emdOn });
+  const reg = createRegistry(geo, opts);
   // 지역별 격리(계획서 E8): 결함이 있어 뺀 지역·단원은 알리고 나머지로 돈다. 쓸 수 있는 지역이 하나도 없을 때만 불러오기 실패 화면
   for (const f of reg.failed) track('geo_load_fail', { msg: `${f.key} ${f.why}`.slice(0, 100) });
   if (!reg.regions.some((x) => x.lessons.length)) {
@@ -57,7 +61,7 @@ async function boot() {
   }
   const store = openStore(browserKV());
   const K = keys();
-  // 동 단원 주소(계획서 E5)는 단원 파일을 받기 전에도 동 색인으로 판정한다(과 수·동 slug). 동 색인이 없는 지역(동 공개 전·영어 앱)은 emd 가 false → 홈으로
+  // 동 단원 주소(계획서 E5)는 단원 파일을 받기 전에도 동 색인으로 판정한다(과 수·동 slug). 동 색인이 없는 지역(동 공개 전·동을 끈 창 — 관문이 닫힌 영어 앱)은 emd 가 false → 홈으로
   const idx = (k: string) => (reg.region(k) ? undefined : reg.unit(k)?.index);
   const known: Known = {
     region: (k) => !!reg.region(k),
@@ -74,8 +78,8 @@ async function boot() {
     deck: store.read(K.deck, checkDeck),
     deck2: store.read(K.deck2, checkDeck),
     daily: store.read(K.daily, checkDaily),
-    dailyEmd: emdOn ? store.read(K.dailyEmd, checkDaily) : null,
-    lastUnit: emdOn ? store.read(K.lastUnit, checkLastUnit) : null,
+    dailyEmd: keyReads.dailyEmd ? store.read(K.dailyEmd, checkDaily) : null,
+    lastUnit: unitKeys ? store.read(K.lastUnit, checkLastUnit) : null,
   };
   // 동 단원(계획서 N17): 저장된 판·마지막 단원·이번 복습 판의 단원 파일만 받아 등록한 **뒤에** 판을 되살리고 홈 카드를 고른다.
   // 받기·등록에 실패한 단원만 빠지고 앱은 계속 돈다(N30 단원 격리). 동 색인이 없으면(동 공개 전) 받을 것이 없어 지금과 같다
@@ -83,7 +87,7 @@ async function boot() {
   const unitFail = (key: string, why: string) => track('geo_load_fail', { msg: `${key} ${why}`.slice(0, 100) });
   // 동 단원 지도 경계(emd/{코드}.topo.json)를 미리 받는다(E6 검수): 지도를 그릴 shapesOf 가 같은 약속(data.ts loadJSON 캐시 — 같은 주소는 한 번만 받는다)을
   // 다시 써서, 단원 파일 → 지도 경계 두 번 왕복이 한 번이 되고, 단원이 바뀌는 복습 문제 넘김에 받기 왕복이 더해지지 않는다.
-  // 실패한 받기는 캐시에서 빠지므로 지도를 그릴 때 지금처럼 다시 받는다. 동 색인에 없는 키(지역 키·시·군·구 곳·영어 앱)는 건너뛴다.
+  // 실패한 받기는 캐시에서 빠지므로 지도를 그릴 때 지금처럼 다시 받는다. 동 색인에 없는 키(지역 키·시·군·구 곳·동을 끈 창)는 건너뛴다.
   // 지도를 곧 그릴 때(단원 주소를 처음 열 때·오늘 복습 새 판·문제 판을 열 때)만 부른다 — 홈은 동 지도를 그리지 않는다
   const prefetchTopo = (keys: Iterable<string>) => {
     for (const k of new Set(keys)) { const u = reg.unit(k); if (u) void loadUnitTopo(BASE, VER, u.code).catch(() => {}); }
@@ -93,7 +97,7 @@ async function boot() {
   const bootUnits = unitsToLoad(reg, { ...saved, today: dayOf(new Date()) }, { areas: [lastArea && reg.areaOf(lastArea) ? reg.areaOf(lastArea)! : null] });
   if (bootUnits.length) await registerUnits(reg, bootUnits, fetchUnit, unitFail);
   let lastUnitStored = saved.lastUnit !== null;
-  // 이 창에 등록되지 않은 동 단원 판(영어 앱, 받기 실패)은 이어 할 수 없을 뿐 — 저장소에서 지우지 않고 새 판이 덮을 때까지 둔다
+  // 이 창에 등록되지 않은 동 단원 판(동을 끈 창 — 관문이 닫힌 영어 앱, 받기 실패)은 이어 할 수 없을 뿐 — 저장소에서 지우지 않고 새 판이 덮을 때까지 둔다
   const held = { deck: onMissingUnit(reg, saved.deck), deck2: onMissingUnit(reg, saved.deck2) };
 
   const ctx: Ctx = {
@@ -110,7 +114,7 @@ async function boot() {
     settings: store.read(K.settings, checkSettings) ?? DEFAULT_SETTINGS,
     homeRegion: null,
     bests: store.read(K.best, checkBests) ?? {},
-    bestUnits: emdOn ? store.read(K.bestUnit, checkBestUnits) ?? {} : {},
+    bestUnits: unitKeys ? store.read(K.bestUnit, checkBestUnits) ?? {} : {},
     today: () => dayOf(new Date()),
     save() {
       store.write(K.mastery, ctx.mastery);

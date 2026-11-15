@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRegistry, type Registry } from '../../src/app/registry.ts';
+import { createRegistry, unitOptions, type Registry } from '../../src/app/registry.ts';
 import { parseRoute, toHash, type Known, type Route } from '../../src/app/router.ts';
 import { gaArgs, lessonCompleteParams } from '../../src/app/core/units.ts';
 import { meetKo } from '../../src/app/text/ko.ts';
@@ -17,7 +17,7 @@ import { textWidth } from '../../src/app/map/labelfit.ts';
 import { lessonView, wholeView } from '../../src/app/ui/maps.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import type { EmdIndex, EmdUnitFile, GeoData } from '../../src/app/types.ts';
-import { geo, geoNoEmd } from './fixtures.ts';
+import { EN_OFF, geo, geoNoEmd } from './fixtures.ts';
 
 const T = 20000;
 const FIX = path.join(import.meta.dirname, '../fixtures/emd');
@@ -81,8 +81,8 @@ test('동 단원 주소: 구 고르기·단원 쪽·과·곳·전체 연습·시
   }
 });
 
-test('동 색인이 없으면(동 공개 전 · 영어 앱) 동·일반구 주소는 지금처럼 홈으로 · 운영 판(E7)은 서울·인천·경기 동 주소와 경기 일반구 주소가 열린다', () => {
-  for (const reg of [createRegistry(geoNoEmd), regE({ emd: false })]) {
+test('동 색인이 없으면(동 공개 전 · 동을 끈 창 — 관문이 닫힌 영어 앱) 동·일반구 주소는 지금처럼 홈으로 · 운영 판(E7)은 서울·인천·경기 동 주소와 경기 일반구 주소가 열린다(관문이 열린 영어 앱도 — EN_EMD 8절 5)', () => {
+  for (const reg of [createRegistry(geoNoEmd), regE(EN_OFF)]) {
     const k = knownOf(reg);
     for (const h of ['#/kr/seoul/emd', '#/kr/seoul/emd/jongno-gu', '#/kr/seoul/emd/jongno-gu/p1', '#/kr/incheon/emd/ongjin-gun/explore', '#/kr/gyeonggi/gu', '#/kr/gyeonggi/gu/p1']) {
       assert.deepEqual(parseRoute(h, '', k), { route: { name: 'home' }, fix: '' }, h);
@@ -97,6 +97,9 @@ test('동 색인이 없으면(동 공개 전 · 영어 앱) 동·일반구 주�
   assert.deepEqual(parseRoute('#/kr/incheon/emd', '', kp).route, { name: 'emd', region: 'incheon' });
   assert.deepEqual(parseRoute('#/kr/incheon/emd/ongjin-gun/explore', '', kp).route, { name: 'explore', region: 'incheon/ongjin-gun', slug: null });
   assert.deepEqual(parseRoute('#/kr/gyeonggi/emd/suwon-si-jangan-gu/p2', '', kp).route, { name: 'lesson', region: 'gyeonggi/suwon-si-jangan-gu', no: 2 });
+  // 관문이 열린 영어 앱(운영 판 enNames)도 같은 주소가 열린다 — 저장된 /en/#/kr/sejong·…/emd/… 가 홈으로 가지 않는다
+  const ke = knownOf(createRegistry(geo, unitOptions('en', geo.units)));
+  for (const h of ['#/kr/seoul/emd', '#/kr/seoul/emd/jongno-gu/p1', '#/kr/gyeonggi/gu/p1', '#/kr/sejong', '#/kr/jeju']) assert.deepEqual(parseRoute(h, '', ke), parseRoute(h, '', kp), h);
   // 인천 2026-07 새 구 이름이 단원 주소에 들어간다(제물포구·영종구·서해구·검단구)
   for (const s of ['jemulpo-gu', 'yeongjong-gu', 'seohae-gu', 'geomdan-gu']) assert.deepEqual(parseRoute(`#/kr/incheon/emd/${s}`, '', kp).route, { name: 'unit', region: `incheon/${s}` }, s);
   // 일반구 단원(E7): #/kr/gyeonggi/gu 로만. 동 주소 꼴(/emd/gu)이나 일반구 단원이 없는 지역은 홈으로
@@ -206,8 +209,9 @@ test('지역 단원 쪽: 동 색인이 있으면(운영 판 E6 서울) \'동까�
   assert.ok(ggOn.includes(guLk + emdLk('gyeonggi')), '일반구 링크 바로 뒤에 동 링크');
   assert.equal(ggOn.replace(guLk + emdLk('gyeonggi'), ''), ggOff);
   assert.equal(unitPage(ctxOf(createRegistry(geo)), 'incheon').html.replace(emdLk('incheon'), ''), unitPage(ctxOf(createRegistry(geoNoEmd)), 'incheon').html);
-  // 영어 앱은 일반구 단원을 등록하지 않아 링크가 없다(N26)
-  assert.equal(createRegistry(geo, { emd: false }).region('gyeonggi/gu'), undefined);
+  // 일반구를 끈 창(관문이 닫힌 영어 앱 — 2026-11-16 전 영어 앱, N26)은 일반구 단원을 등록하지 않아 링크가 없다. 관문이 열린 영어 앱은 등록한다(EN_EMD 1.2)
+  assert.equal(createRegistry(geo, EN_OFF).region('gyeonggi/gu'), undefined);
+  assert.ok(createRegistry(geo, unitOptions('en', geo.units)).region('gyeonggi/gu'));
 });
 
 test('섬 상자(E5 결정): 옹진군처럼 고를 칸이 모두 섬이면 격자 — 폰 문제 화면에서 상자 축척이 파이프라인 섬 상자(128×112)보다 작지 않다', async () => {

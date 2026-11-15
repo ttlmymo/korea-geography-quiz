@@ -13,7 +13,7 @@ import { boxOf, type Box } from '../map/project.ts';
 import type { Shapes } from '../map/shapes.ts';
 import { createSvgMap, type SvgMap } from '../map/svgmap.ts';
 import type { Pad } from '../map/view.ts';
-import { L, placeName } from '../text/ui.ts';
+import { L, ctxNamer, mixPre, placeName } from '../text/ui.ts';
 import { fillsOf, type Ctx } from './ctx.ts';
 import { track } from '../analytics.ts';
 import { devLog } from '../devlog.ts';
@@ -21,13 +21,24 @@ import { perf } from '../perf.ts';
 import { ICON, esc } from './dom.ts';
 import { STAGE_SCALE_MIN, insetPad, shapesOf, wholeView } from './maps.ts';
 import { gaArgs } from '../core/units.ts';
-import { isEmd } from '../core/next.ts';
 
 export type Slot = 'lesson' | 'other' | 'check';
 export interface PlayEnd { deck: Deck; finished: Summary; newly: string[] }
 type Phase = 'ask' | 'met' | 'ok' | 'wrong' | 'dk' | 'fixed' | 'cok' | 'cno' | 'tok' | 'tno';
 
 const AUTO_MS = 900, CHECK_MS = 600, MEET_MS = 700;
+
+/**
+ * 곳 이름 HTML(문제 큰 이름·고르기 보기): 영어는 가운뎃점 뒤에 줄바꿈 자리(<wbr>)를 둔다. '·'는 줄을 바꿀 자리가 아니어서
+ * 'Yongdam·Myeongam·Sanseong-dong' 이 한 덩어리로 칸을 넘으면 낱말 가운데서 끊겼다(EN_EMD 점검 A). 한국어는 이스케이프만(전과 같음)
+ */
+const nameHtml = (s: string) => (L.lang === 'en' ? esc(s).replace(/·/g, '·<wbr>') : esc(s));
+/**
+ * 영어 보기 단추의 긴 이름: 끊을 수 없는 가장 긴 조각(빈칸·가운뎃점에서 나누고 붙임표는 뒤에 붙여 셈 — 'Cheongunhyoja-')이 이 글자 수를 넘으면
+ * 좁은 화면에서 글자를 조금 줄인다(app.css .opt.long). 폰 두 칸 보기(안쪽 약 110px)에 16px 로 11자 남짓이 든다
+ */
+const OPT_LONG = 11;
+const optLong = (s: string) => L.lang === 'en' && Math.max(...s.split(/[\s·]+/).flatMap((w) => w.split(/(?<=-)/)).map((x) => x.length)) > OPT_LONG;
 /** 넓은 화면 배치(왼쪽 열 | 지도)가 시작되는 폭 — app.css 의 분기와 같다 */
 const WIDE_MQ = '(min-width: 1024px)';
 
@@ -132,7 +143,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     // 오른쪽 위는 '⤢ 전체 보기'(.map-reset — 지도 칸 밖 요소) 자리라 쓰지 않는다
     const r = ctx.reg.region(region);
     map = createSvgMap(ui.mapHost, {
-      shapes: s, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, ctxName: L.ctxName, insetNote: L.inset, onTap, onZoomed: (z) => { ui.reset.hidden = !z; }, plateHome: r?.layer === 'sido',
+      shapes: s, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, ctxName: ctxNamer(ctx.reg), insetNote: L.inset, onTap, onZoomed: (z) => { ui.reset.hidden = !z; }, plateHome: r?.layer === 'sido',
       ...(r ? { locator: { whole: boxOf(wholeView(r).fit), avoid: ['tr'] } } : {}),
     });
   }
@@ -154,15 +165,13 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     if (!q) return '';
     const p = L.promptParts(ctx.reg, q.mode, q.id);
     // 오늘 복습(단원이 섞임)의 동 문제는 단원 이름을 앞에 한 번(N12: '종로구 · 청운효자동을 찾아 누르세요'), 일반구 문제는 시 이름('수원시 · 장안구를'),
-    // 여러 지역에 같은 이름이 있는 시·군·구는 지역 이름('부산 · 중구를' — E11, 영어 'Busan ·')
-    const qp = ctx.reg.place(q.id);
-    const unitName = deckOf()?.kind !== 'review' ? undefined
-      : isEmd(q.id) ? (qp && ctx.reg.mixName(qp.region.key)) ?? qp?.region.ko
-      : L.fullPre(ctx.reg, q.id);
+    // 여러 지역에 같은 이름이 있는 시·군·구는 지역 이름('부산 · 중구를' — E11, 영어 'Busan ·'). 동 단원 이름은 L.unitName(영어 'Jongno-gu ·' — EN_EMD 7.1)
+    // 앞 이름 셈은 text/ui.ts mixPre(시험이 두 말 출력을 견준다)
+    const unitName = deckOf()?.kind !== 'review' ? undefined : mixPre(ctx.reg, q.id);
     if (unitName) p.pre = p.pre ? `${unitName} · ${p.pre}` : `${unitName} ·`;
     if (!p.big) return `<span class="pq-mid">${esc(p.post)}</span>`;
     const n = [...p.big].reduce((s, ch) => s + (ch.codePointAt(0)! >= 0x1100 ? 1 : 0.6), 0);
-    return [p.pre && `<span class="pq-s">${esc(p.pre)}</span>`, `<span class="pq-big" style="--n:${n.toFixed(1)}">${esc(p.big)}</span>`, p.post && `<span class="pq-s">${esc(p.post)}</span>`].filter(Boolean).join(' ');
+    return [p.pre && `<span class="pq-s">${esc(p.pre)}</span>`, `<span class="pq-big" style="--n:${n.toFixed(1)}">${nameHtml(p.big)}</span>`, p.post && `<span class="pq-s">${esc(p.post)}</span>`].filter(Boolean).join(' ');
   }
 
   /**
@@ -224,7 +233,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     const on = q?.mode === 'choose';
     ui.opts.hidden = !on;
     ui.opts.innerHTML = on
-      ? `<div class="opts">${(q!.options ?? []).map((o, i) => `<button class="opt" type="button" data-pact="choose" data-arg="${o}"><span class="k" aria-hidden="true">${i + 1}</span><span class="sym"></span>${esc(nm(o))}</button>`).join('')}</div>`
+      ? `<div class="opts">${(q!.options ?? []).map((o, i) => `<button class="opt${optLong(nm(o)) ? ' long' : ''}" type="button" data-pact="choose" data-arg="${o}"><span class="k" aria-hidden="true">${i + 1}</span><span class="sym"></span>${nameHtml(nm(o))}</button>`).join('')}</div>`
       : '';
   }
 

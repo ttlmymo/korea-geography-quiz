@@ -24,7 +24,7 @@ import type { EmdUnitFile } from '../../src/app/types.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, pickPage, regionsPage, unitPage } from '../../src/app/ui/pages.ts';
 import { LIVE, scopeEn, scopeKo } from '../../src/lib/regions.ts';
-import { E15_KEYS, geo, geoNoE15, reg, idOf } from './fixtures.ts';
+import { EN_OFF, EN_ON, E15_KEYS, geo, geoNoE15, reg, idOf } from './fixtures.ts';
 
 const T = 20000;
 const root = path.join(import.meta.dirname, '../..');
@@ -148,8 +148,8 @@ test('대마도(계획서 N19 · E15): Natural Earth 일본 덩어리가 경남 
   const [lx, ly] = jp[0].properties.lp as [number, number];
   assert.ok(lx > 129.2 && lx < 129.5 && ly > 34.3 && ly < 34.7, `lp ${lx},${ly}`);
   // 영어 화면 이름(맥락 이름): 'Japan' · 한국어는 '일본' 그대로
-  assert.equal(UI_EN.ctxName('jp', '일본'), 'Japan');
-  assert.equal(UI_KO.ctxName('jp', '일본'), '일본');
+  assert.equal(UI_EN.ctxName({ sido: 'jp', text: '일본' }), 'Japan');
+  assert.equal(UI_KO.ctxName({ sido: 'jp', text: '일본' }), '일본');
   // 다른 공개 지역의 경계 파일과 전국 시·도 지도에는 일본 땅이 없다(전국 지도의 맥락 땅은 북한만)
   for (const R of geo.units.regions.filter((x) => x.key !== 'gyeongnam')) {
     const o = topoOf(`${R.key}-sgg.topo.json`).objects.out;
@@ -178,7 +178,7 @@ test('40m 시험(계획서 N20 · E15): 경남 지역 경계 파일만 40m — g
   assert.ok(total > 20000, `고리 점 ${total} — 20m 이면 3만 넘음(37,285 · --dry-all)`);
 });
 
-test('창원 일반구 단원(N5 — 경남 5): 창원 5구 한 과, 주소·GA·위치 한 줄 · 영어 앱은 싣지 않음', () => {
+test('창원 일반구 단원(N5 — 경남 5): 창원 5구 한 과, 주소·GA·위치 한 줄 · 일반구를 끈 창(관문이 닫힌 영어 앱)은 싣지 않음, 관문이 열린 영어 앱은 영어 이름으로 싣는다', () => {
   const u = reg.region('gyeongnam/gu')!;
   assert.ok(u && u.unit?.gu && u.unit.parent === 'gyeongnam');
   assert.deepEqual([u.ko, u.lessons.map((l) => [l.title, l.items.length]), u.screens.map((s) => s.key)], ['경남 일반구', [['창원시', 5]], ['all']]);
@@ -194,7 +194,14 @@ test('창원 일반구 단원(N5 — 경남 5): 창원 5구 한 과, 주소·GA�
   const k = knownOf(reg);
   assert.deepEqual(parseRoute('#/kr/gyeongnam/gu', '', k).route, { name: 'unit', region: 'gyeongnam/gu' });
   assert.deepEqual(parseRoute('#/kr/gyeongnam/gu/p1', '', k).route, { name: 'lesson', region: 'gyeongnam/gu', no: 1 });
-  assert.equal(createRegistry(geo, { emd: false }).region('gyeongnam/gu'), undefined);
+  assert.equal(createRegistry(geo, EN_OFF).region('gyeongnam/gu'), undefined);
+  // 관문이 열린 영어 앱(EN_EMD 4절): 곳 'Uichang-gu'(시는 섞인 화면 이름에만 'Changwon-si Uichang-gu'), 단원 'Gyeongnam city districts', 과 'Changwon-si'
+  const en = createRegistry(geo, EN_ON);
+  const eu = en.region('gyeongnam/gu')!;
+  assert.deepEqual(eu.items.map((it) => UI_EN.name(it)), ['Masanhappo-gu', 'Masanhoewon-gu', 'Seongsan-gu', 'Uichang-gu', 'Jinhae-gu']);
+  assert.deepEqual(eu.items.map((it) => UI_EN.short(it)), ['Masanhappo', 'Masanhoewon', 'Seongsan', 'Uichang', 'Jinhae']);
+  assert.deepEqual([UI_EN.fullName(en, eu.items[3].id), UI_EN.fullPre(en, eu.items[3].id)], ['Changwon-si Uichang-gu', 'Changwon-si']);
+  assert.deepEqual([UI_EN.region(eu), eu.lessons.map((l) => UI_EN.lesson(l)), UI_EN.unitName(en, eu.key), UI_EN.count(eu)], ['Gyeongnam city districts', ['Changwon-si'], 'Gyeongnam city districts', '5 districts']);
   // 지역 쪽 '일반구 5곳 공부하기', 구 고르기 목록에서 창원 5구는 시 아래
   assert.match(sp(unitPage(ctxOf(reg), 'gyeongnam').html), /href="#\/kr\/gyeongnam\/gu"/);
   assert.match(sp(pickPage(ctxOf(reg), 'gyeongnam').html), /창원시 <span[^>]*>5개 구/);
@@ -208,8 +215,10 @@ test('같은 이름(N12): 경남 고성군은 지역이 섞이는 화면에서 \
   assert.equal(UI_KO.fullName(reg, g), '경남 고성군');
   assert.equal(UI_KO.fullName(reg, idOf('고성군', 'gangwon')), '강원 고성군');
   assert.equal(UI_KO.prompt(reg, 'find', g, (s) => s), '고성군을 찾아 누르세요', '한 지역 화면은 이름만');
-  const en = createRegistry(geo, { emd: false });
+  const en = createRegistry(geo, EN_ON);
   assert.equal(UI_EN.fullName(en, g), 'Goseong-gun, Gyeongnam');
+  // 동 단원 이름(섞인 화면): 같은 이름이 강원에도 있어 지역 이름을 붙인다(한국어 '경남 고성군'과 같은 규칙) — 단원 파일을 받기 전에도 동 색인으로
+  assert.equal(UI_EN.unitName(en, 'gyeongnam/goseong-gun'), 'Goseong-gun, Gyeongnam');
   const r = createRegistry(geo);
   assert.equal(r.mixName('gyeongnam/goseong-gun'), '경남 고성군');
   await registerUnits(r, ['gyeongnam/goseong-gun'], async (code) => unitFile(code), () => {});
@@ -238,7 +247,7 @@ test('홈·지역 쪽·지역 고르기(한·영): 경남 탭 \'18개 시·군\'
   assert.equal(pickPage(ctxOf(reg), 'gyeongnam').maps!.pick.labels!.length, 18, '구 고르기 지도 이름표 18(지역 지도는 시 층 — 창원 다섯 구는 목록에서 시 아래)');
   setLang('en');
   try {
-    const en = createRegistry(geo, { emd: false });
+    const en = createRegistry(geo, EN_ON);   // 관문이 열린 영어 앱(EN_EMD)
     const eh = sp(homePage(ctxOf(en, { last: 'gyeongnam' })).html);
     assert.match(eh, /data-arg="gyeongnam" aria-pressed="true">Gyeongnam <span class="u">18 cities and counties<\/span>/);
     assert.match(eh, /South coast/);
@@ -306,9 +315,11 @@ test('지역 수 글(정적 쪽 설명·홈 \'+n\'·지역 고르기 \'n곳 열�
   const num = (s: string, re: RegExp) => Number(re.exec(s)?.[1]);
   const noGn = LIVE.filter((s) => s.key !== 'gyeongnam');
   assert.equal(noGn.length, LIVE.length - 1);
-  const ko = /(?:등|전국) (\d+)개 시·도/, en = /and (\d+) more regions/;   // E16 에 모두 열면 '전국 16개 시·도'
+  const ko = /(?:등|전국) (\d+)개 시·도/;   // E16 에 모두 열면 '전국 16개 시·도'
+  // 영어는 '… and n more regions'(앞 세 이름 + n), 모두 열면 'all 16 provinces and cities of Korea'(2026-11-16 — 세종·제주도 셈, EN_EMD 7.1)
+  const enN = (s: string) => (/^all (\d+) provinces/.test(s) ? num(s, /^all (\d+)/) : num(s, /and (\d+) more regions/) + 3);
   assert.equal(num(scopeKo(), ko) - num(scopeKo(noGn), ko), 1, `${scopeKo()} · ${scopeKo(noGn)}`);
-  assert.equal(num(scopeEn(), en) - num(scopeEn(noGn), en), 1, `${scopeEn()} · ${scopeEn(noGn)}`);
+  assert.equal(enN(scopeEn()) - enN(scopeEn(noGn)), 1, `${scopeEn()} · ${scopeEn(noGn)}`);
   const plus = /<a class="h-tab go" href="#\/kr">[^<]* <span class="u" aria-hidden="true">\+(\d+)<\/span>/;
   const r0 = createRegistry(geoNoE15);
   assert.equal(num(homePage(ctxOf(reg)).html, plus) - num(homePage(ctxOf(r0)).html, plus), 1, '홈 다른 지역 +n');
@@ -317,9 +328,13 @@ test('지역 수 글(정적 쪽 설명·홈 \'+n\'·지역 고르기 \'n곳 열�
   assert.equal(open(sp(regionsPage(ctxOf(reg)).html)) - open(sp(regionsPage(ctxOf(r0)).html)), 1, '지역 고르기 열림');
   setLang('en');
   try {
-    const en = createRegistry(geo, { emd: false }), en0 = createRegistry(geoNoE15, { emd: false });
-    assert.equal(num(homePage(ctxOf(en)).html, plus) - num(homePage(ctxOf(en0)).html, plus), 1, '영어 홈 More +n');
-    assert.equal(num(sp(regionsPage(ctxOf(en)).html), /(\d+) of 16 regions open/) - num(sp(regionsPage(ctxOf(en0)).html), /(\d+) of 16 regions open/), 1, '영어 지역 고르기');
+    // 관문이 열린 영어 앱(EN_EMD)과 닫힌 영어 앱(2026-11-16 전) 모두. 모두 열리면 영어 캡션도 수만('All 16 provinces and cities')
+    const openEn = (s: string) => (/All 16 provinces and cities/.test(s) ? 16 : num(s, /(\d+) of 16 regions open/));
+    for (const o of [EN_ON, EN_OFF]) {
+      const en = createRegistry(geo, o), en0 = createRegistry(geoNoE15, o);
+      assert.equal(num(homePage(ctxOf(en)).html, plus) - num(homePage(ctxOf(en0)).html, plus), 1, '영어 홈 More +n');
+      assert.equal(openEn(sp(regionsPage(ctxOf(en)).html)) - openEn(sp(regionsPage(ctxOf(en0)).html)), 1, '영어 지역 고르기');
+    }
   } finally { setLang('ko'); }
 });
 

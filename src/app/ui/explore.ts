@@ -31,7 +31,7 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
       <h1 class="pt-title">${esc(L.exploreTitle(rn))}</h1>
       <div class="x-tools">${toggle('hide', L.hideNames)}${toggle('fill', L.fillColor)}</div></div></header>
     <div class="x-body">
-      <div class="x-side"><div class="x-band"><div class="x-card" aria-live="polite"></div><p class="x-src">${esc(L.source)}</p></div></div>
+      <div class="x-side"><div class="x-band"><div class="x-card" aria-live="polite"></div><p class="x-src">${esc(`${L.source}${r.unit && !r.unit.gu ? L.sourceEmd : ''}`)}</p></div></div>
       <div class="x-right">
         <div class="pr-cap"><span class="pr-ct">${esc(`${L.regionFull(r)} · ${L.count(r)}`)}</span><span class="legend pr-key" role="group" aria-label="${esc(L.legendAria)}"></span></div>
         <div class="play-stage"><div class="play-map" data-map="x" role="img" aria-label="${esc(L.exploreAria(rn))}"></div>
@@ -98,7 +98,9 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
     }
     paintKey();
     if (!map) return;
-    const names = r.items.map((it) => ({ id: it.id, text: L.name(it) }));
+    // 영어 동·일반구 단원은 짧은 이름('Pyeongchang' · 'Gaepo 1' · 'Jangan' — 단원 쪽 지도와 같은 L.short). 전체 이름은 fit 칸에 덜 들어 보이는 이름이
+    // 한국어의 절반쯤이었다(EN_EMD 점검 A). 칸을 누르면 나오는 카드(x-name)는 전체 이름. 한국어·영어 지역(시·군·구)은 전과 같이 L.name
+    const names = r.items.map((it) => ({ id: it.id, text: L.lang === 'en' && r.unit ? L.short(it) : L.name(it) }));
     // 이름 가리기 중 누른 칸 하나(peek)는 꼭 보이게(must: 칸에 안 들면 칸 밖·흰 판). 다 보일 때는 자리가 있는 이름만(fit).
     // 시·도 단원(korea, E10)은 16칸뿐이라 다 보일 때도 꼭 보이게 — fit 이면 칸 밖 빈 바탕에만 이름을 두어 안쪽 작은 칸(서울·세종·대전·대구)의 이름이 빠진다
     map.setLabels(st.hide ? (st.peek ? names.filter((n) => n.id === st.peek) : []) : names, st.hide || r.layer === 'sido' ? { mode: 'must', minWidth: 0 } : { mode: 'fit', minWidth: 0 });

@@ -22,7 +22,7 @@ export interface Known {
   region(key: string): boolean;
   lesson(region: string, no: number): boolean;
   slug(region: string, slug: string): boolean;
-  /** 그 지역에 동 단원이 있나(동 색인). 없으면(동 공개 전·영어 앱) 동 주소는 홈으로 */
+  /** 그 지역에 동 단원이 있나(동 색인). 없으면(동 공개 전·동을 끈 창) 동 주소는 홈으로 */
   emd?(region: string): boolean;
   /** 동 단원 키('{지역}/{단원 slug}')가 동 색인에 있나 */
   unit?(key: string): boolean;
@@ -74,7 +74,7 @@ function match(parts: string[], k: Known): Route | null {
     // 일반구 단원(gu)은 #/kr/{지역}/gu 로만(같은 단원에 주소가 둘이 되지 않게)
     return c !== 'gu' && k.unit?.(key) ? matchUnit(key, rest, k) : null;
   }
-  // 일반구 단원(계획서 N5 · E7): #/kr/{지역}/gu 와 그 아래 /p{n}·/mix·/check·/explore[/{slug}]·/@{slug}. 단원이 없으면(영어 앱·지역 표 gu off) 홈으로
+  // 일반구 단원(계획서 N5 · E7): #/kr/{지역}/gu 와 그 아래 /p{n}·/mix·/check·/explore[/{slug}]·/@{slug}. 단원이 없으면(일반구를 끈 창·지역 표 gu off) 홈으로
   if (b === 'gu') {
     const key = `${region}/gu`;
     return k.unit?.(key) ? matchUnit(key, parts.slice(3), k) : null;

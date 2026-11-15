@@ -27,7 +27,7 @@ export interface UnitNeed {
  * 부팅·홈에서는 ①을 이어 할 판이 없을 때만 본다(있으면 홈 주 카드가 '이어서 하기'라 복습 판의 곳 이름을 그리지 않는다 — 복습 수는 동 색인으로 센다).
  * opt.review(오늘 복습 화면에서 새 복습 판을 만들 때)면 판이 있어도 ①을 **맨 앞에** 넣는다 — 새 판의 곳은 모두 등록돼 있어야 문제 화면이 그린다
  * (판의 단원은 부팅 때 이미 받았거나 받기에 실패해 색인에서 빠졌다). ①은 단원 10개를 넘지 않아 상한에 잘리지 않는다.
- * 동 색인에 없는 단원(영어 앱·동 공개 전·받기 실패로 뺀 단원)은 고르지 않는다
+ * 동 색인에 없는 단원(동을 끈 창·동 공개 전·받기 실패로 뺀 단원)은 고르지 않는다
  */
 export function unitsToLoad(reg: Registry, x: UnitNeed, opt: { review?: boolean; areas?: (string | null)[] } = {}): string[] {
   const out: string[] = [];
@@ -54,16 +54,16 @@ export function unitsToLoad(reg: Registry, x: UnitNeed, opt: { review?: boolean;
 }
 
 /**
- * 저장된 판이 이 창에 등록되지 않은 동 단원을 쓰는가(단원 키 region 이나 동 곳 — 영어 앱·동 공개 전처럼 색인에 없거나, 받기에 실패한 단원).
+ * 저장된 판이 이 창에 등록되지 않은 동 단원을 쓰는가(단원 키 region 이나 동 곳 — 동을 끈 창(관문이 닫힌 영어 앱)·동 공개 전처럼 색인에 없거나, 받기에 실패한 단원).
  * 그런 판은 이 창에서 이어 할 수 없을 뿐이므로 save() 가 저장소(kgq_deck_v1·kgq_deck2_v1)에서 지우지 않는다 —
  * 새 판이 그 칸을 덮을 때만 바뀐다(N26 '기록은 남음' · N30 단원 격리). 동이 없는 판은 지금처럼 못 쓰면 지운다(데이터 판이 바뀐 때).
- * 일반구 곳(E7 검수)도 같다: 영어 앱·guUnits 가 없는 옛 캐시는 일반구 단원을 등록하지 않으므로, 한국어 앱의 오늘 복습 판에 섞인 일반구 곳 때문에 지우지 않는다.
+ * 일반구 곳(E7 검수)도 같다: 일반구를 끈 창·guUnits 가 없는 옛 캐시는 일반구 단원을 등록하지 않으므로, 한국어 앱의 오늘 복습 판에 섞인 일반구 곳 때문에 지우지 않는다.
  * 지역 표에는 있는데 이 창에 실리지 않은 지역(E8 검수)도 같다: 지역별 격리로 뺀 지역(reg.failed), 영어 화면이 숨기는 지역(enChecked false — E16 의 전남광주, 2026-11-15 켬),
  * 이 데이터 판에 아직 없는 지역. 그 지역(region 키)이나 그 지역의 곳(곳 id 의 시·도 코드)이 든 판은 다른 창·다른 날에 이어 할 수 있다
  */
 export function onMissingUnit(reg: Registry, d: Deck | null): boolean {
   if (!d || isDone(d)) return false;
-  // 시·도 단원(korea, E8 모델)도 영어 앱·옛 캐시에는 없으니 같은 뜻으로 지킨다
+  // 시·도 단원(korea, E8 모델)도 시·도 단원을 끈 창·옛 캐시에는 없으니 같은 뜻으로 지킨다
   if (d.region !== null && (d.region.includes('/') || d.region === 'korea' || awayRegion(reg, d.region)) && !reg.region(d.region)) return true;
   return d.queue.some((q) => [q.id, ...(q.options ?? [])].some((id) => !reg.place(id) && (isEmd(id) || id.startsWith('kr:sido:') || unregisteredGu(reg, id) || awayPlace(reg, id))));
 }
@@ -80,7 +80,7 @@ function awayPlace(reg: Registry, id: string): boolean {
 /**
  * 이 창에 등록되지 않은 일반구 곳인가. 일반구 코드는 그 시 코드 + 1~9 라(행정 코드 규칙 — 수원시 41110 → 장안구 41111, pipeline sggToSi 와 같음)
  * 끝자리를 0 으로 내린 곳이 이 창의 시 층 지역(layer 'si' — 경기) 칸이면 그 시의 일반구다. 시·군·구 층 지역(서울·인천)의 곳(강북구 11305 등)과
- * 데이터 판에서 사라진 시·군·구는 여기에 들지 않아 지금처럼 지운다. 영어 앱에서도 판 폴더 units.json 을 따로 읽지 않고 가를 수 있다
+ * 데이터 판에서 사라진 시·군·구는 여기에 들지 않아 지금처럼 지운다. 일반구를 끈 창에서도 판 폴더 units.json 을 따로 읽지 않고 가를 수 있다
  */
 function unregisteredGu(reg: Registry, id: string): boolean {
   if (!/^kr:sgg:\d{4}[1-9]$/.test(id) || reg.place(id)) return false;

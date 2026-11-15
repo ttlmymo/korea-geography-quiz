@@ -18,114 +18,133 @@
   {
    "id": "kr:emd:1135059500",
    "ko": "공릉1동",
+   "en": "Gongneung 1-dong",
    "slug": "59500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135060000",
    "ko": "공릉2동",
+   "en": "Gongneung 2-dong",
    "slug": "60000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135072000",
    "ko": "상계10동",
+   "en": "Sanggye 10-dong",
    "slug": "72000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135063000",
    "ko": "상계1동",
+   "en": "Sanggye 1-dong",
    "slug": "63000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135064000",
    "ko": "상계2동",
+   "en": "Sanggye 2-dong",
    "slug": "64000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135066500",
    "ko": "상계3·4동",
+   "en": "Sanggye 3·4-dong",
    "slug": "66500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135067000",
    "ko": "상계5동",
+   "en": "Sanggye 5-dong",
    "slug": "67000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135069500",
    "ko": "상계6·7동",
+   "en": "Sanggye 6·7-dong",
    "slug": "69500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135070000",
    "ko": "상계8동",
+   "en": "Sanggye 8-dong",
    "slug": "70000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135071000",
    "ko": "상계9동",
+   "en": "Sanggye 9-dong",
    "slug": "71000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135056000",
    "ko": "월계1동",
+   "en": "Wolgye 1-dong",
    "slug": "56000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135057000",
    "ko": "월계2동",
+   "en": "Wolgye 2-dong",
    "slug": "57000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135058000",
    "ko": "월계3동",
+   "en": "Wolgye 3-dong",
    "slug": "58000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135062100",
    "ko": "중계1동",
+   "en": "Junggye 1-dong",
    "slug": "62100",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135062500",
    "ko": "중계2·3동",
+   "en": "Junggye 2·3-dong",
    "slug": "62500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135062400",
    "ko": "중계4동",
+   "en": "Junggye 4-dong",
    "slug": "62400",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135061900",
    "ko": "중계본동",
+   "en": "Junggyebon-dong",
    "slug": "61900",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135061100",
    "ko": "하계1동",
+   "en": "Hagye 1-dong",
    "slug": "61100",
    "kind": "동"
   },
   {
    "id": "kr:emd:1135061200",
    "ko": "하계2동",
+   "en": "Hagye 2-dong",
    "slug": "61200",
    "kind": "동"
   }
@@ -134,6 +153,7 @@
   {
    "no": 1,
    "title": "북쪽",
+   "en": "North",
    "items": [
     "kr:emd:1135063000",
     "kr:emd:1135064000",
@@ -152,6 +172,7 @@
   {
    "no": 2,
    "title": "서쪽",
+   "en": "West",
    "items": [
     "kr:emd:1135069500",
     "kr:emd:1135070000",
@@ -170,6 +191,7 @@
   {
    "no": 3,
    "title": "가운데",
+   "en": "Center",
    "items": [
     "kr:emd:1135061900",
     "kr:emd:1135062100",
@@ -190,6 +212,7 @@
   {
    "no": 4,
    "title": "남쪽",
+   "en": "South",
    "items": [
     "kr:emd:1135056000",
     "kr:emd:1135057000",
@@ -211,7 +234,7 @@
   {
    "key": "all",
    "ko": "노원구",
-   "en": "",
+   "en": "Nowon-gu",
    "items": [
     "kr:emd:1135063000",
     "kr:emd:1135064000",

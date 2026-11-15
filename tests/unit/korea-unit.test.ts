@@ -1,5 +1,5 @@
 // 시·도 단원(계획서 NATIONWIDE_PLAN E10 · N7 · N26 · N27 · N29 · N30): 운영 판 units.json korea — 지역 표 korea 스위치·원고와 같음, 16곳 구성·칸 크기·위치 한 줄·범위,
-// 레지스트리 등록(한국어만 — 영어 앱은 싣지 않음), 운영 형식 옛 저장값의 홈·복습 숫자가 korea 가 있어도 같음, 정적 쪽 설명(studyKo), 문제 문장, 전국 지도 이름표
+// 레지스트리 등록(한국어 · 관문이 열린 영어 앱 — 2026-11-16 전 영어 앱은 싣지 않았다), 운영 형식 옛 저장값의 홈·복습 숫자가 korea 가 있어도 같음, 정적 쪽 설명(studyKo), 문제 문장, 전국 지도 이름표
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -13,11 +13,11 @@ import { step } from '../../src/app/core/session.ts';
 import { inside } from '../../src/app/map/poly.ts';
 import { tomorrowCount } from '../../src/app/core/tally.ts';
 import { gaUnit } from '../../src/app/core/units.ts';
-import { createRegistry } from '../../src/app/registry.ts';
+import { createRegistry, unitOptions } from '../../src/app/registry.ts';
 import { SIDOS } from '../../src/app/sidos.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, regionsPage } from '../../src/app/ui/pages.ts';
-import { setLang, UI_KO } from '../../src/app/text/ui.ts';
+import { setLang, UI_EN, UI_KO } from '../../src/app/text/ui.ts';
 import { promptKo } from '../../src/app/text/ko.ts';
 import type { Question } from '../../src/app/core/questions.ts';
 import { LIVE, scopeEn, studyKo } from '../../src/lib/regions.ts';
@@ -26,7 +26,7 @@ import { buildShapes, specOf, type Topology } from '../../src/app/map/shapes.ts'
 import { boxOf } from '../../src/app/map/project.ts';
 import { fitView, viewBox } from '../../src/app/map/view.ts';
 import { labelBox, placeLabels } from '../../src/app/map/labelfit.ts';
-import { LIVE_BY_OPEN, geo, geoNoKorea, reg } from './fixtures.ts';
+import { EN_OFF, LIVE_BY_OPEN, geo, geoNoKorea, reg } from './fixtures.ts';
 
 const root = path.join(import.meta.dirname, '../..');
 const read = (rel: string) => JSON.parse(fs.readFileSync(path.join(root, rel), 'utf8'));
@@ -116,21 +116,31 @@ test('시·도 단원 판: 단원 범위에 독도·백령도·마라도가 들�
   assert.ok(K.neighbors['kr:sido:43'].includes('kr:sido:52'), '충북은 전북과도 맞닿는다(영동·무주)');
 });
 
-test('레지스트리: 운영 판은 시·도 단원을 등록(한국어) — 영어 앱은 싣지 않고 홈 탭·지역 고르기에도 없음(Q5 · N26)', () => {
+test('레지스트리: 운영 판은 시·도 단원을 등록(한국어) — 시·도 단원을 끈 창(관문이 닫힌 영어 앱 — 2026-11-16 전 영어 앱, Q5 · N26)은 싣지 않고 홈 탭·지역 고르기에도 없음 · 관문이 열린 영어 앱은 싣는다(EN_EMD 1.2)', () => {
   const k = reg.region('korea')!;
   assert.deepEqual([k.layer, k.items.length, reg.failed.length], ['sido', 16, 0]);
   assert.match(reg.place('kr:sido:47')!.item.line, /가장 넓은/);
   assert.deepEqual(gaUnit(reg, 'korea'), { unit: 'sido', region: 'korea' });
-  const en = createRegistry(geo, { emd: false });
+  const en = createRegistry(geo, EN_OFF);
   assert.equal(en.region('korea'), undefined);
   setLang('en');
   try {
     const h = homePage(ctxOf(en)).html;
-    // 영어 앱은 일곱 지역(세종은 과 없는 지역이라 싣지 않음 — N26, E12)이라 접힌다: 공개 차례 서울·인천·경기 + More. 전국 탭은 없다
+    // 끈 창은 과 없는 지역(세종·제주)을 싣지 않고(N26, E12) 지역이 넷을 넘어 접힌다: 공개 차례 서울·인천·경기 + More. 전국 탭은 없다
     assert.deepEqual([...h.matchAll(/data-act="homeRegion" data-arg="([a-z-]+)"/g)].map((x) => x[1]), ['seoul', 'incheon', 'gyeonggi']);
     assert.match(h, /h-tab go/);
     assert.doesNotMatch(h, /korea|Korea<\/span>/);
     assert.doesNotMatch(regionsPage(ctxOf(en)).html, /rg-kr|#\/kr\/korea/);
+    // 관문이 열린 영어 앱: 시·도 단원이 지역 고르기 '시·도 한눈에'에 있고, 곳 이름은 지역 표 영어 이름('Jeonnam-Gwangju' — 주소 이름 'Jeonnam-gwangju' 가 아님)
+    const on = createRegistry(geo, unitOptions('en', geo.units));
+    const ko = on.region('korea')!;
+    assert.equal(ko.items.length, 16);
+    assert.match(regionsPage(ctxOf(on)).html, /rg-kr[\s\S]*#\/kr\/korea/);
+    assert.deepEqual(ko.items.map((it) => UI_EN.name(it)).sort(), SIDOS.map((s) => s.en).sort());
+    assert.deepEqual(ko.items.map((it) => UI_EN.short(it)).sort(), SIDOS.map((s) => s.en).sort(), '짧은 이름도 줄이지 않는다');
+    assert.equal(UI_EN.prompt(on, 'choose', 'kr:sido:11', (s) => s), 'Which province or city is outlined?');
+    assert.deepEqual(ko.lessons.map((l) => UI_EN.lessonCount(ko, l.items)), ko.lessons.map((l) => `${l.items.length} ${l.items.length === 1 ? 'province or city' : 'provinces and cities'}`));
+    assert.equal(UI_EN.unitName(on, 'korea'), 'Korea');
   } finally { setLang('ko'); }
 });
 
@@ -172,8 +182,9 @@ test('정적 쪽 설명(E10 완료 조건 6): 시·도 단원이 열리면 홈·
   assert.equal(studyKo(false, SIDOS), '전국 16개 시·도의 시·군·구');
   assert.deepEqual(LIVE.map((s) => s.key).sort(), [...LIVE_BY_OPEN].sort());
   assert.equal(LIVE.length, geo.units.regions.length);
-  // 영어는 세종·제주(과 없는 지역 — 영어 앱이 싣지 않음)와 영문 확인 전 지역을 빼고 센다(E13 7 · E14 9 · E15 까지 10)
-  assert.equal(scopeEn(), `Seoul, Incheon, Gyeonggi and ${LIVE.filter((s) => s.layer !== 'emd' && s.enChecked).length - 3} more regions`);
+  // 영어는 영문 확인 전 지역만 빼고 센다. 2026-11-16 부터 세종·제주(과 없는 지역)도 센다 — 영어 앱에도 동 단원이 열림(EN_EMD 7.1). 전에는 빼서 E15 까지 10 · E16 11
+  const enLive = LIVE.filter((s) => s.enChecked).length;
+  assert.equal(scopeEn(), enLive === SIDOS.length ? `all ${SIDOS.length} provinces and cities of Korea` : `Seoul, Incheon, Gyeonggi and ${enLive - 3} more regions`);
 });
 
 test('전국 시·도 지도 이름표(E10 — E8 이 넘긴 이름표 방식): 16곳을 꼭 보이게(must) 놓으면 휴대폰 칸에서도 하나도 빠지지 않고, 흰 판끼리 겹치지 않으며, 판은 되도록 제 칸 위(plateHome)', () => {

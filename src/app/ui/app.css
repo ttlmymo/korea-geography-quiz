@@ -135,6 +135,8 @@ html.app-full #app { position: fixed; inset: 0; background: var(--paper); }
 .opt.ok { border-width: 3px; font-weight: 700; }
 .opt.no { border-style: dashed; }
 .opt.off { opacity: .55; }
+/* 영어 긴 이름 보기(play.ts optLong): 좁은 화면의 두 칸 보기에서 글자를 줄여 낱말 가운데서 덜 끊기게(넓은 화면은 한 칸 18px 그대로) */
+@media (max-width: 1023px) { .opt.long { font-size: 14px; line-height: 19px; } }
 /* 좁은 화면은 답한 뒤 보기를 접는다(판정 글이 정답을 말한다 — 지도 칸을 덜 줄이려고) */
 .play.judged .pl-opts { display: none; }
 .pl-list { display: none; }
@@ -349,6 +351,8 @@ html[lang="en"] .h-title { font-size: 28px; letter-spacing: -.02em; }
 .h-hl { --mk: var(--hl); background: linear-gradient(to top, transparent .22em, var(--mk) .22em, var(--mk) .58em, transparent .58em); padding: 0 .06em; margin: 0 -.06em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .h-hl.ok { --mk: var(--m-learning); }
 .h-places { font-size: 16px; line-height: 1.6; }
+/* 영어 이름 줄의 이름 하나(pages.ts nameRun): 이름 안(붙임표 'Muak-dong')에서 줄을 바꾸지 않는다 */
+.h-places .nw { white-space: nowrap; }
 .h-desc { font-size: 16px; line-height: 1.6; color: var(--ink-2); }
 #app .page .btn2 { gap: var(--sp-2); }
 #app .h-acts .btn { min-height: 56px; }

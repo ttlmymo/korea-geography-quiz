@@ -27,7 +27,7 @@ import type { EmdUnitFile } from '../../src/app/types.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, pickPage, regionsPage, unitPage } from '../../src/app/ui/pages.ts';
 import { LIVE, scopeEn, scopeKo, studyKo } from '../../src/lib/regions.ts';
-import { E16_KEYS, geo, geoEn, geoEnNow, geoNoE16, reg, idOf, withEnHidden } from './fixtures.ts';
+import { EN_OFF, EN_ON, E16_KEYS, geo, geoEn, geoEnNow, geoNoE16, reg, idOf, withEnHidden } from './fixtures.ts';
 
 const T = 20000;
 const KEY = 'jeonnam-gwangju';
@@ -237,8 +237,10 @@ test('같은 이름(N3 · N12): 전남광주 동구·서구·남구·북구는 �
   const d = r.region(`${KEY}/dong-gu`)!.items[0];
   assert.equal(UI_KO.fullName(r, d.id), `광주특별시 동구 ${d.ko}`);
   // 영어(11-15 전남광주를 켬 — 영어 앱이 받는 판): 법정 영문이 없어 지역 영어 이름과 맞춘 'Dong-gu, Jeonnam-Gwangju'(전에는 'Dong-gu, Gwangju')
-  const en = createRegistry(geoEn, { emd: false });
+  const en = createRegistry(geoEn, EN_ON);
   assert.deepEqual([UI_EN.fullName(en, sgg('12210')), UI_EN.fullPre(en, sgg('12210')), UI_EN.fullName(en, sgg('26170'))], ['Dong-gu, Jeonnam-Gwangju', 'Jeonnam-Gwangju', 'Dong-gu, Busan']);
+  // 동 단원 이름(섞인 화면 — EN_EMD 5.2 unitName): 한국어 '광주특별시 동구'·'부산 동구'·'광산구'와 같은 규칙
+  assert.deepEqual([UI_EN.unitName(en, `${KEY}/dong-gu`), UI_EN.unitName(en, 'busan/dong-gu'), UI_EN.unitName(en, `${KEY}/gwangsan-gu`)], ['Dong-gu, Jeonnam-Gwangju', 'Dong-gu, Busan', 'Gwangsan-gu']);
 });
 
 test('홈·지역 쪽·지역 고르기: 전남광주 탭 \'27개 시·군·구\', 1과 광주, 여섯 과, 동까지 공부하기 · 지역 고르기 16곳 모두 열림(준비 중 없음) · 영어 앱에도 전남광주(11-15 — 숨김 규칙은 가짜 지역 표로)', () => {
@@ -274,8 +276,9 @@ test('홈·지역 쪽·지역 고르기: 전남광주 탭 \'27개 시·군·구\
   assert.equal(pickPage(ctxOf(reg), KEY).maps!.pick.labels!.length, 27);
   setLang('en');
   try {
-    // 영어 앱이 받는 판(main.ts — 지역 표 enChecked 로 거름). 2026-11-15 사용자 지시로 전남광주 영문을 켜(짧은 이름 'Jeonnam-Gwangju') 영어 앱에도 실린다
-    const en = createRegistry(geoEn, { emd: false });
+    // 영어 앱이 받는 판(main.ts — 지역 표 enChecked 로 거름). 2026-11-15 사용자 지시로 전남광주 영문을 켜(짧은 이름 'Jeonnam-Gwangju') 영어 앱에도 실린다.
+    // 아래 en 은 관문이 닫힌 영어 앱(동·일반구·시·도 단원을 끈 창 — 2026-11-16 전 영어 앱): 세종·제주가 흐린 칸. 관문이 열린 영어 앱(on)은 뒤에서 본다
+    const en = createRegistry(geoEn, EN_OFF);
     assert.ok(en.region(KEY), '영어 앱에 전남광주');
     const epg = regionsPage(ctxOf(en));
     const ep = sp(epg.html);
@@ -294,7 +297,24 @@ test('홈·지역 쪽·지역 고르기: 전남광주 탭 \'27개 시·군·구\
     assert.match(ep, /<h2 id="rg-g\d+">Jeju<\/h2><span class="h-lhelp">Coming soon<\/span>/);
     assert.match(ep, /Regions not open yet are grayed out/, '영어는 과 없는 세종·제주가 아직 흐려 안내 그대로');
     assert.doesNotMatch(ep, BAD);
-    assert.equal(UI_EN.ctxName('12', '전남광주통합특별시'), 'Jeonnam-Gwangju', '영어 지도 맥락 이름(이웃 땅)');
+    assert.equal(UI_EN.ctxName({ sido: '12', text: '전남광주통합특별시' }), 'Jeonnam-Gwangju', '영어 지도 맥락 이름(이웃 땅)');
+    // 관문이 열린 영어 앱(EN_EMD — D23 닫힘): 세종·제주도 열려 16칸 모두 열림 — 'Coming soon'·흐린 칸 안내가 없고 캡션은 수만(한국어 '전국 시·도 16곳'과 같게)
+    const on = createRegistry(geoEn, EN_ON);
+    const opg = regionsPage(ctxOf(on));
+    const op = sp(opg.html);
+    assert.match(op, /All 16 provinces and cities/);
+    assert.doesNotMatch(op, /Coming soon|regions open|grayed out/);
+    assert.equal(opg.maps!.kr.active!.length, 16, '영어 지도 열린 칸 16');
+    assert.match(op, /<p class="h-desc">Pick a region on the map or in the list<\/p>/);
+    assert.match(op, /href="#\/kr\/sejong"/);
+    assert.match(op, /href="#\/kr\/jeju"/);
+    assert.doesNotMatch(op, /[가-힣]/, '영어 지역 고르기에 한글 없음');
+    assert.doesNotMatch(op, BAD);
+    // 영어 홈의 '동까지' 링크(D20 'Down to neighborhoods · Coming soon' 이 사라짐)
+    const oh = sp(homePage(ctxOf(on, { last: KEY })).html);
+    assert.match(oh, /href="#\/kr\/jeonnam-gwangju\/emd"><span>Down to neighborhoods<\/span>/);
+    assert.doesNotMatch(oh, /Coming soon/);
+    assert.doesNotMatch(oh, /[가-힣]/, '영어 홈에 한글 없음');
     // 영어 홈(전남광주를 고른 사람): 한글 곳 이름·undefined 없이 그린다
     const eh = sp(homePage(ctxOf(en, { last: KEY })).html);
     assert.match(eh, /data-arg="jeonnam-gwangju" aria-pressed="true">Jeonnam-Gwangju <span class="u">27 cities, counties and districts<\/span>/);
@@ -310,7 +330,7 @@ test('홈·지역 쪽·지역 고르기: 전남광주 탭 \'27개 시·군·구\
     // '영어 이름을 확인하지 않은 지역은 숨김' 규칙(Q5 · N26)은 남아 있다 — 운영 지역 표에는 이제 그런 행이 없어 가짜 지역 표(전남광주 enChecked false)로 본다:
     // 영어 앱에 없고 이름·지도 맥락 이름도 없지만, 지도에는 흐린 칸으로 있어 분모는 16(E17 검수 — '13 of 15'는 시·도가 15곳인 것처럼 읽혔다)
     withEnHidden(KEY, () => {
-      const hid = createRegistry(geoEnNow(), { emd: false });
+      const hid = createRegistry(geoEnNow(), EN_OFF);
       assert.equal(hid.region(KEY), undefined);
       const hpg = regionsPage(ctxOf(hid));
       const hp = sp(hpg.html);
@@ -319,9 +339,9 @@ test('홈·지역 쪽·지역 고르기: 전남광주 탭 \'27개 시·군·구\
       assert.equal(SIDOS.length - hpg.maps!.kr.active!.length, 3, '흐린 칸(세종·제주 + 이름 없는 전남광주)');
       assert.doesNotMatch(hp, /jeonnam|Jeonnam/);
       assert.doesNotMatch(sp(homePage(ctxOf(hid)).html), /jeonnam|Jeonnam/);
-      assert.equal(UI_EN.ctxName('12', '전남광주통합특별시'), '', '영어 지도 맥락 이름도 숨김');
+      assert.equal(UI_EN.ctxName({ sido: '12', text: '전남광주통합특별시' }), '', '영어 지도 맥락 이름도 숨김');
     });
-    assert.equal(UI_EN.ctxName('12', '전남광주통합특별시'), 'Jeonnam-Gwangju', '가짜 지역 표를 되돌림');
+    assert.equal(UI_EN.ctxName({ sido: '12', text: '전남광주통합특별시' }), 'Jeonnam-Gwangju', '가짜 지역 표를 되돌림');
   } finally { setLang('ko'); }
 });
 
@@ -421,14 +441,15 @@ test('부팅 데이터(계획서 7절 \'지금 6.4KB + 25KB 이하\' = 31,400B):
 });
 
 // 지역 수 글: 전남광주를 뺀 값과 견준다. 열여섯을 모두 열면 정적 쪽 설명은 '전국 16개 시·도'(regions.ts). 영어는 E16 에 전남광주를 세지 않았고(enChecked false),
-// 2026-11-15 사용자 지시로 영문을 켜 하나 는다('… and 11 more regions' · '14 of 16 regions open'). 영문을 끈 가짜 지역 표에서는 전처럼 그대로다
-test('지역 수 글(정적 쪽 설명·홈 \'+n\'·지역 고르기 \'n곳 열림\', 한·영): 전남광주를 뺀 판보다 한국어·영어 모두 하나 는다(설명은 \'전국 16개 시·도\' · \'… and 11 more regions\') — 영문을 끈 지역 표면 영어는 그대로', () => {
+// 2026-11-15 사용자 지시로 영문을 켜 하나 늘었다('… and 11 more regions' · '14 of 16 regions open'). 2026-11-16 영어 동 공부(EN_EMD)로 세종·제주도 세어
+// 모두 열려 'all 16 provinces and cities of Korea'(빼면 '… and 12 more regions'). 영문을 끈 가짜 지역 표에서는 전처럼 그대로다
+test('지역 수 글(정적 쪽 설명·홈 \'+n\'·지역 고르기 \'n곳 열림\', 한·영): 전남광주를 뺀 판보다 한국어·영어 모두 하나 는다(설명은 \'전국 16개 시·도\' · \'all 16 provinces and cities of Korea\') — 영문을 끈 지역 표면 영어는 그대로', () => {
   const num = (s: string, re: RegExp) => Number(re.exec(s)?.[1]);
   const noJg = LIVE.filter((s) => s.key !== KEY);
   assert.equal(noJg.length, LIVE.length - 1);
   assert.deepEqual([scopeKo(), scopeKo(noJg)], ['전국 16개 시·도', '서울·인천·경기 등 15개 시·도']);
   assert.deepEqual([studyKo(true), studyKo(true, noJg)], ['전국 16개 시·도와 시·군·구', '서울·인천·경기 등 15개 시·도의 시·군·구와 전국 16개 시·도']);
-  assert.deepEqual([scopeEn(), scopeEn(noJg)], ['Seoul, Incheon, Gyeonggi and 11 more regions', 'Seoul, Incheon, Gyeonggi and 10 more regions']);
+  assert.deepEqual([scopeEn(), scopeEn(noJg)], ['all 16 provinces and cities of Korea', 'Seoul, Incheon, Gyeonggi and 12 more regions']);
   assert.equal(scopeEn(LIVE.map((s) => (s.key === KEY ? { ...s, enChecked: false } : s))), scopeEn(noJg), '영문을 끈 지역 표: 영어는 전남광주를 세지 않음');
   const plus = /<a class="h-tab go" href="#\/kr">[^<]* <span class="u" aria-hidden="true">\+(\d+)<\/span>/;
   const r0 = createRegistry(geoNoE16);
@@ -438,13 +459,18 @@ test('지역 수 글(정적 쪽 설명·홈 \'+n\'·지역 고르기 \'n곳 열�
   assert.equal(open(sp(regionsPage(ctxOf(reg)).html)) - open(sp(regionsPage(ctxOf(r0)).html)), 1, '지역 고르기 열림');
   setLang('en');
   try {
-    const en = createRegistry(geoEn, { emd: false }), en0 = createRegistry(geoNoE16, { emd: false });
-    const enOpen = (r: Registry) => num(sp(regionsPage(ctxOf(r)).html), /(\d+) of 16 regions open/);
+    // 관문이 닫힌 영어 앱(2026-11-16 전 — 세종·제주 없음)
+    const en = createRegistry(geoEn, EN_OFF), en0 = createRegistry(geoNoE16, EN_OFF);
+    const enOpen = (r: Registry) => { const s = sp(regionsPage(ctxOf(r)).html); return /All 16 provinces and cities/.test(s) ? 16 : num(s, /(\d+) of 16 regions open/); };
     assert.equal(num(homePage(ctxOf(en)).html, plus) - num(homePage(ctxOf(en0)).html, plus), 1, '영어 홈 More +n');
     assert.deepEqual([enOpen(en), enOpen(en0)], [14, 13], '영어 지역 고르기 열림');
+    // 관문이 열린 영어 앱(EN_EMD): 한국어와 같은 수
+    const on = createRegistry(geoEn, EN_ON), on0 = createRegistry(geoNoE16, EN_ON);
+    assert.equal(num(homePage(ctxOf(on)).html, plus) - num(homePage(ctxOf(on0)).html, plus), 1, '영어 홈 More +n(관문 열림)');
+    assert.deepEqual([enOpen(on), enOpen(on0)], [16, 15], '영어 지역 고르기 열림(관문 열림)');
     // 영문을 끈 가짜 지역 표(숨김 규칙): 영어 앱은 전남광주를 싣지 않아 전남광주를 뺀 판과 같은 수
     withEnHidden(KEY, () => {
-      const hid = createRegistry(geoEnNow(), { emd: false });
+      const hid = createRegistry(geoEnNow(), EN_OFF);
       assert.equal(num(homePage(ctxOf(hid)).html, plus), num(homePage(ctxOf(en0)).html, plus), '숨김: 영어 홈 More +n 그대로');
       assert.equal(enOpen(hid), enOpen(en0), '숨김: 영어 지역 고르기 그대로');
     });

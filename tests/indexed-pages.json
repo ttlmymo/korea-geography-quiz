@@ -1,9 +1,9 @@
 {
  "_note": "운영 기준 목록(계획서 E9): 지금 운영에 나간 색인 쪽과 그 lastmod·내용 지문(tools/site-rules.mjs contentHash — 제목·설명·본문 글, 데이터 판 이름 뺌). 방침 두 쪽의 lastmod 는 본문 시행일이다. tools/check.mjs 7 이 이것과 견줘 새 색인 쪽 상한(한 배포 5개)·빠진 쪽·lastmod 내용 기준을 본다. 운영에 배포한 뒤 그 빌드로 node tools/check.mjs --write-baseline --from \"<배포 설명>\" 을 돌려 다시 쓴다",
- "from": "운영 배포본 fb01299(origin/main) — git archive HEAD 를 빌드해 씀(2026-11-14, 계획서 E9). 방침 두 쪽 lastmod 는 그 빌드의 본문 시행일(사이트맵은 DEFAULT_UPDATED 2026-11-06 을 냈다)",
+ "from": "영어 동 공부 배포본 — 2026-11-16 전국 확대와 같은 날 두 번째 배포(사용자 결정 '오늘 배포')",
  "pages": [
-  {"path":"/","lastmod":"2026-11-06","hash":"a7909c9050edb44e"},
-  {"path":"/en/","lastmod":"2026-11-06","hash":"21d1f2568ec3d7f8"},
+  {"path":"/","lastmod":"2026-11-16","hash":"9e401ed3cc1390bf"},
+  {"path":"/en/","lastmod":"2026-11-16","hash":"3b43a0e013f812f4"},
   {"path":"/seoul/","lastmod":"2026-11-06","hash":"a0456c605102e1f5"},
   {"path":"/en/seoul/","lastmod":"2026-11-06","hash":"7003c4a6fa91620a"},
   {"path":"/seoul/gangnam-gu/","lastmod":"2026-11-06","hash":"8fd590c59c7b1ab1"},
@@ -58,10 +58,10 @@
   {"path":"/en/seoul/jungnang-gu/","lastmod":"2026-11-06","hash":"6dd0e91b42e92005"},
   {"path":"/incheon/","lastmod":"2026-11-06","hash":"33c3b680687625e4"},
   {"path":"/gyeonggi/","lastmod":"2026-11-06","hash":"f1e723fcc70b2e0f"},
-  {"path":"/about/","lastmod":"2026-11-06","hash":"42244c87e23c1076"},
+  {"path":"/about/","lastmod":"2026-11-16","hash":"04565566fe813812"},
   {"path":"/contact/","lastmod":"2026-11-06","hash":"7b2d23c803009368"},
-  {"path":"/sources/","lastmod":"2026-11-06","hash":"050029cb55554029"},
-  {"path":"/privacy.html","lastmod":"2026-11-14","hash":"a43af7f46149d359"},
-  {"path":"/privacy-en.html","lastmod":"2026-11-14","hash":"ccba4b9b79330229"}
+  {"path":"/sources/","lastmod":"2026-11-16","hash":"0fdbab2a72929ec7"},
+  {"path":"/privacy.html","lastmod":"2026-11-16","hash":"e4afb4ccfee97508"},
+  {"path":"/privacy-en.html","lastmod":"2026-11-16","hash":"58fc5649829765a8"}
  ]
 }

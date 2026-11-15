@@ -18,78 +18,91 @@
   {
    "id": "kr:emd:1221056000",
    "ko": "계림1동",
+   "en": "Gyerim 1-dong",
    "slug": "56000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221057000",
    "ko": "계림2동",
+   "en": "Gyerim 2-dong",
    "slug": "57000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221054500",
    "ko": "동명동",
+   "en": "Dongmyeong-dong",
    "slug": "54500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221059000",
    "ko": "산수1동",
+   "en": "Sansu 1-dong",
    "slug": "59000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221060000",
    "ko": "산수2동",
+   "en": "Sansu 2-dong",
    "slug": "60000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221065500",
    "ko": "서남동",
+   "en": "Seonam-dong",
    "slug": "65500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221062000",
    "ko": "지산1동",
+   "en": "Jisan 1-dong",
    "slug": "62000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221063000",
    "ko": "지산2동",
+   "en": "Jisan 2-dong",
    "slug": "63000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221073000",
    "ko": "지원1동",
+   "en": "Jiwon 1-dong",
    "slug": "73000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221074000",
    "ko": "지원2동",
+   "en": "Jiwon 2-dong",
    "slug": "74000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221052500",
    "ko": "충장동",
+   "en": "Chungjang-dong",
    "slug": "52500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221068500",
    "ko": "학동",
+   "en": "Hak-dong",
    "slug": "68500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1221071000",
    "ko": "학운동",
+   "en": "Hagun-dong",
    "slug": "71000",
    "kind": "동"
   }
@@ -98,6 +111,7 @@
   {
    "no": 1,
    "title": "북쪽",
+   "en": "North",
    "items": [
     "kr:emd:1221056000",
     "kr:emd:1221057000",
@@ -121,6 +135,7 @@
   {
    "no": 2,
    "title": "남쪽",
+   "en": "South",
    "items": [
     "kr:emd:1221052500",
     "kr:emd:1221065500",
@@ -145,7 +160,7 @@
   {
    "key": "s1",
    "ko": "북서쪽",
-   "en": "",
+   "en": "northwest",
    "items": [
     "kr:emd:1221056000",
     "kr:emd:1221057000",
@@ -166,7 +181,7 @@
   {
    "key": "s2",
    "ko": "남동쪽",
-   "en": "",
+   "en": "southeast",
    "items": [
     "kr:emd:1221054500",
     "kr:emd:1221065500",

@@ -35,7 +35,8 @@ export function scopeKo(rows: SidoRow[] = LIVE, all = SIDOS.length): string {
  * 홈·소개 쪽 description 의 공부 범위(계획서 E10 완료 조건 6): 공개 지역의 시·군·구에, 시·도 단원(korea)이 열렸으면 '전국 16개 시·도'를 더한다.
  * korea 는 판 units.json 에 korea 가 있을 때(지역 표 korea.status live 면 파이프라인이 싣는다 — 부르는 쪽이 넘긴다).
  * '서울·인천·경기의 시·군·구' · '서울·인천·경기의 시·군·구와 전국 16개 시·도' · 모두 열면 '전국 16개 시·도와 시·군·구'.
- * 뒤에 붙는 조사는 '를'(구·도 모두 받침 없음). 영어 화면은 시·도 단원을 싣지 않으므로(N26) 영어 묶음(scopeEn)에는 넣지 않는다
+ * 뒤에 붙는 조사는 '를'(구·도 모두 받침 없음). 영어 묶음(scopeEn)에는 시·도 단원을 넣지 않는다 — 2026-11-16 영어 앱에도 시·도 단원이 열렸지만(설계안 EN_EMD D98)
+ * 한국어 설명과 같게 공부 범위만 쓴다(모두 열리면 'all 16 provinces and cities of Korea')
  */
 export function studyKo(korea: boolean, rows: SidoRow[] = LIVE, all = SIDOS.length): string {
   const sgg = `${scopeKo(rows, all)}의 시·군·구`;
@@ -44,12 +45,12 @@ export function studyKo(korea: boolean, rows: SidoRow[] = LIVE, all = SIDOS.leng
 }
 
 /**
- * 같은 묶음(영어). 영어 화면은 영어 이름을 확인한 지역만 보인다(enChecked, N26) — 확인하지 않은 지역은 이름도 수도 넣지 않는다.
+ * 같은 묶음(영어). 영어 화면은 영어 이름을 확인한 지역만 보인다(enChecked, N26) — 확인하지 않은 지역은 이름도 수도 넣지 않는다(과 없는 지역도 센다 — EN_EMD).
  * 'Seoul, Incheon and Gyeonggi' · 5곳 이상 앞 셋은 공개 차례 'Seoul, Incheon, Gyeonggi and 4 more regions' · 모두 'all 16 provinces and cities of Korea'
  */
 export function scopeEn(rows: SidoRow[] = LIVE, all = SIDOS.length): string {
-  // 과 없는 지역(layer emd — 세종, N4)은 영어 앱이 싣지 않는다(동 단원만 있고 영어 앱은 동을 읽지 않음 — N26, E12). 그래서 영어 묶음에서도 뺀다
-  const en = rows.filter((s) => s.enChecked && s.layer !== 'emd');
+  // 과 없는 지역(layer emd — 세종·제주, N4)도 센다: 2026-11-16 영어 앱에 동 단원이 열려(설계안 EN_EMD) 영어 앱도 싣는다. 전에는(N26, E12) 영어 앱이 동을 읽지 않아 뺐다
+  const en = rows.filter((s) => s.enChecked);
   if (!en.length) throw new Error('영어로 보일 공개 지역이 없음');
   if (en.length === all) return `all ${all} provinces and cities of Korea`;
   if (en.length <= 4) return listEn(en.map((s) => s.en));

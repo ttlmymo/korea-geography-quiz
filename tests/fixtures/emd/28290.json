@@ -18,48 +18,56 @@
   {
    "id": "kr:emd:2829051000",
    "ko": "검단동",
+   "en": "Geomdan-dong",
    "slug": "51000",
    "kind": "동"
   },
   {
    "id": "kr:emd:2829054000",
    "ko": "당하동",
+   "en": "Dangha-dong",
    "slug": "54000",
    "kind": "동"
   },
   {
    "id": "kr:emd:2829056000",
    "ko": "마전동",
+   "en": "Majeon-dong",
    "slug": "56000",
    "kind": "동"
   },
   {
    "id": "kr:emd:2829052000",
    "ko": "불로대곡동",
+   "en": "Bullodaegok-dong",
    "slug": "52000",
    "kind": "동"
   },
   {
    "id": "kr:emd:2829057000",
    "ko": "아라1동",
+   "en": "Ara 1-dong",
    "slug": "57000",
    "kind": "동"
   },
   {
    "id": "kr:emd:2829058000",
    "ko": "아라2동",
+   "en": "Ara 2-dong",
    "slug": "58000",
    "kind": "동"
   },
   {
    "id": "kr:emd:2829055000",
    "ko": "오류왕길동",
+   "en": "Oryuwanggil-dong",
    "slug": "55000",
    "kind": "동"
   },
   {
    "id": "kr:emd:2829053000",
    "ko": "원당동",
+   "en": "Wondang-dong",
    "slug": "53000",
    "kind": "동"
   }
@@ -68,6 +76,7 @@
   {
    "no": 1,
    "title": "서쪽",
+   "en": "West",
    "items": [
     "kr:emd:2829051000",
     "kr:emd:2829056000",
@@ -88,6 +97,7 @@
   {
    "no": 2,
    "title": "동쪽",
+   "en": "East",
    "items": [
     "kr:emd:2829052000",
     "kr:emd:2829053000",
@@ -108,7 +118,7 @@
   {
    "key": "all",
    "ko": "검단구",
-   "en": "",
+   "en": "Geomdan-gu",
    "items": [
     "kr:emd:2829051000",
     "kr:emd:2829056000",

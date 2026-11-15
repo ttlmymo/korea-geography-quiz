@@ -18,18 +18,21 @@
   {
    "id": "kr:emd:4794032000",
    "ko": "북면",
+   "en": "Buk-myeon",
    "slug": "32000",
    "kind": "면"
   },
   {
    "id": "kr:emd:4794031000",
    "ko": "서면",
+   "en": "Seo-myeon",
    "slug": "31000",
    "kind": "면"
   },
   {
    "id": "kr:emd:4794025000",
    "ko": "울릉읍",
+   "en": "Ulleung-eup",
    "slug": "25000",
    "kind": "읍"
   }
@@ -38,6 +41,7 @@
   {
    "no": 1,
    "title": "전체",
+   "en": "All",
    "items": [
     "kr:emd:4794031000",
     "kr:emd:4794032000",
@@ -57,7 +61,7 @@
   {
    "key": "all",
    "ko": "울릉군",
-   "en": "",
+   "en": "Ulleung-gun",
    "items": [
     "kr:emd:4794031000",
     "kr:emd:4794032000",

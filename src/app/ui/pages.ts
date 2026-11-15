@@ -3,14 +3,13 @@
 // 문자열로 그리고, 지도 자리(data-map)는 main.ts 가 붙인다. 누르는 동작은 data-act, 화면 이동은 해시 링크. 글은 text/ui.ts(한·영)
 // 모양(합본 디자인 3.2·3.3): 모든 쪽이 홈과 같은 말 — 라벨 → 큰 제목 → 이름 줄·설명 → 먹색 주 단추 + 먹 테두리 보조 단추 →
 // 선으로 나눈 구역(윗선 2px 먹), 숫자는 36px. 넓은 화면(1100 이상)은 2단(글 | 틀 있는 지도), 좁은 화면은 홈 폰 순서(제목 → 지도 → 단추 → 글)
-import { homeCard, todayReview, nextLesson, dailyFor, regionDone, homeUnitOf, mainIds, unitMain, DAILY_CAP, NEW_SLACK, type HomeCard } from '../core/next.ts';
+import { homeCard, todayReview, nextLesson, dailyFor, regionDone, homeUnitOf, mainIds, unitMain, isEmd, DAILY_CAP, NEW_SLACK, type HomeCard } from '../core/next.ts';
 import { GROUPS, SIDOS, byOpenOrder, sidoOf } from '../sidos.ts';
 import { get, isDue, INTERVAL } from '../core/mastery.ts';
 import { progress } from '../core/deck.ts';
 import { cellStates, tally, tomorrowCount, unfilled } from '../core/tally.ts';
 import { boxOf } from '../map/project.ts';
 import { L, placeName } from '../text/ui.ts';
-import { unitWordKo } from '../text/ko.ts';
 import type { Route } from '../router.ts';
 import { toHash } from '../router.ts';
 import type { Registry, UnitRef } from '../registry.ts';
@@ -114,7 +113,7 @@ const keyHtml = (items: KeyItem[]) =>
   items.map((k) => `<span class="lg${k.wide ? ' wide-only' : ''}">${sw(k.s)}${esc(k.label)}${k.n !== undefined ? `<b class="n num">${k.n}</b>` : ''}</span>`).join('');
 // 일반구 단원은 부모 지역 경계(한강 띠 포함)를 그대로 그린다
 const riverKey = (r: Region): KeyItem[] => (riverOn(r.unit?.gu ? r.unit.parent : r.key) ? [{ s: 'water', label: L.legendRiver, wide: true }] : []);
-/** 지역의 일반구 단원(계획서 N5 · E7 — 등록돼 있을 때만: 영어 앱·지역 표 gu off 이면 없음) */
+/** 지역의 일반구 단원(계획서 N5 · E7 — 등록돼 있을 때만: 일반구를 끈 창·지역 표 gu off 이면 없음) */
 const guOf = (reg: Registry, region: string): Region | null => reg.region(`${region}/gu`) ?? null;
 /** 일반구 단원 링크(지역 쪽·홈·구 고르기) */
 const guLink = (g: Region) => lk(link({ name: 'unit', region: g.key }), L.guGo(g.items.length));
@@ -195,6 +194,17 @@ function homeMap(ctx: Ctx, r: Region, f: Record<string, number>, o: { focus: str
 
 /** 쪽 지도 이름표 글: 영어는 짧은 이름('Jongno' — 과 카드와 같은 L.short. 긴 '-gu' 이름은 칸에 덜 들어 다 익힌 곳 이름이 빠진다), 한국어는 그대로 */
 const mapName = (ctx: Ctx, id: string) => (L.lang === 'en' ? L.short(ctx.reg.place(id)!.item) : nm(ctx, id));
+/**
+ * 과 시작·요약 지도 이름표 글(꼭 보이는 must): 영어 동은 짧은 이름('Hupyeong 3' · 'Bon-dong' · 'Jinan-eup' — L.short, 쪽 지도·둘러보기와 같음).
+ * 영어 동 전체 이름은 한글보다 훨씬 길어(가운데값 12자) 폰·확대 상자에서 판이 서로 덮이고 상자 밖으로 잘렸다(EN_EMD 점검 A, 2026-11-16 고치기).
+ * 위 이름 줄·문제 큰 글자·결과 목록은 전체 이름 그대로. 한국어와 영어 시·군·구·일반구·시·도 과는 전과 같이 전체 이름
+ */
+const lessonMapName = (ctx: Ctx, id: string) => (L.lang === 'en' && isEmd(id) ? L.short(ctx.reg.place(id)!.item) : nm(ctx, id));
+/**
+ * 이름 줄(과 시작 .h-places)의 이름 하나: 영어는 이름 안에서 줄을 바꾸지 않는다(.nw — 'Muak-/dong' 처럼 붙임표에서 갈라지지 않게.
+ * 가장 긴 영어 동 이름도 30자라 폰 한 줄에 든다). 한국어는 전과 같은 글(이스케이프만)
+ */
+const nameRun = (s: string) => (L.lang === 'en' ? `<span class="nw">${esc(s)}</span>` : esc(s));
 
 /**
  * 동 쪽(구 고르기·동 단원 쪽)의 [오늘 복습] 단추를 둘지: 지금 #/review 가 열 판(todayReview 기본 — 시·군·구 몫이 먼저, N32)이
@@ -346,8 +356,8 @@ export function homePage(ctx: Ctx): Page {
   /* 주 구역: 라벨 → 큰 제목(형광펜) → 이름 줄 → 설명 → 단추. 주 단추 data-card(new·resume·review·next·done)는 측정 값 그대로.
      홈에서 바로 시작하는 '바로 찾기'는 quick, 과 시작 카드로 가는 링크는 lesson(새 값 — 옛 값과 섞이지 않게) */
   // 복습 라벨의 묶음 이름: 동 단원 묶음은 단원 이름('서울 6 · 종로구 4')
-  // 동 단원 묶음 이름은 같은 이름이 여러 시·도에 있으면 지역 이름을 붙인다('부산 중구 3' — registry.mixName, N12 · E11)
-  const byName = (b: { region: string; unit?: string }) => (b.unit ? reg.mixName(b.unit) : null) ?? L.region(reg.region(b.region)!);
+  // 동 단원 묶음 이름은 같은 이름이 여러 시·도에 있으면 지역 이름을 붙인다('부산 중구 3' — registry.mixName, N12 · E11). 영어는 'Jongno-gu 4'(L.unitName, EN_EMD 7.1)
+  const byName = (b: { region: string; unit?: string }) => (b.unit ? L.unitName(reg, b.unit) : null) ?? L.region(reg.region(b.region)!);
   const whereText = (by: { region: string; n: number; unit?: string }[]) => L.reviewWhere(by.map((b): [string, number] => [byName(b), b.n]));
   const startBtns = (no: number, cardName: string, primary: boolean, key = r.key) => away
     ? `<a class="btn2 h-go" href="${link({ name: 'lesson', region: r.key, no })}" data-card="lesson">${esc(L.start)} <span aria-hidden="true">→</span></a>`
@@ -473,7 +483,7 @@ export function homePage(ctx: Ctx): Page {
     ...(reg.emdUnits(r.key).length ? [lk(link({ name: 'emd', region: r.key }), L.dong[0])]
       : r.key === 'seoul' ? [`<span class="h-link off"><span>${esc(L.dong[0])}</span> <em>${esc(L.soon)}</em></span>`] : []),
     // 과 없는 지역에 단원이 둘 이상이면(제주시·서귀포시) 다른 단원 고르기
-    ...(main && reg.emdUnits(key).length > 1 ? [lk(link({ name: 'unit', region: key }), L.otherUnits(unitWordKo(reg.emdUnits(key).map((u) => u.index.ko), key) || '시'))] : []),
+    ...(main && reg.emdUnits(key).length > 1 ? [lk(link({ name: 'unit', region: key }), L.otherUnits(L.unitWord(reg.emdUnits(key).map((u) => u.index.ko), key, '시')))] : []),
   ].join('');
   const path = `<section class="h-path" aria-labelledby="h-path">
       <div class="h-lhead"><h2 id="h-path">${esc(L.lessonsHead(region, r.lessons.length))}</h2><span class="h-lhelp wide-only">${esc(L.lessonsHelp)}</span></div>
@@ -665,8 +675,8 @@ export function unitPage(ctx: Ctx, regionKey: string): Page {
 
   // 일반구 단원(계획서 N5 · E7): 머리 '경기 · 일반구 공부하기', 복습 단추는 지역 쪽과 같다(일반구는 시·군·구 몫이라 #/review 가 먼저 연다)
   const gu = !!r.unit?.gu;
-  // 일반구 단원 제목은 '경기 일반구 24곳'('경기 일반구 24개 구'처럼 '구'가 겹치지 않게)
-  const title = gu ? `${region} ${L.places(r.items.length)}` : `${region} · ${L.count(r)}`;
+  // 일반구 단원 제목은 '경기 일반구 24곳'('경기 일반구 24개 구'처럼 '구'가 겹치지 않게), 영어 'Gyeonggi · 24 city districts'(L.guTitle, EN_EMD 7.1)
+  const title = gu ? L.guTitle(region, parent ? L.region(parent) : region, r.items.length) : `${region} · ${L.count(r)}`;
   // 과 없는 지역(세종·제주)의 단원은 '동까지'가 아니라 그 지역의 공부 순서(주 단원, 계획서 N4)
   const mainParent = !!parent && unitMain(reg, parent.key);
   const head = headBlock(parent ? (gu ? L.guLabel(L.region(parent)) : mainParent ? `${L.region(parent)} · ${L.order}` : L.emdLabel(L.region(parent))) : L.order, null, esc(gu ? title : `${region} ${L.count(r)}`));
@@ -700,7 +710,7 @@ export function unitPage(ctx: Ctx, regionKey: string): Page {
   const ends = `<ul class="u-ends">
       <li><a href="${link({ name: 'mix', region: r.key })}"><span class="nm">${esc(L.mixName(mixNo, region))}</span><span class="pl">${esc(L.mixSub(r.items.length))}</span><span class="ar" aria-hidden="true">→</span></a></li>
       <li><a href="${link({ name: 'check', region: r.key })}"><span class="nm">${esc(L.checkName(region))}</span><span class="pl num">${esc(L.checkSub(r.items.length))}${best ? ` · ${esc(L.bestTag(best.score, best.total, L.time(best.seconds)))}` : ''}</span><span class="ar" aria-hidden="true">→</span></a></li></ul>`;
-  const pickWord = parent ? unitWordKo(reg.emdUnits(parent.key).map((u) => u.index.ko), parent.key) || '구' : '';
+  const pickWord = parent ? L.unitWord(reg.emdUnits(parent.key).map((u) => u.index.ko), parent.key, '구') : { one: '', many: '' };
   const guR = !parent ? guOf(reg, r.key) : null;
   const links = [
     lk(link({ name: 'explore', region: r.key, slug: null }), L.namedMap(region)),
@@ -753,7 +763,7 @@ export function startPage(ctx: Ctx, regionKey: string, no: number): Page {
   const arg = `${r.key}:${no}`;
 
   const head = headBlock(title, 'next', headHtml(L.lessonHead(L.lesson(l), cnt), cnt, 'hl'));
-  const names = `<div class="h-names"><p class="h-places">${esc(l.items.map((id) => nm(ctx, id)).join(SEP))}</p>
+  const names = `<div class="h-names"><p class="h-places">${l.items.map((id) => nameRun(nm(ctx, id))).join(esc(SEP))}</p>
       ${r.key === 'incheon' && no === 1 ? `<p class="h-desc">${esc(L.newNames)}</p>` : ''}<p class="h-desc">${esc(L.startSub(!!mine))}</p></div>`;
   // 주 단추 = 배우기 시작(하던 판이 있으면 이어서 하기), 보조 = 바로 찾기, 처음부터 다시는 밑줄 글자 단추
   const acts = mine
@@ -781,7 +791,8 @@ export function startPage(ctx: Ctx, regionKey: string, no: number): Page {
     title,
     // 이 과의 곳 이름은 꼭 보이게(must — 칸에 안 들면 칸 밖 지시선, 그래도 없으면 흰 판). 한 과는 3~8곳이라 흰 판이 덮을 칸이 적다
     // 이번 과가 지역 전체 지도에 너무 작게 그려지면 과 범위(l.fit)를 확대한 상자를 덧붙인다(zoom — maps.ts · map/zoombox.ts, D95 ㉣)
-    maps: { start: { region: r.key, active: l.items, highlight: l.items, bold: l.items, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => ({ id, text: nm(ctx, id) })), labelMode: 'must' } },
+    // 영어 동은 지도에 짧은 이름(lessonMapName — 위 이름 줄은 전체 이름)
+    maps: { start: { region: r.key, active: l.items, highlight: l.items, bold: l.items, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => ({ id, text: lessonMapName(ctx, id) })), labelMode: 'must' } },
     html: `<div class="page">${backRow()}
       <div class="h-main">${head}${names}<div class="h-acts">${acts}</div>${prog}${mapCol}</div></div>`,
   };
@@ -828,7 +839,7 @@ export function summaryPage(ctx: Ctx, s: SummaryState): Page {
   return {
     title: L.sumTitle(`${L.region(r)} ${no}`),
     // 과 시작과 같이 이 과의 곳 이름은 꼭 보이게(must)
-    maps: { sum: { region: r.key, active: l.items, fills: lf, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => ({ id, text: nm(ctx, id) })), labelMode: 'must' } },
+    maps: { sum: { region: r.key, active: l.items, fills: lf, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => ({ id, text: lessonMapName(ctx, id) })), labelMode: 'must' } },
     html: `<div class="page">${backRow()}
       <div class="h-main">${head}${names}${acts}${prog}${mapCol}</div></div>`,
   };
@@ -887,7 +898,8 @@ export function pickPage(ctx: Ctx, regionKey: string): Page {
   const today = ctx.today();
   const region = L.region(r);
   const units = reg.emdUnits(r.key);
-  const word = unitWordKo(units.map((u) => u.index.ko), r.key) || '구';
+  // 고르기 낱말: 한국어 '구' · '시·군' · '시·군·구', 영어 'district' · 'city or county' …(L.unitWord, EN_EMD 5.3)
+  const word = L.unitWord(units.map((u) => u.index.ko), r.key, '구');
   const rows = units.map((u) => {
     const ids = u.index.ids.map((s) => `kr:emd:${u.code}${s}`);
     const f = Object.fromEntries(ids.map((id) => [id, fillOf(m, id)]));
@@ -907,7 +919,7 @@ export function pickPage(ctx: Ctx, regionKey: string): Page {
   const guR = guOf(reg, r.key);
   const names = `<div class="h-names"><p class="h-desc">${esc(L.pickSub(word))}</p>${guR ? `<p class="h-desc">${guLink(guR)}</p>` : ''}</div>`;
   const acts = last || reviewBtn
-    ? `<div class="h-acts">${last ? `<a class="btn h-go" href="${link({ name: 'unit', region: last.u.key })}">${esc(L.pickLast(last.u.index.ko))} <span aria-hidden="true">→</span></a>` : ''}
+    ? `<div class="h-acts">${last ? `<a class="btn h-go" href="${link({ name: 'unit', region: last.u.key })}">${esc(L.pickLast(L.pickName(last.u)))} <span aria-hidden="true">→</span></a>` : ''}
       ${reviewBtn ? `<a class="${last ? 'btn2 h-go2' : 'btn2 h-go'}" href="${link({ name: 'review' })}">${esc(L.reviewChip(dueAll))}</a>` : ''}</div>`
     : '';
   const stats: { s: string; label: string; n: number }[] = t.filled ? [{ s: 'mastered', label: L.legend[3], n: t.mastered }, { s: 'learning', label: L.legend[1], n: t.learning }, { s: 'none', label: L.legend[0], n: t.none }] : [];
@@ -935,12 +947,14 @@ export function pickPage(ctx: Ctx, regionKey: string): Page {
   // 화면을 고르면 그 범위로 맞추고 폰에서도 이름표를 단다(전체는 홈 지도처럼 넓은 화면에서만)
   const scr = r.screens.length > 1 ? r.screens.find((s) => s.key === ctx.pickScreen?.[r.key]) ?? null : null;
   const tools = r.screens.length > 1
-    ? `<div class="h-tabs e-scr" role="group" aria-label="${esc(L.pickScreens)}">${[{ key: '', ko: L.pickAll }, ...r.screens.map((s) => ({ key: s.key, ko: L.lang === 'en' ? s.en : s.ko }))].map((s) =>
+    ? `<div class="h-tabs e-scr" role="group" aria-label="${esc(L.pickScreens)}">${[{ key: '', ko: L.pickAll }, ...r.screens.map((s) => ({ key: s.key, ko: L.screenTab(s) }))].map((s) =>
       `<button class="h-tab" type="button" data-act="pickScreen" data-arg="${r.key}:${s.key}" aria-pressed="${s.key === (scr?.key ?? '')}">${esc(s.ko)}</button>`).join('')}</div>`
     : '';
   // 지도 범위·섬 상자: 고른 화면(그 화면의 insets) 또는 지역 전체(wholeView — 지역 화면 insets 가 있을 때만 섬 상자, E13 검수). 지금 판은 지역 화면에 insets 가 없어 전과 같다
   const pv: MapView = scr ? { fit: scr.fit, isles: scr.insets ?? [] } : wholeView(r);
-  const mapCol = mapColumn({ key: 'pick', label: L.pickMap(region), aria: L.pickMap(region), ar: viewAspect(pv, r.items.map((it) => it.id)), cap: `${full} · ${L.pickHead(region, units.length, word)}`, note: asOf, keys: keyItems, tools });
+  // 캡션: '경기도 · 경기 47개 시·군·구'. 정식 이름이 짧은 이름과 같으면(영어 — regionFull = en) 되풀이하지 않는다('Gyeonggi: 47 cities, counties and districts')
+  const pickCap = L.pickHead(region, units.length, word);
+  const mapCol = mapColumn({ key: 'pick', label: L.pickMap(region), aria: L.pickMap(region), ar: viewAspect(pv, r.items.map((it) => it.id)), cap: full === region ? pickCap : `${full} · ${pickCap}`, note: asOf, keys: keyItems, tools });
 
   /* 단원 목록: 이름 · 곳 수·과 수 · 채움(지도 차례 = 동 색인 차례). 일반구 동 단원(경기 수원시 장안구 등, E7)은 시마다 따로 묶어 시 이름 아래에 구 이름으로 */
   const row = (x: typeof rows[number], name: string) => {
@@ -951,13 +965,18 @@ export function pickPage(ctx: Ctx, regionKey: string): Page {
       <span class="pl">${esc(L.unitMeta(x.u.index.n, x.u.index.lessons))}${x.due ? ` · ${esc(L.reviewTitle(x.due))}` : ''}</span>
       <span class="st num">${esc(st)}</span><span class="ar" aria-hidden="true">→</span></a></li>`;
   };
-  const siName = (id: string) => reg.place(id)?.item.ko ?? '';
+  // 이름(EN_EMD 7.1): 단원은 L.pickName(한국어 '종로구' · 영어 'Jongno-gu' — 동 색인으로, 단원 파일을 받기 전에도), 시 묶음 머리는 그 시의 곳 이름(L.name — '수원시' · 'Suwon-si')
+  const siName = (id: string) => { const it = reg.place(id)?.item; return it ? L.name(it) : ''; };
+  const unitNm = (x: typeof rows[number]) => L.pickName(x.u);
+  // 영어 목록은 영어 알파벳 차례(D103 — 동 색인은 가나다 차례라 영어로 읽으면 뒤섞여 보인다). 과 없는 지역(세종·제주)의 단원 차례는 공부 순서라 그대로
   const plain = rows.filter((x) => !x.u.index.si);
-  const bySi = [...new Set(rows.filter((x) => x.u.index.si).map((x) => x.u.index.si!))].sort((a, b) => siName(a).localeCompare(siName(b), 'ko'));
+  if (L.lang === 'en' && !main) plain.sort((a, b) => unitNm(a).localeCompare(unitNm(b), 'en'));
+  const bySi = [...new Set(rows.filter((x) => x.u.index.si).map((x) => x.u.index.si!))].sort((a, b) => siName(a).localeCompare(siName(b), L.lang));
   const groupOf = (si: string) => {
     const xs = rows.filter((x) => x.u.index.si === si), sn = siName(si);
-    return `<h3 class="e-gh">${esc(sn)} <span>${esc(L.lang === 'en' ? `${xs.length}` : `${xs.length}개 구`)}</span></h3>
-      <ol class="e-list e-sub">${xs.map((x) => row(x, x.u.index.ko.startsWith(`${sn} `) ? x.u.index.ko.slice(sn.length + 1) : x.u.index.ko)).join('')}</ol>`;
+    if (L.lang === 'en') xs.sort((a, b) => unitNm(a).localeCompare(unitNm(b), 'en'));
+    return `<h3 class="e-gh">${esc(sn)} <span>${esc(L.siGu(xs.length))}</span></h3>
+      <ol class="e-list e-sub">${xs.map((x) => row(x, unitNm(x).startsWith(`${sn} `) ? unitNm(x).slice(sn.length + 1) : unitNm(x))).join('')}</ol>`;
   };
   // 차례(E7 검수): 일반구가 있는 시 묶음을 시·군 목록의 가나다 자리에 끼운다(고양시 묶음이 가평군 다음). 묶음을 목록 뒤에 모으면 폰 '전체' 지도에는
   // 이름표가 없어 ㄱ 자리의 고양시를 찾으려 목록 끝까지 내려야 했다. 시·군 줄끼리의 차례(동 색인 차례)는 그대로이고, 묶음이 없는 지역(서울·인천)은 전과 같다
@@ -965,8 +984,8 @@ export function pickPage(ctx: Ctx, regionKey: string): Page {
   let run = '';
   const flush = () => { if (run) blocks.push(`<ol class="e-list">${run}</ol>`); run = ''; };
   for (const x of plain) {
-    while (left.length && siName(left[0]).localeCompare(x.u.index.ko, 'ko') < 0) { flush(); blocks.push(groupOf(left.shift()!)); }
-    run += row(x, x.u.index.ko);
+    while (left.length && siName(left[0]).localeCompare(unitNm(x), L.lang) < 0) { flush(); blocks.push(groupOf(left.shift()!)); }
+    run += row(x, unitNm(x));
   }
   flush();
   for (const si of left) blocks.push(groupOf(si));

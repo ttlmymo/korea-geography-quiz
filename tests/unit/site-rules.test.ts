@@ -223,8 +223,10 @@ test('지역 표 → 이름 묶음: 지역이 넷까지는 이름을 다 쓰고(
   // 다섯 곳 이상이면 앞 셋을 공개 차례(지역 표 openOrder — 홈 탭·다 채움 단추와 같은 차례)로 고른다(E12 검수: 지역 표 차례면 '서울·부산·대구'가 되어 인천·경기가 빠졌다)
   // E16 에 열여섯 곳을 모두 열면 '전국 16개 시·도'(regions.ts — 모두 열면 그 글)
   assert.equal(scopeKo(), LIVE.length === SIDOS.length ? `전국 ${SIDOS.length}개 시·도` : `서울·인천·경기 등 ${LIVE.length}개 시·도`);
-  // 영어는 과 없는 지역(세종·제주 — 영어 앱이 싣지 않음, N26)과 영문 확인 전 지역을 빼고 센다(E13 'and 7 more' · E14 9 · E15 까지 10)
-  assert.equal(scopeEn(), `Seoul, Incheon, Gyeonggi and ${LIVE.filter((s) => s.layer !== 'emd' && s.enChecked).length - 3} more regions`);
+  // 영어는 영문 확인 전 지역만 빼고 센다(2026-11-16 부터 과 없는 지역 세종·제주도 셈 — 영어 앱에도 동 단원이 열림, EN_EMD 7.1.
+  // 전에는 빼서 E13 'and 7 more' · E14 9 · E15 까지 10 · E16 11). 모두 열려 영문을 다 확인했으면 'all 16 provinces and cities of Korea'
+  const enLive = LIVE.filter((s) => s.enChecked).length;
+  assert.equal(scopeEn(), enLive === SIDOS.length ? `all ${SIDOS.length} provinces and cities of Korea` : `Seoul, Incheon, Gyeonggi and ${enLive - 3} more regions`);
   const rows = (...keys: string[]) => SIDOS.filter((s) => keys.includes(s.key));
   // 세 지역(E10 까지)·네 지역(E11)은 전과 같은 글
   const e10 = rows('seoul', 'incheon', 'gyeonggi');
@@ -243,10 +245,11 @@ test('지역 표 → 이름 묶음: 지역이 넷까지는 이름을 다 쓰고(
   const hideJg = (xs: typeof SIDOS) => xs.map((s) => (s.key === 'jeonnam-gwangju' ? { ...s, enChecked: false } : s));
   assert.equal(scopeEn(rows('seoul', 'jeonnam-gwangju', 'incheon')), 'Seoul, Jeonnam-Gwangju and Incheon');
   assert.equal(scopeEn(hideJg(rows('seoul', 'jeonnam-gwangju', 'incheon'))), 'Seoul and Incheon');
-  // 과 없는 지역(세종·제주 — layer emd)도 영어 묶음에서 뺀다(E12): 16 - 2 = 14곳. 그래서 영어 이름을 다 확인해도 '모두'라고 하지 않는다
-  assert.equal(scopeEn(SIDOS), 'Seoul, Incheon, Gyeonggi and 11 more regions');
-  assert.equal(scopeEn(hideJg(SIDOS)), 'Seoul, Incheon, Gyeonggi and 10 more regions');
-  assert.equal(scopeEn(SIDOS.map((s) => ({ ...s, openOrder: null }))), 'Seoul, Jeonnam-Gwangju, Busan and 11 more regions');
+  // 과 없는 지역(세종·제주 — layer emd)도 센다(EN_EMD — 2026-11-16 영어 앱에도 동이 열림. E12~E17 에는 빼서 '… and 11 more regions'): 영어 이름을 다 확인하면 '모두'
+  assert.equal(scopeEn(SIDOS), 'all 16 provinces and cities of Korea');
+  assert.equal(scopeEn(hideJg(SIDOS)), 'Seoul, Incheon, Gyeonggi and 12 more regions');
+  // 공개 차례가 없는 행이면 지역 표 차례로 앞 셋(영문을 끈 전남광주는 이름도 수도 없음)
+  assert.equal(scopeEn(hideJg(SIDOS).map((s) => ({ ...s, openOrder: null }))), 'Seoul, Busan, Daegu and 12 more regions');
   assert.equal(scopeEn(SIDOS.map((s) => ({ ...s, enChecked: true, layer: 'sgg' as const }))), 'all 16 provinces and cities of Korea');
   assert.throws(() => scopeKo([]));
   assert.equal(listEn(['A']), 'A');

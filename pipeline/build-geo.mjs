@@ -25,6 +25,10 @@
 // 시험용 단원 파일(종로·중랑·노원·옹진·증평·검단·광주 동구·울릉)은 실행마다 tests/fixtures/emd/ 에 다시 쓴다(공개 여부와 상관없음, 사이트에 나가지 않음)
 // 일반구 단원(계획서 E7 · N5): 지역 표 gu live 인 시 층 지역(경기)의 일반구 전부를 units.json guUnits 에 한 단원('{지역}/gu')으로 넣는다
 // (과 = 시, 위치 한 줄은 지도 근거로 만든다). 경계는 새로 만들지 않는다 — 앱이 지역 -sgg 파일의 sgg 층을 쓴다
+// 영어 이름(영어 동 공부 설계안 docs/EN_EMD_PLAN_2026-11-16.md 3.4·4절, 판 그대로 .2 — N18): 동 단원 파일의 곳(items[].en — 손 표 pipeline/data/emd-en.json)·
+// 과(lessons[].en)·화면(screens[].en — 과·화면 낱말 표 EN_WORDS, 설계안 7.2 · D104), 단원 지도의 이웃 땅(topo out 의 en — 시·군·구 영어 이름),
+// 일반구 단원의 en·과·화면, units.json enNames(영어 앱이 동·일반구·시·도 단원을 켜는 관문 — 설계안 5.1)를 쓴다. 손 표에 없는 동·한글이 다른 동,
+// 낱말 표에 없는 과·화면 이름, 빈 영어 이름은 실패다(행정동이 바뀌면 node tools/emd-en.mjs 로 표를 다시 쓰고 검수 — docs/review/en-emd-names.md)
 // 지역은 지역 표 src/data/sido.json(status live = 공개 지역), 공개 지역의 과·slug·화면은 src/data/units.json,
 // 손으로 적은 값(바다 건너 이웃·강 띠·점검 좌표·이웃 땅 범위)은 pipeline/data/*.json 에서 읽는다.
 // 북한 땅은 Natural Earth 10m(공개 도메인)에서 가져와 이웃 땅 층에 넣는다(.cache/naturalearth-v5.1.2/). E15 부터 같은 자료의 일본 대마도도(context.json japan — 경남 지도의 빈 바다를 메움)
@@ -111,6 +115,20 @@ const RIVER = readJson('pipeline/data/rivers.json');         // 강 띠(한강)
 const PROBE_LIST = readJson('pipeline/data/probes.json').probes;
 const CTX = readJson('pipeline/data/context.json');          // 이웃 땅·북한 땅 범위
 const GU_SLUGS = readJson('pipeline/data/gu-slugs.json').slugs;   // 일반구 동 단원 slug 뒤쪽('수원시 장안구' → jangan-gu)
+const EMD_EN = readJson('pipeline/data/emd-en.json').names;      // 읍·면·동 영어 이름 손 표: 행정동 코드 → [한글, 영어](tools/emd-en.mjs 가 씀)
+const EMD_EN_AGAIN = 'node tools/emd-en.mjs 로 표를 다시 쓰고 새 줄을 검수(docs/review/en-emd-names.md)';
+// 동 과·화면 이름의 영어(설계안 7.2 · D104). 과 이름은 emd-lib 이 이 31가지 낱말과 '{방위} · {동} 둘레'(같은 단원 안 겹친 방위)로만 짓는다
+// (2026-10-01 판 과 이름 33종 = 낱말 31 + 둘레 2, 화면 이름은 단원 이름 + 낱말 22종) — 표에 없는 이름이면 실패.
+// 화면 글은 지역 화면 en('northwest'·'islands' — 토스트 'Gyeonggi, northwest')처럼 첫 글자를 소문자로 쓴다(unitJson screens)
+const EN_WORDS = {
+  북서쪽: 'Northwest', 북쪽: 'North', 북동쪽: 'Northeast', 서쪽: 'West', 가운데: 'Center', 동쪽: 'East', 남서쪽: 'Southwest', 남쪽: 'South', 남동쪽: 'Southeast',
+  섬: 'Islands', '북동쪽 섬': 'Northeast islands', '남서쪽 섬': 'Southwest islands', 전체: 'All', 시내: 'Urban area', '읍·면': 'Towns and townships',
+  '시내 북서쪽': 'Urban northwest', '시내 북쪽': 'Urban north', '시내 북동쪽': 'Urban northeast', '시내 서쪽': 'Urban west', '시내 동쪽': 'Urban east',
+  '시내 남서쪽': 'Urban southwest', '시내 남쪽': 'Urban south', '시내 남동쪽': 'Urban southeast',
+  '읍·면 북서쪽': 'Northwest towns', '읍·면 북쪽': 'North towns', '읍·면 북동쪽': 'Northeast towns', '읍·면 서쪽': 'West towns', '읍·면 동쪽': 'East towns',
+  '읍·면 남서쪽': 'Southwest towns', '읍·면 남쪽': 'South towns', '읍·면 남동쪽': 'Southeast towns',
+};
+const HANGUL = /[ㄱ-ㆎ가-힣]/;
 // 원고-산출물 맞춤 검사(계획서 N33): 이 파일들의 sha256(CRLF→LF)을 manifest.inputs 에 적고 단위 시험이 지금 파일과 비교한다
 const INPUT_FILES = ['src/data/units.json', 'src/data/place-lines.json', 'src/data/hard-words.json', 'src/data/sido.json',
   ...fs.readdirSync(path.join(ROOT, 'pipeline/data')).filter((n) => n.endsWith('.json')).sort().map((n) => `pipeline/data/${n}`),
@@ -936,6 +954,18 @@ function unitNames(R, sggId) {
   const si = R.slugs[siNameOf[siId]], gu = GU_SLUGS[sggNameOf[sggId]] ?? R.guSlugs?.[sggNameOf[sggId]];
   return si && gu ? { slug: `${si}-${gu}`, en: `${cap(si)} ${cap(gu)}` } : { slug: null, en: '' };
 }
+/** 시·군·구(일반구 단위) 영어 이름 = 동 단원 이름과 같은 셈(unitNames): 'Seongbuk-gu' · 일반구 'Cheonan-si Dongnam-gu'. 공개하지 않은 시·도는 '' — 동 단원 지도의 이웃 땅 이름(설계안 4절) */
+const sggEn = (sggId) => unitNames(REGIONS.find((r) => r.sido === sidoOfId(sggId)), sggId).en;
+/** 나라 밖 이웃 땅(L.out — 북한 kp·일본 jp)의 영어: 앱 UI_EN.ctxName 과 같은 말 */
+const OUT_EN = { kp: 'North Korea', jp: 'Japan' };
+/** 동 과·화면 이름의 영어(설계안 7.2): 낱말 표 EN_WORDS, '{방위} · {동} 둘레' 는 '{방위}, around {동 영어 이름}'. 표에 없으면 ''(단원 검사가 실패시킨다) */
+function emdTitleEn(title, dongs) {
+  const m = title.match(/^(.+) · (.+) 둘레$/);
+  if (!m) return EN_WORDS[title] ?? '';
+  const d = dongs.find((x) => x.ko === m[2]);
+  return EN_WORDS[m[1]] && d && EMD_EN[d.code] ? `${EN_WORDS[m[1]]}, around ${EMD_EN[d.code][1]}` : '';
+}
+const lowerFirst = (s) => (s ? s[0].toLowerCase() + s.slice(1) : s);
 const sggIdsOfSido = (sido) => L.sgg.features.filter((f) => f.properties.sido === sido).map((f) => f.properties.sggId)
   .sort((a, b) => sggNameOf[a].localeCompare(sggNameOf[b], 'ko') || a.localeCompare(b));
 /** 단원 파일 emd/{코드}.json 의 내용(Region 모양 + 단원 안 이웃·이름표 점·만나기 근거, 계획서 N11·N30) */
@@ -951,9 +981,10 @@ function unitJson(sggId, R) {
     ...(sggToSi[sggId] !== sggId ? { si: sggToSi[sggId] } : {}),
     fit: llOfN(res.view ?? res.base),   // 단원 전체 지도 범위: 섬을 뺀 단원 + 본 지도에 둔 먼 섬(emd-lib view)
     // 동 slug(N31) = 행정동 코드 adm_cd2 의 뒤 5자리(앞 5자리는 시·군·구 코드 — 원자료 3,559곳 모두 확인)
-    items: items.map((d) => ({ id: d.id, ko: d.ko, slug: d.code.slice(5), kind: d.kind })),
-    lessons: res.lessons.map((L) => ({ no: L.no, title: L.title, items: L.ids, fit: llOfN(L.box), minTapPx: L.minTapPx, ambiguous: L.ambiguous, ...(L.insets.length ? { insets: L.insets } : {}) })),
-    screens: res.screens.map((s) => ({ key: s.key, ko: s.ko, en: '', items: s.ids, fit: llOfN(s.box), minTapPx: s.minTapPx, ambiguous: s.ambiguous, ...(s.insets.length ? { insets: s.insets } : {}) })),
+    // 영어 이름(설계안 3.4·4절): 곳 = 손 표, 과 = 낱말 표, 화면 = 단원 이름 화면이면 단원 en, 아니면 낱말 표(첫 글자 소문자)
+    items: items.map((d) => ({ id: d.id, ko: d.ko, en: EMD_EN[d.code]?.[1] ?? '', slug: d.code.slice(5), kind: d.kind })),
+    lessons: res.lessons.map((L) => ({ no: L.no, title: L.title, en: emdTitleEn(L.title, U.dongs), items: L.ids, fit: llOfN(L.box), minTapPx: L.minTapPx, ambiguous: L.ambiguous, ...(L.insets.length ? { insets: L.insets } : {}) })),
+    screens: res.screens.map((s) => ({ key: s.key, ko: s.ko, en: s.ko === U.ko ? en : lowerFirst(emdTitleEn(s.ko, U.dongs)), items: s.ids, fit: llOfN(s.box), minTapPx: s.minTapPx, ambiguous: s.ambiguous, ...(s.insets.length ? { insets: s.insets } : {}) })),
     neighbors: Object.fromEntries(items.map((d) => [d.id, [...d.nb].sort()])),
     labels: Object.fromEntries(items.map((d) => [d.id, labels[d.id]])),
     meet: Object.fromEntries(items.map((d) => [d.id, res.meet[d.id]])),
@@ -1255,6 +1286,20 @@ const isOpenId = (id) => OPEN_CODES.has(sidoOfId(id));
 
 // 원자료 확인: adm_cd2 앞 5자리 = 시·군·구 코드(동 slug 가 단원 안에서 겹치지 않는 근거)
 for (const f of L.emd.features) if (f.properties.code.slice(0, 5) !== f.properties.sgg) failAt(f.properties.sido, `행정동 코드 ${f.properties.code} 의 앞 5자리가 시·군·구 ${f.properties.sgg} 와 다름`);
+// 읍·면·동 영어 이름 손 표(설계안 3.4): 원자료의 모든 동이 같은 코드·같은 한글로 표에 있고, 표에는 원자료에 없는 코드가 없다(행정동 개편이 검수 없이 지나가지 않게)
+{
+  const codes = new Set(L.emd.features.map((f) => f.properties.code));
+  for (const f of L.emd.features) {
+    const p = f.properties, e = EMD_EN[p.code];
+    if (!e) failAt(p.sido, `동 영어 이름 표에 없음 ${p.code} ${p.name} — ${EMD_EN_AGAIN}`);
+    else if (e[0] !== p.name) failAt(p.sido, `동 영어 이름 표의 한글 '${e[0]}' 가 원자료 '${p.name}'(${p.code})와 다름 — ${EMD_EN_AGAIN}`);
+    else if (!e[1] || HANGUL.test(e[1])) failAt(p.sido, `동 영어 이름이 비었거나 한글 ${p.code} ${p.name} '${e[1]}' — ${EMD_EN_AGAIN}`);
+  }
+  const extra = Object.keys(EMD_EN).filter((c) => !codes.has(c));
+  if (extra.length) fail(`동 영어 이름 표에 원자료에 없는 코드 ${extra.length}곳(${extra.slice(0, 5).join(', ')}) — ${EMD_EN_AGAIN}`);
+  // 이웃 땅 이름(동 단원 지도 topo out): 공개 지역의 모든 시·군·구(일반구 단위)와 나라 밖 땅이 영어 이름을 갖는다 — 단원 지도에 어느 이웃이 들든 비지 않게
+  for (const f of L.sgg.features) if (isLiveId(f.properties.sggId)) { const en = sggEn(f.properties.sggId); if (!en || HANGUL.test(en)) fail(`이웃 땅 영어 이름 없음 ${f.properties.sggName}(${f.properties.sggId}) '${en}'`); }
+}
 // 검사할 단원: 공개 지역 가운데 emd live(--preview 면 공개 지역 전부). emd 가 꺼진 지역의 실패(미리보기)는 보고만 한다
 const emdLive = (R) => SIDO_BY_CODE[R.sido].emd === 'live';
 // 미리보기(E8)는 임시 과 지역(PREVIEW_REGIONS)의 동 단원도 쓴다 — 과 없는 지역(세종·제주)은 동 단원이 주 단원이라 미리보기 화면에 꼭 있어야 한다
@@ -1262,6 +1307,7 @@ const EMD_REGIONS = OPEN_REGIONS.filter((R) => emdLive(R) || PREVIEW);
 const emdIndex = {};      // units.json emdUnits: 지역 key → 단원 색인(N17)
 const emdUnitFiles = [];  // [시·군·구 id, 지역] — 내보내기에서 단원 파일 두 개씩
 const emdIssues = [];     // --preview 에서 emd 가 꺼진 지역의 검사 실패(보고만)
+const nEn = { items: 0, lessons: 0, screens: 0 };   // 보고용: 영어 이름을 쓴 곳·과·화면 수
 for (const R of EMD_REGIONS) {
   const failE = (m) => (emdLive(R) ? fail(m) : emdIssues.push(`${R.ko}: ${m}`));
   const list = [], slugs = new Set();
@@ -1279,6 +1325,12 @@ for (const R of EMD_REGIONS) {
     const ids = U.dongs.map((d) => d.code.slice(5));
     if (new Set(ids).size !== ids.length) failE(`동 단원 ${U.ko}: 동 slug 겹침`);
     const j = unitJson(sggId, R);
+    // 영어 이름(설계안 10.2 의 2 — 판 전수): 단원·곳·과·화면 en 이 비지 않고 한글이 없고, 과 영어 이름이 단원 안에서 겹치지 않는다
+    for (const [what, v] of [['단원', j.en], ...j.items.map((it) => [it.ko, it.en]), ...j.lessons.map((l) => [`${l.no}과 '${l.title}'`, l.en]), ...j.screens.map((s) => [`화면 '${s.ko}'`, s.en])]) {
+      if (!v || HANGUL.test(v)) failE(`동 단원 ${U.ko}: 영어 이름이 비었거나 한글 — ${what} '${v}'(곳은 pipeline/data/emd-en.json, 과·화면은 낱말 표 EN_WORDS)`);
+    }
+    if (new Set(j.lessons.map((l) => l.en)).size !== j.lessons.length) failE(`동 단원 ${U.ko}: 과 영어 이름 겹침`);
+    nEn.items += j.items.length; nEn.lessons += j.lessons.length; nEn.screens += j.screens.length;
     list.push({ code: U.code, ko: U.ko, slug, n: U.dongs.length, lessons: res.lessons.length, ...(j.si ? { si: j.si } : {}), ids: j.items.map((it) => it.slug) });
     emdUnitFiles.push([sggId, R]);
     nLessons += res.lessons.length; minTap = Math.min(minTap, res.stats.minTapPx);
@@ -1299,6 +1351,7 @@ for (const R of EMD_REGIONS) {
 const FIXTURE_UNITS = ['kr:sgg:11110', 'kr:sgg:11260', 'kr:sgg:11350', 'kr:sgg:28290', 'kr:sgg:28720', 'kr:sgg:43745', 'kr:sgg:12210', 'kr:sgg:47940'];
 for (const id of FIXTURE_UNITS) if (!emdOfSgg.has(id)) fail(`시험용 단원 ${id} 가 원자료에 없음`);
 if (emdIssues.length) { console.log(`  동 단원 미리보기 검사 실패(보고만, 동이 꺼진 지역) ${emdIssues.length}건`); for (const m of emdIssues) console.log('    ' + m); }
+if (EMD_REGIONS.length) note(`동 단원 영어 이름(설계안 3.4·7.2): 곳 ${nEn.items} · 과 ${nEn.lessons} · 화면 ${nEn.screens} — 손 표 pipeline/data/emd-en.json ${Object.keys(EMD_EN).length}곳, 낱말 표 ${Object.keys(EN_WORDS).length}가지`);
 tick('12 동 단원 묶기');
 
 /* ---------- 12(이어서) 일반구 단원(계획서 N5 · N30 · E7): 시 층 지역(경기)의 일반구 전부를 한 단원('{지역}/gu', 층 sgg)으로 ---------- */
@@ -1311,7 +1364,8 @@ tick('12 동 단원 묶기');
 // 방위는 동 만나기와 같은 9칸(emd-lib dirIn — 그 시 일반구들의 가장 큰 덩어리 상자에서 본 이름표 점의 칸, 가운데 칸이면 '가운데')이고,
 // 과 이름과 같은 지도 검사(emd-lib checkTitle — 넓이 중심을 같은 시 나머지 구와 견줌)를 지나야 쓴다. 걸리면 넓이 중심 8방위 → '가운데' 차례로 바꾸고,
 // 다 걸리면 빌드가 실패한다(E7 검수: 이름표 점 평균에서 재면 작은 동탄구·병점구가 평균을 끌어 화성시 효행구가 '북서쪽'이 됐다).
-// 경계는 새로 만들지 않는다(앱이 지역 -sgg 파일의 sgg 층을 쓴다, N5). 영어 앱은 등록하지 않는다(N26)
+// 경계는 새로 만들지 않는다(앱이 지역 -sgg 파일의 sgg 층을 쓴다, N5). 영어 앱은 units.json enNames 가 있을 때 등록한다(영어 동 공부 설계안 5.1 — 전에는 N26 으로 등록하지 않음).
+// 영어 곳 이름은 앱이 slug 로 만든다('Jangan-gu' — 설계안 4절)
 const guIndex = {};   // units.json guUnits: 지역 key → 일반구 단원(Region 모양)
 const GU_REGIONS = REGIONS.filter((R) => SIDO_BY_CODE[R.sido].gu === 'live');
 const DIR8 = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'];
@@ -1346,18 +1400,23 @@ for (const R of GU_REGIONS) {
     groups = groups.filter((x) => x !== g && x !== h);
     groups.splice(at, 0, merged);
   }
+  // 영어 이름(설계안 4절): 단원 '{지역 영어} city districts', 과·화면은 든 시의 영어 이름('Bucheon-si' · 'Ansan-si and Anyang-si' · 'A, B and C')
+  const guEn = `${R.en} city districts`;
+  const siEn = (si) => (R.slugs[siNameOf[si]] ? cap(R.slugs[siNameOf[si]]) : '');
+  const andEn = (list) => (list.length < 3 ? list.join(' and ') : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`);
   const guLessons = groups.map((g, i) => {
     const ids = g.flatMap((si) => bySi.get(si));
     const title = g.map((si) => siNameOf[si]).join('·');
     const t = tapOf(ids, 'main', PHONE);
     if (t.minTapPx < TAP_FAIL) fail(`${R.ko} 일반구 단원 ${i + 1}과 ${title}: 가장 작은 칸 ${t.at} 지름 ${t.minTapPx}px (<${TAP_FAIL})`);
     if (title.length > 12) fail(`${R.ko} 일반구 단원 ${i + 1}과 이름 '${title}'이 12자를 넘음(N7)`);
-    return { no: i + 1, title, items: ids, fit: t.fit, minTapPx: t.minTapPx, ambiguous: t.ambiguous };
+    return { no: i + 1, title, en: andEn(g.map(siEn)), items: ids, fit: t.fit, minTapPx: t.minTapPx, ambiguous: t.ambiguous };
   });
   // 넓은 화면(전체 연습·시험): 단원 전체가 한 화면에서 16px 이면 하나. 아니면 과(시) 하나씩에서 시작해, 합쳐도 16px 인 동안 작은 덩어리부터
   // 가장 작은(같으면 이름표 점이 가까운) 덩어리와 합친다(동 단원 넓은 화면 다시 합치기와 같은 방식). 화면 이름은 든 과 이름('부천시·안산시·안양시')
   const cen = (ids) => [0, 1].map((k) => ids.reduce((t, id) => t + labels[id][k], 0) / ids.length);
-  let parts = tapOf(guIds, 'near', PHONE_WIDE).minTapPx >= TAP_FAIL ? [{ ids: [...guIds], names: [`${R.ko} 일반구`] }] : guLessons.map((l) => ({ ids: [...l.items], names: [l.title] }));
+  // si = 화면에 든 시(영어 이름용, 과 차례). 단원 전체 한 화면이면 null(화면 영어 이름 = 단원 영어 이름)
+  let parts = tapOf(guIds, 'near', PHONE_WIDE).minTapPx >= TAP_FAIL ? [{ ids: [...guIds], names: [`${R.ko} 일반구`], si: null }] : guLessons.map((l, i) => ({ ids: [...l.items], names: [l.title], si: [...groups[i]] }));
   for (let again = parts.length > 1; again;) {
     again = false;
     for (const A of [...parts].sort((a, b) => a.ids.length - b.ids.length)) {
@@ -1366,7 +1425,7 @@ for (const R of GU_REGIONS) {
         .sort((a, b) => a.ids.length - b.ids.length || Math.hypot(cen(a.ids)[0] - cA[0], cen(a.ids)[1] - cA[1]) - Math.hypot(cen(b.ids)[0] - cA[0], cen(b.ids)[1] - cA[1]))[0];
       if (!B) continue;
       const lo = parts.indexOf(A) < parts.indexOf(B) ? A : B, hi = lo === A ? B : A;   // 과 차례가 앞인 덩어리 자리에 둔다
-      lo.ids = [...lo.ids, ...hi.ids]; lo.names = [...lo.names, ...hi.names];
+      lo.ids = [...lo.ids, ...hi.ids]; lo.names = [...lo.names, ...hi.names]; lo.si = [...lo.si, ...hi.si];
       parts = parts.filter((S) => S !== hi);
       again = true;
       break;
@@ -1375,8 +1434,12 @@ for (const R of GU_REGIONS) {
   const guScreens = parts.map((p, i) => {
     const t = tapOf(p.ids, 'near', PHONE_WIDE), ko = p.names.join('·');
     if (t.minTapPx < TAP_FAIL) fail(`${R.ko} 일반구 단원 넓은 화면 ${ko}: 가장 작은 칸 ${t.at} 지름 ${t.minTapPx}px (<${TAP_FAIL})`);
-    return { key: parts.length > 1 ? `s${i + 1}` : 'all', ko, en: '', items: p.ids, fit: t.fit, minTapPx: t.minTapPx, ambiguous: t.ambiguous };
+    return { key: parts.length > 1 ? `s${i + 1}` : 'all', ko, en: p.si ? andEn(p.si.map(siEn)) : guEn, items: p.ids, fit: t.fit, minTapPx: t.minTapPx, ambiguous: t.ambiguous };
   });
+  for (const si of bySi.keys()) if (!siEn(si)) fail(`${R.ko} 일반구 단원: ${siNameOf[si]} 영어 이름(units.json slugs) 없음`);
+  for (const [what, v] of [['단원', guEn], ...guLessons.map((l) => [`${l.no}과 '${l.title}'`, l.en]), ...guScreens.map((s) => [`화면 '${s.ko}'`, s.en])]) {
+    if (!v || HANGUL.test(v) || /undefined/.test(v)) fail(`${R.ko} 일반구 단원: 영어 이름이 비었거나 한글 — ${what} '${v}'`);
+  }
   // 위치 한 줄. 맞닿은 곳은 함께 쓰는 경계가 긴 차례(전국 위상 T1 의 sgg 층에서 두 칸이 함께 쓰는 호의 길이, 미터)
   const lenM = (line) => line.reduce((s, p, i) => (i ? s + Math.hypot(toM(p)[0] - toM(line[i - 1])[0], toM(p)[1] - toM(line[i - 1])[1]) : 0), 0);
   const shared = (a, b) => topo.mesh(T1, { type: 'GeometryCollection', geometries: [geomOf.sgg.get(a), geomOf.sgg.get(b)] }, (p, q) => p !== q).coordinates.reduce((t, l) => t + lenM(l), 0);
@@ -1446,7 +1509,7 @@ for (const R of GU_REGIONS) {
   }
   for (const k of ['slug', 'ko']) if (new Set(items.map((it) => it[k])).size !== items.length) fail(`${R.ko} 일반구 단원: 곳 ${k} 겹침`);
   if (new Set(guLessons.map((l) => l.title)).size !== guLessons.length) fail(`${R.ko} 일반구 단원: 과 이름 겹침`);
-  guIndex[R.key] = { key: `${R.key}/gu`, region: R.key, sido: R.sido, ko: `${R.ko} 일반구`, full: `${R.full} 일반구`, en: '', layer: 'sgg', fit: unionLL(guIds, 'near'), items, lessons: guLessons, screens: guScreens };
+  guIndex[R.key] = { key: `${R.key}/gu`, region: R.key, sido: R.sido, ko: `${R.ko} 일반구`, full: `${R.full} 일반구`, en: guEn, layer: 'sgg', fit: unionLL(guIds, 'near'), items, lessons: guLessons, screens: guScreens };
   const sm = [1, 2, 3].map((n) => guLessons.filter((l) => l.items.length === n).length);
   note(`일반구 단원(${R.ko}): ${guIds.length}곳 · 과 ${guLessons.length}(${guLessons.map((l) => `${l.title} ${l.items.length}`).join('·')}) · 1·2·3곳 과 ${sm.join('·')} · 과 최소 칸 ${Math.min(...guLessons.map((l) => l.minTapPx))}px`
     + ` · 넓은 화면 ${guScreens.length}개(${guScreens.map((s) => `${s.ko} ${s.items.length}곳 ${s.minTapPx}px`).join('·')}) · 모호 칸 과 ${guLessons.reduce((t, l) => t + l.ambiguous.length, 0)} · 넓은 화면 ${guScreens.reduce((t, s) => t + s.ambiguous.length, 0)}`);
@@ -1531,8 +1594,8 @@ async function unitTopo(sggId, scope = 'box') {
   const near = new Set([...(neighbors.sgg[sggId] || []), ...(neighbors.sea[sggId] || []).map((x) => x.id)]);
   const out = [
     ...L.sgg.features.filter((f) => f.properties.sggId !== sggId && llHits(sggBoxLL.get(f.properties.sggId), bb) && (scope === 'box' || near.has(f.properties.sggId)))
-      .map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { id: f.properties.sggId, name: f.properties.sggName, sido: f.properties.sido } })),
-    ...L.out.features.filter((f) => llHits(sggBoxLL.get(f.properties.sido), bb)).map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { id: f.properties.sido, name: f.properties.sidoName, sido: f.properties.sido } })),
+      .map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { id: f.properties.sggId, name: f.properties.sggName, sido: f.properties.sido, en: sggEn(f.properties.sggId) } })),
+    ...L.out.features.filter((f) => llHits(sggBoxLL.get(f.properties.sido), bb)).map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { id: f.properties.sido, name: f.properties.sidoName, sido: f.properties.sido, en: OUT_EN[f.properties.sido] ?? '' } })),
   ];
   const water = L.water.features.filter((f, i) => llHits(sggBoxLL.get(`water:${i}`), bb));
   const input = { 'emd.json': JSON.stringify({ type: 'FeatureCollection', features: emdOfSgg.get(sggId).map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { id: f.properties.id } })) }) };
@@ -1915,7 +1978,9 @@ const SAME_NAMES = (() => {
 note(`같은 이름 시·군·구(전국): ${SAME_NAMES.map((n) => `${n} ${L.sgg.features.filter((f) => f.properties.sggName === n).length}`).join(' · ')} = ${L.sgg.features.filter((f) => SAME_NAMES.includes(f.properties.sggName)).length}곳`);
 // emdUnits(계획서 N17: 단원 색인 = 단원 코드·이름·slug·동 수·과 수·동 slug 목록)는 동 단원이 켜진 지역(--preview 면 공개 지역 전부)만. 없으면 필드를 쓰지 않는다
 // guUnits(계획서 N5 · E7): 일반구 단원이 켜진 지역(지역 표 gu live)만. 없으면 필드를 쓰지 않는다(옛 앱은 모르는 필드라 읽지 않는다 — 판 그대로, N18)
-put('units.json', JSON.stringify({ version: VER, regions: units, ...(Object.keys(emdIndex).length ? { emdUnits: emdIndex } : {}), ...(Object.keys(guIndex).length ? { guUnits: guIndex } : {}), ...(KOREA ? { korea: KOREA } : {}), sameNames: SAME_NAMES }));
+// enNames(영어 동 공부 설계안 5.1 · D105): 동 단원 파일·일반구 단원에 영어 이름이 있다는 표시 — 영어 앱은 이것이 있을 때만 동·일반구·시·도 단원을 켠다
+// (배포 직후 캐시에 남은 옛 units.json 을 새 앱이 받으면 영어 화면은 지금처럼 셋을 끈다). 판은 그대로 .2(N18 — 옛 앱은 모르는 필드를 읽지 않는다)
+put('units.json', JSON.stringify({ version: VER, enNames: true, regions: units, ...(Object.keys(emdIndex).length ? { emdUnits: emdIndex } : {}), ...(Object.keys(guIndex).length ? { guUnits: guIndex } : {}), ...(KOREA ? { korea: KOREA } : {}), sameNames: SAME_NAMES }));
 // 동 단원 파일: 판 폴더 emd/{코드}.json · emd/{코드}.topo.json
 if (emdUnitFiles.length) {
   const bigs = [], gzs = [], ptsMax = { n: 0, ko: '' }, gzMax = { n: 0, ko: '' };

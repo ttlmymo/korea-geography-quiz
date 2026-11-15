@@ -29,7 +29,7 @@ import { homePage, pickPage, regionsPage, unitPage } from '../../src/app/ui/page
 import { lessonView, viewSpec, wholeView } from '../../src/app/ui/maps.ts';
 import { ISLE_W, isleEast, layoutIsles } from '../../src/app/map/isles.ts';
 import { boxOf } from '../../src/app/map/project.ts';
-import { E14_KEYS, OPENED_SINCE, geo, geoNoE14, reg, idOf } from './fixtures.ts';
+import { EN_OFF, EN_ON, E14_KEYS, OPENED_SINCE, geo, geoNoE14, reg, idOf } from './fixtures.ts';
 
 const T = 20000;
 const root = path.join(import.meta.dirname, '../..');
@@ -315,7 +315,7 @@ test('홈·지역 고르기: 충남·경북 탭(공부한 지역이 앞) · 과 
   assert.doesNotMatch(p, BAD);
   setLang('en');
   try {
-    const en = createRegistry(geo, { emd: false });
+    const en = createRegistry(geo, EN_ON);   // 관문이 열린 영어 앱(EN_EMD — main.ts 와 같은 옵션)
     const e = sp(regionsPage(ctxOf(en)).html);
     for (const k of E14_KEYS) assert.match(e, new RegExp(`href="#/kr/${k}"`));
     for (const [k, cnt, l1] of [['chungnam', '15 cities and counties', 'West coast'], ['gyeongbuk', '22 cities and counties', 'Around Andong']] as const) {
@@ -328,7 +328,9 @@ test('홈·지역 고르기: 충남·경북 탭(공부한 지역이 앞) · 과 
     }
     // 영어 앱도 울릉군 섬 상자(지역 insets — 단원이 아니라 지역이라 영어 앱에도 실림)
     assert.deepEqual(wholeView(en.region('gyeongbuk')!).isles, [ULLEUNG]);
-    assert.equal(en.region('gyeongbuk/ulleung-gun'), undefined, '영어 앱은 동 단원을 싣지 않는다(N26)');
+    // 동 단원: 관문이 열린 영어 앱은 동 색인을 읽는다(단원 파일은 열 때 받음 — EN_EMD), 동을 끈 창(2026-11-16 전 영어 앱 — N26)은 읽지 않는다
+    assert.ok(en.unit('gyeongbuk/ulleung-gun'));
+    assert.equal(createRegistry(geo, EN_OFF).unit('gyeongbuk/ulleung-gun'), undefined);
   } finally { setLang('ko'); }
 });
 

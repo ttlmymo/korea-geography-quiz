@@ -2,7 +2,7 @@
 // 칸끼리 = 가는 선, 칸과 한강·해안·다른 시도와의 경계 = 굵은 선(지역 외곽선). 공유 호는 한 번씩만 그린다.
 // 과·묶음에 따라 달라지는 선(과 안 경계, 묶음 둘레, 칸마다 굵은 테두리)도 칸마다 그리지 않고 메쉬 path 하나로 만든다(동 단위 수백 칸에서도 가볍게)
 import { feature, mesh } from 'topojson-client';
-import type { LabelsFile, Region } from '../types.ts';
+import type { CtxCell, LabelsFile, Region } from '../types.ts';
 import { FINGER_PX, type TapProbe } from '../core/judge.ts';
 import { project, type Box } from './project.ts';
 import { edgeDist, inside } from './poly.ts';
@@ -67,8 +67,11 @@ export interface Shapes {
   bankOf(ids: ReadonlySet<string>): string;
   /** 먼 섬이 있으면 그 조각들과 범위 */
   far: { box: Box; parts: FarPart[] } | null;
-  /** 맥락 이름(설계서 5.2 층 7): 이웃 땅·한강의 이름과 자리(파이프라인이 lp 로 싣는다) */
-  names: { text: string; x: number; y: number; kind: 'out' | 'water'; sido: string }[];
+  /**
+   * 맥락 이름(설계서 5.2 층 7): 이웃 땅·한강의 이름과 자리(파이프라인이 lp 로 싣는다). 동 단원 지도의 이웃 땅은 id·en(판 .2 — 영어 화면이 쓴다, EN_EMD 5.2),
+   * 일반구 단원의 나머지 칸은 id(그 칸의 시·군 곳 id)와 rest
+   */
+  names: (CtxCell & { x: number; y: number; kind: 'out' | 'water' })[];
 }
 
 const CITY_END = /(특별자치시|광역시|특별시)$/;
@@ -259,14 +262,16 @@ export function buildShapes(topo: Topology, spec: LayerSpec, labels: LabelsFile)
       .map(({ g, kind, sido, text }) => {
         const [lon, lat] = (g.properties as unknown as { lp: [number, number] }).lp;
         const [x, y] = project(lon, lat);
-        return { text, x, y, kind, sido };
+        // 동 단원 지도의 이웃 땅(emd/{코드}.topo.json out): 시·군·구 id 와 영어 이름(판 .2 — 옛 캐시에는 en 이 없다)
+        const id = kind === 'out' ? g.properties?.id : undefined, en = kind === 'out' ? g.properties?.en : undefined;
+        return { text, x, y, kind, sido, ...(typeof id === 'string' ? { id } : {}), ...(typeof en === 'string' ? { en } : {}) };
       })
-      // 이웃 땅으로 돌린 나머지 칸(spec.rest)의 이름: 칸 이름(sggName)을 그 칸의 이름표 점에('의왕시')
+      // 이웃 땅으로 돌린 나머지 칸(spec.rest)의 이름: 칸 이름(sggName)을 그 칸의 이름표 점에('의왕시'). id = 칸 id(영어 화면은 그 곳의 레지스트리 이름 — text/ui.ts ctxNamer)
       .concat(restT.flatMap((g) => {
-        const l = labels[g.properties?.[idKey] ?? ''], text = g.properties?.sggName ?? '';
+        const id = g.properties?.[idKey] ?? '', l = labels[id], text = g.properties?.sggName ?? '';
         if (!l || !text) return [];
         const [x, y] = project(l[0], l[1]);
-        return [{ text, x, y, kind: 'out' as const, sido: g.properties?.sido ?? '' }];
+        return [{ text, x, y, kind: 'out' as const, sido: g.properties?.sido ?? '', id, rest: true }];
       })),
     rimOf(set, opt) {
       const bank = !!opt?.bank;

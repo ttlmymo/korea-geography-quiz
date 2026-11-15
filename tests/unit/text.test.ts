@@ -78,6 +78,6 @@ test('영어 화면 글: 한국어와 같은 항목을 모두 갖추고, 판정 
   assert.equal(UI_KO.count(reg.region('gyeonggi')!), '31개 시·군');
   assert.equal(UI_KO.prompt(reg, 'find', idOf('연천군'), (s) => s), '연천군을 찾아 누르세요');
   assert.equal(UI_EN.line(reg, idOf('마포구')), '');   // 위치 한 줄은 한국어만
-  assert.equal(UI_EN.ctxName('41', '경기도'), 'Gyeonggi');
-  assert.equal(UI_EN.ctxName('water', '한강'), 'Han River');
+  assert.equal(UI_EN.ctxName({ sido: '41', text: '경기도' }), 'Gyeonggi');
+  assert.equal(UI_EN.ctxName({ sido: 'water', text: '한강' }), 'Han River');
 });

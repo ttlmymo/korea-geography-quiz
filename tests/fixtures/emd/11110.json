@@ -18,102 +18,119 @@
   {
    "id": "kr:emd:1111060000",
    "ko": "가회동",
+   "en": "Gahoe-dong",
    "slug": "60000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111058000",
    "ko": "교남동",
+   "en": "Gyonam-dong",
    "slug": "58000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111057000",
    "ko": "무악동",
+   "en": "Muak-dong",
    "slug": "57000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111055000",
    "ko": "부암동",
+   "en": "Buam-dong",
    "slug": "55000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111053000",
    "ko": "사직동",
+   "en": "Sajik-dong",
    "slug": "53000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111054000",
    "ko": "삼청동",
+   "en": "Samcheong-dong",
    "slug": "54000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111070000",
    "ko": "숭인1동",
+   "en": "Sungin 1-dong",
    "slug": "70000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111071000",
    "ko": "숭인2동",
+   "en": "Sungin 2-dong",
    "slug": "71000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111064000",
    "ko": "이화동",
+   "en": "Ihwa-dong",
    "slug": "64000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111061500",
    "ko": "종로1·2·3·4가동",
+   "en": "Jongno 1·2·3·4-ga-dong",
    "slug": "61500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111063000",
    "ko": "종로5·6가동",
+   "en": "Jongno 5·6-ga-dong",
    "slug": "63000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111067000",
    "ko": "창신1동",
+   "en": "Changsin 1-dong",
    "slug": "67000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111068000",
    "ko": "창신2동",
+   "en": "Changsin 2-dong",
    "slug": "68000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111069000",
    "ko": "창신3동",
+   "en": "Changsin 3-dong",
    "slug": "69000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111051500",
    "ko": "청운효자동",
+   "en": "Cheongunhyoja-dong",
    "slug": "51500",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111056000",
    "ko": "평창동",
+   "en": "Pyeongchang-dong",
    "slug": "56000",
    "kind": "동"
   },
   {
    "id": "kr:emd:1111065000",
    "ko": "혜화동",
+   "en": "Hyehwa-dong",
    "slug": "65000",
    "kind": "동"
   }
@@ -122,6 +139,7 @@
   {
    "no": 1,
    "title": "북서쪽",
+   "en": "Northwest",
    "items": [
     "kr:emd:1111056000",
     "kr:emd:1111055000",
@@ -144,6 +162,7 @@
   {
    "no": 2,
    "title": "남쪽",
+   "en": "South",
    "items": [
     "kr:emd:1111054000",
     "kr:emd:1111060000",
@@ -163,6 +182,7 @@
   {
    "no": 3,
    "title": "남동쪽",
+   "en": "Southeast",
    "items": [
     "kr:emd:1111064000",
     "kr:emd:1111067000",
@@ -185,7 +205,7 @@
   {
    "key": "all",
    "ko": "종로구",
-   "en": "",
+   "en": "Jongno-gu",
    "items": [
     "kr:emd:1111056000",
     "kr:emd:1111055000",

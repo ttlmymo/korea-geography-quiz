@@ -6,7 +6,9 @@
 // 모양(합본 2026-11-13): 흰 바탕 · 먹 글자 · 지도 바탕 면색 · 굵은 바깥선 · 먹 1px 칸 경계 · 1px 틀(각진 모서리)
 // (E17 전국 마무리) 세 지역(서울 지도 + '서울 25 · 인천 11 · 경기 31')에서 전국으로 바꿨다:
 //  - 지도: 판 sido.topo.json(전국 시·도 지도 — 지역 고르기와 같은 파일·같은 범위 KOREA_FIT)
-//  - 개수 줄: 홈 검색 설명과 같은 범위 말(src/lib/regions.ts — 한국어 studyKo, 영어 scopeEn). 영어는 영어 이름을 확인했고 영어 앱이 싣는 지역만(N26)
+//  - 개수 줄: 홈 검색 설명과 같은 범위 말(src/lib/regions.ts — 한국어 studyKo, 영어 scopeEn). 영어는 영어 이름을 확인한 지역만(N26)
+//    2026-11-16 영어 동 공부(설계안 docs/EN_EMD_PLAN_2026-11-16.md D107): 영어 앱에도 동이 열려 영어 덧말 '· down to neighborhoods'(한국어 '· 읍·면·동까지'와 같게),
+//    범위 말은 세종·제주도 세어 'all 16 provinces and cities of Korea'
 //  - 한국어는 열여섯을 모두 열었을 때의 글만 그린다(일부만 열린 판이면 글 모양을 새로 정해야 하므로 멈춘다)
 // (E17 검수) 그림에 박은 개수 줄을 tools/og-image.text.json 에 함께 쓴다. 이 도구는 빌드 때 돌지 않아, 지역 표가 바뀌면(예: 전남광주 enChecked 를 켜면
 //  영어 설명이 '… and 11 more regions'가 됨) 그림만 옛 글로 남는다. 시험 tests/unit/og-text.test.ts 가 이 파일을 지금 범위 말과 견줘 다시 돌리라고 알린다
@@ -43,7 +45,7 @@ const nextIds = new Set(units.korea.lessons[2].items);
 const TEXT = {
   // 개수 줄 = 굵은 범위 말(count) + 옅은 덧말(pre 는 앞, unit 은 뒤)
   ko: { name: '채움지도', tag: ['백지도 퀴즈로 익히는', '대한민국 행정구역'], pre: '', count: studyKo(true), unit: '· 읍·면·동까지' },
-  en: { name: 'Fill the<br>Map', tag: ["Learn Korea's administrative", 'regions on a blank map'], pre: 'Districts of', count: scopeEn(), unit: '' },
+  en: { name: 'Fill the<br>Map', tag: ["Learn Korea's administrative", 'regions on a blank map'], pre: 'Districts of', count: scopeEn(), unit: '· down to neighborhoods' },
 };
 
 // 글꼴: 굵기별 CSS 의 조각 가운데 이 그림의 글자를 하나라도 담은 조각만(unicode-range 로 고른다)
@@ -113,6 +115,13 @@ for (const lang of ['ko', 'en']) {
   // 글꼴(data:)이 다 읽힐 시간을 준다
   execFileSync(EDGE, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1', '--window-size=1200,630', '--virtual-time-budget=5000',
     `--user-data-dir=${path.join(work, 'edge')}`, `--screenshot=${png}`, 'file:///' + html.replace(/\\/g, '/')], { stdio: 'ignore' });
+  // Edge 가 다른 머리 없는 Edge 가 떠 있는 PC 에서는 그림을 다 쓰기 전에 돌아온다(2026-11-16 — 그림이 몇 초 뒤에 생김). 그림 크기가 멈출 때까지 기다린다(최대 30초)
+  for (let i = 0, last = -1; i < 150; i++) {
+    const size = fs.existsSync(png) ? fs.statSync(png).size : -1;
+    if (size > 0 && size === last) break;
+    last = size;
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
+  }
   const ps = `Add-Type -AssemblyName System.Drawing; $i=[System.Drawing.Image]::FromFile('${png}'); ` +
     `$c=[System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders()|?{$_.MimeType -eq 'image/jpeg'}; ` +
     `$p=New-Object System.Drawing.Imaging.EncoderParameters(1); $p.Param[0]=New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality,[long]88); ` +

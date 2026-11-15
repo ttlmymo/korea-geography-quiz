@@ -1,12 +1,14 @@
 // 지역·과·곳을 찾는 색인과, 두 곳 사이의 방위·거리·맞닿음.
 // 동 단원(계획서 N30)은 지역 목록(regions)과 따로 units 에 지연 등록한다(addUnit). 지역 목록을 도는 곳(홈 탭·지역 고르기·다 채움)은 그대로이고,
 // place·region·lesson·bySlug·screenOf 는 두 목록을 다 찾는다. 단원 파일을 받기 전에도 동 색인(units.json emdUnits)으로
-// '아는 곳'·복습 차례·단원을 판정한다(N17). 영어 앱은 동 색인을 읽지 않는다(N26 — createRegistry(geo, { emd: false })).
-// 일반구 단원(units.json guUnits, E7 · N5)은 받을 파일이 없어 부팅 때 units 에 바로 등록한다(영어 앱은 등록하지 않음)
+// '아는 곳'·복습 차례·단원을 판정한다(N17).
+// 일반구 단원(units.json guUnits, E7 · N5)은 받을 파일이 없어 부팅 때 units 에 바로 등록한다.
 // 전국 앱 틀(E8): 지역마다 따로 검사해 결함 있는 지역만 빼고(failed — main.ts 가 geo_load_fail 로 알린다) 나머지로 앱이 돈다.
-// 과 없는 지역(세종·제주 — layer 'emd', lessons [], 계획서 N4)은 동 색인이 있을 때만 싣는다(영어 앱은 동을 읽지 않으므로 싣지 않음).
+// 과 없는 지역(세종·제주 — layer 'emd', lessons [], 계획서 N4)은 동 색인이 있을 때만 싣는다.
 // 시·도 단원(units.json korea, key 'korea', layer 'sido')은 일반구 단원처럼 부팅 때 units 에 등록한다 — unit 이 없어 지역처럼 다룬다(areaOf('korea') = 'korea')
-import type { EmdIndex, EmdUnitFile, GeoData, GuUnitFile, Item, KoreaFile, Lesson, Region, Screen } from './types.ts';
+// 스위치 셋(설계안 EN_EMD 5.1): 동(emd — 동 색인·과 없는 지역)·일반구(gu)·시·도 단원(korea)을 따로 끈다. 한국어 앱은 모두 켬, 영어 앱은 판에 영어 이름(units.json
+// enNames)이 있을 때만 EN_EMD·EN_GU·EN_KOREA 대로 켬(unitOptions). 전에는(N26) 영어 앱이 셋을 함께 껐다 — createRegistry(geo, { emd: false }) 하나가 셋을 막았다
+import type { EmdIndex, EmdUnitFile, GeoData, GuUnitFile, Item, KoreaFile, Lesson, Region, Screen, UnitsFile } from './types.ts';
 import { partOf } from './sidos.ts';
 
 export type Dir8 = 'E' | 'NE' | 'N' | 'NW' | 'W' | 'SW' | 'S' | 'SE';
@@ -21,9 +23,37 @@ export interface UnitRef { key: string; region: string; code: string; index: Emd
 export const UNIT_KEY = /^[a-z-]{2,20}\/[a-z0-9-]{2,40}$/;
 
 export interface RegistryOptions {
-  /** units.json emdUnits(동 색인)를 읽는가. 영어 앱은 false(계획서 N26: 동 단원을 등록하지 않고 색인도 읽지 않는다) */
+  /** units.json emdUnits(동 색인)를 읽는가 — 동 단원과 과 없는 지역(세종·제주). 기본 true. false 면 동 단원을 등록하지 않고 색인도 읽지 않는다 */
   emd?: boolean;
+  /** units.json guUnits(일반구 단원)를 등록하는가. 기본 true */
+  gu?: boolean;
+  /** units.json korea(시·도 단원)를 등록하는가. 기본 true */
+  korea?: boolean;
 }
+
+/**
+ * 영어 앱 스위치(설계안 EN_EMD 5.1 · 16절 되돌리기): 끄면 영어 앱은 그 단원을 지금 판에서도 싣지 않는다(2026-11-16 전 영어 앱처럼).
+ * 기록은 지워지지 않는다(main.ts held · 키 분리 N16). 한국어 앱에는 닿지 않는다
+ */
+export const EN_EMD = true;
+export const EN_GU = true;
+export const EN_KOREA = true;
+
+/**
+ * 그 말 앱의 레지스트리 옵션: 한국어는 셋 다 켬. 영어는 판(units.json)에 영어 이름 표시(enNames — 파이프라인이 곳·과·화면·이웃 땅 en 을 모두 실었을 때만 씀)가 있을 때만
+ * 스위치대로 켠다. 배포 직후 캐시(max-age 600)에 남은 옛 units.json 을 새 JS 가 받으면 셋을 꺼 지금 영어 앱과 같다(관문)
+ */
+export function unitOptions(lang: string, units: Pick<UnitsFile, 'enNames'>, sw: { emd: boolean; gu: boolean; korea: boolean } = { emd: EN_EMD, gu: EN_GU, korea: EN_KOREA }): Required<RegistryOptions> {
+  if (lang !== 'en') return { emd: true, gu: true, korea: true };
+  const ok = units?.enNames === true;
+  return { emd: ok && sw.emd, gu: ok && sw.gu, korea: ok && sw.korea };
+}
+
+/**
+ * 켠 단원에 따라 읽는 저장 키(main.ts 부팅): 오늘 푼 동 수(kgq_dailyemd_v1)는 동을 켰을 때, 마지막 단원·단원 시험 기록(kgq_lastunit_v1·kgq_bestunit_v1)은
+ * 동이나 일반구를 켰을 때. 끈 단원의 키는 읽지 않고 지우지도 않는다(되돌리기 — EN_EMD 8절 6)
+ */
+export const unitKeyReads = (o: Required<RegistryOptions>) => ({ dailyEmd: o.emd, unitKeys: o.emd || o.gu });
 
 export interface Registry {
   /** 쓸 수 있는 지역(데이터 차례). 결함 있는 지역은 빠진다(failed) */
@@ -51,7 +81,7 @@ export interface Registry {
   point(id: string): [number, number, number] | undefined;
   /** 지역 키는 그대로, 단원 키는 그 단원의 지역 키(홈 탭·kgq_last_v1, N9·N16). 모르는 키는 undefined */
   areaOf(key: string): string | undefined;
-  /** 동 색인: 그 지역의 동 단원(색인 차례). 색인이 없으면(동 공개 전·옛 캐시·영어 앱) [] — 동 입구를 숨긴다 */
+  /** 동 색인: 그 지역의 동 단원(색인 차례). 색인이 없으면(동 공개 전·옛 캐시·동을 끈 창 — 관문이 닫힌 영어 앱) [] — 동 입구를 숨긴다 */
   emdUnits(region: string): UnitRef[];
   /** 동 색인: 단원 키 → 단원 */
   unit(key: string): UnitRef | undefined;
@@ -74,6 +104,8 @@ export interface Registry {
 
 export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Registry {
   const emdOn = opts.emd !== false;
+  const guOn = opts.gu !== false;
+  const koreaOn = opts.korea !== false;
   const regions: Region[] = [];
   const failed: { key: string; why: string }[] = [];
   const regionByKey = new Map<string, Region>();
@@ -82,7 +114,7 @@ export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Regist
   const emd = emdOn ? geo.units.emdUnits ?? {} : {};
   /**
    * 지역 하나를 검사해 그 지역의 곳(과 → 곳)을 돌려준다. 결함이 있으면 throw — 부르는 쪽이 그 지역만 뺀다(지역별 격리, 계획서 E8).
-   * 과 없는 지역(layer 'emd' — 세종·제주)은 곳이 없다(공부는 동 단원으로). null = 이 창에서 싣지 않는 지역(영어 앱의 과 없는 지역 — 결함 아님)
+   * 과 없는 지역(layer 'emd' — 세종·제주)은 곳이 없다(공부는 동 단원으로). null = 이 창에서 싣지 않는 지역(동을 끈 창의 과 없는 지역 — 결함 아님)
    */
   function checkRegion(region: Region): Map<string, Place> | null {
     if (!region || typeof region.key !== 'string' || !/^[a-z-]{2,20}$/.test(region.key)) throw new Error('지역 모양이 아님');
@@ -208,8 +240,9 @@ export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Regist
     if (regionByKey.has(f.key)) throw new Error(`${where}: 지역 키와 겹침`);
     const ref = unitByKey.get(f.key);
     if (ref && (ref.code !== f.code || ref.index.ids.join() !== f.items.map((it) => it.slug).join())) throw new Error(`${where}: 동 색인과 다름(판이 어긋남)`);
-    // 검사를 다 통과한 뒤에만 색인에 넣는다(실패하면 아무것도 바꾸지 않는다)
-    const items: Item[] = f.items.map((it) => ({ id: it.id, ko: it.ko, slug: it.slug, kind: it.kind, line: '' }));
+    // 검사를 다 통과한 뒤에만 색인에 넣는다(실패하면 아무것도 바꾸지 않는다).
+    // 영어 이름(판 .2 items[].en, EN_EMD 3절)은 빈 글이 아닐 때만 옮긴다 — 옛 캐시 파일이면 없고, 영어 화면은 한글 이름을 쓴다(EN_EMD 5.4)
+    const items: Item[] = f.items.map((it) => ({ id: it.id, ko: it.ko, slug: it.slug, kind: it.kind, line: '', ...(typeof it.en === 'string' && it.en ? { en: it.en } : {}) }));
     const byId = new Map(items.map((it) => [it.id, it]));
     if (byId.size !== items.length) throw new Error(`${where}: 곳 id 겹침`);
     const add = new Map<string, Place>();
@@ -246,7 +279,7 @@ export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Regist
 
   /**
    * 일반구 단원(units.json guUnits, 계획서 N5 · E7): 부팅 때 바로 등록한다(받을 파일 없음 — 경계는 부모 지역 -sgg 의 sgg 층, 이름표 점·이웃은 labels·neighbors).
-   * 영어 앱은 등록하지 않는다(N26). 모양이 틀리면 그 단원만 빼고 앱은 계속 돈다(N30 단원 격리 — 지역 과와 달리 throw 하지 않음)
+   * opts.gu 가 false 면 등록하지 않는다(EN_EMD 5.1). 모양이 틀리면 그 단원만 빼고 앱은 계속 돈다(N30 단원 격리 — 지역 과와 달리 throw 하지 않음)
    */
   function addGu(f: GuUnitFile): void {
     const parent = regionByKey.get(f?.region);
@@ -270,11 +303,11 @@ export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Regist
     units.push(region);
     unitRegion.set(region.key, region);
   }
-  if (opts.emd !== false) for (const r of regions) { const g = geo.units.guUnits?.[r.key]; if (g) addGu(g); }
+  if (guOn) for (const r of regions) { const g = geo.units.guUnits?.[r.key]; if (g) addGu(g); }
 
   /**
    * 시·도 단원(units.json korea, 계획서 N30 · E8 모델): 곳 id kr:sido:{코드}, 이름표 점·이웃은 이 파일에서. unit 이 없어 지역처럼 다룬다
-   * (kgq_last_v1 = 'korea', 시험 최고 기록은 kgq_best_v1 — 둘 다 지역 키 모양). 영어 앱은 등록하지 않는다(N26).
+   * (kgq_last_v1 = 'korea', 시험 최고 기록은 kgq_best_v1 — 둘 다 지역 키 모양). opts.korea 가 false 면 등록하지 않는다(EN_EMD 5.1).
    * 모양이 틀리면 이 단원만 빼고(failed) 앱은 계속 돈다
    */
   function addKorea(f: KoreaFile) {
@@ -300,7 +333,7 @@ export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Regist
     units.push(region);
     unitRegion.set('korea', region);
   }
-  if (emdOn && geo.units.korea) {
+  if (koreaOn && geo.units.korea) {
     try { addKorea(geo.units.korea); } catch (e) { failed.push({ key: 'korea', why: String((e as Error)?.message ?? e).slice(0, 80) }); }
   }
 

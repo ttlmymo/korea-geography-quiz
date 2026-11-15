@@ -18,42 +18,49 @@
   {
    "id": "kr:emd:2872034000",
    "ko": "대청면",
+   "en": "Daecheong-myeon",
    "slug": "34000",
    "kind": "면"
   },
   {
    "id": "kr:emd:2872035000",
    "ko": "덕적면",
+   "en": "Deokjeok-myeon",
    "slug": "35000",
    "kind": "면"
   },
   {
    "id": "kr:emd:2872033000",
    "ko": "백령면",
+   "en": "Baengnyeong-myeon",
    "slug": "33000",
    "kind": "면"
   },
   {
    "id": "kr:emd:2872031000",
    "ko": "북도면",
+   "en": "Bukdo-myeon",
    "slug": "31000",
    "kind": "면"
   },
   {
    "id": "kr:emd:2872038000",
    "ko": "연평면",
+   "en": "Yeonpyeong-myeon",
    "slug": "38000",
    "kind": "면"
   },
   {
    "id": "kr:emd:2872036000",
    "ko": "영흥면",
+   "en": "Yeongheung-myeon",
    "slug": "36000",
    "kind": "면"
   },
   {
    "id": "kr:emd:2872037000",
    "ko": "자월면",
+   "en": "Jawol-myeon",
    "slug": "37000",
    "kind": "면"
   }
@@ -62,6 +69,7 @@
   {
    "no": 1,
    "title": "섬",
+   "en": "Islands",
    "items": [
     "kr:emd:2872033000",
     "kr:emd:2872034000",
@@ -98,7 +106,7 @@
   {
    "key": "all",
    "ko": "옹진군",
-   "en": "",
+   "en": "Ongjin-gun",
    "items": [
     "kr:emd:2872033000",
     "kr:emd:2872034000",

@@ -26,7 +26,7 @@ import type { EmdUnitFile } from '../../src/app/types.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, pickPage, regionsPage, resultPage, startPage, summaryPage, unitPage } from '../../src/app/ui/pages.ts';
 import { viewSpec, wholeView } from '../../src/app/ui/maps.ts';
-import { E13_KEYS, OFF_KEY, OPENED_SINCE, geo, geoEn, geoNoE13, reg, idOf } from './fixtures.ts';
+import { EN_OFF, EN_ON, E13_KEYS, OFF_KEY, OPENED_SINCE, geo, geoEn, geoNoE13, reg, idOf } from './fixtures.ts';
 
 const T = 20000;
 const root = path.join(import.meta.dirname, '../..');
@@ -166,8 +166,8 @@ test('같은 이름(N12): 강원 고성군은 지역이 섞이는 화면에서 \
   const h = sp(homePage(ctxOf(reg, { mastery: m, last: 'seoul' })).html);
   // (지역 차례 → 과의 곳 차례 — 강원 2과는 속초시·고성군 차례)
   assert.match(h, /<p class="h-places">서울 중구 · 속초시 · 강원 고성군<\/p>/);
-  // 영어: 'Goseong-gun, Gangwon'
-  const en = createRegistry(geo, { emd: false });
+  // 영어: 'Goseong-gun, Gangwon'(관문이 열린 영어 앱 — 시·군·구 이름은 끈 창과 같다)
+  const en = createRegistry(geo, EN_ON);
   assert.equal(UI_EN.fullName(en, g), 'Goseong-gun, Gangwon');
   // 동 단원 이름(섞인 화면): 단원 파일을 받기 전에도 색인으로
   const r = createRegistry(geo);
@@ -195,8 +195,10 @@ test('충북 일반구 단원(N5 — 경기 밖 첫 일반구 단원): 청주 4�
   assert.deepEqual(parseRoute('#/kr/chungbuk/gu/p1', '', k).route, { name: 'lesson', region: 'chungbuk/gu', no: 1 });
   assert.equal(parseRoute('#/kr/jeonbuk/gu', '', k).route.name, 'home', '전북은 일반구 단원 없음(전주 2구 — N5)');
   assert.equal(reg.region('jeonbuk/gu'), undefined);
-  // 영어 앱은 일반구 단원을 등록하지 않는다(N26)
-  assert.equal(createRegistry(geo, { emd: false }).region('chungbuk/gu'), undefined);
+  // 일반구를 끈 창(관문이 닫힌 영어 앱 — 2026-11-16 전 영어 앱, N26)은 일반구 단원을 등록하지 않는다. 관문이 열린 영어 앱은 등록한다(EN_EMD 1.2)
+  assert.equal(createRegistry(geo, EN_OFF).region('chungbuk/gu'), undefined);
+  const enGu = createRegistry(geo, EN_ON).region('chungbuk/gu')!;
+  assert.deepEqual([enGu.en, enGu.lessons.map((l) => UI_EN.lesson(l)), enGu.items.map((it) => UI_EN.name(it)).sort()], ['Chungbuk city districts', ['Cheongju-si'], ['Cheongwon-gu', 'Heungdeok-gu', 'Sangdang-gu', 'Seowon-gu']]);
   // 지역 쪽·구 고르기: 충북은 '일반구 4곳 공부하기', 전북은 없음. 구 고르기 목록에서 일반구 동 단원은 시 아래(청주시 4개 구 · 전주시 2개 구)
   const uc = sp(unitPage(ctxOf(reg), 'chungbuk').html);
   assert.match(uc, /href="#\/kr\/chungbuk\/gu"/);
@@ -246,8 +248,18 @@ test('제주 홈(N4 — 과 없는 지역에 단원 둘): 탭 \'제주 43곳\', 
   assert.match(pk, /<h1 class="h-title">어느 시의 동을/);
   assert.equal(pickPage(ctxOf(r), 'jeju').maps!.pick.labels!.length, 2);
   assert.doesNotMatch(pk, BAD);
-  // 영어 앱은 제주를 싣지 않는다(동만 있는 지역 — N26)
-  assert.equal(createRegistry(geo, { emd: false }).region('jeju'), undefined);
+  // 동을 끈 창(관문이 닫힌 영어 앱 — 2026-11-16 전 영어 앱, N26)은 제주를 싣지 않는다(동만 있는 지역). 관문이 열린 영어 앱은 싣는다(EN_EMD 1.2)
+  assert.equal(createRegistry(geo, EN_OFF).region('jeju'), undefined);
+  setLang('en');
+  try {
+    const pe = sp(pickPage(ctxOf(createRegistry(geo, EN_ON)), 'jeju').html);
+    assert.match(pe, /Jeju · Study path/);
+    assert.match(pe, /<h1 class="h-title">Which city\?<\/h1>/);
+    // 과 없는 지역의 단원 차례는 공부 순서 그대로(D103 — 알파벳 차례로 바꾸지 않음): 서귀포시 → 제주시
+    assert.deepEqual([...pe.matchAll(/<span class="nm">([^<]*)<\/span>/g)].map((x) => x[1]), ['Seogwipo-si', 'Jeju-si']);
+    assert.doesNotMatch(pe, /[가-힣]/);
+    assert.doesNotMatch(pe, BAD);
+  } finally { setLang('ko'); }
 });
 
 test('제주시·서귀포시 동 단원: 시험 화면 5·4(3곳 이하 화면 없음 — 읍·면이 3곳씩이던 화면은 맞닿은 동을 넘겨받음), 마라도·추자·우도가 단원 지도에 남음, 섬 과', () => {
@@ -316,12 +328,23 @@ test('홈·지역 고르기(E13 지역 포함): 처음 온 사람 탭은 서울�
   assert.doesNotMatch(p, BAD);
   setLang('en');
   try {
-    const en = createRegistry(geoEn, { emd: false });   // E16: 영어 앱이 받는 판(main.ts 처럼 영문 확인 전 지역을 뺌 — E16 의 전남광주, 2026-11-15 켬)
+    // 관문이 닫힌 영어 앱(2026-11-16 전 영어 앱 — 동·일반구·시·도 단원을 끈 창): 과 없는 지역(세종·제주)·영문 확인 전 지역 뺌
+    // (분모는 지도 칸 16 — E17 검수: E13 10 · E14 12 · E14·E15 합친 판 13 · 전남광주 영문을 켠 판 14)
+    const off = createRegistry(geoEn, EN_OFF);
+    const eOff = sp(regionsPage(ctxOf(off)).html);
+    assert.match(eOff, new RegExp(`${SIDOS_ALL.filter((s) => s.status === 'live' && s.layer !== 'emd' && s.enChecked).length} of 16 regions open`));
+    assert.equal(off.regions.length, SIDOS_ALL.filter((s) => s.status === 'live' && s.layer !== 'emd' && s.enChecked).length);
+    assert.doesNotMatch(eOff, /href="#\/kr\/(jeju|sejong)"/);
+    // 관문이 열린 영어 앱(EN_EMD): 세종·제주도 열려 영문 확인 지역 모두(16곳 모두면 캡션은 수만 — 'All 16 provinces and cities')
+    const en = createRegistry(geoEn, EN_ON);   // E16: 영어 앱이 받는 판(main.ts 처럼 영문 확인 전 지역을 뺌 — E16 의 전남광주, 2026-11-15 켬)
     const e = sp(regionsPage(ctxOf(en)).html);
-    assert.match(e, new RegExp(`${SIDOS_ALL.filter((s) => s.status === 'live' && s.layer !== 'emd' && s.enChecked).length} of 16 regions open`));   // 영어(분모는 지도 칸 16 — E17 검수): 과 없는 지역(세종·제주)·영문 확인 전 지역 뺌 — E13 10 · E14 12 · E14·E15 합친 판 13 · 전남광주 영문을 켠 판 14
-    assert.equal(en.regions.length, SIDOS_ALL.filter((s) => s.status === 'live' && s.layer !== 'emd' && s.enChecked).length);
-    assert.ok(['gangwon', 'chungbuk', 'jeonbuk'].every((k) => en.region(k)) && !en.region('jeju'));
-    assert.doesNotMatch(e, /href="#\/kr\/(jeju|sejong)"/);
+    const nEn = SIDOS_ALL.filter((s) => s.status === 'live' && s.enChecked).length;
+    assert.match(e, nEn === 16 ? /All 16 provinces and cities/ : new RegExp(`${nEn} of 16 regions open`));
+    assert.equal(en.regions.length, nEn);
+    assert.ok(['gangwon', 'chungbuk', 'jeonbuk', 'jeju'].every((k) => en.region(k)));
+    assert.match(e, /href="#\/kr\/jeju"/);
+    assert.match(e, /href="#\/kr\/sejong"/);
+    assert.doesNotMatch(e, /[가-힣]/, '영어 지역 고르기에 한글 없음');
     for (const k of ['gangwon', 'chungbuk', 'jeonbuk']) assert.match(e, new RegExp(`href="#/kr/${k}"`));
     assert.doesNotMatch(e, BAD);
     for (const [k, cnt, l1] of [['gangwon', '18 cities and counties', 'Northwest'], ['chungbuk', '11 cities and counties', 'Around Cheongju'], ['jeonbuk', '14 cities and counties', 'Around Jeonju']] as const) {

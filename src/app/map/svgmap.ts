@@ -14,6 +14,7 @@ import { ZB_PAD, ZB_WIDE_CAP, ZOOM_ROW, zoomFit, zoomNeed, zoomPlace, zoomSize, 
 import { perf } from '../perf.ts';
 import { edgeDist, inside, probeAt, type Shapes } from './shapes.ts';
 import { clampView, contains, cssBetween, fitView, toMap, viewBox, zoomAround, NO_PAD, type Pad, type Size, type View } from './view.ts';
+import type { CtxCell } from '../types.ts';
 
 const NS = 'http://www.w3.org/2000/svg';
 /** 이만큼 넘게 움직여야 끌기로 본다(그 안이면 누름) */
@@ -67,8 +68,8 @@ export interface MapOptions {
   plateHome?: boolean;
   /** 이웃 땅·한강 이름을 흐리게 그린다(문제·둘러보기). 홈 카드처럼 작은 지도는 끈다 */
   contextNames?: boolean;
-  /** 맥락 이름 바꾸기(영어 화면). sido 는 시도 코드, 한강은 'water' */
-  ctxName?(sido: string, text: string): string;
+  /** 맥락 이름 바꾸기(영어 화면 — text/ui.ts ctxNamer). 이름 칸: sido 는 시도 코드(한강은 'water'), 동 단원 지도의 이웃 땅은 id·en, 일반구 단원의 나머지 칸은 id·rest */
+  ctxName?(n: CtxCell): string;
   /**
    * 축척 막대(오른쪽 아래). 길이는 100m~100km 의 1·2·5 단계 가운데 막대가 60~120px 가 되는 값(서울 1과 2km · 서울 전체 5km · 경기 전체 20km · 크게 키우면 500m 등).
    * 지도 칸이 scaleMinWidth(기본 COMPACT_PX)보다 좁으면 숨는다
@@ -1070,7 +1071,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   const boxIn = (r: Box, x: number, y: number, w: number, h: number) => x - w / 2 >= r[0] && x + w / 2 <= r[2] && y - h / 2 >= r[1] && y + h / 2 <= r[3];
 
   /** 맥락 이름의 글(영어 화면은 바꿔서)과 글자 상자(px). 강 이름은 한글일 때만 자간이 넓다('한 강' — 영어 'Han River' 는 보통 자간) */
-  const ctxText = (n: Shapes['names'][number]) => (opt.ctxName ? opt.ctxName(n.sido, n.text) : n.text);
+  const ctxText = (n: Shapes['names'][number]) => (opt.ctxName ? opt.ctxName(n) : n.text);
   const waterSp = (t: string) => (/[가-힣]/.test(t) ? WATER_SPACING : 0);
   const ctxSize = (t: string, kind: 'out' | 'water') =>
     ({ w: Math.ceil(textWidth(t, CTX_PX) + (kind === 'water' ? [...t].length * waterSp(t) * CTX_PX : 0)) + 4, h: CTX_PX + 4 });

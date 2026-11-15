@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DATA_VER } from '../../src/consts.ts';
-import { createRegistry } from '../../src/app/registry.ts';
+import { createRegistry, unitOptions } from '../../src/app/registry.ts';
 import { SIDOS, shownIn } from '../../src/app/sidos.ts';
 import type { GeoData } from '../../src/app/types.ts';
 
@@ -18,7 +18,16 @@ export const reg = createRegistry(geo);
 const { emdUnits: _emdUnits, guUnits: _guUnits, ...unitsNoEmd } = geo.units;
 export const geoNoEmd: GeoData = { ...geo, units: unitsNoEmd };
 /**
- * 영어 앱이 받는 판(E16): main.ts 처럼 영어 이름을 확인하지 않은 지역(지역 표 enChecked false)을 뺀다. 영어 레지스트리는 createRegistry(geoEn, { emd: false }).
+ * 관문이 닫힌 영어 앱 = 동·일반구·시·도 단원을 끈 창(설계안 EN_EMD 5.1 — 판에 units.json enNames 가 없거나 스위치 EN_EMD·EN_GU·EN_KOREA 를 끈 영어 앱).
+ * 2026-11-16 전의 영어 앱이 이랬다(계획서 N26 — createRegistry(geo, { emd: false }) 하나가 셋을 막았다). 그때 '영어 앱'으로 쓴 시험은 이 옵션으로 '끈 창'을 지키고,
+ * 지금 영어 앱(관문이 열림 — EN_ON = unitOptions('en', 판))은 셋을 모두 싣는다
+ */
+export const EN_OFF = { emd: false, gu: false, korea: false } as const;
+/** 관문이 열린 영어 앱(main.ts 와 같은 옵션 — 운영 판은 enNames true 라 셋 다 켬) */
+export const EN_ON = unitOptions('en', geo.units);
+/**
+ * 영어 앱이 받는 판(E16): main.ts 처럼 영어 이름을 확인하지 않은 지역(지역 표 enChecked false)을 뺀다. 영어 레지스트리는 createRegistry(geoEn, EN_ON)
+ * (관문이 닫힌 영어 앱은 createRegistry(geoEn, EN_OFF)).
  * E16 에는 전남광주(Q5)가 빠졌고, 2026-11-15 사용자 지시로 전남광주 영문을 켠 뒤에는 운영 지역 표에 enChecked false 행이 없어 판 그대로와 같다.
  * 이 값은 불러올 때 한 번 만든다 — 지역 표를 바꿔 보는 시험(withEnHidden)은 geoEnNow() 를 쓴다
  */

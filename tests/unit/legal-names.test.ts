@@ -18,7 +18,7 @@ import { SIDOS, partOf } from '../../src/app/sidos.ts';
 import { UI_EN, UI_KO, setLang } from '../../src/app/text/ui.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, pickPage, regionsPage, unitPage } from '../../src/app/ui/pages.ts';
-import { geo, geoEn, reg } from './fixtures.ts';
+import { EN_OFF, EN_ON, geo, geoEn, reg } from './fixtures.ts';
 
 const KEY = 'jeonnam-gwangju';
 const LEGAL_SHORT = '광주특별시';
@@ -83,8 +83,10 @@ test('같은 이름 구분: 묶음 이름(지역 표 parts)은 지역의 법정 
   const want: [string, string, string][] = [['12210', '동구', 'Dong-gu'], ['12240', '서구', 'Seo-gu'], ['12270', '남구', 'Nam-gu'], ['12300', '북구', 'Buk-gu']];
   for (const [c] of want) assert.equal(partOf(KEY, sgg(c))?.ko, LEGAL_SHORT, c);
   for (const [c, ko] of want) assert.equal(UI_KO.fullName(reg, sgg(c)), `${LEGAL_SHORT} ${ko}`, c);
-  const en = createRegistry(geoEn, { emd: false });
+  const en = createRegistry(geoEn, EN_ON);
   for (const [c, , e] of want) assert.equal(UI_EN.fullName(en, sgg(c)), `${e}, Jeonnam-Gwangju`, c);
+  // 동 단원 이름(섞인 화면 — EN_EMD unitName)도 같은 묶음 이름
+  for (const [c, , e] of want) assert.equal(UI_EN.unitName(en, `${KEY}/${e.toLowerCase()}`), `${e}, Jeonnam-Gwangju`, c);
 });
 
 test('지역 한 줄: 옛 이름(광주·전남) 대신 법적 구분 — 자치구·시·군 수가 원자료 전국 요약·판의 곳 수와 같다', () => {
@@ -133,10 +135,10 @@ test('화면 문구에 바뀌기 전 짧은 이름 \'전남광주\'가 남지 �
   assert.match(sp(pages[1].html), new RegExp(`<p class="h-places">${LEGAL_SHORT} 동구 · 광산구 · 부산 동구 · 대구 동구</p>`));
   assert.match(sp(pages[2].html), new RegExp(`<h1 class="h-title">${LEGAL_SHORT} 27개 시·군·구</h1>`));
   assert.ok(pages[3].maps!.kr.labels!.some((l) => l.id === 'kr:sido:12' && l.text === LEGAL_SHORT), '지역 고르기 지도 이름표');
-  // 영어 화면은 영어 짧은 이름 그대로(법정 영문 없음)
+  // 영어 화면은 영어 짧은 이름 그대로(법정 영문 없음). 관문이 열린 영어 앱(EN_EMD)
   setLang('en');
   try {
-    const en = createRegistry(geoEn, { emd: false });
+    const en = createRegistry(geoEn, EN_ON);
     const ep = regionsPage(ctxOf(en));
     assert.ok(ep.maps!.kr.labels!.some((l) => l.id === 'kr:sido:12' && l.text === 'Jeonnam-Gwangju'));
     assert.doesNotMatch(sp(ep.html), /[가-힣]/, '영어 지역 고르기에 한글 없음');
@@ -177,9 +179,9 @@ test('지도 이웃 시·도 이름표(맥락 이름): 판의 모든 이웃 땅 
   for (const n of [LEGAL_SHORT, '강원특별자치도', '전북특별자치도', '경기도', '충청북도', '세종', '대전']) assert.ok(cn.some((x) => x.text === n), `충남 지도 이웃 ${n}`);
   for (const x of cn) {
     assert.doesNotMatch(x.text, /^(강원도|전북도|제주도|전남광주통합)$/, x.text);
-    assert.equal(UI_KO.ctxName(x.sido, x.text), x.text);
+    assert.equal(UI_KO.ctxName(x), x.text);
   }
-  assert.equal(UI_EN.ctxName('12', cn.find((x) => x.text === LEGAL_SHORT)!.text), 'Jeonnam-Gwangju');
+  assert.equal(UI_EN.ctxName({ sido: '12', text: cn.find((x) => x.text === LEGAL_SHORT)!.text }), 'Jeonnam-Gwangju');
   assert.ok(outNames(KEY).some((x) => x.text === '제주특별자치도' && x.sido === '50'), '광주특별시 지도 남쪽 이웃 제주');
 });
 
@@ -197,8 +199,8 @@ test('지역 안 묶음 장치(지역 표 parts): 묶음 이름이 지역 이름
     const unit = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/emd/12210.json'), 'utf8')) as EmdUnitFile;
     await registerUnits(r, [`${KEY}/dong-gu`], async () => unit, () => {});
     assert.equal(r.mixName(`${KEY}/dong-gu`), '시험묶음 동구');
-    const en = createRegistry(geoEn, { emd: false });
-    assert.deepEqual([UI_EN.fullName(en, sgg('12210')), UI_EN.fullPre(en, sgg('12210'))], ['Dong-gu, Testpart', 'Testpart']);
+    const en = createRegistry(geoEn, EN_ON);
+    assert.deepEqual([UI_EN.fullName(en, sgg('12210')), UI_EN.fullPre(en, sgg('12210')), UI_EN.unitName(en, `${KEY}/dong-gu`)], ['Dong-gu, Testpart', 'Testpart', 'Dong-gu, Testpart']);
   } finally { row.parts = was; }
   assert.equal(UI_KO.fullName(createRegistry(geo), sgg('12210')), `${LEGAL_SHORT} 동구`, '가짜 지역 표를 되돌림');
 });

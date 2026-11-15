@@ -13,12 +13,12 @@ import { rngFrom } from '../../src/app/core/rng.ts';
 import { step, usableDeck } from '../../src/app/core/session.ts';
 import { tomorrowCount } from '../../src/app/core/tally.ts';
 import { BOOT_UNITS_MAX, gaUnit, onMissingUnit, registerUnits, studyKeys, unitsToLoad } from '../../src/app/core/units.ts';
-import { createRegistry, type Registry } from '../../src/app/registry.ts';
+import { createRegistry, unitOptions, type Registry } from '../../src/app/registry.ts';
 import { checkBests, checkBestUnits, checkDaily, checkDeck, checkLast, checkLastUnit, checkMastery, keys, openStore, type KV } from '../../src/app/store.ts';
 import type { EmdIndex, EmdUnitFile, GeoData } from '../../src/app/types.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage } from '../../src/app/ui/pages.ts';
-import { LIVE_BY_OPEN, geo, geoNoEmd } from './fixtures.ts';
+import { EN_OFF, LIVE_BY_OPEN, geo, geoNoEmd } from './fixtures.ts';
 
 const T = 20000;
 const FIX = path.join(import.meta.dirname, '../fixtures/emd');
@@ -325,10 +325,10 @@ test('이 창에서 못 쓰는 동 단원 판은 저장소에서 지우지 않�
   const sggDeck = createDeck('lesson', lessonQuestions(reg, 'seoul', 1, () => 0, rngFrom(3)), { region: 'seoul', lesson: 1, seed: 3 });
   // 등록된 창에서는 쓸 수 있으니 지킬 것도 없다
   assert.deepEqual([onMissingUnit(reg, emdDeck), onMissingUnit(reg, mixedReview), onMissingUnit(reg, sggDeck)], [false, false, false]);
-  // 받기에 실패한 창(dropUnit) · 영어 앱(색인 없음) · 동 공개 전 판 폴더: 동 판은 지키고(이어 할 수 없을 뿐), 시·군·구 판은 그대로 쓸 수 있다
+  // 받기에 실패한 창(dropUnit) · 동을 끈 창(색인 없음 — 관문이 닫힌 영어 앱, EN_EMD 5.1) · 동 공개 전 판 폴더: 동 판은 지키고(이어 할 수 없을 뿐), 시·군·구 판은 그대로 쓸 수 있다
   const failed = regE();
   await registerUnits(failed, ['seoul/jongno-gu'], () => Promise.reject(new Error('offline')), () => {});
-  for (const r of [failed, regE({ emd: false }), createRegistry(geoNoEmd)]) {
+  for (const r of [failed, regE(EN_OFF), createRegistry(geoNoEmd)]) {
     assert.equal(usableDeck(r, emdDeck), null);
     assert.deepEqual([onMissingUnit(r, emdDeck), onMissingUnit(r, mixedReview)], [true, true]);
     assert.equal(onMissingUnit(r, sggDeck), false);
@@ -367,7 +367,8 @@ test('내일 복습 수에 동이 들어간다(단원 파일 없이 동 색인�
   assert.equal(tomorrowCount(reg, m, T), 7);
   const card = homeCard(base(reg, { mastery: m, last: 'seoul' }));
   assert.equal(card.type === 'next' && card.tomorrow, 7);
-  assert.equal(tomorrowCount(regE({ emd: false }), m, T), 3, '영어 앱은 동을 세지 않는다');
+  assert.equal(tomorrowCount(regE(EN_OFF), m, T), 3, '동을 끈 창(관문이 닫힌 영어 앱)은 동을 세지 않는다');
+  assert.equal(tomorrowCount(regE(unitOptions('en', { enNames: true })), m, T), 7, '관문이 열린 영어 앱(EN_EMD)은 한국어처럼 동도 센다');
 });
 
 test('인천 동 공부 뒤 → 홈 탭은 인천, 주 카드는 그 단원의 다음 과(다 칠하면 지역 차례로)', () => {
@@ -530,8 +531,8 @@ test('units.json 에 emdUnits 가 없으면(동 공개 전·옛 캐시) 동 입�
   assert.deepEqual(regI.emdUnits('incheon').map((u) => [u.key, u.code]), [['incheon/geomdan-gu', '28290'], ['incheon/ongjin-gun', '28720']]);
 });
 
-test('영어 앱은 동 단원을 등록하지 않는다: 동 색인을 읽지 않고, 동 기록은 복습·홈 계산에서 빠진다(기록은 남음)', async () => {
-  const reg = regE({ emd: false });
+test('동을 끈 창(관문이 닫힌 영어 앱 — EN_EMD 5.1, 2026-11-16 전 영어 앱)은 동 단원을 등록하지 않는다: 동 색인을 읽지 않고, 동 기록은 복습·홈 계산에서 빠진다(기록은 남음) · 관문이 열린 영어 앱은 한국어와 같다', async () => {
+  const reg = regE(EN_OFF);
   assert.deepEqual(reg.emdUnits('seoul'), []);
   const m: Mastery = Object.fromEntries(ids('11110').map((id) => [id, rec(1, T)]));
   assert.equal(reg.known(ids('11110')[0]), false);
@@ -541,10 +542,20 @@ test('영어 앱은 동 단원을 등록하지 않는다: 동 색인을 읽지 �
   assert.deepEqual(unitsToLoad(reg, { mastery: m, deck, deck2: null, lastUnit: 'seoul/jongno-gu', daily: null, dailyEmd: null, today: T }), []);
   assert.deepEqual(await registerUnits(reg, ['seoul/jongno-gu'], fetchFix, () => {}), []);
   assert.equal(emdOf(reg).length, 0);
-  assert.equal(onMissingUnit(reg, deck), true, '한국어 앱에서 하던 동 판은 영어 앱이 지우지 않는다');
+  assert.equal(onMissingUnit(reg, deck), true, '한국어 앱에서 하던 동 판은 동을 끈 창이 지우지 않는다');
   // 같은 기록을 한국어 앱은 센다(처음 화면이 아니고, 오늘 복습 17곳)
   assert.notEqual(homeCard(base(regE(), { mastery: m })).type, 'new');
   assert.equal(todayReview(regE(), m, T, 0).due, ids('11110').length);
+  // 관문이 열린 영어 앱(판 units.json enNames — EN_EMD 5.1)도 한국어와 같이 센다: 하던 동 판을 이어 할 수 있다(영어로 이어 하기, 8절 3)
+  const en = regE(unitOptions('en', { enNames: true }));
+  assert.deepEqual(en.emdUnits('seoul').map((u) => u.key), regE().emdUnits('seoul').map((u) => u.key));
+  assert.notEqual(homeCard(base(en, { mastery: m })).type, 'new');
+  assert.equal(todayReview(en, m, T, 0).due, ids('11110').length);
+  assert.deepEqual(await registerUnits(en, ['seoul/jongno-gu'], fetchFix, () => {}), []);
+  assert.equal(onMissingUnit(en, deck), false, '영어 앱도 동 판을 이어 한다');
+  // 판에 enNames 가 없으면(배포 직후 옛 캐시 units.json) 영어 앱은 끈 창과 같다
+  assert.deepEqual(unitOptions('en', {}), EN_OFF);
+  assert.deepEqual(regE(unitOptions('en', {})).emdUnits('seoul'), []);
 });
 
 /* ---------- 작은 단원(N10) ---------- */
