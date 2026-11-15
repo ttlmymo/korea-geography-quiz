@@ -1,14 +1,16 @@
-// 빌드 때 정적 쪽이 읽는 경계 데이터(앱과 같은 판). 지역·과·곳(units), 이웃, 이름(search), 정적 쪽 SVG(src/data/svg)
+// 빌드 때 정적 쪽이 읽는 경계 데이터(앱과 같은 판). 지역·과·곳(units), 이웃, 이름(src/data/search-sgg.json, 빌드 전용), 정적 쪽 SVG(src/data/svg)
 import fs from 'node:fs';
 import path from 'node:path';
 import { DATA_VER } from '../consts';
-import type { Region, UnitsFile, NeighborsFile } from '../app/types';
+import type { EmdUnitFile, Region, UnitsFile, NeighborsFile } from '../app/types';
+import { SIDOS, sidoOf } from '../app/sidos';
+import { slugMapOf, enOfSlug, listEn, type Named } from './regions';
 
 const read = (...p: string[]) => JSON.parse(fs.readFileSync(path.join(process.cwd(), ...p), 'utf8'));
 
 export const UNITS: UnitsFile = read('public/data/geo', DATA_VER, 'units.json');
 export const NEIGHBORS: NeighborsFile = read('public/data/geo', DATA_VER, 'neighbors.json');
-const SEARCH: { id: string; ko: string; kind: string; region: string }[] = read('public/data/geo', DATA_VER, 'search.json');
+const SEARCH: Named[] = read('src/data', 'search-sgg.json').items;   // 시·군·구·시 이름(파이프라인이 씀, 앱은 받지 않음)
 
 export interface SvgItem { id: string; d: string; lx: number; ly: number; ir: number; dongs: string[]; gu: string[]; name?: string }   // name: 데이터에 없는 곳(개편 전 옛 구)
 export interface SvgData { w: number; h: number; items: SvgItem[]; water: string; out: string }
@@ -19,6 +21,8 @@ export function svgOf(region: string): SvgData {
 }
 
 export const region = (key: string): Region => UNITS.regions.find((r) => r.key === key)!;
+/** 동 단원 파일(판 폴더 emd/{코드}.json) — 과 없는 지역(세종, N4 · E12)의 소개 쪽 범위 말·과 수를 만들 때 */
+export const emdUnitFile = (code: string): EmdUnitFile => read('public/data/geo', DATA_VER, 'emd', `${code}.json`);
 const names = new Map(SEARCH.filter((s) => s.kind !== 'emd').map((s) => [s.id, s.ko]));
 const regionOfId = new Map(SEARCH.filter((s) => s.kind !== 'emd').map((s) => [s.id, s.region]));
 /** 시군구·시 id → 이름('고양시 덕양구'처럼 일반구는 시 이름과 함께) */
@@ -35,36 +39,37 @@ export function kindsText(dongs: string[]) {
   return [k.읍 && `${k.읍}읍`, k.면 && `${k.면}면`, k.동 && `${k.동}동`].filter(Boolean).join(' ');
 }
 
-/** 같은 층(서울·인천 시군구, 경기 시)에서 맞닿은 곳. 지역 밖 이웃은 이름 앞에 시도를 붙인다 */
+/** 같은 층(서울·인천 시군구, 경기 시)에서 맞닿은 곳. 지역 밖 이웃은 이름 앞에 시도(지역 표 짧은 이름)를 붙인다 */
 export function neighborsOf(r: Region, id: string): { id: string; name: string; inRegion: boolean }[] {
   const list = (r.layer === 'si' ? NEIGHBORS.si : NEIGHBORS.sgg)[id] ?? [];
-  const SIDO: Record<string, string> = { seoul: '서울', incheon: '인천', gyeonggi: '경기' };
   return list.map((n) => {
     const inRegion = r.items.some((it) => it.id === n);
     const rk = regionKeyOf(n);
-    return { id: n, inRegion, name: inRegion ? nameOf(n) : `${SIDO[rk] ?? ''} ${nameOf(n)}`.trim() };
+    return { id: n, inRegion, name: inRegion ? nameOf(n) : `${sidoOf(rk)?.ko ?? ''} ${nameOf(n)}`.trim() };
   });
 }
 
-/* ---------- 영어 이름: 주소 이름(slug)에서. 'mapo-gu' → 'Mapo-gu', 'goyang-si-deogyang-gu' → 'Goyang-si Deogyang-gu' ---------- */
-const UNITS_SRC: { regions: { slugs: Record<string, string> }[]; generalGu: Record<string, string> } = read('src/data/units.json');
-const slugByKo = new Map<string, string>();
-for (const r of UNITS_SRC.regions) for (const [ko, sl] of Object.entries(r.slugs)) slugByKo.set(ko, sl);
-for (const [ko, sl] of Object.entries(UNITS_SRC.generalGu)) if (ko !== '_note') slugByKo.set(ko, sl);
-const cap = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
-export function enNameOf(id: string): string {
-  const ko = nameOf(id);
-  const sl = slugByKo.get(ko);
-  if (!sl) return ko;
-  const m = /^(.+?-si)-(.+)$/.exec(sl);
-  return m ? `${cap(m[1])} ${cap(m[2])}` : cap(sl);
+/* ---------- 영어 이름: 주소 이름(slug)에서. 'mapo-gu' → 'Mapo-gu', 'goyang-si-deogyang-gu' → 'Goyang-si Deogyang-gu' ----------
+ * 곳 id 기준(계획서 E9): 원고의 이름 → slug 를 그 지역 안 이름으로 id 에 잇는다(중구·동구처럼 겹치는 이름이 덮어쓰지 않게) */
+const UNITS_SRC: { regions: { key: string; slugs: Record<string, string> }[]; generalGu: Record<string, string> } = read('src/data/units.json');
+const slugById = slugMapOf(UNITS_SRC, SEARCH);
+// 앱이 받는 판(units.json 의 곳·일반구 단원 곳)과 원고가 어긋나면 멈춘다. 판에만 있는 곳(미리보기의 임시 지역)은 판의 slug 를 쓴다
+for (const it of [...UNITS.regions.flatMap((r) => r.items), ...Object.values(UNITS.guUnits ?? {}).flatMap((u) => u.items)]) {
+  const sl = slugById.get(it.id);
+  if (sl === undefined) slugById.set(it.id, it.slug);
+  else if (sl !== it.slug) throw new Error(`곳 ${it.id}: 원고 slug ${sl} 와 판 slug ${it.slug} 가 다름(파이프라인을 다시 돌릴 것)`);
 }
-const SIDO_EN: Record<string, string> = { seoul: 'Seoul', incheon: 'Incheon', gyeonggi: 'Gyeonggi' };
+export function enNameOf(id: string): string {
+  const sl = slugById.get(id);
+  return sl ? enOfSlug(sl) : nameOf(id);
+}
+// 지역 키 → 영어 이름(지역 표 en, 계획서 E8 · N26). 영어 이름을 확인하지 않은 지역(enChecked false)은 넣지 않는다
+const SIDO_EN: Record<string, string> = Object.fromEntries(SIDOS.filter((s) => s.enChecked).map((s) => [s.key, s.en]));
 /** 영어 쪽의 맞닿은 곳: 지역 밖이면 시도를 앞에 */
 export function neighborsEn(r: Region, id: string) {
   return neighborsOf(r, id).map((n) => (n.inRegion ? enNameOf(n.id) : `${enNameOf(n.id)} (${SIDO_EN[regionKeyOf(n.id)] ?? ''})`));
 }
-export const listEn = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+export { listEn };
 
 /** 서울 한강 북쪽 14개 구(파이프라인 NORTH 와 같은 목록, 한강 띠를 만들 때 쓴 것) */
 /** 정적 지도 묶음 칠(RegionMap 의 t-a~t-e 와 같은 색 — 표의 색 견본용) */

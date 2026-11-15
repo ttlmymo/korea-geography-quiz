@@ -120,6 +120,10 @@ export function restoreDeck(raw: unknown): Deck | null {
   if (!['lesson', 'quick', 'mix', 'check', 'review'].includes(d.kind)) return null;
   if (d.pos < 0 || d.pos > d.queue.length) return null;
   if (d.queue.some((q) => !q || typeof q.id !== 'string' || !['meet', 'choose', 'find'].includes(q.mode))) return null;
+  // 단원 키(region)와 고르기 보기(options)도 모양을 본다(2026-11-15 점검): 모양이 틀린 저장 판 하나로 부팅의 unitsToLoad·onMissingUnit 이 예외를 내
+  // 앱이 그려지지 않았다. 운영 앱(fb01299)도 이런 판은 usableDeck 에서 버렸으니 버리는 판은 늘지 않는다(저장 키·모양은 그대로)
+  if (d.region !== null && typeof d.region !== 'string') return null;
+  if (d.queue.some((q) => q.options != null && (!Array.isArray(q.options) || q.options.some((o) => typeof o !== 'string')))) return null;
   // 옛 저장값에는 뒤에 생긴 칸이 없을 수 있어 빈 값을 먼저 깐다(타입상 d 에 늘 있어도 실제 저장값은 다를 수 있다)
   const fill: Pick<Deck, 'retries' | 'missed' | 'toLearn' | 'placed' | 'right'> = { retries: {}, missed: [], toLearn: [], placed: [], right: {} };
   return { ...fill, ...d };

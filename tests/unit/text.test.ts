@@ -51,7 +51,11 @@ test('정답·모르겠어요 문장', () => {
 });
 
 test('문제 문장: 단위 이름은 지역 데이터에서', () => {
-  assert.deepEqual(reg.regions.map(unitKo), ['구', '군·구', '시·군']);
+  // 구와 군이 섞인 지역은 그 지역이 스스로 쓰는 차례: 부산(E11)·대구·울산(E12)은 '구·군', 지역 표 gunFirst 인 인천만 '군·구'.
+  // 세종(과 없는 지역)의 칸은 세종시 하나라 '시'(고르기 문제는 동 단원에서만 나온다 — '무슨 읍·면·동일까요?'). E13: 충북·강원·전북은 '시·군', 제주(과 없는 지역)는 칸이 제주시·서귀포시라 '시'
+  const uk = Object.fromEntries(reg.regions.map((r) => [r.key, unitKo(r)]));   // E14 충남·경북('시·군')은 e14-region.test
+  assert.deepEqual(['seoul', 'busan', 'daegu', 'incheon', 'daejeon', 'ulsan', 'sejong', 'gyeonggi', 'chungbuk', 'jeju', 'gangwon', 'jeonbuk'].map((k) => uk[k]), ['구', '구·군', '구·군', '군·구', '구', '구·군', '시', '시·군', '시·군', '시', '시·군', '시·군']);
+  assert.deepEqual(promptKo(reg, { mode: 'choose', id: idOf('기장군') }), { band: '테두리 친 칸은 무슨 구·군일까요?' });
   const id = idOf('마포구');
   assert.deepEqual(promptKo(reg, { mode: 'meet', id }), { band: '이곳은 마포구', line: '서대문구 서쪽, 홍대와 월드컵경기장이 있는 곳', act: '테두리 친 칸을 눌러 보세요' });
   assert.deepEqual(promptKo(reg, { mode: 'choose', id }), { band: '테두리 친 칸은 무슨 구일까요?' });

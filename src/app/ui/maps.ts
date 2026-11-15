@@ -1,32 +1,103 @@
-// 화면의 지도 자리(data-map)에 SVG 지도를 붙인다. 지역 경계는 한 번 받아 칸으로 만들어 두고 다시 쓴다
-import { loadTopo } from '../data.ts';
-import { buildShapes, inside, specOf, type Cell, type Shapes } from '../map/shapes.ts';
+// 화면의 지도 자리(data-map)에 SVG 지도를 붙인다. 지역 경계는 한 번 받아 칸으로 만들어 두고 다시 쓴다.
+// 동 단원(계획서 E5 · N11)은 단원 파일 emd/{코드}.topo.json(동 5m + 같은 위상의 이웃 땅)으로 그리고, 일반구 단원(E7)은 부모 지역 -sgg 의 sgg 층을 쓴다.
+// 캐시 키는 지역 키 또는 단원 키(seoul/jongno-gu)
+import { loadSidoTopo, loadTopo, loadUnitTopo } from '../data.ts';
+import { buildShapes, inside, specOf, type Cell, type Shapes, type Topology } from '../map/shapes.ts';
+import { perf } from '../perf.ts';
 import { createSvgMap, type MapLabel, type Marks, type SvgMap } from '../map/svgmap.ts';
 import type { LabelMode } from '../map/labelfit.ts';
 import { boxOf, type Box } from '../map/project.ts';
 import { fitView, toMap, type Pad } from '../map/view.ts';
 import type { Tap } from '../core/judge.ts';
-import type { BBox } from '../types.ts';
+import type { BBox, LabelsFile, Lesson, Region } from '../types.ts';
 import type { Ctx } from './ctx.ts';
 import { L } from '../text/ui.ts';
 import { track } from '../analytics.ts';
 
 const cache = new Map<string, Promise<Shapes>>();
 
+/** 지도 엔진이 전국 시·도 지도(지역 고르기, 계획서 N23)로 알아보는 키. 지역 키가 아니다('#' 은 지역 키 모양 /^[a-z-]+$/ 에 들지 않는다) */
+export const KOREA_MAP = '#kr';
+
+/** 전국 시·도 지도의 이름표 점: 파이프라인이 칸마다 l: [경도, 위도, 내접원 m] 로 싣는다(labels.json 에 시·도 층을 더하지 않으려고) */
+const sidoLabels = (t: Topology): LabelsFile => Object.fromEntries((t.objects.sido?.geometries ?? []).map((g) => [g.properties?.id ?? '', (g.properties as unknown as { l: [number, number, number] }).l]));
+
 export function shapesOf(ctx: Ctx, region: string): Promise<Shapes> {
   let p = cache.get(region);
   if (!p) {
+    // 지역 고르기의 전국 시·도 지도(계획서 N23 · E8): 칸은 16 시·도 전부(열지 않은 지역은 쪽이 바탕색으로 둔다)
+    if (region === KOREA_MAP) {
+      p = timed(region, loadSidoTopo(ctx.base, ctx.ver), (t) => buildShapes(t, { layer: 'sido', idKey: 'id', ids: (t.objects.sido?.geometries ?? []).map((g) => g.properties?.id ?? ''), far: false }, sidoLabels(t)));
+      p.catch(() => cache.delete(region));
+      cache.set(region, p);
+      return p;
+    }
     const r = ctx.reg.region(region);
     if (!r) return Promise.reject(new Error(`없는 지역: ${region}`));
-    p = loadTopo(ctx.base, ctx.ver, region).then((t) => buildShapes(t, specOf(r), ctx.geo.labels));
+    if (r.layer === 'sido') {
+      // 시·도 단원(korea): 같은 전국 시·도 지도, 이름표 점은 units.json korea(레지스트리)
+      const labels: LabelsFile = Object.fromEntries(r.items.map((it) => [it.id, ctx.reg.point(it.id)!]));
+      p = timed(region, loadSidoTopo(ctx.base, ctx.ver), (t) => buildShapes(t, specOf(r), labels));
+    } else if (r.layer === 'emd' && r.unit) {
+      // 동 단원: 이름표 점은 단원 파일(레지스트리에 등록된 것)에서
+      const labels: LabelsFile = Object.fromEntries(r.items.map((it) => [it.id, ctx.reg.point(it.id)!]));
+      p = timed(region, loadUnitTopo(ctx.base, ctx.ver, r.unit.code), (t) => buildShapes(t, specOf(r), labels));
+    } else {
+      // 지역, 또는 일반구 단원(부모 지역 경계 파일의 sgg 층)
+      p = timed(region, loadTopo(ctx.base, ctx.ver, r.unit?.parent ?? region), (t) => buildShapes(t, specOf(r), ctx.geo.labels));
+    }
     p.catch(() => cache.delete(region));
     cache.set(region, p);
   }
   return p;
 }
 
+/**
+ * 받기·칸 만들기 시간을 재며(계획서 N35 '단원 열기' — perf.ts, 확인 도구가 켤 때만 남는다) 경계를 칸으로.
+ * 동 단원 경계는 main.ts 가 단원 파일과 함께 미리 받기 시작할 수 있다(prefetchTopo) — 그때 fetch 값은 여기서부터 남은 받기 시간이다
+ */
+function timed(key: string, load: Promise<Topology>, build: (t: Topology) => Shapes): Promise<Shapes> {
+  const t0 = performance.now();
+  return load.then((t) => {
+    const t1 = performance.now();
+    const s = build(t);
+    perf('fetch', t1 - t0, key);
+    perf('build', performance.now() - t1, key);
+    return s;
+  });
+}
+
+/** 지도 기본 범위와 섬 상자(동 단원의 섬, map/isles.ts) */
+export interface MapView { fit: BBox; isles: string[] }
+
+/** 과 범위(파이프라인이 섬 상자 곳을 뺀 범위로 낸다)와 그 과의 섬 상자 곳 — 문제 화면의 과 확대 보기(play.ts 는 같은 값을 바로 읽는다). 과 시작·요약은 지역 전체(wholeView) */
+export const lessonView = (l: Lesson): MapView => ({ fit: l.fit, isles: l.insets ?? [] });
+
+/**
+ * 단원·지역 전체 지도(홈·단원 쪽·지역 쪽·둘러보기·시험 결과): 섬 상자 = 화면들의 insets 를 모두 합친 것, 기본 범위 = 본 땅이 든 화면들의 범위를 합친 것
+ * (섬만 든 화면의 범위는 먼 섬까지 들어 넓다). 본 땅 화면이 없으면(모든 곳이 섬 — 옹진군) 단원 범위. 섬 상자가 없으면 단원·지역 범위 그대로.
+ * 지역도 같은 규칙이다(E13 검수): 지금 판의 지역 화면에는 insets 가 없어 지역 범위 그대로이고, 통째로 먼 섬인 곳(경북 울릉군 — 파이프라인이 지역 상자 near 에서
+ * 뺀다)을 파이프라인이 지역 과·화면 insets 로 넣으면 앱 코드를 바꾸지 않고 홈·지역 쪽·둘러보기·시험 결과·과 지도·문제 화면에 섬 상자로 보인다
+ */
+export function wholeView(r: Region): MapView {
+  const isles = [...new Set(r.screens.flatMap((s) => s.insets ?? []))];
+  if (!isles.length) return { fit: r.fit, isles };
+  const land = r.screens.filter((s) => s.items.some((id) => !(s.insets ?? []).includes(id)));
+  if (!land.length) return { fit: r.fit, isles };
+  const b = land.map((s) => s.fit).reduce((a, c): BBox => [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[2], c[2]), Math.max(a[3], c[3])]);
+  return { fit: b, isles };
+}
+
+/**
+ * 지도 자리에 넘길 범위·섬 상자(wholeView 의 v): 동 단원은 늘(전과 같음), 지역은 섬 상자가 있을 때만
+ * (없으면 mountMap 이 지역 범위 r.fit 을 쓴다 — v.fit 과 같은 범위라 지금 판의 지역 지도는 그대로다)
+ */
+export const viewSpec = (r: Region, v: MapView): Pick<MapSpec, 'home' | 'isles'> => (r.unit || v.isles.length ? { home: v.fit, isles: v.isles } : {});
+
 export interface MapSpec {
   region: string;
+  /** 섬 상자로 따로 보일 곳(동 단원의 섬 — lessonView·wholeView) */
+  isles?: string[];
   /** 기본 보기 범위(경도·위도). 없으면 지역 전체 */
   home?: BBox;
   pad?: Pad;
@@ -51,6 +122,17 @@ export interface MapSpec {
   labelMinWidth?: number;
   /** 복습할 곳(먹색 점) */
   badges?: string[];
+  /**
+   * 지역(단원) 전체 지도인가(과 시작·과 요약 — 2026-11-15 사용자 결정, pages.ts lessonWhole): 밝은 칸(active)이 이번 과뿐이어도
+   * 먼 섬 상자를 늘 보이고(svgmap insetAlways), 섬 상자·축척 막대 자리는 지역 칸 모두를 피해 정한다 — 홈 지도(모든 칸이 밝은 채움 지도)와 같은 자리.
+   * 위치 지도(map/locator.ts)는 쪽 지도에 두지 않는다 — 과 확대 + 위치 지도는 문제 화면만(play.ts 가 svgmap 에 바로 넘긴다)
+   */
+  whole?: boolean;
+  /**
+   * 확대 상자로 보일 과 범위(과 시작·과 요약 — 이번 과의 l.fit, 문제 화면과 같은 범위. map/zoombox.ts — D95 ㉣, 2026-11-15 사용자 결정 '확대 상자 덧붙임'):
+   * 이번 과가 지역 전체 지도에 너무 작게 그려질 때만 상자가 보인다(svgmap setZoom — 판정·자리는 지도가 실제 크기로 정한다)
+   */
+  zoom?: BBox;
   marks?: Marks;
   onTap?(tap: Tap): void;
   onZoomed?(z: boolean): void;
@@ -119,7 +201,7 @@ export function insetPad(host: HTMLElement, shapes: Shapes, box: Box, ids: Itera
 
 /**
  * 쪽 지도의 축척 막대(오른쪽 아래, 지도 바탕색 상자)가 밝은 칸(ids)을 가리면 아래 여백을 막대 위까지 늘린다.
- * 과 범위 지도(과 시작·요약)는 칸이 지도 칸 오른쪽 아래 구석까지 차서 막대 상자가 칸과 굵은 테두리를 네모나게 잘라 먹는다.
+ * 칸이 지도 칸 오른쪽 아래 구석까지 차는 지도(처음에는 과 범위로 확대한 과 시작·요약)는 막대 상자가 칸과 굵은 테두리를 네모나게 잘라 먹는다.
  * 가리는지는 막대 상자(둘레 4px 포함 — 굵은 테두리) 안 표본 점 12×4 가 칸 안에 드는지로 본다. 막대가 없거나 안 가리면 base 그대로
  */
 export function scalePad(host: HTMLElement, shapes: Shapes, box: Box, ids: Iterable<string>, base: Pad): Pad {
@@ -141,15 +223,22 @@ export function scalePad(host: HTMLElement, shapes: Shapes, box: Box, ids: Itera
 
 export async function mountMap(ctx: Ctx, host: HTMLElement, spec: MapSpec): Promise<SvgMap> {
   const shapes = await shapesOf(ctx, spec.region);
-  const region = ctx.reg.region(spec.region)!;
-  const map = createSvgMap(host, { shapes, interaction: spec.interaction ?? 'none', contextNames: spec.contextNames, scaleBar: spec.scaleBar, scaleMinWidth: spec.scaleMinWidth, ctxName: L.ctxName, insetNote: L.inset, onTap: spec.onTap, onZoomed: spec.onZoomed });
+  const region = ctx.reg.region(spec.region);
+  // 전국 시·도 지도(지역 고르기·시·도 단원)는 흰 판 이름표를 남의 시·도 칸 위에 두지 않는다(E10 검수 — 휴대폰에서 '충북' 판이 경기·충남 경계 위에 놓였다)
+  const plateHome = spec.region === KOREA_MAP || region?.layer === 'sido';
+  const map = createSvgMap(host, {
+    shapes, interaction: spec.interaction ?? 'none', contextNames: spec.contextNames, scaleBar: spec.scaleBar, scaleMinWidth: spec.scaleMinWidth, ctxName: L.ctxName, insetNote: L.inset, onTap: spec.onTap, onZoomed: spec.onZoomed, plateHome,
+    ...(spec.whole ? { insetAlways: true } : {}),
+  });
   // 보기를 먼저 맞춘다(이름표 자리는 배율에 달려 있다)
-  const home = boxOf(spec.home ?? region.fit);
+  // 지역이 아닌 지도(전국 시·도 지도 KOREA_MAP)는 spec.home, 없으면 칸 전체
+  const home = spec.home ? boxOf(spec.home) : region ? boxOf(region.fit) : shapes.box;
   let pad = spec.pad ?? CARD_PAD;
   map.setHome(home, pad);
   if (spec.active !== undefined) map.setActive(spec.active);
   if (spec.fills) map.setFills(spec.fills);
-  const lit = new Set([...(spec.active ?? shapes.ids), ...Object.keys(spec.fills ?? {})]);
+  // 섬 상자·축척 막대가 피할 칸: 밝은 칸(고를 칸·칠한 칸). 지역 전체 지도(whole)는 이번 과만 밝아도 지역 칸 모두(홈 지도와 같은 자리)
+  const lit = new Set(spec.whole ? shapes.ids : [...(spec.active ?? shapes.ids), ...Object.keys(spec.fills ?? {})]);
   // 섬 상자가 보이면(칸 상태가 정해진 뒤에 안다) 상자 밑에 칠한·고를 칸이 깔리지 않게 여백과 상자 자리를 다시 정한다
   if (shapes.far) {
     const p = insetPad(host, shapes, home, lit, pad);
@@ -160,12 +249,15 @@ export async function mountMap(ctx: Ctx, host: HTMLElement, spec: MapSpec): Prom
     const p = scalePad(host, shapes, home, lit, pad);
     if (p !== pad) map.setHome(home, pad = p);
   }
+  if (spec.isles?.length) map.setIsles(spec.isles);
   if (spec.question) map.setQuestion(spec.question);
   if (spec.highlight) map.setHighlight(spec.highlight);
   if (spec.bold?.length) map.setBold(spec.bold);
   if (spec.labels) map.setLabels(spec.labels, { mode: spec.labelMode ?? 'must', minWidth: spec.labelMinWidth });
   if (spec.badges?.length) map.setBadges(spec.badges);
   if (spec.marks) map.mark(spec.marks);
+  // 확대 상자는 맨 끝에: 먼 섬 상자·축척 막대 자리(insetPad·scalePad)와 섬 상자·칠·이름표가 다 정해진 지도로 판정하고 자리를 고른다
+  if (spec.zoom) map.setZoom({ fit: boxOf(spec.zoom), note: L.zoom });
   return map;
 }
 

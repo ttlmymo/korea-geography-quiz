@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseRoute, toHash, type Known, type Route } from '../../src/app/router.ts';
-import { reg } from './fixtures.ts';
+import { OFF_KEY, reg } from './fixtures.ts';
 
 const known: Known = {
   region: (k) => !!reg.region(k),
@@ -43,7 +43,8 @@ test('끝 빗금은 봐준다', () => {
 });
 
 test('모르는 경로는 홈으로 보내고 주소를 고친다(검색 문자열은 남김)', () => {
-  for (const h of ['#/kr/busan', '#/kr/seoul/sgg/p6', '#/kr/seoul/sgg/p0', '#/kr/seoul/sgg/p01', '#/kr/seoul/sgg/@nope',
+  // 열지 않은 지역(E11 부터 부산, E12 부터 대구·대전·울산·세종, E13 부터 강원·충북·전북·제주, E14 부터 충남·경북은 열림 — 지역 표 차례 첫째 OFF_KEY 로 본다)
+  for (const h of [...(OFF_KEY ? [`#/kr/${OFF_KEY}`] : []), '#/kr/seoul/sgg/p6', '#/kr/seoul/sgg/p0', '#/kr/seoul/sgg/p01', '#/kr/seoul/sgg/@nope',
     '#/kr/seoul/explore/nope', '#/kr/seoul/emd/p1', '#/kr/seoul/mix/1', '#/what', '#/review/x', '#/kr/seoul/sgg/%E0%A4%A']) {
     assert.deepEqual(parse(h), { route: { name: 'home' }, fix: '' }, h);
   }
@@ -53,7 +54,10 @@ test('모르는 경로는 홈으로 보내고 주소를 고친다(검색 문자�
 test('옛 ?region=seoul 은 #/kr/seoul 로', () => {
   assert.deepEqual(parse('', '?region=seoul'), { route: { name: 'unit', region: 'seoul' }, fix: '#/kr/seoul' });
   assert.deepEqual(parse('', '?region=incheon&utm_source=x'), { route: { name: 'unit', region: 'incheon' }, fix: '?utm_source=x#/kr/incheon' });
-  assert.deepEqual(parse('', '?region=busan'), { route: { name: 'home' }, fix: '' });
+  if (OFF_KEY) assert.deepEqual(parse('', `?region=${OFF_KEY}`), { route: { name: 'home' }, fix: '' });   // 열지 않은 지역(E12 부터 대구, E13 부터 강원, E14 부터 충남은 열림)
+  assert.deepEqual(parse('', '?region=gangwon'), { route: { name: 'unit', region: 'gangwon' }, fix: '#/kr/gangwon' });   // E13 부터 열림
+  assert.deepEqual(parse('', '?region=daegu'), { route: { name: 'unit', region: 'daegu' }, fix: '#/kr/daegu' });   // E12 부터 열림
+  assert.deepEqual(parse('', '?region=busan'), { route: { name: 'unit', region: 'busan' }, fix: '#/kr/busan' });   // E11 부터 열림
   // 해시 경로가 있으면 그쪽이 먼저
   assert.deepEqual(parse('#/kr/gyeonggi', '?region=seoul').route, { name: 'unit', region: 'gyeonggi' });
 });

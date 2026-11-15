@@ -1,5 +1,5 @@
 {
-  "_note": "지역·단원·과 구성과 주소 이름(slug). 이름(한글)은 경계 데이터에서 오고, 여기서는 이름으로 찾는다. 파이프라인(pipeline/build-geo.mjs)이 코드로 바꿔 검사한다. screens = 지역 전체를 묻는 판(전체 연습·시험·넓은 복습)을 나눠 보이는 화면(없으면 지역 전체가 한 화면)",
+  "_note": "지역·단원·과 구성과 주소 이름(slug). 이름(한글)은 경계 데이터에서 오고, 여기서는 이름으로 찾는다. 파이프라인(pipeline/build-geo.mjs)이 코드로 바꿔 검사한다. screens = 지역 전체를 묻는 판(전체 연습·시험·넓은 복습)을 나눠 보이는 화면(없으면 지역 전체가 한 화면). layer emd(세종 — 시·군·구 과 없이 동 단원이 주 단원, 계획서 N4 · E12)는 lessons 를 비우고 slugs 에 동 단원(시·군·구) slug 만 둔다",
   "regions": [
     {
       "key": "seoul", "sido": "11", "ko": "서울", "full": "서울특별시", "en": "Seoul", "layer": "sgg",
@@ -19,6 +19,64 @@
       ]
     },
     {
+      "key": "jeonnam-gwangju", "sido": "12", "ko": "광주특별시", "full": "전남광주통합특별시", "en": "Jeonnam-Gwangju", "layer": "sgg",
+      "slugs": {
+        "동구": "dong-gu", "서구": "seo-gu", "남구": "nam-gu", "북구": "buk-gu", "광산구": "gwangsan-gu",
+        "목포시": "mokpo-si", "여수시": "yeosu-si", "순천시": "suncheon-si", "나주시": "naju-si", "광양시": "gwangyang-si",
+        "담양군": "damyang-gun", "곡성군": "gokseong-gun", "구례군": "gurye-gun", "고흥군": "goheung-gun", "보성군": "boseong-gun", "화순군": "hwasun-gun",
+        "장흥군": "jangheung-gun", "강진군": "gangjin-gun", "해남군": "haenam-gun", "영암군": "yeongam-gun", "무안군": "muan-gun", "함평군": "hampyeong-gun",
+        "영광군": "yeonggwang-gun", "장성군": "jangseong-gun", "완도군": "wando-gun", "진도군": "jindo-gun", "신안군": "sinan-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "광주", "en": "Gwangju", "items": ["서구", "동구", "남구", "북구", "광산구"] },
+        { "no": 2, "title": "광주 둘레", "en": "Around Gwangju", "items": ["담양군", "장성군", "함평군", "나주시", "화순군"] },
+        { "no": 3, "title": "서해 바닷가", "en": "West coast", "items": ["영광군", "무안군", "목포시", "신안군"] },
+        { "no": 4, "title": "남서쪽 끝", "en": "Southwest tip", "items": ["영암군", "해남군", "진도군", "완도군"] },
+        { "no": 5, "title": "남쪽 바닷가", "en": "South coast", "items": ["강진군", "장흥군", "보성군", "고흥군"] },
+        { "no": 6, "title": "순천 둘레", "en": "Around Suncheon", "items": ["순천시", "곡성군", "구례군", "광양시", "여수시"] }
+      ],
+      "screens": [
+        { "key": "gwangju", "ko": "광주", "en": "Gwangju", "items": ["서구", "동구", "남구", "북구", "광산구"] },
+        { "key": "nw", "ko": "북서쪽", "en": "northwest", "items": ["영광군", "함평군", "장성군", "무안군", "목포시", "신안군", "나주시"] },
+        { "key": "sw", "ko": "남서쪽", "en": "southwest", "items": ["영암군", "해남군", "진도군", "완도군", "강진군", "장흥군"] },
+        { "key": "east", "ko": "동쪽", "en": "east", "items": ["담양군", "화순군", "곡성군", "구례군", "순천시", "광양시", "여수시", "보성군", "고흥군"] }
+      ]
+    },
+    {
+      "key": "busan", "sido": "26", "ko": "부산", "full": "부산광역시", "en": "Busan", "layer": "sgg",
+      "slugs": {
+        "중구": "jung-gu", "서구": "seo-gu", "동구": "dong-gu", "영도구": "yeongdo-gu", "부산진구": "busanjin-gu",
+        "동래구": "dongnae-gu", "남구": "nam-gu", "북구": "buk-gu", "해운대구": "haeundae-gu", "사하구": "saha-gu",
+        "금정구": "geumjeong-gu", "강서구": "gangseo-gu", "연제구": "yeonje-gu", "수영구": "suyeong-gu", "사상구": "sasang-gu", "기장군": "gijang-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "부산항 둘레", "en": "Around Busan Port", "items": ["중구", "서구", "동구", "영도구"] },
+        { "no": 2, "title": "가운데와 북쪽", "en": "Center and north", "items": ["부산진구", "연제구", "동래구", "금정구"] },
+        { "no": 3, "title": "동쪽 바닷가", "en": "East coast", "items": ["남구", "수영구", "해운대구", "기장군"] },
+        { "no": 4, "title": "낙동강 둘레", "en": "Along the Nakdong River", "items": ["강서구", "사하구", "사상구", "북구"] }
+      ],
+      "screens": [
+        { "key": "west", "ko": "서쪽", "en": "west", "items": ["중구", "서구", "동구", "영도구", "강서구", "사하구", "사상구", "북구"] },
+        { "key": "east", "ko": "동쪽", "en": "east", "items": ["부산진구", "연제구", "동래구", "금정구", "남구", "수영구", "해운대구", "기장군"] }
+      ]
+    },
+    {
+      "key": "daegu", "sido": "27", "ko": "대구", "full": "대구광역시", "en": "Daegu", "layer": "sgg",
+      "slugs": {
+        "중구": "jung-gu", "동구": "dong-gu", "서구": "seo-gu", "남구": "nam-gu", "북구": "buk-gu",
+        "수성구": "suseong-gu", "달서구": "dalseo-gu", "달성군": "dalseong-gun", "군위군": "gunwi-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "중구 둘레", "en": "Around Jung-gu", "items": ["중구", "서구", "남구"] },
+        { "no": 2, "title": "북쪽", "en": "North", "items": ["북구", "동구", "군위군"] },
+        { "no": 3, "title": "남쪽", "en": "South", "items": ["수성구", "달서구", "달성군"] }
+      ],
+      "screens": [
+        { "key": "north", "ko": "북쪽", "en": "north", "items": ["북구", "동구", "군위군"] },
+        { "key": "south", "ko": "남쪽", "en": "south", "items": ["중구", "서구", "남구", "수성구", "달서구", "달성군"] }
+      ]
+    },
+    {
       "key": "incheon", "sido": "28", "ko": "인천", "full": "인천광역시", "en": "Incheon", "layer": "sgg",
       "slugs": {
         "강화군": "ganghwa-gun", "옹진군": "ongjin-gun", "제물포구": "jemulpo-gu", "영종구": "yeongjong-gu", "미추홀구": "michuhol-gu",
@@ -33,6 +91,25 @@
         { "key": "land", "ko": "내륙", "en": "mainland", "items": ["검단구", "서해구", "계양구", "부평구", "제물포구", "미추홀구", "연수구", "남동구"] },
         { "key": "sea", "ko": "섬과 바다", "en": "islands", "items": ["영종구", "강화군", "옹진군"] }
       ]
+    },
+    {
+      "key": "daejeon", "sido": "30", "ko": "대전", "full": "대전광역시", "en": "Daejeon", "layer": "sgg",
+      "slugs": { "중구": "jung-gu", "동구": "dong-gu", "대덕구": "daedeok-gu", "유성구": "yuseong-gu", "서구": "seo-gu" },
+      "lessons": [
+        { "no": 1, "title": "대전 한눈에", "en": "Daejeon at a glance", "items": ["중구", "동구", "대덕구", "유성구", "서구"] }
+      ]
+    },
+    {
+      "key": "ulsan", "sido": "31", "ko": "울산", "full": "울산광역시", "en": "Ulsan", "layer": "sgg",
+      "slugs": { "중구": "jung-gu", "남구": "nam-gu", "동구": "dong-gu", "북구": "buk-gu", "울주군": "ulju-gun" },
+      "lessons": [
+        { "no": 1, "title": "울산 한눈에", "en": "Ulsan at a glance", "items": ["중구", "남구", "동구", "북구", "울주군"] }
+      ]
+    },
+    {
+      "key": "sejong", "sido": "36", "ko": "세종", "full": "세종특별자치시", "en": "Sejong", "layer": "emd",
+      "slugs": { "세종시": "sejong-si" },
+      "lessons": []
     },
     {
       "key": "gyeonggi", "sido": "41", "ko": "경기", "full": "경기도", "en": "Gyeonggi", "layer": "si",
@@ -59,10 +136,109 @@
         { "key": "sw", "ko": "남서부", "en": "southwest", "items": ["부천시", "광명시", "시흥시", "안산시", "안양시", "군포시", "의왕시", "과천시", "수원시", "화성시", "오산시"] },
         { "key": "se", "ko": "남동부", "en": "southeast", "items": ["성남시", "용인시", "광주시", "이천시", "여주시", "평택시", "안성시"] }
       ]
+    },
+    {
+      "key": "chungbuk", "sido": "43", "ko": "충북", "full": "충청북도", "en": "Chungbuk", "layer": "si",
+      "slugs": {
+        "청주시": "cheongju-si", "충주시": "chungju-si", "제천시": "jecheon-si", "보은군": "boeun-gun", "옥천군": "okcheon-gun", "영동군": "yeongdong-gun",
+        "증평군": "jeungpyeong-gun", "진천군": "jincheon-gun", "괴산군": "goesan-gun", "음성군": "eumseong-gun", "단양군": "danyang-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "청주 둘레", "en": "Around Cheongju", "items": ["청주시", "증평군", "진천군", "음성군", "괴산군"] },
+        { "no": 2, "title": "충주호 둘레", "en": "Around Chungju Lake", "items": ["충주시", "제천시", "단양군"] },
+        { "no": 3, "title": "남쪽", "en": "South", "items": ["보은군", "옥천군", "영동군"] }
+      ]
+    },
+    {
+      "key": "chungnam", "sido": "44", "ko": "충남", "full": "충청남도", "en": "Chungnam", "layer": "si",
+      "slugs": {
+        "천안시": "cheonan-si", "공주시": "gongju-si", "보령시": "boryeong-si", "아산시": "asan-si", "서산시": "seosan-si", "논산시": "nonsan-si", "계룡시": "gyeryong-si", "당진시": "dangjin-si",
+        "금산군": "geumsan-gun", "부여군": "buyeo-gun", "서천군": "seocheon-gun", "청양군": "cheongyang-gun", "홍성군": "hongseong-gun", "예산군": "yesan-gun", "태안군": "taean-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "북쪽", "en": "North", "items": ["천안시", "아산시", "당진시", "예산군"] },
+        { "no": 2, "title": "서쪽 바닷가", "en": "West coast", "items": ["서산시", "태안군", "홍성군", "보령시"] },
+        { "no": 3, "title": "남쪽", "en": "South", "items": ["부여군", "청양군", "서천군"] },
+        { "no": 4, "title": "대전 둘레", "en": "Around Daejeon", "items": ["공주시", "계룡시", "논산시", "금산군"] }
+      ],
+      "screens": [
+        { "key": "west", "ko": "서쪽", "en": "west", "items": ["당진시", "서산시", "태안군", "예산군", "홍성군", "보령시", "청양군", "서천군"] },
+        { "key": "east", "ko": "동쪽", "en": "east", "items": ["천안시", "아산시", "공주시", "계룡시", "논산시", "부여군", "금산군"] }
+      ]
+    },
+    {
+      "key": "gyeongbuk", "sido": "47", "ko": "경북", "full": "경상북도", "en": "Gyeongbuk", "layer": "si",
+      "slugs": {
+        "포항시": "pohang-si", "경주시": "gyeongju-si", "김천시": "gimcheon-si", "안동시": "andong-si", "구미시": "gumi-si", "영주시": "yeongju-si", "영천시": "yeongcheon-si",
+        "상주시": "sangju-si", "문경시": "mungyeong-si", "경산시": "gyeongsan-si", "의성군": "uiseong-gun", "청송군": "cheongsong-gun", "영양군": "yeongyang-gun", "영덕군": "yeongdeok-gun",
+        "청도군": "cheongdo-gun", "고령군": "goryeong-gun", "성주군": "seongju-gun", "칠곡군": "chilgok-gun", "예천군": "yecheon-gun", "봉화군": "bonghwa-gun", "울진군": "uljin-gun", "울릉군": "ulleung-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "북쪽", "en": "North", "items": ["영주시", "봉화군", "예천군", "문경시"] },
+        { "no": 2, "title": "안동 둘레", "en": "Around Andong", "items": ["안동시", "의성군", "청송군", "영양군"] },
+        { "no": 3, "title": "동해 바닷가", "en": "East Sea coast", "items": ["포항시", "경주시", "영덕군", "울진군", "울릉군"] },
+        { "no": 4, "title": "대구 둘레", "en": "Around Daegu", "items": ["칠곡군", "경산시", "영천시", "청도군"] },
+        { "no": 5, "title": "서쪽", "en": "West", "items": ["구미시", "김천시", "상주시", "성주군", "고령군"] }
+      ]
+    },
+    {
+      "key": "gyeongnam", "sido": "48", "ko": "경남", "full": "경상남도", "en": "Gyeongnam", "layer": "si",
+      "slugs": {
+        "창원시": "changwon-si", "진주시": "jinju-si", "통영시": "tongyeong-si", "사천시": "sacheon-si", "김해시": "gimhae-si", "밀양시": "miryang-si",
+        "거제시": "geoje-si", "양산시": "yangsan-si", "의령군": "uiryeong-gun", "함안군": "haman-gun", "창녕군": "changnyeong-gun", "고성군": "goseong-gun",
+        "남해군": "namhae-gun", "하동군": "hadong-gun", "산청군": "sancheong-gun", "함양군": "hamyang-gun", "거창군": "geochang-gun", "합천군": "hapcheon-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "남쪽 바닷가", "en": "South coast", "items": ["창원시", "고성군", "통영시", "거제시"] },
+        { "no": 2, "title": "동쪽", "en": "East", "items": ["김해시", "양산시", "밀양시", "창녕군", "함안군"] },
+        { "no": 3, "title": "남서쪽", "en": "Southwest", "items": ["진주시", "사천시", "남해군", "하동군"] },
+        { "no": 4, "title": "북서쪽", "en": "Northwest", "items": ["의령군", "합천군", "산청군", "함양군", "거창군"] }
+      ],
+      "screens": [
+        { "key": "east", "ko": "동쪽", "en": "east", "items": ["창원시", "고성군", "통영시", "거제시", "김해시", "양산시", "밀양시", "창녕군", "함안군"] },
+        { "key": "west", "ko": "서쪽", "en": "west", "items": ["진주시", "사천시", "남해군", "하동군", "의령군", "합천군", "산청군", "함양군", "거창군"] }
+      ]
+    },
+    {
+      "key": "jeju", "sido": "50", "ko": "제주", "full": "제주특별자치도", "en": "Jeju", "layer": "emd",
+      "slugs": { "제주시": "jeju-si", "서귀포시": "seogwipo-si" },
+      "lessons": []
+    },
+    {
+      "key": "gangwon", "sido": "51", "ko": "강원", "full": "강원특별자치도", "en": "Gangwon", "layer": "sgg",
+      "slugs": {
+        "춘천시": "chuncheon-si", "원주시": "wonju-si", "강릉시": "gangneung-si", "동해시": "donghae-si", "태백시": "taebaek-si", "속초시": "sokcho-si",
+        "삼척시": "samcheok-si", "홍천군": "hongcheon-gun", "횡성군": "hoengseong-gun", "영월군": "yeongwol-gun", "평창군": "pyeongchang-gun", "정선군": "jeongseon-gun",
+        "철원군": "cheorwon-gun", "화천군": "hwacheon-gun", "양구군": "yanggu-gun", "인제군": "inje-gun", "고성군": "goseong-gun", "양양군": "yangyang-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "북서쪽", "en": "Northwest", "items": ["춘천시", "화천군", "철원군", "양구군"] },
+        { "no": 2, "title": "설악산 둘레", "en": "Around Seoraksan", "items": ["속초시", "고성군", "양양군", "인제군"] },
+        { "no": 3, "title": "가운데", "en": "Center", "items": ["홍천군", "횡성군", "평창군"] },
+        { "no": 4, "title": "남쪽", "en": "South", "items": ["원주시", "영월군", "정선군", "태백시"] },
+        { "no": 5, "title": "남동쪽 바닷가", "en": "Southeast coast", "items": ["강릉시", "동해시", "삼척시"] }
+      ],
+      "screens": [
+        { "key": "west", "ko": "서쪽", "en": "west", "items": ["춘천시", "화천군", "철원군", "양구군", "홍천군", "횡성군", "평창군", "원주시", "영월군", "정선군", "태백시"] },
+        { "key": "east", "ko": "동쪽", "en": "east", "items": ["속초시", "고성군", "양양군", "인제군", "강릉시", "동해시", "삼척시"] }
+      ]
+    },
+    {
+      "key": "jeonbuk", "sido": "52", "ko": "전북", "full": "전북특별자치도", "en": "Jeonbuk", "layer": "si",
+      "slugs": {
+        "전주시": "jeonju-si", "군산시": "gunsan-si", "익산시": "iksan-si", "정읍시": "jeongeup-si", "남원시": "namwon-si", "김제시": "gimje-si", "완주군": "wanju-gun",
+        "진안군": "jinan-gun", "무주군": "muju-gun", "장수군": "jangsu-gun", "임실군": "imsil-gun", "순창군": "sunchang-gun", "고창군": "gochang-gun", "부안군": "buan-gun"
+      },
+      "lessons": [
+        { "no": 1, "title": "전주 둘레", "en": "Around Jeonju", "items": ["전주시", "완주군", "익산시"] },
+        { "no": 2, "title": "서해 바닷가", "en": "West coast", "items": ["군산시", "김제시", "부안군", "고창군"] },
+        { "no": 3, "title": "동쪽", "en": "East", "items": ["진안군", "무주군", "장수군"] },
+        { "no": 4, "title": "남쪽", "en": "South", "items": ["정읍시", "임실군", "남원시", "순창군"] }
+      ]
     }
   ],
   "generalGu": {
-    "_note": "경기 일반구 24곳(시 이름 + 구 이름). 일반구 단원은 다음 단계(P1)",
+    "_note": "일반구(시 이름 + 구 이름, 전국에서 하나인 이름) → 정적 쪽 주소 이름. 경기 24곳(E7), 충북 청주 4곳·전북 전주 2곳(E13)·충남 천안 2곳·경북 포항 2곳(E14)·경남 창원 5곳(E15). 일반구 단원·동 단원 slug 는 pipeline/data/gu-slugs.json 과 같은 값",
     "수원시 장안구": "suwon-si-jangan-gu", "수원시 권선구": "suwon-si-gwonseon-gu", "수원시 팔달구": "suwon-si-paldal-gu", "수원시 영통구": "suwon-si-yeongtong-gu",
     "성남시 수정구": "seongnam-si-sujeong-gu", "성남시 중원구": "seongnam-si-jungwon-gu", "성남시 분당구": "seongnam-si-bundang-gu",
     "안양시 만안구": "anyang-si-manan-gu", "안양시 동안구": "anyang-si-dongan-gu",
@@ -70,6 +246,26 @@
     "안산시 상록구": "ansan-si-sangnok-gu", "안산시 단원구": "ansan-si-danwon-gu",
     "고양시 덕양구": "goyang-si-deogyang-gu", "고양시 일산동구": "goyang-si-ilsandong-gu", "고양시 일산서구": "goyang-si-ilsanseo-gu",
     "용인시 처인구": "yongin-si-cheoin-gu", "용인시 기흥구": "yongin-si-giheung-gu", "용인시 수지구": "yongin-si-suji-gu",
-    "화성시 만세구": "hwaseong-si-manse-gu", "화성시 효행구": "hwaseong-si-hyohaeng-gu", "화성시 병점구": "hwaseong-si-byeongjeom-gu", "화성시 동탄구": "hwaseong-si-dongtan-gu"
+    "화성시 만세구": "hwaseong-si-manse-gu", "화성시 효행구": "hwaseong-si-hyohaeng-gu", "화성시 병점구": "hwaseong-si-byeongjeom-gu", "화성시 동탄구": "hwaseong-si-dongtan-gu",
+    "청주시 상당구": "cheongju-si-sangdang-gu", "청주시 서원구": "cheongju-si-seowon-gu", "청주시 흥덕구": "cheongju-si-heungdeok-gu", "청주시 청원구": "cheongju-si-cheongwon-gu",
+    "천안시 동남구": "cheonan-si-dongnam-gu", "천안시 서북구": "cheonan-si-seobuk-gu", "포항시 남구": "pohang-si-nam-gu", "포항시 북구": "pohang-si-buk-gu",
+    "전주시 완산구": "jeonju-si-wansan-gu", "전주시 덕진구": "jeonju-si-deokjin-gu",
+    "창원시 의창구": "changwon-si-uichang-gu", "창원시 성산구": "changwon-si-seongsan-gu", "창원시 마산합포구": "changwon-si-masanhappo-gu",
+    "창원시 마산회원구": "changwon-si-masanhoewon-gu", "창원시 진해구": "changwon-si-jinhae-gu"
+  },
+  "korea": {
+    "_note": "시·도 단원(전국 16 시·도, 계획서 E10 · N29 · N30). 지역 표 src/data/sido.json korea.status 가 live 일 때만 판에 실린다. 곳 이름은 지역 표 ko(짧은 이름), 과의 곳 차례 = 만나기 차례, 곳 slug 는 지역 키. 과 이름은 방위 + 권역 일상어(N7 — 파이프라인이 지도 검사). screens = 전체 연습·시험을 나눠 보이는 화면(16px 검사)",
+    "lessons": [
+      { "no": 1, "title": "북서쪽 수도권", "en": "Northwest: the capital area", "items": ["서울", "인천", "경기"] },
+      { "no": 2, "title": "가운데 충청", "en": "Center: Chungcheong", "items": ["충남", "세종", "대전", "충북"] },
+      { "no": 3, "title": "북동쪽", "en": "Northeast", "items": ["강원", "경북", "대구"] },
+      { "no": 4, "title": "남동쪽", "en": "Southeast", "items": ["울산", "부산", "경남"] },
+      { "no": 5, "title": "남서쪽과 제주", "en": "Southwest and Jeju", "items": ["전북", "광주특별시", "제주"] }
+    ],
+    "screens": [
+      { "key": "nw", "ko": "북서쪽", "en": "northwest", "items": ["서울", "인천", "경기", "충남", "세종", "대전", "충북"] },
+      { "key": "ne", "ko": "북동쪽", "en": "northeast", "items": ["강원", "경북", "대구", "울산"] },
+      { "key": "s", "ko": "남쪽", "en": "south", "items": ["부산", "경남", "전북", "광주특별시", "제주"] }
+    ]
   }
 }

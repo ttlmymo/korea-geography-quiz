@@ -4,6 +4,9 @@ import Logo from './Logo.astro';
 import { href } from '../lib/paths';
 import { SITE_NAME, SITE_NAME_EN } from '../consts';
 import { visibleGuides } from '../guides/registry';
+import { SIDOS } from '../app/sidos';
+import { UNITS } from '../lib/geo';
+import { hubPathRe } from '../lib/regions';
 
 interface Props { lang?: 'ko' | 'en' }
 const { lang = 'ko' } = Astro.props;
@@ -11,11 +14,11 @@ const en = lang === 'en';
 const home = href(en ? '/en/' : '/');
 const guides = visibleGuides().length > 0;
 
-// 지금 쪽이 어느 메뉴에 드는가(넓은 화면 메뉴에서 굵게)
+// 지금 쪽이 어느 메뉴에 드는가(넓은 화면 메뉴에서 굵게). '지역 지도'는 지역 표에서 허브 쪽이 있는 지역의 주소(계획서 E9)
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const here = Astro.url.pathname.slice(base.length).replace(/^\/en(?=\/|$)/, '') || '/';
 const cur = here === '/' || here === '/index.html' ? 'study'
-  : /^\/(seoul|incheon|gyeonggi)(\/|$)/.test(here) ? 'map'
+  : hubPathRe().test(here) ? 'map'
   : /^\/guide(\/|$)/.test(here) ? 'guide'
   : /^\/about(\/|$)/.test(here) ? 'about' : '';
 const on = (k: string) => (cur === k ? 'page' : undefined);
@@ -24,13 +27,12 @@ const at = (h: string) => (Astro.url.pathname === h || Astro.url.pathname === `$
 
 const study = en ? { t: 'Study', h: href('/en/#/kr') } : { t: '공부하기', h: href('/#/kr') };
 const review = en ? { t: "Today's review", h: href('/en/#/review') } : { t: '오늘 복습', h: href('/#/review') };
-const maps = en
-  ? [{ t: "Seoul's 25 districts", h: href('/en/seoul/') }]
-  : [
-      { t: '서울 25개 구', h: href('/seoul/') },
-      { t: '인천 2군 9구', h: href('/incheon/') },
-      { t: '경기 31개 시·군', h: href('/gyeonggi/') },
-    ];
+// 지역 지도 메뉴(계획서 N24 · E8): 지역 표에서 정적 허브 쪽(hub)이 있는 지역만 읽는다(영어 허브는 hub.en 이 있는 지역 — 서울).
+// 앱에 열린 지역(판 폴더 units.json regions)이 허브보다 많으면 허브가 없는 지역으로 가는 길로 '전국 지역 고르기'(앱 #/kr)를 더한다 —
+// 운영(세 지역 모두 허브)은 전과 같다
+const hubs = SIDOS.filter((s) => (en ? s.hub?.en : s.hub?.ko)).map((s) => ({ t: (en ? s.hub!.en! : s.hub!.ko)[0], h: href(`${en ? '/en' : ''}/${s.key}/`) }));
+const openCount = UNITS.regions.length + (UNITS.korea ? 1 : 0);
+const maps = openCount > hubs.length && !en ? [...hubs, { t: '전국 지역 고르기', h: href('/#/kr') }] : hubs;
 const more = en ? [] : [
   ...(guides ? [{ k: 'guide', t: '학습 가이드', h: href('/guide/') }] : []),
   { k: 'about', t: '채움지도 소개', h: href('/about/') },

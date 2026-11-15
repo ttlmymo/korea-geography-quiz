@@ -5,9 +5,15 @@ import Base from '../layouts/Base.astro';
 import '../app/map/map.css';
 import '../app/ui/app.css';
 import { href } from '../lib/paths';
-import { TAGLINE, DATA_VER } from '../consts';
+import { studyKo } from '../lib/regions';
+import { UNITS } from '../lib/geo';
+import { SITE_NAME, TAGLINE, DATA_VER } from '../consts';
+// 검색 제목·설명(계획서 E9): 공부할 수 있는 지역은 지역 표의 공개 지역(status live)에서 — 지역을 열면 설명이 따라 바뀐다.
+// 시·도 단원(korea, E10)이 판에 있으면 '전국 16개 시·도'도 넣는다(바뀐 날은 src/lib/pages.ts UPDATED 의 '/' 에 — 점검기가 알려 준다)
+const title = `${SITE_NAME} – ${TAGLINE}`;
+const description = `지도에서 직접 찾으며 ${studyKo(!!UNITS.korea)}를 익히는 백지도 퀴즈. 3~6곳씩 만나고 찾고, 다음 날 다시 풀어 지도를 채워요.`;
 ---
-<Base title="채움지도 – 백지도 퀴즈로 익히는 대한민국 행정구역" description="지도에서 직접 찾으며 서울·인천·경기의 시·군·구를 익히는 백지도 퀴즈. 3~6곳씩 만나고 찾고, 다음 날 다시 풀어 지도를 채워요." alternate={{ ko: '/', en: '/en/' }}>
+<Base title={title} description={description} alternate={{ ko: '/', en: '/en/' }}>
   <div id="app" data-base={import.meta.env.BASE_URL} data-ver={DATA_VER}>
     <script is:inline>
       // 다시 온 사람에게 '처음' 화면이 잠깐 보였다가 바뀌지 않게, 기록이 있으면 대체 글을 미리 가린다(자리는 그대로).

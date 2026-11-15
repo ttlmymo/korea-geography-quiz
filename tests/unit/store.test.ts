@@ -82,8 +82,8 @@ test('측정: 공통 매개변수, 참·거짓은 1·0, 빈 값은 뺀다', asyn
   const { initAnalytics, track } = await import('../../src/app/analytics.ts');
   const sent: unknown[][] = [];
   (globalThis as unknown as { window: unknown }).window = { gtag: (...a: unknown[]) => sent.push(a) };
-  initAnalytics('en', 'kr-20261001.1');
+  initAnalytics('en', 'kr-20261001.2');
   track('practice_answer', { mode: 'find', correct: true, hint: false, box: 0, region: 'seoul', lesson: undefined });
-  assert.deepEqual(sent[0], ['event', 'practice_answer', { country: 'kr', lang: 'en', data_ver: 'kr-20261001.1', mode: 'find', correct: 1, hint: 0, box: 0, region: 'seoul' }]);
+  assert.deepEqual(sent[0], ['event', 'practice_answer', { country: 'kr', lang: 'en', data_ver: 'kr-20261001.2', mode: 'find', correct: 1, hint: 0, box: 0, region: 'seoul' }]);
   delete (globalThis as unknown as { window?: unknown }).window;
 });

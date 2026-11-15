@@ -73,7 +73,9 @@ test('홈 문구(한·영): 큰 제목·과 줄 제목·짧은 이름·과 카�
   assert.equal(UI_EN.asOf(2026, 10), 'Boundaries as of October 2026');
   const short = (name: string, region?: string) => [UI_KO.short(reg.place(idOf(name, region))!.item), UI_EN.short(reg.place(idOf(name, region))!.item)];
   assert.deepEqual(short('종로구'), ['종로', 'Jongno']);
-  assert.deepEqual(short('중구', 'seoul'), ['중', 'Jung']);
+  // 줄이면 한 글자가 되는 이름은 그대로(E11 — 부산 1과 '중 · 서 · 동'이 방위 낱말로 읽혔다). 영어는 그대로 줄인다
+  assert.deepEqual(short('중구', 'seoul'), ['중구', 'Jung']);
+  assert.deepEqual(short('서구', 'busan'), ['서구', 'Seo']);
   assert.deepEqual(short('수원시'), ['수원', 'Suwon']);
   assert.deepEqual(short('옹진군'), ['옹진', 'Ongjin']);
   assert.equal(UI_KO.stFilled(6, 6, 2, 0), '6곳 채움 · 다 익힘 2');

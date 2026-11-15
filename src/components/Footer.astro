@@ -1,11 +1,19 @@
 ---
-// 공통 바닥글: 방침·언어 링크, 경계 데이터 출처와 판(CC BY 4.0 표기 의무, 북한 땅은 Natural Earth 공개 도메인)
+// 공통 바닥글: 방침·언어 링크, 경계 데이터 출처와 판(CC BY 4.0 표기 의무, 이웃 땅은 Natural Earth 공개 도메인)
 import { href } from '../lib/paths';
 import { SITE_NAME, SITE_NAME_EN, DATA_VER, CONTACT_EMAIL } from '../consts';
+import fs from 'node:fs';
+import path from 'node:path';
 
 interface Props { lang?: 'ko' | 'en' }
 const { lang = 'ko' } = Astro.props;
 const en = lang === 'en';
+// 이웃 땅 출처 줄(E17): 북한 땅과, 판에 일본 땅(경남 지도의 대마도 — manifest context_jp)이 실렸으면 일본까지 Natural Earth 에서 온다.
+// 출처 쪽 '이웃 땅(북한·일본)' 머리와 같은 판정(src/pages/sources/index.astro jpIn). 바닥글은 <main> 밖이라 쪽 내용 지문(점검 7)에 들지 않는다
+const manifest = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data/geo', DATA_VER, 'manifest.json'), 'utf8'));
+const jp = ((manifest.context_jp ?? []) as string[]).length > 0;
+const ctxKo = jp ? '이웃 땅(북한·일본)' : '북한 땅';
+const ctxEn = jp ? 'Neighboring land (North Korea, Japan)' : 'North Korea';
 // 다른 언어 링크에는 lang·hreflang 을 단다(그 말의 읽기 음성으로 읽히게)
 const links = en
   ? [{ t: 'Privacy policy', h: href('/privacy-en.html') }, { t: '한국어', h: href('/'), lang: 'ko' }]
@@ -24,7 +32,7 @@ const links = en
       {en ? 'Boundaries: Statistics Korea SGIS · ' : '행정동 경계: 통계청 SGIS · '}
       <a href="https://github.com/vuski/admdongkor">vuski/admdongkor</a>
       {en ? ' (CC BY 4.0), simplified · data ' : '(CC BY 4.0)를 단순화해 씀 · 데이터 판 '}<span class="num">{DATA_VER}</span>
-      {en ? ' · North Korea: ' : ' · 북한 땅: '}<a href="https://www.naturalearthdata.com/">Natural Earth</a>{en ? ' (public domain)' : '(공개 도메인)'}
+      {en ? ` · ${ctxEn}: ` : ` · ${ctxKo}: `}<a href="https://www.naturalearthdata.com/">Natural Earth</a>{en ? ' (public domain)' : '(공개 도메인)'}
     </p>
     <p>{en ? 'Contact' : '문의'}: <span class="mail">{CONTACT_EMAIL}</span> · © {en ? SITE_NAME_EN : SITE_NAME}</p>
   </div>

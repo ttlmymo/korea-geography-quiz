@@ -10,7 +10,8 @@ const join = (p: { pre: string; big: string; post: string }) => [p.pre, p.big, p
 
 test('promptParts 를 이어 붙이면 prompt 와 같은 문장(한·영, 모든 곳·모든 문제 종류)', () => {
   for (const L of [UI_KO, UI_EN]) {
-    for (const r of reg.regions) for (const it of r.items) for (const mode of MODES) {
+    // 과 없는 지역(세종 — layer emd)의 칸은 곳이 아니다(문제는 동 단원에서만, E12)
+    for (const r of reg.regions) if (r.layer !== 'emd') for (const it of r.items) for (const mode of MODES) {
       assert.equal(join(L.promptParts(reg, mode, it.id)), L.prompt(reg, mode, it.id, (s) => s), `${L.lang} ${mode} ${it.ko}`);
     }
   }

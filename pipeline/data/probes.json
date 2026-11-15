@@ -1,0 +1,32 @@
+{
+ "_note": "섬·강 점검(pipeline/build-geo.mjs 11단계). 점이 단순화 뒤 들어가야 할 시·군·구(want, null 이면 물). 좌표(lon·lat)로 적거나, 기억에 기댄 좌표 대신 원자료 규칙(rule)으로 적는다: rule = 원자료의 그 읍·면·동(sgg·emd)에서 덩어리 하나를 고름(pick: largest 가장 큰 · east 바깥 고리 평균 경도가 가장 큰 · south 평균 위도가 가장 작은) → 그 덩어리의 polylabel 점. rule.sgg 와 want 는 같은 표시 이름으로 쓴다(일반구는 '포항시 남구'처럼 띄어 씀, 원자료의 붙여 쓴 이름은 파이프라인이 바꿔 견줌). sido 가 공개 지역이면 실패시키고, 아니면 --dry-all 보고서에만 적는다. dryAll: 전국 점검 보고의 '새 점검 6'",
+ "probes": [
+  { "name": "백령도", "sido": "28", "lon": 124.6825, "lat": 37.9593, "want": "옹진군", "dryAll": true },
+  { "name": "영종도(인천공항)", "sido": "28", "lon": 126.4505, "lat": 37.4602, "want": "영종구" },
+  { "name": "강화도", "sido": "28", "lon": 126.4878, "lat": 37.7468, "want": "강화군" },
+  { "name": "여의도", "sido": "11", "lon": 126.925, "lat": 37.526, "want": "영등포구" },
+  { "name": "한강(반포대교 부근 강 가운데)", "sido": "11", "lon": 126.9963, "lat": 37.5145, "want": null },
+  { "name": "경복궁", "sido": "11", "lon": 126.977, "lat": 37.5796, "want": "종로구" },
+  { "name": "독도", "sido": "47", "rule": { "sgg": "울릉군", "emd": "울릉읍", "pick": "east" }, "want": "울릉군", "dryAll": true },
+  { "name": "울릉도", "sido": "47", "rule": { "sgg": "울릉군", "emd": "울릉읍", "pick": "largest" }, "want": "울릉군", "dryAll": true },
+  { "name": "안면도(충남 E14)", "sido": "44", "rule": { "sgg": "태안군", "emd": "안면읍", "pick": "largest" }, "want": "태안군" },
+  { "name": "마라도", "sido": "50", "rule": { "sgg": "서귀포시", "emd": "대정읍", "pick": "south" }, "want": "서귀포시", "dryAll": true },
+  { "name": "추자도", "sido": "50", "rule": { "sgg": "제주시", "emd": "추자면", "pick": "largest" }, "want": "제주시", "dryAll": true },
+  { "name": "우도", "sido": "50", "rule": { "sgg": "제주시", "emd": "우도면", "pick": "largest" }, "want": "제주시" },
+  { "name": "흑산도", "sido": "12", "rule": { "sgg": "신안군", "emd": "흑산면", "pick": "largest" }, "want": "신안군", "dryAll": true },
+  { "name": "가덕도", "sido": "26", "rule": { "sgg": "강서구", "emd": "가덕도동", "pick": "largest" }, "want": "강서구" },
+  { "name": "영도", "sido": "26", "rule": { "sgg": "영도구", "emd": "동삼1동", "pick": "largest" }, "want": "영도구" },
+  { "name": "군위군(대구 27720)", "sido": "27", "rule": { "sgg": "군위군", "emd": "군위읍", "pick": "largest" }, "want": "군위군" },
+  { "name": "세종 집현동", "sido": "36", "rule": { "sgg": "세종시", "emd": "집현동", "pick": "largest" }, "want": "세종시" },
+  { "name": "거제도", "sido": "48", "rule": { "sgg": "거제시", "emd": "고현동", "pick": "largest" }, "want": "거제시" },
+  { "name": "남해도", "sido": "48", "rule": { "sgg": "남해군", "emd": "남해읍", "pick": "largest" }, "want": "남해군" },
+  { "name": "창선도", "sido": "48", "rule": { "sgg": "남해군", "emd": "창선면", "pick": "largest" }, "want": "남해군" },
+  { "name": "욕지도", "sido": "48", "rule": { "sgg": "통영시", "emd": "욕지면", "pick": "largest" }, "want": "통영시" },
+  { "name": "가거도", "sido": "12", "rule": { "sgg": "신안군", "emd": "흑산면", "pick": "south" }, "want": "신안군" },
+  { "name": "압해도", "sido": "12", "rule": { "sgg": "신안군", "emd": "압해읍", "pick": "largest" }, "want": "신안군" },
+  { "name": "진도", "sido": "12", "rule": { "sgg": "진도군", "emd": "진도읍", "pick": "largest" }, "want": "진도군" },
+  { "name": "완도", "sido": "12", "rule": { "sgg": "완도군", "emd": "완도읍", "pick": "largest" }, "want": "완도군" },
+  { "name": "돌산도", "sido": "12", "rule": { "sgg": "여수시", "emd": "돌산읍", "pick": "largest" }, "want": "여수시" },
+  { "name": "외나로도", "sido": "12", "rule": { "sgg": "고흥군", "emd": "봉래면", "pick": "largest" }, "want": "고흥군" }
+ ]
+}

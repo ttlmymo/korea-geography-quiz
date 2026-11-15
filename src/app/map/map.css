@@ -100,15 +100,19 @@
 /* 한글 강 이름만 넓은 자간('한 강'). 영어 'Han River' 는 보통 자간(svgmap 의 글자 상자 폭도 같은 규칙) */
 .cm-ctxname.water.ko text { letter-spacing: .3em; }
 
-/* 섬 상자(먼 섬, 축척 다름): 흰 바탕 + 1px 틀 */
+/* 섬 상자(먼 섬 — 본 지도와 축척이 달라 아래 칸에 이 상자의 축척 막대): 흰 바탕 + 1px 틀.
+   폭은 그림 폭과 아래 칸의 가장 긴 조각('먼 섬' 또는 막대 + 길이 글) 가운데 큰 쪽(min-content) — 한 줄에 안 들면 막대가 다음 줄로 꺾인다
+   (2026-11-15: 전에는 아래 칸 '먼 섬 · 축척 다름' 한 줄이 상자 폭을 정해 영어 'Far islands · not to scale' 상자가 넓었다) */
 .cm-inset {
   position: absolute; left: 12px; top: 12px;
-  display: flex; flex-direction: column; align-items: center;
+  display: flex; flex-direction: column; align-items: center; width: min-content;
   background: var(--white); border: 1px solid var(--ink); overflow: hidden;
 }
 .cm-inset[hidden] { display: none; }
 /* 섬 상자를 왼쪽 아래로: 왼쪽 위가 칸 조각을 더 가릴 때 ui/maps.ts 의 insetPad 가 붙인다 */
 .cmap.inset-bl .cm-inset { top: auto; bottom: 12px; }
+/* 먼 섬 그림은 제 크기 그대로(전역 svg max-width: 100% 는 min-content 폭 계산에서 0 으로 잡혀 그림이 아래 칸 글 폭으로 줄었다) */
+.cm-inset > .cm-inset-svg { max-width: none; flex: none; }
 .cm-inset-svg { display: block; }
 .cm-inset-svg path { vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke: var(--map-edge); stroke-width: 1; }
 .cm-inset-svg .cm-cell.ctx { stroke: var(--map-ctx-edge); }
@@ -117,7 +121,50 @@
 .cm-inset-svg .cm-ok { fill: var(--ok-fill); }
 .cm-inset-svg .cm-ok.tell { fill: var(--hl); }
 .cm-inset-svg .cm-no { fill: var(--no-fill); }
-.cm-inset-note { width: 100%; padding: 2px 6px 3px; border-top: 1px solid var(--line); background: var(--white); color: var(--ink-2); font-size: 14px; line-height: 20px; text-align: center; white-space: nowrap; }
+.cm-inset-note {
+  box-sizing: border-box; width: 100%; padding: 2px 6px 3px; border-top: 1px solid var(--line); background: var(--white); color: var(--ink-2); font-size: 14px; line-height: 20px; white-space: nowrap;
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; column-gap: 8px;
+}
+/* 상자 축척 칸(먼 섬 상자 아래 칸 · 동 단원 섬 상자 귀퉁이): 막대 + 길이 글 한 줄 '━ 10km'. 막대는 본 지도 축척 막대(.cm-scale i)와 같은 모양,
+   막대 아래끝을 글 기준선에 둔다(길이는 svgmap 이 상자 배율로 넣는다 — isles.ts insetScale) */
+.cm-sbar { display: inline-flex; align-items: baseline; gap: 4px; color: var(--ink); white-space: nowrap; }
+.cm-sbar i { display: inline-block; height: 6px; box-sizing: border-box; border: 2px solid var(--ink); border-top: 0; }
+
+/* 섬 상자(동 단원의 섬 과·섬 화면, svgmap setIsles · map/isles.ts): 섬마다 흰 바탕 + 1px 틀, 칸 칠은 먼 섬 상자와 같은 규칙(.cm-inset-svg).
+   격자(.grid) = 고를 칸이 모두 섬: 상자들이 지도 칸을 나눠 쓰고 본 지도는 숨는다. 줄(.col 왼쪽 세로 · .row 아래 가로) = 본 지도 옆에.
+   섬 이름은 상자 왼쪽 위(흰 바탕 14px). '먼 섬'은 먼 섬 상자의 아래 칸(.cm-inset-note)과 같은 모양의 칸 하나를 상자 묶음 끝에 1px 겹쳐 붙인다
+   (상자마다 두면 상자 지도가 그만큼 줄어든다 — 파이프라인 16px 검사는 상자 128×112 전체로 잰다).
+   축척은 상자마다 배율이 달라 상자 안 귀퉁이 칸(.cm-isle-scale — 땅을 가장 적게 덮는 귀퉁이, svgmap placeIsleScale)에 그 상자의 막대를 둔다(2026-11-15) */
+.cm-isles { position: absolute; inset: 0; pointer-events: none; }
+.cm-isles.grid { pointer-events: auto; }
+.cm-isle { position: absolute; box-sizing: border-box; background: var(--white); border: 1px solid var(--ink); overflow: hidden; pointer-events: auto; }
+.cmap.static .cm-isle { pointer-events: none; }
+.cm-isle-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cm-isle-svg .cm-cell.dim { stroke: var(--map-ctx-edge); }
+/* 밝은 칸(고를 칸·채움 칸): 상자 안의 섬 하나가 곧 밝은 묶음이라 본 지도의 묶음 둘레(partRim·rimD)처럼 굵게 — 범례 '고를 칸'(굵은 네모)과 같다 */
+.cm-isle-svg .cm-cell.pick { stroke: var(--map-edge-strong); stroke-width: 2; }
+.cm-isle-name {
+  position: absolute; left: 0; top: 0; max-width: 100%; padding: 0 6px; box-sizing: border-box;
+  background: var(--white); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  color: var(--ink); font-size: 14px; line-height: 22px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cm-isle-name[hidden] { display: none; }
+/* 섬 상자 축척 칸: 본 지도 막대(.cm-scale)와 같은 꼴(길이 글 위, 막대 아래 — 요소 차례는 막대·글이라 column-reverse), 흰 바탕, 상자 안쪽으로 1px 선.
+   크기는 isles.ts scaleChip 과 맞춘다(덮는 정도를 그 크기로 잰다). 누름은 막지 않는다(칸 밑 섬을 눌러도 된다) */
+.cm-isle-scale {
+  position: absolute; box-sizing: border-box; flex-direction: column-reverse; align-items: center; gap: 3px; padding: 2px 5px 4px;
+  background: var(--white); font-size: 14px; line-height: 14px; pointer-events: none;
+}
+.cm-isle-scale i { display: block; }
+.cm-isle-scale[hidden] { display: none; }
+.cm-isle-scale.br { right: 0; bottom: 0; border-left: 1px solid var(--line); border-top: 1px solid var(--line); }
+.cm-isle-scale.bl { left: 0; bottom: 0; border-right: 1px solid var(--line); border-top: 1px solid var(--line); }
+.cm-isle-scale.tr { right: 0; top: 0; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.cm-isle-scale.tl { left: 0; top: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.cm-isles-note {
+  position: absolute; box-sizing: border-box; display: flex; align-items: center; justify-content: center; column-gap: 8px; padding: 0 6px;
+  background: var(--white); border: 1px solid var(--ink); color: var(--ink-2); font-size: 14px; line-height: 20px; white-space: nowrap; overflow: hidden;
+}
 
 /* 축척 막대: 오른쪽 아래. 길이는 svgmap 이 보기에 맞춰 넣는다.
    바탕은 지도 바탕색(테두리·그림자 없음): 바다·바탕 위에서는 보이지 않고, 칸 색·경계선 위에 걸칠 때만 글과 막대를 읽을 수 있게 가린다.
@@ -129,6 +176,41 @@
 }
 .cm-scale[hidden] { display: none; }
 .cm-scale i { display: block; height: 6px; box-sizing: border-box; border: 2px solid var(--ink); border-top: 0; }
+
+/* 위치 지도(svgmap opt.locator · map/locator.ts — 2026-11-15): 문제 화면 과 지도 귀퉁이의 작은 지도(과 시작·요약은 지역 전체 지도라 없다 — 같은 날 사용자 결정).
+   지역 전체 모양(옅은 회색 + 중간 선 외곽선) 위에 이번 과(흰 칸 + 먹 둘레 — 문제 화면 범례 '고를 칸')와
+   지금 보이는 범위(먹선 네모).
+   흰 바탕 + 중간 선 틀 — 먹 틀인 섬 상자(누를 수 있는 그림)와 다르게 보이게.
+   누름은 밑의 본 지도로 간다(pointer-events: none — 판정은 본 지도 그대로). 자리(귀퉁이 tl·tr·bl·br)와 크기는 svgmap 이 정한다.
+   가장자리 거리 10px 는 locator.ts LOC_MARGIN 과 같다 */
+.cm-loc { position: absolute; z-index: 1; background: var(--white); border: 1px solid var(--line-mid); pointer-events: none; line-height: 0; }
+.cm-loc[hidden] { display: none; }
+.cm-loc.tl { left: 10px; top: 10px; }
+.cm-loc.tr { right: 10px; top: 10px; }
+.cm-loc.bl { left: 10px; bottom: 10px; }
+.cm-loc.br { right: 10px; bottom: 10px; }
+/* 제 크기 그대로(전역 svg max-width: 100% 에 줄지 않게 — 먼 섬 상자와 같은 까닭) */
+.cm-loc-svg { display: block; max-width: none; overflow: hidden; }
+.cm-loc-svg path, .cm-loc-svg rect { vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+/* 칸마다 따로 줄인 모양이라 칸 사이 머리카락 틈을 같은 색 선으로 메운다 */
+.cm-loc-land { fill: var(--line); stroke: var(--line); stroke-width: .6px; }
+.cm-loc-water { fill: var(--map-water); }
+.cm-loc-rim { fill: none; stroke: var(--line-mid); stroke-width: 1px; }
+.cm-loc-lit { fill: var(--m0); stroke: var(--m0); stroke-width: .6px; }
+.cm-loc-lit-rim { fill: none; stroke: var(--ink); stroke-width: 1.2px; }
+.cm-loc-view { fill: none; stroke: var(--ink); stroke-width: 1.5px; }
+
+/* 확대 상자(svgmap setZoom · map/zoombox.ts — D95 ㉣, 2026-11-15 사용자 결정 '확대 상자 덧붙임'): 과 시작·과 요약의 지역 전체 지도에서
+   이번 과가 아주 작게 그려지는 과에만, 그 과 범위를 확대한 작은 지도(본 지도와 같은 칠·이름표) + 아래 칸 '확대 · 축척'.
+   틀과 아래 칸은 먼 섬 상자(.cm-inset · .cm-inset-note)와 같은 꼴(흰 바탕 · 먹 1px 틀). 자리(귀퉁이 또는 아래 줄)는 svgmap 이 left·top 으로 준다.
+   누름은 밑의 본 지도로 간다(pointer-events: none — 위치 지도와 같다) */
+.cm-zoom { position: absolute; z-index: 1; display: flex; flex-direction: column; width: min-content; background: var(--white); border: 1px solid var(--ink); overflow: hidden; pointer-events: none; }
+.cm-zoom[hidden] { display: none; }
+.cm-zoom-map { flex: none; }
+/* 본 지도의 범위 네모(확대 상자가 보이는 범위): 위치 지도의 보이는 범위 네모(.cm-loc-view)와 같은 먹 1.5px */
+.cm-zoom-frame { fill: none; stroke: var(--ink); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+/* 맞는 귀퉁이가 없으면 지도 칸을 상자 높이만큼 아래로 늘려(내용 높이는 지역 모양 비율 그대로, 늘린 몫은 아래 안쪽 여백) 그 줄에 둔다 — 본 지도는 그 위에 전과 같게 */
+.cmap.zoom-below { box-sizing: content-box; padding-bottom: var(--zb-h, 0px); }
 
 @media (prefers-reduced-motion: reduce) {
   .cm-q.breathe, .cm-ok.pencil, .cm-ok.blink { animation: none; }

@@ -1,6 +1,6 @@
 // 지도 실험실 동작: 실제 데이터로 과 하나를 흉내 내며 판정 표시를 보고, 끌기·집기 때 프레임 시간을 잰다.
 // 화면 흐름은 S6 에서 제대로 만든다. 여기서는 지도 모듈(src/app/map)이 설계서대로 그리고 반응하는지만 본다
-import { geoUrl, loadGeo, loadJSON, loadTopo } from '../app/data.ts';
+import { loadGeo, loadTopo, loadUnitFile, loadUnitTopo } from '../app/data.ts';
 import { createRegistry } from '../app/registry.ts';
 import { buildShapes, specOf, type Shapes } from '../app/map/shapes.ts';
 import { createSvgMap, type SvgMap } from '../app/map/svgmap.ts';
@@ -10,7 +10,6 @@ import { wrongInfo, type Tap } from '../app/core/judge.ts';
 import { chooseOptions } from '../app/core/questions.ts';
 import { rngFrom, shuffle } from '../app/core/rng.ts';
 import { TAP_KO, dontKnowKo, promptKo, rightKo, wrongKo } from '../app/text/ko.ts';
-import type { LabelsFile } from '../app/types.ts';
 import { devLog } from '../app/devlog.ts';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -58,8 +57,8 @@ function report() {
   const p95 = s[Math.floor(s.length * 0.95)];
   const slow = s.filter((v) => v > 20).length;
   ui.fps.textContent = `프레임 평균 ${avg.toFixed(1)}ms · 95% ${p95.toFixed(1)}ms · 20ms 넘음 ${slow}/${s.length} · 다시 그리기 ${commitMs.toFixed(1)}+${paintMs.toFixed(0)}ms`;
-  // 실기기 점검: 한 번 끌기·집기마다 PC 로(개발 서버에서만)
-  devLog('frames', { mode: ui.mode.value, region: ui.region.value, gesture: fingers > 1 ? 'pinch' : 'drag', n: s.length, avg: +avg.toFixed(1), p95: +p95.toFixed(1), slow, commitMs: +commitMs.toFixed(1), paintMs: Math.round(paintMs) });
+  // 실기기 점검: 한 번 끌기·집기마다 PC 로(개발 서버에서만). 동 모드는 단원 하나를 그리므로 단원 키도(tools/device-report.mjs 가 단원별로 묶는다)
+  devLog('frames', { mode: ui.mode.value, region: ui.region.value, ...(ui.mode.value === 'emd' ? { unit: ui.lesson.value } : {}), gesture: fingers > 1 ? 'pinch' : 'drag', n: s.length, avg: +avg.toFixed(1), p95: +p95.toFixed(1), slow, commitMs: +commitMs.toFixed(1), paintMs: Math.round(paintMs) });
 }
 ui.map.addEventListener('pointerdown', () => {
   if (holding++ === 0 && performance.now() >= stopAt) {
@@ -92,8 +91,13 @@ let qn = 0;
 const PAD_TOP = 12, PAD_SIDE = 16;
 
 for (const r of reg.regions) ui.region.append(new Option(r.ko, r.key));
+/** 과 고르기: 동 단원 모드는 그 지역의 동 단원(동 색인 — 파이프라인 --preview 로 만든 판에만 있다) */
 function fillLessons() {
   const r = reg.region(ui.region.value)!;
+  if (ui.mode.value === 'emd') {
+    ui.lesson.replaceChildren(...reg.emdUnits(r.key).map((u) => new Option(`${u.index.ko} ${u.index.n}곳`, u.key)));
+    return;
+  }
   ui.lesson.replaceChildren(...r.lessons.map((l) => new Option(`${l.no}과 ${l.title}`, String(l.no))), new Option('지역 전체', '0'));
 }
 fillLessons();
@@ -117,19 +121,26 @@ async function build() {
   map?.destroy();
   map = null;
   const mode = ui.mode.value;
-  ui.lesson.disabled = mode === 'emd' || mode === 'fill';
-  ui.region.disabled = mode === 'emd';
+  ui.lesson.disabled = mode === 'fill';
   if (mode === 'emd') {
-    // 부하 시험: 서울 427동 한 화면(설계서 5.3·결정 8)
-    const [topo, labels] = await Promise.all([loadTopo(base, ver, 'seoul', 'emd'), loadJSON<LabelsFile>(geoUrl(base, ver, 'labels-emd.json'))]);
-    const geoms = topo.objects.emd.geometries as unknown as { properties: { id: string; name: string; sggName: string } }[];
-    const names = new Map(geoms.map((g) => [g.properties.id, `${g.properties.sggName} ${g.properties.name}`]));
-    shapes = buildShapes(topo, { layer: 'emd', idKey: 'id', ids: geoms.map((g) => g.properties.id) }, labels);
-    map = createSvgMap(ui.map, { shapes, onTap: (t) => toast(t.type === 'cell' ? names.get(t.id) ?? t.id : TAP_KO[t.type]), onZoomed, onCommit });
+    // 동 단원 하나(계획서 E5: 지역 동 파일 대신 단원 파일 emd/{코드}.json·.topo.json). 채움 단계는 무작위, 섬 상자는 단원 화면의 insets
+    const key = ui.lesson.value;
+    const ref = reg.unit(key);
+    if (!ref) {
+      ui.band.textContent = '동 단원 파일이 없어요 — node pipeline/build-geo.mjs --preview 로 만든 판에서 보세요(커밋 금지)';
+      setSheet([]);
+      return;
+    }
+    const [file, topo] = await Promise.all([loadUnitFile(base, ver, ref.code), loadUnitTopo(base, ver, ref.code)]);
+    const u = reg.addUnit(file);
+    shapes = buildShapes(topo, specOf(u), Object.fromEntries(u.items.map((it) => [it.id, reg.point(it.id)!])));
+    map = createSvgMap(ui.map, { shapes, onTap: (t) => toast(t.type === 'cell' ? nm(t.id) : TAP_KO[t.type]), onZoomed, onCommit, contextNames: true, scaleBar: true, scaleLift: true });
     const r = rngFrom(7);
     map.setFills(Object.fromEntries(shapes.ids.map((id) => [id, Math.floor(r() * 4)])));
-    map.setHome(shapes.box, { t: 12, r: 12, b: 12, l: 12 });
-    ui.band.textContent = `서울 ${shapes.ids.length}동 · 끌기·집기로 확대해 보세요`;
+    map.setHome(boxOf(u.fit), { t: 12, r: 12, b: 12, l: 12 });
+    map.setIsles([...new Set(u.screens.flatMap((s) => s.insets ?? []))]);
+    map.setLabels(u.items.map((it) => ({ id: it.id, text: it.ko })), { mode: 'fit', minWidth: 0 });
+    ui.band.textContent = `${u.full} ${shapes.ids.length}곳 · 끌기·집기로 확대해 보세요`;
     setSheet([]);
     return;
   }
@@ -274,5 +285,5 @@ function onCommit(ms: number) {
 ui.reset.addEventListener('click', () => map?.resetView());
 ui.region.addEventListener('change', () => { fillLessons(); build(); });
 ui.lesson.addEventListener('change', build);
-ui.mode.addEventListener('change', build);
+ui.mode.addEventListener('change', () => { fillLessons(); build(); });
 build();

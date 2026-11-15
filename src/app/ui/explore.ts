@@ -11,7 +11,7 @@ import { fillsOf, type Ctx } from './ctx.ts';
 import { ICON, esc } from './dom.ts';
 import { L, placeName } from '../text/ui.ts';
 import { boxOf } from '../map/project.ts';
-import { STAGE_SCALE_MIN, insetPad, mountMap, shapesOf } from './maps.ts';
+import { STAGE_SCALE_MIN, insetPad, mountMap, shapesOf, viewSpec, wholeView } from './maps.ts';
 
 /** 넓은 화면 배치가 시작되는 폭(app.css·play.ts 와 같다) */
 const WIDE_MQ = '(min-width: 1024px)';
@@ -21,6 +21,8 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
   const r = reg.region(regionKey)!;
   const st = { hide: false, fill: false, sel: slug ? reg.bySlug(regionKey, slug)?.item.id ?? null : null, peek: null as string | null };
   const rn = L.region(r);
+  // 본 땅 화면의 범위 + 섬 상자(동 단원 E5, 지역은 화면 insets 가 있을 때만 — maps.ts wholeView, E13 검수)
+  const view = wholeView(r);
   // 토글: 먹 테두리 단추, 켜지면 먹색 바탕 흰 글자 + ✓(aria-pressed 가 뜻을 맡는다)
   const toggle = (act: string, text: string) => `<button class="tg" type="button" data-xact="${act}" aria-pressed="false"><span class="tk" aria-hidden="true">✓</span>${esc(text)}</button>`;
   root.innerHTML = `<div class="play xpl">
@@ -59,7 +61,7 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
   const placeInset = async () => {
     const s = await shapesOf(ctx, r.key);
     if (!alive || !map) return;
-    curPad = insetPad(host, s, boxOf(r.fit), r.items.map((it) => it.id), pad());
+    curPad = insetPad(host, s, boxOf(view.fit), r.items.map((it) => it.id), pad());
     map.setPad(curPad, false);
   };
   const hostRo = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
@@ -97,8 +99,9 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
     paintKey();
     if (!map) return;
     const names = r.items.map((it) => ({ id: it.id, text: L.name(it) }));
-    // 이름 가리기 중 누른 칸 하나(peek)는 꼭 보이게(must: 칸에 안 들면 칸 밖·흰 판). 다 보일 때는 자리가 있는 이름만(fit)
-    map.setLabels(st.hide ? (st.peek ? names.filter((n) => n.id === st.peek) : []) : names, st.hide ? { mode: 'must' } : { mode: 'fit', minWidth: 0 });
+    // 이름 가리기 중 누른 칸 하나(peek)는 꼭 보이게(must: 칸에 안 들면 칸 밖·흰 판). 다 보일 때는 자리가 있는 이름만(fit).
+    // 시·도 단원(korea, E10)은 16칸뿐이라 다 보일 때도 꼭 보이게 — fit 이면 칸 밖 빈 바탕에만 이름을 두어 안쪽 작은 칸(서울·세종·대전·대구)의 이름이 빠진다
+    map.setLabels(st.hide ? (st.peek ? names.filter((n) => n.id === st.peek) : []) : names, st.hide || r.layer === 'sido' ? { mode: 'must', minWidth: 0 } : { mode: 'fit', minWidth: 0 });
     map.setFills(st.fill ? fillsOf(ctx.mastery, r) : null);
     map.setQuestion(st.sel);
   }
@@ -139,7 +142,7 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
 
   card();
   paint();
-  mountMap(ctx, host, { region: r.key, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, pad: pad(), onTap, onZoomed: (z) => { resetBtn.hidden = !z; } })
+  mountMap(ctx, host, { region: r.key, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, pad: pad(), onTap, onZoomed: (z) => { resetBtn.hidden = !z; }, ...viewSpec(r, view) })
     .then(async (m) => {
       if (!alive) { m.destroy(); return; }
       map = m;

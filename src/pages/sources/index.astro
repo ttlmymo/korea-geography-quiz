@@ -13,6 +13,22 @@ const bjd = LEGAL.source;
 const bjdCount = Object.values(LEGAL.byGu as Record<string, string[]>).reduce((t, l) => t + l.length, 0);
 const dm = DONGMAP.source;
 const dmRows = Object.values(DONGMAP.byGu).reduce((t, l) => t + l.length, 0);
+import { UNITS } from '../../lib/geo';
+import { UI_KO } from '../../app/text/ui';
+import { eunNeun } from '../../app/text/ko';
+// '합치기' 항목의 시 층 지도(일반구를 시로 합친 지도): 판 units.json 의 공개 지역 가운데 시 층(layer si)인 지역마다 앱과 같은 범위 말로 만든다
+// ('경기 31개 시·군, 충북 11개 시·군, 전북 14개 시·군'). E13 전에는 경기만이라 '경기도는 …31개 시·군 지도'로 박혀 있었다 — 새 지역을 열어도 여기는 고치지 않는다(E13 검수)
+const siList = UNITS.regions.filter((r) => r.layer === 'si').map((r) => `${r.ko} ${UI_KO.count(r)}`).join(', ');
+// 시·군·구 지도 단순화: 지역마다 다르면(E14 경북·E15 경남 40m — 계획서 N20) manifest simplify_m.sggBy 에 지역 key 별로 있다 → 같은 간격끼리 묶어
+// '20m(경북·경남은 40m)'. 없으면 E13 까지와 같은 글
+// (E15) 일본 땅(대마도)이 이웃 땅으로 실린 지역(manifest context_jp)도 판에서 읽는다
+const koOf = (key: string) => UNITS.regions.find((r) => r.key === key)?.ko ?? key;
+const sggByM = new Map<number, string[]>();
+for (const [k, m] of Object.entries((manifest.simplify_m.sggBy ?? {}) as Record<string, number>)) sggByM.set(m, [...(sggByM.get(m) ?? []), koOf(k)]);
+// 묶음 차례는 간격 차례(작은 간격 먼저 — E17: 지역 표 차례로 두면 '전남광주는 60m, 경북·경남은 40m' 처럼 60m 가 먼저 왔다)
+const sggBy = [...sggByM].sort((a, b) => a[0] - b[0]).map(([m, kos]) => `${eunNeun(kos.join('·'))} ${m}m`).join(', ');
+const sggSimplify = `${manifest.simplify_m.sgg}m${sggBy ? `(${sggBy})` : ''}`;
+const jpIn = ((manifest.context_jp ?? []) as string[]).map(koOf).join('·');
 ---
 <Base title="데이터 출처 – 채움지도" description="채움지도 백지도의 행정동 경계 원자료와 판, 단순화·합침 같은 가공 방법, 인천 행정체제 개편 등 사실 확인에 쓴 공공 자료를 밝혀요." ads>
   <div class="wrap page">
@@ -28,9 +44,9 @@ const dmRows = Object.values(DONGMAP.byGu).reduce((t, l) => t + l.length, 0);
         <li>파일 확인: {src.bytes.toLocaleString()}바이트, SHA-256 <code>{src.sha256.slice(0, 12)}…</code> — 지도를 만들 때마다 크기와 해시를 맞춰 보고, 다르면 멈춰요.</li>
       </ul>
 
-      <h2>이웃 땅(북한)</h2>
+      <h2>{jpIn ? '이웃 땅(북한·일본)' : '이웃 땅(북한)'}</h2>
       <ul>
-        <li><a href="https://www.naturalearthdata.com/">Natural Earth</a> 10m 국가 경계({ne.tag}, {ne.license}). 휴전선 근처의 빈틈만 메우는 배경으로 써요.</li>
+        <li><a href="https://www.naturalearthdata.com/">Natural Earth</a> 10m 국가 경계({ne.tag}, {ne.license}). {jpIn ? `휴전선 근처의 빈틈을 메우는 배경으로 쓰고, ${jpIn} 지도의 바다 건너 대마도(일본)도 이 자료로 그려요.` : '휴전선 근처의 빈틈만 메우는 배경으로 써요.'}</li>
       </ul>
 
       <h2>법정동 목록</h2>
@@ -47,11 +63,11 @@ const dmRows = Object.values(DONGMAP.byGu).reduce((t, l) => t + l.length, 0);
 
       <h2>가공 방법</h2>
       <ul>
-        <li>단순화: 행정동은 {manifest.simplify_m.emd}m, 시·군·구 지도는 {manifest.simplify_m.sgg}m 간격으로 점을 줄여요. 이웃끼리 경계가 어긋나지 않게 한 번에 처리해요.</li>
-        <li>합치기: 행정동을 합쳐 시·군·구를 만들고, 경기도는 일반구를 시로 합친 31개 시·군 지도도 만들어요.</li>
+        <li>단순화: 행정동은 {manifest.simplify_m.emd}m, 시·군·구 지도는 {sggSimplify} 간격으로 점을 줄여요. 이웃끼리 경계가 어긋나지 않게 한 번에 처리해요.</li>
+        <li>합치기: {siList ? `행정동을 합쳐 시·군·구를 만들고, 일반구가 있는 시·도는 일반구를 시로 합친 지도(${siList})도 만들어요.` : '행정동을 합쳐 시·군·구를 만들어요.'}</li>
         <li>한강: 강을 사이에 둔 구 경계로 강 가운데 선을 만들고, 그 둘레 {manifest.river_radius_m}m를 칸에서 잘라내 강으로 그려요. 행정동 경계가 강 한가운데를 지나서, 따로 그리지 않으면 강북과 강남이 붙어 보이기 때문이에요.</li>
         <li>맞닿음: 칸끼리 경계를 함께 쓰면 맞닿은 곳으로 봐요. 다리로만 이어진 바다 건너 이웃(영종구–서해구 등)은 따로 적어 두고 '옆'으로 치지 않아요.</li>
-        <li>위치 한 줄: '○○구 서쪽, ○○이 있는 곳' 같은 문장은 채움지도가 쓴 것이에요. 방향·맞닿음·한강 남북은 지도 데이터로 자동 확인하고, 명소는 좌표가 그 구 안에 있는지 확인해요.</li>
+        <li>위치 한 줄: '○○구 서쪽, ○○이 있는 곳' 같은 문장은 채움지도가 쓴 것이에요. 방향·맞닿음·바닷가·한강 남북은 지도 데이터로 자동 확인하고, 명소는 좌표가 그 구 안에 있는지 확인해요.</li>
       </ul>
 
       <h2>사실 확인에 쓴 자료</h2>

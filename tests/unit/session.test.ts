@@ -5,7 +5,7 @@ import { get, type Mastery } from '../../src/app/core/mastery.ts';
 import { lessonQuestions, quickQuestions, reviewQuestions, type Question } from '../../src/app/core/questions.ts';
 import { rngFrom } from '../../src/app/core/rng.ts';
 import { step, usableDeck, type Step } from '../../src/app/core/session.ts';
-import { reg } from './fixtures.ts';
+import { OFF_KEY, reg } from './fixtures.ts';
 
 const T = 20000;
 const L1 = reg.lesson('seoul', 1)!.items;
@@ -87,7 +87,7 @@ test('저장된 판이 지금 데이터에 맞지 않으면 버린다', () => {
   assert.equal(usableDeck(reg, d), d);
   assert.equal(usableDeck(reg, null), null);
   assert.equal(usableDeck(reg, { ...d, lesson: 9 }), null);
-  assert.equal(usableDeck(reg, { ...d, region: 'busan' }), null);
+  if (OFF_KEY) assert.equal(usableDeck(reg, { ...d, region: OFF_KEY }), null);   // 열지 않은 지역(E11 부터 부산, E12 부터 대구, E13 부터 강원, E14 부터 충남은 열림)
   assert.equal(usableDeck(reg, { ...d, queue: [...d.queue, { mode: 'find', id: 'kr:sgg:28110' }] }), null);   // 인천 옛 중구
   const choose = d.queue.find((q) => q.mode === 'choose')!;
   assert.equal(usableDeck(reg, { ...d, queue: [{ ...choose, options: ['kr:sgg:28110', ...choose.options!.slice(1)] }] }), null);

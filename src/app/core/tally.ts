@@ -42,6 +42,9 @@ export const cellStates = (ids: string[], fills: Record<string, number>, focus: 
 /** 아직 칠하지 않은 곳(지도에서 노랑으로 칠할 곳). 일부만 칠한 과는 칠한 곳이 제 색을 지킨다 */
 export const unfilled = (ids: string[], fills: Record<string, number>) => ids.filter((id) => !((fills[id] ?? 0) >= 1));
 
-/** 내일 복습할 곳 수(모든 지역). homeCard 의 'next' 카드 tomorrow 와 같은 식 — 'done' 화면에도 같은 숫자를 쓰려고 뺐다 */
+/**
+ * 내일 복습할 곳 수(모든 지역·동). homeCard 의 'next' 카드 tomorrow 도 이 식 — 'done' 화면에도 같은 숫자를 쓰려고 뺐다.
+ * 동은 동 색인으로 센다(계획서 N17 — 단원 파일을 받지 않았어도 든다)
+ */
 export const tomorrowCount = (reg: Registry, m: Mastery, today: number) =>
-  Object.keys(m).filter((id) => reg.place(id) && isDue(get(m, id), today + 1)).length;
+  Object.keys(m).filter((id) => reg.known(id) && isDue(get(m, id), today + 1)).length;

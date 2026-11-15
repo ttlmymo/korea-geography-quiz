@@ -5,12 +5,16 @@
 import Base from '../layouts/Base.astro';
 import { href } from '../lib/paths';
 import { visibleGuides } from '../guides/registry';
+import { HUBS } from '../lib/regions';
 
+// 지역 쪽은 지역 표에서 허브 쪽(hub)이 있는 지역(계획서 E9). 칸 아래 짧은 설명은 허브 부제(화살표 뺌)이고, 따로 줄인 말이 있으면 그것을 쓴다.
+// 남은 일(W2 에서 첫 새 허브를 낼 때): 768 이상은 모든 칸을 한 줄에 놓으므로 허브가 늘면 칸이 좁아져 제목이 줄바꿈된다 —
+// 그때 칸을 여러 줄로 흐르게 바꾸고(예: repeat(auto-fill, minmax(…))) 390·768·1440 에서 다시 본다. SHORT 는 지역 표 hub 에
+// 짧은 말 칸을 더할 때(sido.json 해시 N33 이 바뀌어 파이프라인을 다시 돌림) 함께 옮긴다. 지금 바꾸면 운영 404 바이트가 바뀐다(E9 운영 변화 0)
+const SHORT: Record<string, string> = { incheon: '2026년 7월 개편 반영', gyeonggi: '시·군과 일반구' };
 const GO = [
   { t: '공부하기', d: '지역을 골라 첫 과부터', h: '/#/kr' },
-  { t: '서울 25개 구', d: '구마다 위치와 행정동', h: '/seoul/' },
-  { t: '인천 2군 9구', d: '2026년 7월 개편 반영', h: '/incheon/' },
-  { t: '경기 31개 시·군', d: '시·군과 일반구', h: '/gyeonggi/' },
+  ...HUBS.map((s) => ({ t: s.hub!.ko[0], d: SHORT[s.key] ?? s.hub!.ko[1].replace(/\s*→$/, ''), h: `/${s.key}/` })),
   ...(visibleGuides().length ? [{ t: '학습 가이드', d: '행정구역과 공부 방법', h: '/guide/' }] : []),
 ];
 ---

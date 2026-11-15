@@ -40,7 +40,7 @@ const odd = legalAll.filter((l) => !legalList.includes(l)).map((l) => ({ l, real
 const split = legalAll.map((l) => ({ l, adms: map.filter((r) => r.legal.includes(l)).map((r) => r.adm) })).sort((a, b) => b.adms.length - a.adms.length)[0];
 const wide = [...map].sort((a, b) => b.legal.length - a.legal.length)[0];
 const g2 = guideIf('legal-vs-administrative-dong');
-const intro = introOf(g.slug);
+const intro = introOf(item.id);
 ---
 <Base title={`${g.ko} 위치와 행정동 – 서울 · 채움지도`} description={`서울 ${g.ko}는 어디에 있을까요? ${item.line}. 한강 ${north ? '북쪽' : '남쪽'}, 행정동 ${svgItem.dongs.length}개, 맞닿은 곳 ${nbs.length}곳을 백지도로 익혀요.`} alternate={{ ko: `/seoul/${g.slug}/`, en: `/en/seoul/${g.slug}/` }} ads>
   <div class="wrap page">

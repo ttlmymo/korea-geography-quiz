@@ -34,6 +34,10 @@ const ROOM_W = 6, ROOM_H = 4;
 const APART_PX = 6;
 /** 훑는 간격 · 칸 밖 이름표를 찾는 가장 먼 거리(지시선이 칸 여럿을 가로지르지 않게) · 흰 판을 띄우는 높이 · 지시선과 글자 사이(모두 화면 px) */
 const STEP_PX = 3, REACH_PX = 60, LIFT_PX = 22, GAP_PX = 4;
+/** 흰 판 자리를 겹침 넓이로 고를 때 다른 이름표와 겹친 넓이의 무게(점·지시선 조각은 1) */
+const NAME_W = 8;
+/** 지시선이 막힌 판이 있을 때 차례를 바꿔 다시 놓아 보는 것은 칸 밖 이름표가 이만큼 이하일 때만(한 과는 3~8곳) */
+const RETRY_MAX = 8;
 
 /** 격자로 훑을 점 수의 상한(넘으면 간격을 넓힌다) */
 const MAX_TRIES = 3000;
@@ -162,8 +166,8 @@ export function outsideSpot(
 
 /**
  * 이름표 놓는 방식.
- * must = 꼭 보인다(만나기·시험 결과): 칸 안 → 칸 밖 빈 바탕 + 지시선 → 칸 옆(위·아래·오른쪽·왼쪽)에 흰 판 + 지시선.
- * fit = 자리가 있을 때만(홈 지도·둘러보기·과 시작·요약): 칸 안 → 칸 밖 빈 바탕 + 지시선 → 뺀다.
+ * must = 꼭 보인다(과 시작·과 요약·만나기·시험 결과·시·도 지도·이름 가리기, 이름이 6곳 이하인 홈 지도): 칸 안 → 칸 밖 빈 바탕 + 지시선 → 칸 옆(위·아래·오른쪽·왼쪽)에 흰 판 + 지시선(네 쪽이 다 막히면 점 둘레의 빈 자리).
+ * fit = 자리가 있을 때만(이름이 많은 홈 지도·둘러보기·고르기): 칸 안 → 칸 밖 빈 바탕 + 지시선 → 뺀다.
  * inside = 칸 안에 드는 것만(옛 labelsInside 와 같은 뜻)
  */
 export type LabelMode = 'must' | 'fit' | 'inside';
@@ -191,6 +195,13 @@ export interface PlaceOpt {
   avoid?: Box[];
   /** 화면에 붙어 있는 것의 자리(지도 단위 상자): 섬 상자·축척 막대 */
   screen?: Box[];
+  /**
+   * 흰 판을 되도록 제 칸 위에 둔다(전국 시·도 지도 — E10 검수). 휴대폰 전국 지도에서 '충북' 판이 경기·충남 경계 위에, '충남' 판이 전북 바로 위에 놓여
+   * 이름과 칸을 잘못 짝짓기 쉬웠다. 켜면 ① 칸 밖에 둘 이름표를 큰 칸(내접원)부터 놓고(작은 칸 판이 큰 칸의 자리를 먼저 차지하지 않게)
+   * ② 남의 칸과 전혀 닿지 않는 네 쪽이 없으면, 판 가운데가 제 칸 안이고 다른 이름표·점·지시선과 겹치지 않는 가장 가까운 자리를 먼저 고른다.
+   * 그런 자리가 없는 작은 칸(세종·대전처럼 칸이 판보다 작은 곳)만 전처럼 칸 옆 판 + 지시선이다
+   */
+  plateHome?: boolean;
 }
 
 /** 칸 안에 놓은 이름표와, 칸에 안 들어가 남은 것 */
@@ -221,15 +232,37 @@ export function placeInside(cellOf: (id: string) => LabelCell | undefined, asks:
  * clipped = 보이는 범위나 화면에 붙은 것 때문에 건너뛴 자리가 있었다(지도를 옮기면 다시 재야 한다)
  */
 export function placeOutside(cellOf: (id: string) => LabelCell | undefined, asks: LabelAsk[], ins: InsideResult, opt: PlaceOpt): { placed: Placed[]; clipped: boolean } {
-  const { u } = opt;
-  const out: Placed[] = [];
   const note = { clipped: false };
-  if (opt.mode === 'inside' || !ins.pending.length) return { placed: out, clipped: false };
+  if (opt.mode === 'inside' || !ins.pending.length) return { placed: [], clipped: false };
+  const todo = ins.pending.map((a) => ({ a, c: cellOf(a.id) })).filter((x): x is Todo => !!x.c);
+  if (opt.plateHome) todo.sort((p, q) => p.c.r - q.c.r);   // 작은 칸부터(같으면 원래 차례 — sort 는 안정)
+  const first = outsideRun(cellOf, asks, ins, opt, todo, note);
+  if (!first.stuck.length) return { placed: first.out, clipped: note.clipped };
+  // 지시선을 보지 않고 놓은 판(stuck)이 있으면 그 칸들을 맨 앞으로 옮겨 다시 놓아 보고(막힌 칸을 쌓아 가며 3번까지), 막힌 판이 가장 적은 것을 쓴다(같으면 먼저 것).
+  // 먼저 놓인 남의 판이 점 바로 옆을 막으면 어느 쪽으로 나가도 지시선이 그 판 밑을 지난다(2026-11-15 점검 흉내: 폰 마산합포구 1과 '자산동' 판이 '반월중앙동' 점 4px 아래 —
+  // 반월중앙동을 앞으로 옮기면 산호동이 막히고, 둘 다 앞으로 옮기면 풀린다)
+  // 칸 밖 이름표가 RETRY_MAX 곳 넘게 몰린 지도(시험 결과 쪽의 많이 틀린 곳)는 다시 놓지 않는다 — 한 번 놓는 데도 오래 걸리고(흉내: 군산시 27곳 폰 42ms → 다시 놓기 3번 152ms) 다시 놓아도 다른 판이 막힌다
+  let best = first, cur = first, front: string[] = [];
+  for (let k = 0; k < 3 && best.stuck.length && todo.length <= RETRY_MAX; k++) {
+    front = [...front, ...cur.stuck.filter((id) => !front.includes(id))];
+    cur = outsideRun(cellOf, asks, ins, opt, [...front.map((id) => todo.find((t) => t.a.id === id)!), ...todo.filter((t) => !front.includes(t.a.id))], note);
+    if (cur.stuck.length < best.stuck.length) best = cur;
+  }
+  // 결과 차례는 처음 차례대로(그리는 차례가 다시 놓기에 따라 바뀌지 않게)
+  const at = new Map(todo.map((t, i) => [t.a.id, i]));
+  return { placed: best.out.sort((p, q) => at.get(p.id)! - at.get(q.id)!), clipped: note.clipped };
+}
+
+type Todo = { a: LabelAsk; c: LabelCell };
+
+/** placeOutside 한 차례: todo 차례로 놓는다. stuck = 지시선을 보지 않는 단계까지 가서 놓은 판(지시선이 다른 판 밑을 지날 수 있다) */
+function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAsk[], ins: InsideResult, opt: PlaceOpt, todo: Todo[], note: { clipped: boolean }): { out: Placed[]; stuck: string[] } {
+  const { u } = opt;
+  const out: Placed[] = [], stuck: string[] = [];
   const ask = new Map(asks.map((a) => [a.id, a]));
   // 이름표 상자(칸 안 것 + 놓아 가는 칸 밖 것)와 맥락 이름: 간격을 두고 피한다
   const names: Box[] = [...(opt.avoid ?? [])];
   for (const p of ins.placed) { const a = ask.get(p.id); if (a) names.push(boxAt(p.x, p.y, a.w * u, a.h * u)); }
-  const todo = ins.pending.map((a) => ({ a, c: cellOf(a.id) })).filter((x): x is { a: LabelAsk; c: LabelCell } => !!x.c);
   // 이름표를 다는 모든 칸(흰 판이 덮지 않게 먼저 피한다)
   const targets = asks.map((a) => ({ id: a.id, c: cellOf(a.id) })).filter((x): x is { id: string; c: LabelCell } => !!x.c);
   // 칸 밖 이름표는 칸 안의 점에서 지시선이 나간다: 다른 이름표가 그 점을 덮지 않게 점 자리도 잡아 둔다
@@ -246,18 +279,77 @@ export function placeOutside(cellOf: (id: string) => LabelCell | undefined, asks
     let x: number, y: number, plate = false;
     if (spot) [x, y] = spot;
     else if (opt.mode === 'must') {
-      // 빈 바탕이 없으면 칸 바로 옆에 흰 판으로: 위 → 아래 → 오른쪽 → 왼쪽 가운데 다른 이름표·점과 겹치지 않는 첫 자리(없으면 위).
-      // 이름표를 다는 다른 칸(시험 결과의 다른 틀린 칸 등)도 덮지 않는 자리를 먼저 찾는다
+      // 빈 바탕이 없으면 칸 바로 옆에 흰 판으로: 위 → 아래 → 오른쪽 → 왼쪽 가운데 다른 이름표·점과 겹치지 않는 첫 자리.
+      // 이름표를 다는 다른 칸(시험 결과의 다른 틀린 칸 등)도 덮지 않는 자리를 먼저 찾는다(plateHome 이면 그다음 판 가운데가 남의 칸 밖인 자리)
       const lift = LIFT_PX * u;
       const sides: [number, number][] = [[0, -(lift + h / 2)], [0, lift + h / 2], [lift + w / 2, 0], [-(lift + w / 2), 0]];
-      const taken = [...names, ...dots, ...lines, ...(opt.screen ?? [])];
+      // 자기 점은 판이 피할 것(taken)에서 빼고 own 으로 따로 본다(cover 는 자기 점을 세지 않는다 — 네 쪽은 점에서 LIFT_PX 떨어져 늘 닿지 않는다)
+      const taken = [...names, ...dots.filter((_, j) => j !== i), ...lines, ...(opt.screen ?? [])];
+      const own = boxAt(c.label[0], c.label[1], 2 * g, 2 * g);
+      const clear = (b: Box) => !taken.some((k) => overlap(k, b)) && !overlap(own, b);
+      // 지시선(점 → 판의 가까운 변)이 지나면 안 되는 것: 'all' = 다른 이름표·점·지시선·화면에 붙은 것, 'names' = 다른 이름표(맥락 이름 포함)·화면에 붙은 것만.
+      // 지시선이 다른 판 밑으로 지나면 판 둘이 한 줄에 붙고 점도 둘이라 어느 판이 어느 칸인지 헷갈린다(2026-11-15 점검: 폰 여수시 2과 '미평동' 지시선이 '문수동' 판 밑으로)
+      const nameLines = [...names, ...(opt.screen ?? [])];
+      const leadOk = (b: Box, lead: false | 'all' | 'names') => {
+        if (!lead) return true;
+        const [ex, ey] = leaderEnd(b, c.label, 0);
+        return !(lead === 'all' ? taken : nameLines).some((k) => segHitsBox(c.label[0], c.label[1], ex, ey, k[0], k[1], k[2], k[3]));
+      };
       const free = (spare: boolean) => sides.find(([sx, sy]) => {
         const x0 = c.label[0] + sx, y0 = c.label[1] + sy, b = boxAt(x0, y0, w, h);
         if (!inView(b)) { note.clipped = true; return false; }
-        if (taken.some((k) => overlap(k, b))) return false;
+        if (!clear(b) || !leadOk(b, 'names')) return false;
         return !spare || !targets.some((t) => t.id !== a.id && overlap(t.c.box, b) && boxHits(t.c.rings, x0, y0, w, h));
       });
-      const side = free(true) ?? free(false) ?? sides[0];
+      // plateHome: 판 가운데가 제 칸 안이고 다른 이름표·점·지시선과 겹치지 않는 자리 가운데 점에 가장 가까운 곳(점 둘레 REACH_PX 안을 STEP_PX 격자로 훑는다).
+      // 바다 위는 고르지 않는다 — 바다 쪽 빈 바탕은 앞 단계(outsideSpot)가 이미 보았고, 내륙의 작은 칸 판이 먼 바다에 가면 바닷가 곳으로 읽힌다(흉내에서 대전 판이 아산만에 갔다).
+      // 작은 칸(세종·대전)은 판이 점을 덮지 않고는 가운데가 제 칸에 들 수 없어 없을 수 있다 — 그때는 전처럼 옆 판 + 지시선
+      // levels = 지시선 수준(leadOk) 목록: 한 번 훑으며 수준마다 가장 가까운 자리를 함께 찾는다(반지름 2배 훑기를 수준마다 되풀이하지 않게).
+      // spare = 이름표를 다는 다른 칸을 덮지 않는 자리만, reach = 훑는 반지름(px)
+      const scan = (homeOnly: boolean, levels: (false | 'all' | 'names')[], spare = false, reach = REACH_PX): ([number, number] | undefined)[] => {
+        const R = reach * u, st = STEP_PX * u;
+        const best: ([number, number] | undefined)[] = levels.map(() => undefined), bd = levels.map(() => R * R);
+        const done = (d: number, k: number) => d > bd[k] || (best[k] !== undefined && d === bd[k]);
+        for (let sx = -R; sx <= R + 1e-9; sx += st) for (let sy = -R; sy <= R + 1e-9; sy += st) {
+          const d = sx * sx + sy * sy;
+          if (levels.every((_, k) => done(d, k))) continue;
+          const x0 = c.label[0] + sx, y0 = c.label[1] + sy;
+          if (homeOnly && (x0 < c.box[0] || x0 > c.box[2] || y0 < c.box[1] || y0 > c.box[3] || !inside(c.rings, x0, y0))) continue;
+          const b = boxAt(x0, y0, w, h);
+          if (!inView(b) || !clear(b)) continue;
+          if (spare && targets.some((t) => t.id !== a.id && overlap(t.c.box, b) && boxHits(t.c.rings, x0, y0, w, h))) continue;
+          levels.forEach((lead, k) => { if (!done(d, k) && leadOk(b, lead)) { bd[k] = d; best[k] = [sx, sy]; } });
+        }
+        return best;
+      };
+      const nearest = (homeOnly: boolean, lead: false | 'all' | 'names' = false, spare = false, reach = REACH_PX) => scan(homeOnly, [lead], spare, reach)[0];
+      // 네 쪽이 모두 막히면(좁은 지도에 이름이 몰린 곳 — 휴대폰 전국 시·도 지도의 세종 등, E10) 가리는 넓이가 가장 작은 쪽(같으면 위 → 아래 → 오른쪽 → 왼쪽).
+      // 전에는 늘 위라 바로 위 이름표를 덮었다. 다른 이름표(맥락 이름 포함)와 겹친 넓이와 보이는 범위 밖으로 나간 넓이는 NAME_W 배로 센다 —
+      // 글자가 겹치거나 잘리면 읽히지 않지만 점·지시선 조각은 판 밑에 깔려도 이름은 읽힌다. 범위 밖을 아예 고르지 않으면 지도 가장자리 점의 판이
+      // 범위를 1px 넘는 것을 피하려고 옆 이름표를 덮었다(E10 검수 흉내: 서울 강서구 1과 358폭 우장산동 → 발산1동 465px²)
+      const cover = ([sx, sy]: [number, number]) => {
+        const b = boxAt(c.label[0] + sx, c.label[1] + sy, w, h);
+        const area = (k: Box) => (overlap(k, b) ? (Math.min(k[2], b[2]) - Math.max(k[0], b[0])) * (Math.min(k[3], b[3]) - Math.max(k[1], b[1])) : 0);
+        const vw = opt.within, cut = vw ? w * h - Math.max(0, Math.min(b[2], vw[2]) - Math.max(b[0], vw[0])) * Math.max(0, Math.min(b[3], vw[3]) - Math.max(b[1], vw[1])) : 0;
+        return NAME_W * (cut + names.reduce((t, k) => t + area(k), 0)) + taken.slice(names.length).reduce((t, k) => t + area(k), 0);
+      };
+      // 네 쪽이 모두 막히면 먼저 점 둘레(REACH_PX)에서 다른 이름표·점·지시선과 겹치지 않고 보이는 범위 안이며 지시선도 그것들을 지나지 않는 가장 가까운 자리
+      // (되도록 이름표를 다는 다른 칸을 덮지 않는 곳). 2026-11-15 과 시작·요약을 지역 전체 지도로 바꾸자 폰 광주특별시 1과에서 작은 자치구 다섯의 판이 몰려
+      // 네 쪽이 다 막혀 '광산구' 판이 '동구' 판을 덮었고, 인천 1과 폰에서는 '계양구' 판이 보이는 범위를 넘었다. 그다음은 반지름 2배.
+      // 점이 몰린 곳(폰 동 단원 — 칸이 몇 px)은 어느 쪽으로 나가도 지시선이 남의 점을 지나므로, 지시선이 다른 이름표·화면에 붙은 것만 피하는 자리를 그다음에 본다
+      // (점검 흉내: 폰 동 단원 과 11곳에서 지시선이 다른 판 밑으로 지났다). 그런 자리도 없을 때만 지시선을 보지 않는 자리, 마지막에 가리는 넓이가 가장 작은 쪽
+      let side = free(true)
+        ?? (opt.plateHome ? nearest(true, 'names') ?? nearest(false, 'names') : undefined)
+        ?? free(false)
+        ?? nearest(false, 'all', true) ?? nearest(false, 'all');
+      if (!side) {
+        const [all, nameOnly, any] = scan(false, ['all', 'names', false], false, 2 * REACH_PX);
+        side = all ?? nameOnly;
+        if (!side) {
+          stuck.push(a.id);
+          side = any ?? sides.reduce((best, s) => (cover(s) < cover(best) ? s : best));
+        }
+      }
       x = c.label[0] + side[0];
       y = c.label[1] + side[1];
       plate = true;
@@ -268,9 +360,10 @@ export function placeOutside(cellOf: (id: string) => LabelCell | undefined, asks
     out.push({ id: a.id, x, y, out: { ax, ay, plate } });
     names.push(b);
     const n = Math.max(1, Math.ceil(Math.hypot(ax - c.label[0], ay - c.label[1]) / g));
-    for (let k = 1; k < n; k++) lines.push(boxAt(c.label[0] + ((ax - c.label[0]) * k) / n, c.label[1] + ((ay - c.label[1]) * k) / n, g, g));
+    // 끝점(k = n)까지: 칸 밖 이름표는 지시선 끝과 글자 사이를 띄우므로(g) 그 틈에 남의 판이 걸치지 않게(점검 흉내: 폰 검단구 2과 '아라1동' 판이 '원당동' 지시선 끝에)
+    for (let k = 1; k <= n; k++) lines.push(boxAt(c.label[0] + ((ax - c.label[0]) * k) / n, c.label[1] + ((ay - c.label[1]) * k) / n, g, g));
   });
-  return { placed: out, clipped: note.clipped };
+  return { out, stuck };
 }
 
 /** 이름표 자리 한 벌: 칸 안(placeInside) 다음에 칸 밖(placeOutside). 칸 안 것이 먼저, 그 뒤에 칸 밖 것 */

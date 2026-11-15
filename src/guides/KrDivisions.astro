@@ -3,7 +3,7 @@
 // 개수는 채움지도 경계 데이터(src/data/kr-summary.json, pipeline/build-geo.mjs 가 셈) — 행안부 공식 현황과의 대조는 검수 목록
 import { href } from '../lib/paths';
 import { guideIf } from './registry';
-import { UNITS } from '../lib/geo';
+import { UNITS, emdUnitFile } from '../lib/geo';
 import KR from '../data/kr-summary.json';
 
 const T = KR.total;
@@ -17,8 +17,8 @@ const sggCell = (s: (typeof KR.sidos)[number]) => {
   return parts.length ? parts.join(' · ') + (s.ilban ? ` (일반구 ${s.ilban})` : '') : '없음';
 };
 const ilbanSi = KR.sidos.flatMap((s) => s.ilbanSi);
-// 표에 쓰는 짧은 이름(시·도 코드 → 흔히 쓰는 줄임)
-const SHORT: Record<string, string> = { '11': '서울', '12': '전남광주', '26': '부산', '27': '대구', '28': '인천', '30': '대전', '31': '울산', '36': '세종', '41': '경기', '43': '충북', '44': '충남', '47': '경북', '48': '경남', '50': '제주', '51': '강원', '52': '전북' };
+// 표에 쓰는 짧은 이름(시·도 코드 → 흔히 쓰는 줄임. 법령이 약칭을 정한 시·도는 그 법정 약칭 — 전남광주통합특별시 = '광주특별시', 특별법 제7조 제1항)
+const SHORT: Record<string, string> = { '11': '서울', '12': '광주특별시', '26': '부산', '27': '대구', '28': '인천', '30': '대전', '31': '울산', '36': '세종', '41': '경기', '43': '충북', '44': '충남', '47': '경북', '48': '경남', '50': '제주', '51': '강원', '52': '전북' };
 const short = (s: (typeof KR.sidos)[number]) => SHORT[s.code] ?? s.name;
 // 문장 근거(데이터가 바뀌면 문장도 따라 바뀌거나 빌드가 멈춤)
 const onlyGu = KR.sidos.filter((s) => s.gu && !s.si && !s.gun && !s.adminSi).map(short);
@@ -27,7 +27,17 @@ const manyGunOk = manyGun.every((s) => s.myeon > s.dong);
 if (!manyGunOk || onlyGu.some((nm) => { const s = KR.sidos.find((x) => short(x) === nm)!; return s.eup + s.myeon > 0; })) throw new Error('G1 읍·면 문장이 데이터와 다름');
 const jg = KR.sidos.find((s) => s.kind === '통합특별시')!;
 const ic = KR.sidos.find((s) => s.name === '인천광역시')!;
-const covered = UNITS.regions.map((r) => `${r.ko} ${r.items.length}`).join(' · ');
+// 지금 연습할 수 있는 곳(판 units.json 공개 지역). 시·군·구 과가 있는 지역은 곳 수, 과 없는 지역(세종 — layer emd, N4 · E12)은 판에 '세종시' 한 칸뿐이라
+// 시·군·구 묶음에서 빼고 동 단원 파일(판 emd/{코드}.json)의 읍·면·동 수로 따로 쓴다(소개 쪽 scopeOf 와 같은 규칙 — E12 검수: '세종 1'이 나왔다).
+// 곳이 없는 지역, 동 단원이 없는 과 없는 지역은 빌드를 멈춘다
+const sggRegions = UNITS.regions.filter((r) => r.layer !== 'emd');
+for (const r of sggRegions) if (!r.items.length) throw new Error(`G1: 공개 지역 ${r.key} 에 곳이 없음`);
+const covered = sggRegions.map((r) => `${r.ko} ${r.items.length}`).join(' · ');
+const emdOnly = UNITS.regions.filter((r) => r.layer === 'emd').map((r) => {
+  const files = (UNITS.emdUnits?.[r.key] ?? []).map((u) => emdUnitFile(u.code));
+  if (!files.length) throw new Error(`G1: 과 없는 지역 ${r.key} 에 동 단원이 없음`);
+  return `${r.ko} ${files.reduce((t, f) => t + f.items.length, 0)}`;
+}).join(' · ');
 const g2 = guideIf('legal-vs-administrative-dong');
 const g3 = guideIf('incheon-reform-2026');
 const g4 = guideIf('autonomous-vs-general-gu');
@@ -38,6 +48,9 @@ const SRC = {
   gonggam: 'https://gonggam.korea.kr/newsContentView.es?mid=a12501000000&section_id=NCCD_POLICY_TOTAL&content=NC002&code_cd=&news_id=8b9422d1-e993-4b00-9c75-fa1da37638c2',
   incheon: 'https://www.incheon.go.kr/IC01070105/3012613',
   rename: 'https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833',
+  // 국가법령정보센터 법령 첫 화면(lsId — 현행 판을 연다). 2026-11-15 조사에서 이 주소와 현행 판 원문(lsiSeq=285923,
+  // 시행 2026. 11. 13. 법률 제21620호)을 열어 제7조 제1항 '약칭은 광주특별시로 한다'를 확인했다
+  jg:'https://www.law.go.kr/LSW/lsInfoP.do?lsId=015064',
 };
 ---
 <div class="summary">
@@ -67,7 +80,7 @@ const SRC = {
 </table></div>
 
 <h2>2026년에 바뀐 것</h2>
-<p><b>전남광주통합특별시(7월 1일)</b>: 「전남광주통합특별시 설치를 위한 특별법」이 시행되면서 전라남도와 광주광역시가 하나의 시·도로 합쳐졌어요. 약칭은 광주특별시예요. 시·도는 17곳에서 {T.sido}곳이 됐고, 지방자치법의 시·도 종류에도 '통합특별시'가 더해졌어요. 광주의 5개 자치구와 전남의 22개 시·군은 이름과 구역을 그대로 유지해요. 그래서 이 통합특별시 안에는 시 {jg.si}, 군 {jg.gun}, 자치구 {jg.gu}가 함께 있어요.</p>
+<p><b>전남광주통합특별시(7월 1일)</b>: 「전남광주통합특별시 설치를 위한 특별법」이 시행되면서 전라남도와 광주광역시가 하나의 시·도로 합쳐졌어요. 같은 법 제7조 제1항이 정한 약칭은 광주특별시예요. 시·도는 17곳에서 {T.sido}곳이 됐고, 지방자치법의 시·도 종류에도 '통합특별시'가 더해졌어요. 옛 광주광역시의 자치구 5곳과 옛 전라남도의 시·군 22곳은 이름과 구역을 그대로 유지해요. 그래서 이 통합특별시 안에는 시 {jg.si}, 군 {jg.gun}, 자치구 {jg.gu}가 함께 있어요.</p>
 <p><b>인천 행정체제 개편(7월 1일)</b>: 중구·동구가 제물포구·영종구로, 서구가 서해구·검단구로 바뀌었어요. 인천은 2군 8구에서 {ic.gun}군 {ic.gu}구가 됐고, 이 때문에 전국 자치구도 하나 늘었어요. 옛 구에서 새 구로 간 동은 <a href={href('/incheon/')}>인천 지도</a>{g3 && <>와 <a href={href(`/guide/${g3.slug}/`)}>인천 개편 글</a></>}에 표로 정리했어요.</p>
 
 <h2>읍·면·동은 무엇이 다를까</h2>
@@ -82,13 +95,14 @@ const SRC = {
 <p>{onlyGu.join('과 ')}은 자치구로만 이루어져 읍·면이 하나도 없어요. 반대로 군이 7곳 이상인 시·도는 모두 면이 동보다 많아요. 여기서 센 동은 주민센터가 맡는 행정동이에요. 주소에 쓰는 법정동은 수가 달라요.{g2 && <> 둘의 차이는 <a href={href(`/guide/${g2.slug}/`)}>법정동과 행정동 글</a>에 정리했어요.</>}</p>
 
 <h2>지도로 외울 때는</h2>
-<p>큰 층부터 외우는 편이 쉬워요. 먼저 시·도 {T.sido}곳의 자리를 잡고, 사는 곳이나 자주 가는 시·도의 시·군·구로 내려가요. 채움지도는 지금 {covered}곳의 시·군·구를 지도로 연습할 수 있어요.</p>
+<p>큰 층부터 외우는 편이 쉬워요. 먼저 시·도 {T.sido}곳의 자리를 잡고, 사는 곳이나 자주 가는 시·도의 시·군·구로 내려가요. 채움지도는 지금 {covered}곳의 시·군·구{emdOnly ? `와 ${emdOnly}곳의 읍·면·동을` : '를'} 지도로 연습할 수 있어요.</p>
 <div class="cta"><b>지도에서 바로 해 보기</b><a class="btn" href={href('/#/kr')}>지역 골라 시작하기</a></div>
 
 <h2>출처</h2>
 <ul class="src">
   <li>국가법령정보센터, <a href={SRC.law}>지방자치법</a>(법률 제21544호, 2026. 10. 15. 시행) 제2조·제3조·제10조</li>
   <li>국가법령정보센터, <a href={SRC.jeju}>제주특별자치도 설치 및 국제자유도시 조성을 위한 특별법</a>(법률 제22072호, 2026. 10. 13. 시행) 제10조</li>
+  <li>국가법령정보센터, <a href={SRC.jg}>전남광주통합특별시 설치를 위한 특별법</a>(법률 제21446호, 2026. 3. 5. 공포, 2026. 7. 1. 시행 · 현행 법률 제21620호, 2026. 11. 13. 시행) 제7조 제1항</li>
   <li>행정안전부, <a href={SRC.mois}>전남광주통합특별시 출범 시스템 통합 작업, 필요한 민원서류는 미리 챙겨주세요</a>(2026. 6. 15.)</li>
   <li>정책주간지 K-공감, <a href={SRC.gonggam}>대한민국 첫 광역행정통합 전남광주통합특별시 출범</a>(2026. 7. 2.)</li>
   <li>인천광역시, <a href={SRC.incheon}>보도자료(「인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률」)</a> · 행정안전부, <a href={SRC.rename}>인천광역시 서구, 주민 뜻 모아 서해구로 새출발</a>(2026. 5. 7.)</li>

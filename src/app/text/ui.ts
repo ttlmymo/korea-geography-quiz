@@ -3,18 +3,24 @@
 import type { Dir8, Registry } from '../registry.ts';
 import type { Tap, Wrong } from '../core/judge.ts';
 import type { Item, Lesson, Region, Screen } from '../types.ts';
-import { DIR_KO, TAP_KO, dontKnowKo, eulReul, ieyo, rightKo, unitKo, wrongKo } from './ko.ts';
+import { DIR_KO, TAP_KO, dontKnowKo, eulReul, eunNeun, guFirst, ieyo, koCount, meetKo, rightKo, unitKo, wrongKo } from './ko.ts';
+import { SIDOS, partOf, sidoByCode } from '../sidos.ts';
 
 type TapMsg = Exclude<Tap['type'], 'cell'>;
+type Pair = [string, string];
+/** 지역 표(src/data/sido.json)에서 지역 키 → 글 두 개(desc·hub). 계획서 E8: regionDesc·hubs·RIVER_REGIONS 를 지역 표로 옮김 */
+const fromTable = (pick: (s: (typeof SIDOS)[number]) => Pair | null | undefined) =>
+  Object.fromEntries(SIDOS.flatMap((s) => { const v = pick(s); return v ? [[s.key, v]] : []; })) as Record<string, Pair>;
 const ends = (r: Region, ids?: string[]) => {
   const list = ids ? r.items.filter((it) => ids.includes(it.id)) : r.items;
-  return { si: list.filter((it) => it.ko.endsWith('시')).length, gun: list.filter((it) => it.ko.endsWith('군')).length, gu: list.filter((it) => it.ko.endsWith('구')).length, n: list.length };
+  const by = (e: string) => list.filter((it) => it.ko.endsWith(e)).length;
+  return { si: by('시'), gun: by('군'), gu: by('구'), eup: by('읍'), myeon: by('면'), dong: by('동'), n: list.length };
 };
+/** 동 단원의 곳 종류(읍·면·동 차례): '동' · '읍·면' · '읍·면·동'. 동 단원이 아니면 '' */
+const emdKinds = (e: ReturnType<typeof ends>) => (e.n && e.eup + e.myeon + e.dong === e.n ? [e.eup && '읍', e.myeon && '면', e.dong && '동'].filter(Boolean).join('·') : '');
 
 /* ---------- 한국어 ---------- */
 
-/** 과 수를 세는 한글 수사(서울 다섯 과) */
-const KO_NUM = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
 
 export const UI_KO = {
   lang: 'ko' as 'ko' | 'en',
@@ -26,14 +32,22 @@ export const UI_KO = {
   lesson: (l: Lesson) => l.title,
   lessonNo: (no: number) => `${no}과`,
   count(r: Region): string {
+    if (r.layer === 'sido') return `${r.items.length}개 시·도`;
     const e = ends(r);
-    if (!e.si && e.gun && e.gu) return `${e.gun}군 ${e.gu}구`;
-    if (e.si && e.gun) return `${e.n}개 시·군`;
-    return `${e.n}개 ${e.si ? '시' : e.gun ? '군' : '구'}`;
+    const k = emdKinds(e);
+    if (k) return `${e.n}개 ${k}`;
+    // 군과 구만 있으면 지역이 스스로 쓰는 차례: 구를 먼저 '15구 1군'(부산)·'7구 2군'(대구), 지역 표 gunFirst 인 인천만 '2군 9구'(ko.ts guFirst, E12).
+    // 그 밖에 둘 이상 섞이면 '27개 시·군·구'(전남광주), '31개 시·군'(경기)
+    if (!e.si && e.gun && e.gu) return guFirst(r.items.map((it) => it.ko), r.key) ? `${e.gu}구 ${e.gun}군` : `${e.gun}군 ${e.gu}구`;
+    const kinds = [e.si && '시', e.gun && '군', e.gu && '구'].filter(Boolean);
+    return `${e.n}개 ${kinds.length ? kinds.join('·') : '곳'}`;
   },
   lessonCount(r: Region, ids: string[]): string {
+    if (r.layer === 'sido') return `${ids.length}개 시·도`;
     const e = ends(r, ids);
-    return `${ids.length}개 ${[e.si && '시', e.gun && '군', e.gu && '구'].filter(Boolean).join('·')}`;
+    // 단위 차례는 지역 전체로 정한다(부산 3과 '4개 구·군' — 기장군 하나가 든 과)
+    const kinds = guFirst(r.items.map((it) => it.ko), r.key) ? [e.si && '시', e.gu && '구', e.gun && '군'] : [e.si && '시', e.gun && '군', e.gu && '구'];
+    return `${ids.length}개 ${emdKinds(e) || kinds.filter(Boolean).join('·') || '곳'}`;
   },
   ctxName: (_sido: string, text: string) => text,
   dir: (d: Dir8) => DIR_KO[d],
@@ -45,9 +59,17 @@ export const UI_KO = {
     if (mode === 'choose') return `테두리 친 칸은 무슨 ${unitKo(p.region)}일까요?`;
     return `${b(p.item.ko)}${eulReul(p.item.ko).slice(p.item.ko.length)} 찾아 누르세요`;
   },
-  line: (reg: Registry, id: string) => reg.place(id)?.item.line ?? '',
+  /** 위치 한 줄: 시·군·구는 원고(item.line), 동은 만나기 근거로 만든 한 줄(N13), 일반구는 파이프라인이 근거로 만든 한 줄(item.line, E7) */
+  line: (reg: Registry, id: string) => { const p = reg.place(id); return p?.region.layer === 'emd' && p.region.unit ? meetKo(reg, id) : p?.item.line ?? ''; },
+  /** 단원이 섞이는 화면(오늘 복습·복습 목록)의 곳 이름: 동은 '종로구 청운효자동'(N12), 일반구는 '수원시 장안구', 시·군·구는 그대로 */
+  // 동 단원 이름은 여러 시·도에 같은 이름이 있으면 지역 이름을 붙인다('부산 중구 중앙동' — registry.mixName, E11)
+  fullName: (reg: Registry, id: string) => { const p = reg.place(id); return !p ? id : p.item.full ?? (p.region.unit ? `${reg.mixName(p.region.key) ?? p.region.ko} ${p.item.ko}` : p.item.ko); },
+  /** 오늘 복습 문제의 앞 이름(N12): full 에서 곳 이름을 뺀 것 — 일반구 '수원시', 같은 이름이 여러 지역에 있는 시·군·구 '부산'(E11). 없으면 undefined */
+  fullPre: (reg: Registry, id: string) => { const p = reg.place(id); return p?.item.full && p.item.full !== p.item.ko ? p.item.full.slice(0, -p.item.ko.length).trim() || undefined : undefined; },
   right: (reg: Registry, id: string, first: boolean) => rightKo(reg, id, first).title,
   wrong: (reg: Registry, w: Wrong, chose: boolean) => wrongKo(reg, w, chose),
+  /** 오답 위치 글(정답이나 누른 곳이 섬 상자에 있을 때): 상자 자리는 실제 방위와 달라 방위 대신 정답이 어디 그려졌는지만(E5 검수) */
+  isleWhere: (reg: Registry, id: string, inIsle: boolean) => { const t = reg.place(id)?.item.ko ?? ''; return inIsle ? `${eunNeun(t)} 따로 그린 섬 상자에 있어요` : `${eunNeun(t)} 본 지도에 있어요`; },
   dontKnow: (reg: Registry, id: string) => dontKnowKo(reg, id),
   fixed: (reg: Registry, id: string) => `여기가 ${ieyo(reg.place(id)?.item.ko ?? '')}`,
   meetAct: '테두리 친 칸을 눌러 보세요',
@@ -113,7 +135,6 @@ export const UI_KO = {
   how: '이렇게 공부해요',
   howSteps: [['① 만나기', '이름표를 보며 눌러 봐요'], ['② 찾기', '이름을 가리고 찾아요'], ['③ 복습', '다음 날 다시 나와요']],
   explore: '지역 알아보기',
-  seoulHub: ['서울 25개 구', '구마다 위치와 행정동 →'],
   settings: '설정',
   autoNext: ['정답을 맞히면 잠시 뒤 저절로 다음 문제로 넘어가기', '한 판에서 같은 곳을 처음 두 번 맞혔을 때는 위치 한 줄을 읽도록 늘 [다음]을 눌러요'],
   legend: ['아직', '익히는 중', '익히는 중', '다 익힘'],
@@ -139,7 +160,7 @@ export const UI_KO = {
   progAria: (r: string, n: number) => `${r} ${n}곳의 채움 정도`,
   noLogin: '로그인 없이 바로 시작해요',
   /** '서울 다섯 과' */
-  lessonsHead: (r: string, n: number) => `${r} ${KO_NUM[n] ?? n} 과`,
+  lessonsHead: (r: string, n: number) => `${r} ${koCount(n)} 과`,
   lessonsHelp: '과를 누르면 그 과부터 할 수 있어요',
   mixGo: (r: string) => `${r} 전체 연습`,
   /** 과 카드의 상태 한 줄 */
@@ -151,23 +172,48 @@ export const UI_KO = {
   /** 과 카드 네모 줄의 설명: '6곳 중 2곳 다 익힘, 4곳 익히는 중' / '5곳 모두 익히는 중' */
   dotsAria: (total: number, parts: [string, number][]) => (parts.length === 1 ? `${total}곳 모두 ${parts[0][0]}` : `${total}곳 중 ${parts.map(([s, n]) => `${n}곳 ${s}`).join(', ')}`),
   /** 과 카드의 짧은 이름: 종로구 → 종로 */
-  short: (it: Item) => it.ko.replace(/[구시군]$/, '') || it.ko,
+  // 시·도 단원(korea)의 곳 이름('대구' · '광주특별시')은 줄이지 않는다
+  // 과 카드의 짧은 이름('종로'). 줄이면 한 글자가 되는 이름(중구·서구·동구·남구·북구)은 그대로 — 부산 1과 '중 · 서 · 동 · 영도'처럼 방위 낱말로 읽힌다(E11)
+  short: (it: Item) => (it.id.startsWith('kr:sido:') ? it.ko : [...it.ko].length <= 2 ? it.ko : it.ko.replace(/[구시군]$/, '') || it.ko),
   /** 처음 온 사람의 진도 자리 안내(지도와 떨어진 글이라 '여기에' 대신 '지도에') */
   filledNone: '아직 칠한 곳이 없어요. 공부한 곳이 지도에 칠해져요',
   /** 칠한 곳이 없는 지역 탭의 진도 머리: '11곳 중 0곳 채움' */
   filledZero: (n: number) => `${n}곳 중 0곳 채움`,
-  /** '지역 알아보기'에서 서울 밖 지역 탭의 허브 쪽(서울은 seoulHub). 영어 허브는 서울만 있다 */
-  hubs: { incheon: ['인천 2군 9구', '2026년 7월 개편과 군·구마다 위치 →'], gyeonggi: ['경기 31개 시·군', '시·군마다 위치와 읍·면·동 수 →'] } as Record<string, [string, string]>,
-  // 지역 고르기
+  /** '지역 알아보기'의 정적 허브 쪽 [제목, 부제](지역 표 hub — 허브가 없는 지역 탭은 서울 허브). 영어 허브는 서울만 있다 */
+  hubs: fromTable((s) => s.hub?.ko),
+  /** '지역 알아보기'에서 정적 허브가 없는 지역 탭(새 시·도 · 전국)이 가는 지역 고르기 [제목, 부제] */
+  pickerLink: ['전국 지역 고르기', '시·도 지도에서 공부할 지역을 골라요 →'] as [string, string],
+  /** 홈 지역 탭이 넘칠 때(공개 지역 5곳 이상, 계획서 N22) 지역 고르기로 가는 마지막 탭 */
+  otherTab: '다른 지역',
+  /** 그 탭의 '+n' 을 화면 읽기가 읽는 글('플러스 14' 대신) */
+  otherTabMore: (n: number) => `(${n}곳 더)`,
+  /** 지역 고르기에서 열린 지역이 적을 때(운영) 접어 둔 '준비 중' 지역 묶음의 머리 */
+  othersSoon: (n: number) => `다른 지역 ${n}곳 · 준비 중`,
+  // 지역 고르기(계획서 N23): 전국 시·도 지도 + 권역별 목록, 아직 열지 않은 지역은 흐리게 '준비 중'
   regionsTitle: '어디를 공부할까요?',
-  regionDesc: { seoul: ['한강을 사이에 두고 북쪽 14, 남쪽 11', ''], incheon: ['2026년 7월 새 구 이름(제물포·영종·서해·검단)', '새 이름'], gyeonggi: ['서울을 둘러싼 고리', ''] } as Record<string, [string, string]>,
+  /** 지역 고르기 칸·홈 지도 아래 한 줄 [글, 꼬리표](지역 표 desc) */
+  regionDesc: fromTable((s) => s.desc?.ko),
   /** 지역 고르기 칸의 한 줄: '25개 구 · 5과' */
   regionMeta: (count: string, n: number) => `${count} · ${n}과`,
   filledTag: (f: number, n: number) => `${f}/${n} 채움`,
   notYet: '아직',
-  others: '다른 지역 (준비 중)',
-  otherList: ['부산', '대구', '광주·전남(전남광주통합특별시)', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '경북', '경남', '제주'],
   soon: '준비 중',
+  /** 지역 고르기 지도 */
+  pickerMap: '전국 지도. 열린 지역을 누르면 그 지역으로 가요',
+  // 모두 열렸으면(한국어 E16 부터 열여섯 곳) '16곳 중 16곳 열림' 대신 수만(E17 — 여는 동안의 말을 운영 화면에 남기지 않음)
+  pickerCap: (open: number, all: number) => (open === all ? `전국 시·도 ${all}곳` : `시·도 ${all}곳 중 ${open}곳 열림`),
+  /** 지역 고르기의 시·도 단원 묶음 머리(칸 이름 '전국'과 겹치지 않게) */
+  koreaHead: '시·도 한눈에',
+  /** 지역 고르기 권역 머리 오른쪽: 열린 지역 수 */
+  regionsCount: (n: number) => `${n}곳`,
+  /** 지역 고르기 제목 아래 안내 */
+  pickerSub: '지도나 목록에서 지역을 고르세요. 아직 열지 않은 지역은 흐리게 보여요',
+  /** 같은 안내, 그 말 화면의 지역이 모두 열렸을 때(흐린 지역 없음 — E16 검수) */
+  pickerSubAll: '지도나 목록에서 지역을 고르세요',
+  /** 권역 이름(지역 표 group 그대로) */
+  groupName: (g: string) => g,
+  /** 과 없는 지역(세종·제주, 계획서 N4)의 지역 고르기 칸 한 줄: '25곳 · 4과' */
+  mainMeta: (n: number, lessons: number) => `${n}곳 · ${lessons}과`,
   // 단원
   unitMapLabel: (r: string) => `${r} 채움 지도. 칸을 누르면 그곳 이야기가 나와요`,
   reviewChip: (n: number) => `오늘 복습 ${n} →`,
@@ -179,6 +225,38 @@ export const UI_KO = {
   checkName: (r: string) => `${r} 시험`,
   checkSub: (n: number) => `${n}문제 · 시간을 재요`,
   dong: ['동까지 공부하기', '구 하나를 골라 그 구의 동을 익혀요'],
+  // 동 단원(계획서 E5): 구 고르기(#/kr/{지역}/emd) · 단원 쪽(#/kr/{지역}/emd/{단원})
+  /** 구 고르기 큰 제목: '어느 구의 동을
+배울까요?'(word = 구 · 군·구 · 시·군·구) */
+  pickTitle: (word: string) => `어느 ${word}의 동을
+배울까요?`,
+  pickSub: (word: string) => `${eulReul(word)} 하나 고르면 그 안의 동을 이웃끼리 묶은 과로 익혀요`,
+  /** 구 고르기 목록 머리: '서울 25개 구' */
+  pickHead: (r: string, n: number, word: string) => `${r} ${n}개 ${word}`,
+  pickHelp: '이름을 누르면 그곳의 과가 나와요',
+  /** 구 고르기 지도 범례: 칸 하나 = 구 하나의 동 진도 */
+  pickKey: ['아직', '동을 익히는 중', '동을 다 익힘'],
+  pickMap: (r: string) => `${r} 동 진도 지도. 칸을 누르면 그곳 동 단원으로 가요`,
+  /** 단원 목록 칸: '17곳 · 3과' */
+  unitMeta: (n: number, lessons: number) => `${n}곳 · ${lessons}과`,
+  /** 마지막으로 공부한 단원으로 바로 가는 단추 */
+  pickLast: (name: string) => `${name} 이어서 배우기`,
+  pickLastTag: '최근',
+  /** 단원 쪽 라벨: '서울 · 동까지 공부하기' */
+  emdLabel: (r: string) => `${r} · 동까지 공부하기`,
+  emdDesc: (n: number) => `이웃한 곳끼리 ${n}과로 묶었어요`,
+  otherUnits: (word: string) => `다른 ${word} 고르기`,
+  toRegion: (r: string) => `${r} 과로 돌아가기`,
+  // 일반구 단원(계획서 N5 · E7): #/kr/{지역}/gu
+  /** 일반구 단원 쪽 라벨: '경기 · 일반구 공부하기' */
+  guLabel: (r: string) => `${r} · 일반구 공부하기`,
+  guDesc: '구가 있는 시마다 한 과예요. 동을 배우기 전에 구부터 익혀요',
+  /** 지역 쪽·홈·구 고르기의 일반구 단원 링크: '일반구 24곳 공부하기' */
+  guGo: (n: number) => `일반구 ${n}곳 공부하기`,
+  /** 구 고르기 지도의 넓은 화면 고르기(전체 · 북서부 …) */
+  pickAll: '전체',
+  pickScreens: '지도 범위',
+  loading: '지도를 불러오는 중이에요',
   more: '더 알아보기',
   seoulMore: '서울 25개 구 알아보기',
   // 과 시작 카드
@@ -233,7 +311,10 @@ export const UI_KO = {
   reviewEnd: '오늘 복습 끝! 칠한 곳이 더 단단해졌어요',
   mixEnd: (r: string) => `${r} 전체 연습 끝!`,
   back: '뒤로',
-  inset: '먼 섬 · 축척 다름',
+  /** 섬 상자 글(축척은 상자마다 막대로 — map/isles.ts insetScale. 2026-11-15 전에는 '먼 섬 · 축척 다름') */
+  inset: '먼 섬',
+  /** 확대 상자 글(과 시작·요약 지역 전체 지도에서 이번 과가 아주 작을 때 — map/zoombox.ts). 옆에 그 상자의 축척 막대 */
+  zoom: '확대',
   /** 넓은 판에서 화면이 바뀔 때 알림: '경기 남서부' */
   screenName: (r: string, s: Screen) => `${r} ${s.ko}`,
 };
@@ -244,7 +325,11 @@ export type UI = typeof UI_KO;
 const enName = (it: Item) => it.slug.replace(/^./, (c) => c.toUpperCase());
 const enPlace = (reg: Registry, id: string) => { const p = reg.place(id); return p ? enName(p.item) : id; };
 const DIR_EN: Record<Dir8, string> = { E: 'east', NE: 'northeast', N: 'north', NW: 'northwest', W: 'west', SW: 'southwest', S: 'south', SE: 'southeast' };
-const SIDO_EN: Record<string, string> = { '11': 'Seoul', '28': 'Incheon', '41': 'Gyeonggi', '51': 'Gangwon', '42': 'Gangwon', '43': 'Chungbuk', '44': 'Chungnam', '30': 'Daejeon', '36': 'Sejong', '47': 'Gyeongbuk', kp: 'North Korea' };
+/**
+ * 지도 맥락 이름(이웃 땅)의 영어: 시·도는 지역 표 en(16곳, 계획서 E8 · N26). 영어 이름을 확인하지 않은 시·도(enChecked false — Q5. 전남광주는 2026-11-15 켬)는 ''
+ * (지도에 이름을 두지 않는다 — 한글을 영어 화면에 섞지 않게)
+ */
+const sidoEn = (code: string) => { const s = sidoByCode(code); return s ? (s.enChecked ? s.en : '') : undefined; };
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const unitEn = (r: Region) => { const e = ends(r); return [e.si && 'city', e.gun && 'county', e.gu && 'district'].filter(Boolean).join(' or '); };
 /** 과 카드 네모 줄 설명에서 칸 상태 이름을 문장 속 말로('6 places, all in the next lesson') */
@@ -261,9 +346,15 @@ export const UI_EN: UI = {
   lesson: (l: Lesson) => l.en ?? l.title,
   lessonNo: (no: number) => `lesson ${no}`,
   count(r: Region): string {
+    if (r.layer === 'sido') return plural(r.items.length, 'province or city', 'provinces and cities');
     const e = ends(r);
-    if (!e.si && e.gun && e.gu) return `${plural(e.gun, 'county', 'counties')}, ${plural(e.gu, 'district', 'districts')}`;
+    if (!e.si && e.gun && e.gu) return guFirst(r.items.map((it) => it.ko), r.key)
+      ? `${plural(e.gu, 'district', 'districts')}, ${plural(e.gun, 'county', 'counties')}`
+      : `${plural(e.gun, 'county', 'counties')}, ${plural(e.gu, 'district', 'districts')}`;
+    if (e.si && e.gun && e.gu) return `${e.n} cities, counties and districts`;
     if (e.si && e.gun) return `${e.n} cities and counties`;
+    if (e.si && e.gu) return `${e.n} cities and districts`;
+    if (!e.si && !e.gun && !e.gu) return plural(e.n, 'place', 'places');
     return plural(e.n, e.si ? 'city' : e.gun ? 'county' : 'district', e.si ? 'cities' : e.gun ? 'counties' : 'districts');
   },
   lessonCount(r: Region, ids: string[]): string {
@@ -271,7 +362,8 @@ export const UI_EN: UI = {
     const kinds = [e.si && 'cities', e.gun && 'counties', e.gu && 'districts'].filter(Boolean);
     return `${ids.length} ${kinds.length === 1 ? kinds[0] : 'places'}`;
   },
-  ctxName: (sido: string, text: string) => (sido === 'water' ? 'Han River' : SIDO_EN[sido] ?? text),
+  // 강 띠는 한강, 북한은 'North Korea', 일본(E15 경남 지도의 대마도)은 'Japan', 시·도는 지역 표 영어 이름(확인하지 않은 시·도는 '' — 지도에 두지 않음), 그 밖은 원래 글
+  ctxName: (sido: string, text: string) => (sido === 'water' ? 'Han River' : sido === 'kp' ? 'North Korea' : sido === 'jp' ? 'Japan' : sidoEn(sido) ?? text),
   dir: (d: Dir8) => DIR_EN[d],
   tap: (t: TapMsg) => ({ ambiguous: 'Tap again, a little closer in', outside: 'Pick one of the bright areas', river: 'Tap on land' })[t],
   prompt(reg: Registry, mode: 'meet' | 'choose' | 'find', id: string, b: (s: string) => string): string {
@@ -281,6 +373,10 @@ export const UI_EN: UI = {
     return `Find and tap ${b(enName(p.item))}`;
   },
   line: () => '',
+  // 같은 이름이 여러 지역에 있는 곳(레지스트리가 full 을 붙임 — 영어 앱에는 일반구·동 단원이 없으므로 full 은 이것뿐)은 'Jung-gu, Busan'(N12 · E11).
+  // 지역 안 묶음(지역 표 parts — 전남광주의 자치구 5곳, E16)에 든 곳은 묶음 이름('Dong-gu, Jeonnam-Gwangju' — 2026-11-15 법정 약칭으로 바꾸며 지역 영어 이름과 맞춤, 전에는 'Dong-gu, Gwangju')
+  fullName: (reg: Registry, id: string) => { const p = reg.place(id); return p?.item.full && !p.region.unit ? `${enName(p.item)}, ${partOf(p.region.key, id)?.en ?? p.region.en}` : enPlace(reg, id); },
+  fullPre: (reg: Registry, id: string) => { const p = reg.place(id); return p?.item.full && !p.region.unit ? partOf(p.region.key, id)?.en ?? p.region.en : undefined; },
   right: (reg: Registry, id: string, first: boolean) => (first ? `Correct! ${enPlace(reg, id)}` : enPlace(reg, id)),
   wrong(reg: Registry, w: Wrong, chose: boolean) {
     const t = enPlace(reg, w.target), p = enPlace(reg, w.picked);
@@ -290,6 +386,7 @@ export const UI_EN: UI = {
       act: chose ? `The outlined area is ${t}` : `Tap the marked ${t} once`,
     };
   },
+  isleWhere: (reg: Registry, id: string, inIsle: boolean) => (inIsle ? `${enPlace(reg, id)} is in its own island box` : `${enPlace(reg, id)} is on the main map`),
   dontKnow: (reg: Registry, id: string) => ({ title: `This is ${enPlace(reg, id)}`, act: 'Tap it once' }),
   fixed: (reg: Registry, id: string) => `This is ${enPlace(reg, id)}`,
   meetAct: 'Tap the outlined area',
@@ -346,7 +443,6 @@ export const UI_EN: UI = {
   how: 'How it works',
   howSteps: [['① Meet', 'Tap each place with its name shown'], ['② Find', 'Find it with the names hidden'], ['③ Review', 'It comes back the next day']],
   explore: 'Explore regions',
-  seoulHub: ["Seoul's 25 districts", 'Where each one is →'],
   settings: 'Settings',
   autoNext: ['Move to the next question by itself after a correct answer', 'The first two times you get the same place right in a round, you always press [Next]'],
   legend: ['Not yet', 'Learning', 'Learning', 'Mastered'],
@@ -367,7 +463,7 @@ export const UI_EN: UI = {
   masteredNote: 'Mastered places keep their names on the map',
   progAria: (r: string, n: number) => `How much of ${r}'s ${n} places is filled`,
   noLogin: 'No sign-in needed',
-  lessonsHead: (r: string, n: number) => `${r} in ${n} lessons`,
+  lessonsHead: (r: string, n: number) => `${r} in ${plural(n, 'lesson', 'lessons')}`,   // 과가 하나인 대전·울산 'Daejeon in 1 lesson'(E12 검수)
   lessonsHelp: 'Pick a lesson to start from there',
   mixGo: (r: string) => `Practice all of ${r}`,
   stFilled: (total: number, f: number, d: number, due: number) => `${f === total ? `${f} filled` : `${f} of ${total} filled`}${due ? ` · ${due} to review today` : d ? ` · ${d} mastered` : ''}`,
@@ -383,15 +479,25 @@ export const UI_EN: UI = {
   short: (it: Item) => enName(it).replace(/-(gu|si|gun)$/, ''),
   filledNone: 'Nothing filled yet. The places you study get colored on the map',
   filledZero: (n: number) => `0 of ${n} filled`,
-  hubs: {} as Record<string, [string, string]>,
+  hubs: fromTable((s) => s.hub?.en),
+  pickerLink: ['All regions', 'Pick a region to study on the map of Korea →'] as [string, string],
+  otherTab: 'More',
+  otherTabMore: (n: number) => `(${plural(n, 'more region', 'more regions')})`,
+  othersSoon: (n: number) => `${plural(n, 'other region', 'other regions')} · coming soon`,
   regionsTitle: 'Where would you like to study?',
-  regionDesc: { seoul: ['14 north of the Han River, 11 south', ''], incheon: ['New district names from July 2026 (Jemulpo, Yeongjong, Seohae, Geomdan)', 'New names'], gyeonggi: ['The ring around Seoul', ''] },
-  regionMeta: (count: string, n: number) => `${count} · ${n} lessons`,
+  regionDesc: fromTable((s) => s.desc?.en),
+  regionMeta: (count: string, n: number) => `${count} · ${plural(n, 'lesson', 'lessons')}`,
   filledTag: (f: number, n: number) => `${f}/${n} filled`,
   notYet: 'Not yet',
-  others: 'Other regions (coming soon)',
-  otherList: ['Busan', 'Daegu', 'Gwangju–Jeonnam', 'Daejeon', 'Ulsan', 'Sejong', 'Gangwon', 'Chungbuk', 'Chungnam', 'Jeonbuk', 'Gyeongbuk', 'Gyeongnam', 'Jeju'],
   soon: 'Coming soon',
+  pickerMap: 'Map of Korea. Tap an open region to go there',
+  pickerCap: (open: number, all: number) => `${open} of ${all} regions open`,
+  koreaHead: 'Provinces at a glance',
+  regionsCount: (n: number) => plural(n, 'region', 'regions'),
+  pickerSub: 'Pick a region on the map or in the list. Regions not open yet are grayed out',
+  pickerSubAll: 'Pick a region on the map or in the list',
+  groupName: (g: string) => ({ 수도권: 'Capital area', 강원: 'Gangwon', 충청: 'Chungcheong', 호남: 'Honam', 영남: 'Yeongnam', 제주: 'Jeju' })[g] ?? g,
+  mainMeta: (n: number, lessons: number) => `${plural(n, 'place', 'places')} · ${plural(lessons, 'lesson', 'lessons')}`,
   unitMapLabel: (r: string) => `Filled map of ${r}. Tap a place to read about it`,
   reviewChip: (n: number) => `Today's review ${n} →`,
   order: 'Study path',
@@ -402,6 +508,27 @@ export const UI_EN: UI = {
   checkName: (r: string) => `${r} test`,
   checkSub: (n: number) => `${n} questions · timed`,
   dong: ['Down to neighborhoods', 'Pick a district and learn its dong'],
+  // 동 단원은 영어 앱에 열지 않는다(계획서 N26 — 동 색인을 읽지 않아 이 글은 보이지 않는다). 모양만 맞춘다
+  pickTitle: () => 'Which district?',
+  pickSub: () => 'Pick a district to learn its neighborhoods',
+  pickHead: (r: string, n: number) => `${r}: ${n}`,
+  pickHelp: 'Pick a name to see its lessons',
+  pickKey: ['Not yet', 'Learning', 'Mastered'],
+  pickMap: (r: string) => `Map of ${r}`,
+  unitMeta: (n: number, lessons: number) => `${plural(n, 'place', 'places')} · ${plural(lessons, 'lesson', 'lessons')}`,
+  pickLast: (name: string) => `Continue ${name}`,
+  pickLastTag: 'Recent',
+  emdLabel: (r: string) => `${r} · neighborhoods`,
+  emdDesc: (n: number) => `${plural(n, 'lesson', 'lessons')} of neighbors`,
+  otherUnits: () => 'Pick another district',
+  toRegion: (r: string) => `Back to ${r}`,
+  // 일반구 단원: 영어 앱은 등록하지 않는다(계획서 N26) — 모양만
+  guLabel: (r: string) => `${r} · city districts`,
+  guDesc: 'One lesson per city with districts',
+  guGo: (n: number) => `Learn ${plural(n, 'city district', 'city districts')}`,
+  pickAll: 'All',
+  pickScreens: 'Map area',
+  loading: 'Loading the map',
   more: 'Read more',
   seoulMore: "About Seoul's 25 districts",
   newNames: 'New district names from July 2026 (Geomdan-gu, Seohae-gu and more)',
@@ -447,7 +574,8 @@ export const UI_EN: UI = {
   reviewEnd: "Today's review is done! Your filled places are stronger now",
   mixEnd: (r: string) => `All of ${r} done!`,
   back: 'Back',
-  inset: 'Far islands · not to scale',
+  inset: 'Far islands',
+  zoom: 'Zoomed in',
   screenName: (r: string, s: Screen) => `${r}, ${s.en}`,
 };
 

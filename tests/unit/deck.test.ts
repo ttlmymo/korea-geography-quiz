@@ -106,4 +106,14 @@ test('진행 표시와 저장·되살리기', () => {
   assert.equal(restoreDeck({ ...d, pos: 99 }), null);
   assert.equal(restoreDeck({ ...d, queue: [{ mode: 'fly', id: 'a' }] }), null);
   assert.equal(restoreDeck({ ...d, kind: 'game' }), null);
+  // 단원 키·고르기 보기의 모양(2026-11-15 점검 — 틀린 저장 판 하나로 부팅의 unitsToLoad·onMissingUnit 이 예외를 냈다. 운영 앱도 usableDeck 에서 버린 판들)
+  const { region: _r, ...noRegion } = d;
+  assert.equal(restoreDeck(noRegion), null, 'region 없음');
+  assert.equal(restoreDeck({ ...d, region: 5 }), null, 'region 이 문자열·null 이 아님');
+  assert.equal(restoreDeck({ ...d, queue: [{ mode: 'choose', id: 'a', options: 5 }] }), null, 'options 가 배열이 아님');
+  assert.equal(restoreDeck({ ...d, queue: [{ mode: 'choose', id: 'a', options: ['a', 3] }] }), null, 'options 원소가 문자열이 아님');
+  // 앱이 쓰는 모양은 그대로 되살린다: 복습 판(region null), 보기가 있는 고르기, options 가 null 인 문제(운영 앱도 ?? [] 로 읽었다)
+  const rv = createDeck('review', [{ mode: 'choose', id: 'a', options: ['a', 'b', 'c', 'd'] }, { mode: 'find', id: 'b' }], { seed: 1 });
+  assert.deepEqual(restoreDeck(JSON.parse(JSON.stringify(rv))), rv);
+  assert.ok(restoreDeck({ ...d, queue: [{ mode: 'find', id: 'a', options: null }] }));
 });

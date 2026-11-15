@@ -252,6 +252,8 @@ html.app-full #app { position: fixed; inset: 0; background: var(--paper); }
   .play-stage::after { border-width: 1px; }
   .pr-help { display: block; margin: 0; padding: 2px 0 12px; border-bottom: 1px solid var(--ink); font-size: 14px; line-height: 20px; color: var(--ink-3); text-align: right; }
   .pr-help .ht { display: none; }
+  /* 섬 상자 격자(끌기·확대 없음): 안내 글만 감춘다(밑줄 칸은 그대로) */
+  .pr-help.off > span { visibility: hidden; }
 
   .scrim { align-items: center; }
   .scrim .panel { max-width: 480px; border: 1px solid var(--ink); gap: 10px; padding: 28px 32px 32px; }
@@ -309,6 +311,19 @@ html.app-full #app { position: fixed; inset: 0; background: var(--paper); }
 }
 /* 영어 단위 글('2 counties, 9 districts')은 폰 탭 한 칸에 들지 않고, 720 아래 태블릿에서는 탭 줄이 두 줄로 꺾인다 — 수는 진도 블록 머리에 있다 */
 @media (max-width: 719px) { html[lang="en"] .h-tab .u { display: none; } }
+/* (2026-11-15) 영어 긴 지역 이름('Jeonnam-Gwangju' — 영문을 켠 날)은 폰 탭 한 칸(넷이면 약 97px)에 한 줄로 들지 않아 이웃 탭('Incheon'·'More')과 겹쳤다.
+   영어 폰 홈 지역 탭은 줄을 꺾을 수 있게 해 붙임표 뒤에서 두 줄('Jeonnam-' / 'Gwangju')로 둔다 — 줄 높이 24px 두 줄이 탭 높이 54px 안. 한 줄 이름은 전과 같다.
+   구 고르기 화면 탭(.e-scr — 높이 44px)은 지역 이름이 아니라 그대로 둔다 */
+@media (max-width: 599px) { html[lang="en"] .h-tabs:not(.e-scr) .h-tab { white-space: normal; text-align: center; } }
+/* 탭이 넘칠 때(공개 지역 5곳 이상, 또는 네 지역에 시·도 단원을 공부한 사람 — 계획서 N22, pages.ts homeTabs): 공부한 곳 3 + '다른 지역'(지역 고르기 링크).
+   링크 탭도 같은 모양(밑줄 없음). 폰은 칸이 넷이면(네 지역, 세 지역 + 전국, 또는 넘칠 때) 한 칸이 약 97px 라 단위 글을 감춘다('다른 지역'의 +수는 남긴다) — n4 */
+.h-tab.go { text-decoration: none; }
+@media (max-width: 599px) {
+  .h-tabs.n4 .h-tab:not(.go) .u { display: none; }
+  /* '다른 지역 +14' 가 네 칸 가운데 한 칸(약 97px)에 들게 */
+  .h-tabs.n4 .h-tab.go { font-size: 16px; gap: 2px; }
+  .h-tabs.n4 .h-tab.go .u { font-size: 13px; }
+}
 
 /* 주 구역: 폰·한 단은 제목 → 지도 → 단추 → 이름 → 진도. 읽는 차례(DOM)는 제목 → 이름 → 단추 → 진도 → 지도 */
 .h-main { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "map" "acts" "names" "prog"; }
@@ -471,14 +486,22 @@ html[lang="en"] .h-title { font-size: 28px; letter-spacing: -.02em; }
   .h-path { padding-top: 44px; }
   .h-lhead { padding-bottom: 12px; }
   #app .h-lhead h2 { font-size: var(--fs-24); }
-  /* 열 수: 3과 = 3칸, 5과 = 3칸(1100 이상 5칸), 7과 = 4 + 3. 줄 첫 칸은 왼쪽 선·여백 없이(추천 칸은 바탕이 있어 여백을 둔다) */
+  /* 열 수: 3과 = 3칸, 4과 = 2 + 2(1100 이상 4칸), 5과 = 3칸(1100 이상 5칸), 7과 = 4 + 3. 줄 첫 칸은 왼쪽 선·여백 없이(추천 칸은 바탕이 있어 여백을 둔다).
+     4과(충남·전북·경남 — E16 고침)는 3칸이면 마지막 한 칸만 둘째 줄에 남았다. 지역 고르기의 권역 칸 넷(.rg.g4)도 같은 규칙 */
   .h-lcs { --cols: 3; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
   .h-lcs.g7 { --cols: 4; }
+  .h-lcs.g4 { --cols: 2; }
   .h-lc { display: flex; border-left: 1px solid var(--line); }
   .h-lc + .h-lc { border-top: 0; }
   .h-lcs:not(.g7) .h-lc:nth-child(3n+1), .h-lcs.g7 .h-lc:nth-child(4n+1) { border-left: 0; --pl: 0px; }
   .h-lcs:not(.g7) .h-lc:nth-child(3n), .h-lcs.g7 .h-lc:nth-child(4n) { --pr: 0px; }
   .h-lcs:not(.g7) .h-lc:nth-child(n+4), .h-lcs.g7 .h-lc:nth-child(n+5) { border-top: 1px solid var(--line); }
+  /* 4과 2칸 줄: 위 3칸 줄(:not(.g7) 이 g4 도 잡는다)을 같은 특이도 0,4,0 으로 되돌린 뒤(순서로 이김) 2칸 줄을 놓는다.
+     위 줄에 :not(.g4) 를 더하면 특이도가 0,5,0 이 되어 1100 이상의 g5 줄(0,4,0)까지 이겨 5과 한 줄이 깨졌다(E16 검수) — 이 묶음의 규칙은 모두 0,4,0 으로 둔다 */
+  .h-lcs.g4 .h-lc:nth-child(n) { border-left: 1px solid var(--line); border-top: 0; --pl: 18px; --pr: 18px; }
+  .h-lcs.g4 .h-lc:nth-child(2n+1) { border-left: 0; --pl: 0px; }
+  .h-lcs.g4 .h-lc:nth-child(2n) { --pr: 0px; }
+  .h-lcs.g4 .h-lc:nth-child(n+3) { border-top: 1px solid var(--line); }
   /* 네모 줄의 행이 남는 높이를 받고 아래에 붙는다(시안 margin-top: auto) — 빈 행을 두면 사이가 8px 더 벌어진다 */
   .h-lc a {
     flex: 1; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 24px auto auto 1fr auto;
@@ -525,11 +548,27 @@ html[lang="en"] .h-title { font-size: 28px; letter-spacing: -.02em; }
   .h-lcs.g5 .h-lc:nth-child(n) { border-left: 1px solid var(--line); border-top: 0; --pl: 18px; --pr: 18px; }
   .h-lcs.g5 .h-lc:first-child { border-left: 0; --pl: 0px; }
   .h-lcs.g5 .h-lc:last-child { --pr: 0px; }
+  /* 4과·권역 칸 넷: 한 줄 네 칸(g5 와 같은 꼴 — 600~1099 의 2 + 2 줄 선을 지운다) */
+  .h-lcs.g4 { --cols: 4; }
+  .h-lcs.g4 .h-lc:nth-child(n) { border-left: 1px solid var(--line); border-top: 0; --pl: 18px; --pr: 18px; }
+  .h-lcs.g4 .h-lc:first-child { border-left: 0; --pl: 0px; }
+  .h-lcs.g4 .h-lc:last-child { --pr: 0px; }
   .h-more { grid-template-columns: minmax(0, 6fr) minmax(0, 3fr) minmax(0, 3fr); column-gap: 56px; padding-top: 64px; }
   .h-more.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .h-more > .h-mo:first-child:not(:only-child):nth-last-child(3) { grid-column: auto; }
   /* 왼쪽 글이 지도보다 길면(시험 결과의 틀린 곳 목록 등) 지도 묶음이 화면에 머문다 */
   .h-main .h-mapcol { align-self: start; position: sticky; top: 16px; }
+}
+/* 확대 상자를 두려고 지도 칸을 아래로 늘릴 때(map.css .cmap.zoom-below — 늘린 줄은 아래 안쪽 여백 --zb-h, D95 ㉣): 줄까지 합친 높이가 위 높이 상한을 넘지 않게
+   지도 그림 높이 상한에서 줄 높이를 뺀다(폰은 낮은 폰에서도 주 단추가 첫 화면에 들게 — 계획서 3.3, 넓은 화면은 범례 줄까지 첫 화면에). 상한보다 낮은 지도(제주시 등)는 그대로다.
+   지역 지도가 너무 낮아지는 화면(주소줄 있는 폰 390×664 등)에서는 svgmap 이 상자를 낮추거나 옆 줄에 둔다(map/zoombox.ts zoomPlace — 이 상한을 읽어 고른다).
+   (처음에는 200px 아래로 줄이지 않아 높이 약 786 미만 폰에서 주 단추가 첫 화면 밖으로 밀렸다 — 2026-11-15 점검) */
+#app .h-map.zoom-below { max-height: max(0px, calc(min(60vh, 520px) - var(--zb-h, 0px))); }
+@media (max-width: 599px) {
+  #app .h-map.zoom-below { max-height: max(0px, calc(min(60vh, 520px, max(220px, calc(100svh - 400px))) - var(--zb-h, 0px))); }
+}
+@media (min-width: 1100px) {
+  #app .h-map.zoom-below { max-height: max(0px, calc(clamp(480px, min(70vh, 100vh - 260px), 760px) - var(--zb-h, 0px))); }
 }
 
 /* ---------- 앱 쪽(합본 디자인 3.3 마지막 항목): 단원 · 지역 고르기 · 과 시작 · 과 요약 · 시험 결과 · 복습 없음 · 랭킹 ----------
@@ -593,6 +632,54 @@ html[lang="en"] .pg-title { letter-spacing: -.02em; }
   .u-ends li:last-child a { padding-right: 0; }
 }
 
+/* 구 고르기(동 단원 목록, 계획서 E5): 줄마다 이름 · 꼬리표(최근) · 채움 · → / 곳 수 · 과 수(· 오늘 복습). 폰은 한 줄씩, 600 이상은 칸 격자(3 · 1100 이상 4).
+   위 2px 먹 · 아래 1px 먹 · 사이 약선 — 과 카드 줄과 같은 구획 */
+.e-list { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.e-list li + li { border-top: 1px solid var(--line); }
+.e-list a {
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "nm tag st ar" "pl pl pl pl";
+  align-items: baseline; column-gap: 10px; row-gap: 2px; min-height: 44px; padding: 12px 0; color: var(--ink); text-decoration: none;
+}
+.e-list .nm { grid-area: nm; font-size: 18px; line-height: 26px; font-weight: 700; }
+.e-list .tag { grid-area: tag; font-size: 14px; line-height: 20px; font-weight: 700; }
+.e-list .st { grid-area: st; justify-self: end; font-size: 14px; line-height: 20px; color: var(--ink-2); white-space: nowrap; }
+.e-list .ar { grid-area: ar; font-size: 16px; line-height: 24px; }
+.e-list .pl { grid-area: pl; font-size: 14px; line-height: 20px; color: var(--ink-2); }
+.e-list a:hover { background: var(--sunk); }
+.e-list a:hover .nm { text-decoration: underline; text-underline-offset: 4px; }
+.e-list a:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+@media (min-width: 600px) {
+  .e-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .e-list li { border-left: 1px solid var(--line); }
+  .e-list li + li { border-top: 0; }
+  .e-list li:nth-child(n+4) { border-top: 1px solid var(--line); }
+  .e-list li:nth-child(3n+1) { border-left: 0; }
+  .e-list a { padding: 14px 16px; }
+  .e-list li:nth-child(3n+1) a { padding-left: 0; }
+}
+@media (min-width: 1100px) {
+  .e-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .e-list li:nth-child(3n+1) { border-left: 1px solid var(--line); }
+  .e-list li:nth-child(3n+1) a { padding-left: 16px; }
+  .e-list li:nth-child(n+4) { border-top: 0; }
+  .e-list li:nth-child(n+5) { border-top: 1px solid var(--line); }
+  .e-list li:nth-child(4n+1) { border-left: 0; }
+  .e-list li:nth-child(4n+1) a { padding-left: 0; }
+}
+
+/* 구 고르기(E7): 일반구가 있는 시는 시 이름 아래 구 목록을 따로(경기 수원시 → 장안구·권선구·팔달구·영통구) */
+.e-gh { margin: 28px 0 8px; font-size: 18px; line-height: 26px; font-weight: 700; }
+.e-gh span { font-size: 14px; font-weight: 400; color: var(--ink-2); }
+.e-list.e-sub { border-top-width: 1px; }
+/* 묶음을 가나다 자리에 끼우면(E7 검수) 묶음 바로 뒤에 시·군 목록 조각이 온다: 묶음 아래 먹선이 경계라 위 2px 를 겹쳐 긋지 않는다 */
+.e-sub + .e-list { border-top: 0; }
+/* 구 고르기 지도 범위(넓은 화면 고르기): 홈 지역 탭과 같은 모양, 지도 바로 위 */
+.e-scr { gap: 24px; padding-top: 0; margin-bottom: 10px; }
+@media (max-width: 599px) {
+  .e-scr { margin-inline: 0; }
+  .e-scr .h-tab { height: 44px; font-size: 16px; }
+}
+
 /* 지역 고르기: 지역 세 칸(과 카드 줄과 같은 칸 — 이름 · 꼬리표 / 곳 수 · 과 수 / 한 줄 / 네모 줄 / 채움) */
 .rg .h-lc .nm { font-size: 24px; line-height: 32px; }
 .rg .h-lc .no { font-weight: 400; }
@@ -603,8 +690,8 @@ html[lang="en"] .pg-title { letter-spacing: -.02em; }
 @media (min-width: 600px) {
   .rg .h-lc a { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto 1fr auto; grid-template-areas: "nm tag" "no no" "pl pl" "dots dots" "st ar"; }
 }
-/* 다른 지역(준비 중): 접는 구역(윗선 2px 먹), 펼치면 이름 목록 */
-.rg-more { margin-top: 44px; border-top: 2px solid var(--ink); }
+/* 다른 지역(준비 중): 접는 구역(윗선 2px 먹), 펼치면 권역마다 한 줄(권역 이름 · 흐린 지역 이름). 열린 지역이 4곳 이하일 때(운영) */
+.rg-more { margin-top: 44px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
 .rg-more summary {
   display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; cursor: pointer; list-style: none;
   font-size: 18px; line-height: 26px; font-weight: 700;
@@ -612,9 +699,34 @@ html[lang="en"] .pg-title { letter-spacing: -.02em; }
 .rg-more summary::-webkit-details-marker { display: none; }
 .rg-more summary::after { content: '+'; content: '+' / ''; font-size: 24px; font-weight: 400; line-height: 1; }
 .rg-more[open] summary::after { content: '−'; content: '−' / ''; }
-.rg-other { list-style: none; margin: 0; padding: 0 0 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); column-gap: 32px; }
-.rg-other li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 16px; line-height: 24px; }
-.rg-other em { flex: none; font-style: normal; font-size: 14px; color: var(--ink-3); }
+/* 지역 고르기(계획서 N23 · E8): 위는 홈 틀(제목 | 전국 지도), 아래는 권역 묶음 — 열린 지역은 칸, 아직 열지 않은 지역은 흐린 한 줄 */
+.rg-main .h-mapcol { padding-top: 4px; }
+.rg-list { padding-top: 12px; }
+.rg-g { padding-top: 30px; }
+@media (min-width: 1024px) { .rg-g { padding-top: 44px; } }
+/* 열린 지역이 많을 때 권역의 '준비 중' 지역: 흐린 이름 한 줄(계획서 N23 '흐리게'). 열린 칸이 없는 권역은 그 줄이 목록 자리(윗선 2px 먹) */
+.rg-soon { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0; padding: 12px 0; font-size: 16px; line-height: 24px; color: var(--ink-3); }
+.rg-soon.only { border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+.rg-soon em { flex: none; font-style: normal; font-size: 14px; }
+/* 권역에 지역이 하나뿐이고 이름이 같으면(강원·제주) 머리만 — 머리 아래 선이 목록 자리 */
+.rg-g.solo .h-lhead { border-bottom: 2px solid var(--ink); }
+.rg-later { list-style: none; margin: 0; padding: 0 0 8px; }
+.rg-later li { display: flex; gap: 16px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); font-size: 16px; line-height: 24px; }
+.rg-later b { flex: none; min-width: 4.5em; font-weight: 600; color: var(--ink-2); }
+html[lang="en"] .rg-later b { min-width: 7.5em; }
+.rg-later span { color: var(--ink-3); }
+/* 권역 칸이 넷이면 넓은 화면에서 한 줄 네 칸, 600~1099 는 2 + 2(다섯은 위 g5 규칙) — 위 .h-lcs.g4 규칙이 과 카드와 함께 맡는다(E16 — 전에는 여기 1100 이상만 있어 600~1099 가 3 + 1) */
+/* 폰에서 열린 지역이 적을 때: 제목 → 안내 → 열린 칸 → 지도 → 접힌 준비 중(지도가 거의 비어 첫 화면을 차지하지 않게) */
+@media (max-width: 599px) {
+  .rg-page.few { display: flex; flex-direction: column; }
+  .rg-page.few .rg-main { display: contents; }
+  .rg-page.few .rg-main > .h-head { order: 1; }
+  .rg-page.few .rg-main > .h-names { order: 2; padding-bottom: 0; }
+  .rg-page.few .rg-list { order: 3; padding-top: 0; }
+  .rg-page.few .rg-main > .h-mapcol { order: 4; padding-top: 0; margin-top: 32px; }
+  .rg-page.few .rg-rest { order: 5; }
+  .rg-page.few .rg-rest .rg-more { margin-top: 32px; }
+}
 
 /* ---------- 둘러보기(합본 디자인 3.3): 화면 전체 지도 ----------
    문제 화면의 머리(.play-top)·지도 칸(.play-stage)·캡션 줄(.pr-cap)·조작 안내(.pr-help)를 함께 쓴다.

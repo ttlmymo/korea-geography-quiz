@@ -20,7 +20,7 @@ const seoul3Deck = () => {
   return { ...d, pos: 7 };
 };
 const ctxOf = (o: Partial<Ctx>): Ctx => ({
-  reg, geo, base: '/', ver: 'kr-20261001.1', storageOk: true, inApp: false,
+  reg, geo, base: '/', ver: 'kr-20261001.2', storageOk: true, inApp: false,
   mastery: {}, lessonDeck: null, otherDeck: null, checkDeck: null, checkStart: 0,
   daily: null, last: null, settings: { autoNext: false }, homeRegion: null, bests: {},
   today: () => T, save() {}, go() {}, back() {}, render() {}, toast() {},

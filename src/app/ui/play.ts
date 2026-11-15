@@ -17,8 +17,11 @@ import { L, placeName } from '../text/ui.ts';
 import { fillsOf, type Ctx } from './ctx.ts';
 import { track } from '../analytics.ts';
 import { devLog } from '../devlog.ts';
+import { perf } from '../perf.ts';
 import { ICON, esc } from './dom.ts';
-import { STAGE_SCALE_MIN, insetPad, shapesOf } from './maps.ts';
+import { STAGE_SCALE_MIN, insetPad, shapesOf, wholeView } from './maps.ts';
+import { gaArgs } from '../core/units.ts';
+import { isEmd } from '../core/next.ts';
 
 export type Slot = 'lesson' | 'other' | 'check';
 export interface PlayEnd { deck: Deck; finished: Summary; newly: string[] }
@@ -60,7 +63,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     mode: $<HTMLElement>('.pl-mode'), eyeTitle: $<HTMLElement>('.pl-title'), band: $<HTMLElement>('.play-q'), note: $<HTMLElement>('.pl-note'),
     opts: $<HTMLElement>('.pl-opts'), act: $<HTMLElement>('.pl-act'),
     list: $<HTMLElement>('.side-list'), conf: $<HTMLElement>('.pl-conf'), scroll: $<HTMLElement>('.pl-scroll'),
-    capTitle: $<HTMLElement>('.pr-ct'), key: $<HTMLElement>('.pr-key'), mapHost: $<HTMLElement>('.play-map'),
+    capTitle: $<HTMLElement>('.pr-ct'), key: $<HTMLElement>('.pr-key'), mapHost: $<HTMLElement>('.play-map'), help: $<HTMLElement>('.pr-help'),
     reset: $<HTMLButtonElement>('.map-reset'), toast: $<HTMLElement>('.play-toast'), scrim: $<HTMLElement>('.scrim'),
   };
 
@@ -71,6 +74,8 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     else ctx.checkDeck = d;
   };
   const nm = (id: string) => placeName(ctx.reg, id);
+  /** 단원이 섞이는 판(오늘 복습)의 곳 이름: 동은 '종로구 청운효자동'(계획서 N12). 과·단원 판은 동 이름만 */
+  const listName = (id: string) => (deckOf()?.kind === 'review' ? L.fullName(ctx.reg, id) : nm(id));
 
   let map: SvgMap | null = null;
   let shapes: Shapes | null = null;      // 지금 지도의 칸 모양(섬 상자 자리 고르기에 쓴다)
@@ -83,6 +88,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
   let scope: string[] = [];
   let fitBox: Box | null = null;          // 지금 문제의 기본 보기(과·화면 범위)
   let screenKey: string | null = null;   // 지역 전체를 묻는 판에서 지금 보이는 화면
+  let curIsles: string[] = [];           // 지금 문제의 섬 상자 곳(동 단원의 섬)
   let ended: PlayEnd | null = null;
   let timer = 0, toastTimer = 0, token = 0;
   let alive = true;
@@ -122,7 +128,13 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     ui.mapHost.replaceChildren();
     mapRegion = region;
     shapes = s;
-    map = createSvgMap(ui.mapHost, { shapes: s, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, ctxName: L.ctxName, insetNote: L.inset, onTap, onZoomed: (z) => { ui.reset.hidden = !z; } });
+    // 위치 지도(map/locator.ts — 2026-11-15 사용자 지시): 과·화면 범위로 확대한 문제 지도의 귀퉁이에 지역(단원) 전체 모양 + 이번 과·화면.
+    // 오른쪽 위는 '⤢ 전체 보기'(.map-reset — 지도 칸 밖 요소) 자리라 쓰지 않는다
+    const r = ctx.reg.region(region);
+    map = createSvgMap(ui.mapHost, {
+      shapes: s, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, ctxName: L.ctxName, insetNote: L.inset, onTap, onZoomed: (z) => { ui.reset.hidden = !z; }, plateHome: r?.layer === 'sido',
+      ...(r ? { locator: { whole: boxOf(wholeView(r).fit), avoid: ['tr'] } } : {}),
+    });
   }
 
   /* ---------- 문제 · 단추·판정 자리 ---------- */
@@ -141,10 +153,24 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
   function band(): string {
     if (!q) return '';
     const p = L.promptParts(ctx.reg, q.mode, q.id);
+    // 오늘 복습(단원이 섞임)의 동 문제는 단원 이름을 앞에 한 번(N12: '종로구 · 청운효자동을 찾아 누르세요'), 일반구 문제는 시 이름('수원시 · 장안구를'),
+    // 여러 지역에 같은 이름이 있는 시·군·구는 지역 이름('부산 · 중구를' — E11, 영어 'Busan ·')
+    const qp = ctx.reg.place(q.id);
+    const unitName = deckOf()?.kind !== 'review' ? undefined
+      : isEmd(q.id) ? (qp && ctx.reg.mixName(qp.region.key)) ?? qp?.region.ko
+      : L.fullPre(ctx.reg, q.id);
+    if (unitName) p.pre = p.pre ? `${unitName} · ${p.pre}` : `${unitName} ·`;
     if (!p.big) return `<span class="pq-mid">${esc(p.post)}</span>`;
     const n = [...p.big].reduce((s, ch) => s + (ch.codePointAt(0)! >= 0x1100 ? 1 : 0.6), 0);
     return [p.pre && `<span class="pq-s">${esc(p.pre)}</span>`, `<span class="pq-big" style="--n:${n.toFixed(1)}">${esc(p.big)}</span>`, p.post && `<span class="pq-s">${esc(p.post)}</span>`].filter(Boolean).join(' ');
   }
+
+  /**
+   * 오답 위치 글: 정답이나 누른(고른) 곳이 섬 상자에 있으면 방위 문장 대신 정답이 그려진 자리(섬 상자 · 본 지도)를 말한다.
+   * 섬 상자는 지리 차례로 놓지만 자리는 실제 방위와 다르다(격자의 '대청면은 백령면에서 남쪽' 이 화면에서는 오른쪽 — E5 검수)
+   */
+  const whereOf = (where: string, id: string) =>
+    curIsles.length && (curIsles.includes(id) || (!!picked && curIsles.includes(picked))) ? L.isleWhere(ctx.reg, id, curIsles.includes(id)) : where;
 
   const nextBtn = () => `<button class="btn pl-next" type="button" data-pact="next">${esc(L.next)}</button>`;
   const title = (t: string) => `<p class="fb-title">${t}</p>`;
@@ -167,7 +193,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
       if (phase === 'ask') return '';
       if (phase === 'cok') return `${title(`○ ${esc(L.right(ctx.reg, id, true))}`)}${line}${nextBtn()}`;
       const t = L.wrong(ctx.reg, wrongInfo(ctx.reg, id, picked!), true);
-      return `${title(`✕ ${esc(t.title)}`)}<p class="fb-line">${esc(t.where)}</p>${hintP(t.act)}${nextBtn()}`;
+      return `${title(`✕ ${esc(t.title)}`)}<p class="fb-line">${esc(whereOf(t.where, id))}</p>${hintP(t.act)}${nextBtn()}`;
     }
     if (phase === 'ask') {
       if (d.kind === 'check') return hintP(L.checkNote);
@@ -183,7 +209,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     }
     if (phase === 'wrong') {
       const t = L.wrong(ctx.reg, wrongInfo(ctx.reg, id, picked!), false);
-      return `${title(`✕ ${esc(t.title)}`)}<p class="fb-line">${esc(t.where)}</p>${hintP(`○ ${t.act}`)}`;
+      return `${title(`✕ ${esc(t.title)}`)}<p class="fb-line">${esc(whereOf(t.where, id))}</p>${hintP(`○ ${t.act}`)}`;
     }
     if (phase === 'dk') { const t = L.dontKnow(ctx.reg, id); return `${title(esc(t.title))}${line}${hintP(t.act)}`; }
     if (phase === 'fixed') return `${title(`○ ${esc(L.fixed(ctx.reg, id))}`)}${line}${nextBtn()}`;
@@ -278,7 +304,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     ui.list.innerHTML = ids.map((id) => {
       const [c, t] = st(id);
       const now = q?.id === id;
-      return `<li class="${c}${now ? ' now' : ''}"${now ? ' aria-current="true"' : ''}><span>${esc(nm(id))}</span><span class="ls">${esc(now && phase === 'ask' ? L.stNow : t)}</span></li>`;
+      return `<li class="${c}${now ? ' now' : ''}"${now ? ' aria-current="true"' : ''}><span>${esc(listName(id))}</span><span class="ls">${esc(now && phase === 'ask' ? L.stNow : t)}</span></li>`;
     }).join('');
     ui.conf.innerHTML = pairs.length ? `<h3 class="pl-lh">${esc(L.confused)}</h3><ul class="pl-pairs">${pairs.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : '';
     const li = ui.list.querySelector<HTMLElement>('li.now');
@@ -323,6 +349,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     q = current(d);
     if (!q) return finish();
     const my = ++token;
+    const t0 = performance.now();
     const p = progress(d);
     qPos = p.n - 1;
     qTotal = p.total;
@@ -351,6 +378,11 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     map.setHint(null);
     // 고를 칸 묶음(과·화면)만 밝고 둘레가 굵다. 나머지는 바탕색·옅은 선(지도가 알아서 그린다)
     map.setActive(scope);
+    // 섬 상자(동 단원의 섬, 계획서 N8 · E5): 화면·과의 insets. 고를 칸이 모두 섬이면 상자 격자, 일부면 가장자리 줄(map/isles.ts)
+    curIsles = (scr ? scr.insets : wide ? wholeView(place.region).isles : place.lesson.insets) ?? [];
+    map.setIsles(curIsles);
+    // 섬 상자 격자에서는 본 지도를 숨기고 끌기·확대를 막는다 — '끌어서 옮기고, 휠로 확대해요' 안내를 감춘다(자리는 두어 배치가 출렁이지 않게)
+    ui.help.classList.toggle('off', map.isIsleGrid());
     // 이번 과 밖에서 이미 칠한 곳은 흐린 이름으로(길잡이). 지역 전체를 묻는 판에는 과 밖이 없다.
     // 길잡이는 칸 안에 들 때만 그린다: 영어는 짧은 이름('Jongno' — 과 카드와 같은 L.short)이라야 휴대폰 칸에 든다(한국어는 그대로)
     const f = fillsOf(ctx.mastery, place.region);
@@ -361,6 +393,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     curPad = placeMap();
     map.setHome(fitBox, curPad, map.isZoomed());
     if (newScreen && scr) toast(L.screenName(L.region(place.region), scr));
+    perf('question', performance.now() - t0, place.region.key);
     if (q.mode === 'meet') {
       map.setQuestion(q.id, { breathe: d.pos < 2 });
       map.setLabels([{ id: q.id, text: nm(q.id) }]);
@@ -380,14 +413,15 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     // 과·복습·전체 연습의 답(설계서 9 practice_answer). 시험은 game_complete 로 몰아서
     if (q0 && d.kind !== 'check') {
       track('practice_answer', {
-        mode: q0.mode, unit: 'sgg', region: ctx.reg.place(q0.id)?.region.key, lesson: d.lesson ?? d.kind,
+        mode: q0.mode, ...gaArgs(ctx.reg, ctx.reg.place(q0.id)?.region.key ?? '', true), lesson: d.lesson ?? d.kind,
         correct: a.result === 'correct', hint: !!a.hint, box: get(before, q0.id).box,
       });
     }
-    const r = step(ctx.reg, d, ctx.mastery, ctx.daily, a, ctx.today());
+    const r = step(ctx.reg, d, ctx.mastery, ctx.daily, a, ctx.today(), ctx.dailyEmd);
     setDeck(r.deck);
     ctx.mastery = r.mastery;
     ctx.daily = r.daily;
+    ctx.dailyEmd = r.dailyEmd;
     if (r.finished) {
       const ids = d.region && d.lesson !== null ? ctx.reg.lesson(d.region, d.lesson)?.items ?? [] : [];
       ended = { deck: r.deck, finished: r.finished, newly: ids.filter((id) => get(before, id).hi === 0 && get(r.mastery, id).hi > 0) };

@@ -3,6 +3,7 @@
 import { restoreDeck, type Deck } from './core/deck.ts';
 import { EMPTY, MAX_BOX, type Mastery, type Rec } from './core/mastery.ts';
 import type { Daily } from './core/next.ts';
+import { UNIT_KEY } from './registry.ts';
 
 export interface KV {
   getItem(key: string): string | null;
@@ -17,6 +18,11 @@ export const keys = (profile = 'p1') => ({
   daily: `kgq_daily_v1:${profile}`,   // 오늘 푼 곳 수
   last: `kgq_last_v1:${profile}`,     // 마지막으로 공부한 지역
   best: `kgq_best_v1:${profile}`,     // 지역별 시험 최고 기록(랭킹은 출시 뒤 — 결정 5)
+  // 동 단원(계획서 N16): 기존 키의 모양·정규식은 넓히지 않고 새 키에 둔다(되돌려도 옛 앱이 기존 키를 버리지 않는다).
+  // 동 단원을 공부하지 않으면 쓰지 않는다
+  lastUnit: `kgq_lastunit_v1:${profile}`, // 마지막으로 공부한 동 단원('seoul/jongno-gu'). kgq_last_v1 에는 그 지역 키
+  bestUnit: `kgq_bestunit_v1:${profile}`, // 단원별 시험 최고 기록
+  dailyEmd: `kgq_dailyemd_v1:${profile}`, // 오늘 푼 동 수(동 복습을 따로 셀 때, N32)
   settings: 'kgq_settings_v1',
 });
 
@@ -105,18 +111,27 @@ export const checkDeck = (v: unknown): Deck | null => restoreDeck(v);
 
 export const checkLast = (v: unknown): string | null => (typeof v === 'string' && /^[a-z-]{2,20}$/.test(v) ? v : null);
 
+/** 동 단원 키('{지역}/{단원 slug}', N16 정규식 ^[a-z-]{2,20}\/[a-z0-9-]{2,40}$) */
+export const checkLastUnit = (v: unknown): string | null => (typeof v === 'string' && UNIT_KEY.test(v) ? v : null);
+
 /** 시험 한 번의 기록 */
 export interface Best { score: number; total: number; seconds: number; day: number }
 export type Bests = Record<string, Best>;
 
-export function checkBests(v: unknown): Bests | null {
+function bestsBy(v: unknown, key: RegExp): Bests | null {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
   const out: Bests = {};
   for (const [k, b] of Object.entries(v as Record<string, Best>)) {
-    if (/^[a-z-]{2,20}$/.test(k) && b && isInt(b.score, 0, 9999) && isInt(b.total, 1, 9999) && isInt(b.seconds, 0, 864000) && Number.isInteger(b.day)) out[k] = { score: b.score, total: b.total, seconds: b.seconds, day: b.day };
+    if (key.test(k) && b && isInt(b.score, 0, 9999) && isInt(b.total, 1, 9999) && isInt(b.seconds, 0, 864000) && Number.isInteger(b.day)) out[k] = { score: b.score, total: b.total, seconds: b.seconds, day: b.day };
   }
   return out;
 }
+
+/** 지역별 시험 최고 기록(kgq_best_v1 — 키는 지역 키만) */
+export const checkBests = (v: unknown): Bests | null => bestsBy(v, /^[a-z-]{2,20}$/);
+
+/** 동 단원별 시험 최고 기록(kgq_bestunit_v1 — 키는 단원 키만) */
+export const checkBestUnits = (v: unknown): Bests | null => bestsBy(v, UNIT_KEY);
 
 /** 더 나은 기록인가: 정답 수가 많을수록, 같으면 빠를수록 */
 export const better = (a: Best, b: Best | undefined) => !b || a.score > b.score || (a.score === b.score && a.seconds < b.seconds);

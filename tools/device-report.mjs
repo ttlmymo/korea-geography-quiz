@@ -58,7 +58,8 @@ for (const [sid, rs] of bySid) {
   if (fr.length) {
     const groups = new Map();
     for (const f of fr) {
-      const k = `${f.mode === 'emd' ? '서울 427동' : `${f.region} ${f.mode}`} ${f.gesture === 'pinch' ? '집기' : '끌기'}`;
+      // 동 모드: E5 부터 단원 하나(unit = 단원 키 'seoul/jongno-gu'). 그 전 기록(unit 없음)은 서울 427동 한 화면
+      const k = `${f.mode === 'emd' ? (f.unit ? `동 단원 ${f.unit}` : '서울 427동(E5 전)') : `${f.region} ${f.mode}`} ${f.gesture === 'pinch' ? '집기' : '끌기'}`;
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(f);
     }

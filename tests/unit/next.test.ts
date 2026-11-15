@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { answer, createDeck } from '../../src/app/core/deck.ts';
 import { afterLesson, type Mastery, type Rec } from '../../src/app/core/mastery.ts';
 import { homeCard, nextLesson, regionDone, todayReview, DAILY_CAP, ROUND, type HomeInput } from '../../src/app/core/next.ts';
-import { reg } from './fixtures.ts';
+import { LIVE_BY_OPEN, reg } from './fixtures.ts';
 
 const T = 20000;
 const ids = (region: string) => reg.region(region)!.items.map((it) => it.id);
@@ -83,7 +83,8 @@ test('지역을 다 칠하면 도장 카드, 남은 지역을 알린다', () => 
   for (const l of reg.region('seoul')!.lessons) m = afterLesson(m, l.items, T);
   assert.equal(regionDone(reg, m, 'seoul'), true);
   assert.equal(nextLesson(reg, m, 'seoul'), null);
-  assert.deepEqual(homeCard(base({ mastery: m, last: 'seoul', daily: { day: T, n: 25 } })), { type: 'done', region: 'seoul', more: ['incheon', 'gyeonggi'] });
+  assert.deepEqual(homeCard(base({ mastery: m, last: 'seoul', daily: { day: T, n: 25 } })), { type: 'done', region: 'seoul', more: LIVE_BY_OPEN.filter((k) => k !== 'seoul') });   // E11 부터 부산, E12 부터 대구·대전·울산·세종, E13 부터 강원·충북·전북·제주, E14 부터 충남·경북 — 공개 차례(지역 표 openOrder, E12 검수: 단추 둘이 배포판처럼 인천·경기)
+  assert.deepEqual(LIVE_BY_OPEN.slice(0, 12), ['seoul', 'incheon', 'gyeonggi', 'busan', 'daegu', 'daejeon', 'ulsan', 'sejong', 'gangwon', 'chungbuk', 'jeonbuk', 'jeju']);
   // 다른 지역을 시작하면 그 지역의 다음 과
   const m2 = afterLesson(m, lessonIds('incheon', 1), T);
   const card = homeCard(base({ mastery: m2, last: 'incheon' }));

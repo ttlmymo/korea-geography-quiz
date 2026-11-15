@@ -1,0 +1,1876 @@
+{
+ "_note": "공개 지역 시·군·구·시 이름(정적 쪽 빌드 전용, 앱은 받지 않음). pipeline/build-geo.mjs 가 만든다",
+ "version": "kr-20261001.2",
+ "items": [
+  {
+   "id": "kr:sgg:11110",
+   "ko": "종로구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11110"
+  },
+  {
+   "id": "kr:sgg:11140",
+   "ko": "중구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11140"
+  },
+  {
+   "id": "kr:sgg:11170",
+   "ko": "용산구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11170"
+  },
+  {
+   "id": "kr:sgg:11200",
+   "ko": "성동구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11200"
+  },
+  {
+   "id": "kr:sgg:11215",
+   "ko": "광진구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11215"
+  },
+  {
+   "id": "kr:sgg:11230",
+   "ko": "동대문구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11230"
+  },
+  {
+   "id": "kr:sgg:11260",
+   "ko": "중랑구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11260"
+  },
+  {
+   "id": "kr:sgg:11290",
+   "ko": "성북구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11290"
+  },
+  {
+   "id": "kr:sgg:11305",
+   "ko": "강북구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11305"
+  },
+  {
+   "id": "kr:sgg:11320",
+   "ko": "도봉구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11320"
+  },
+  {
+   "id": "kr:sgg:11350",
+   "ko": "노원구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11350"
+  },
+  {
+   "id": "kr:sgg:11380",
+   "ko": "은평구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11380"
+  },
+  {
+   "id": "kr:sgg:11410",
+   "ko": "서대문구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11410"
+  },
+  {
+   "id": "kr:sgg:11440",
+   "ko": "마포구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11440"
+  },
+  {
+   "id": "kr:sgg:11470",
+   "ko": "양천구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11470"
+  },
+  {
+   "id": "kr:sgg:11500",
+   "ko": "강서구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11500"
+  },
+  {
+   "id": "kr:sgg:11530",
+   "ko": "구로구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11530"
+  },
+  {
+   "id": "kr:sgg:11545",
+   "ko": "금천구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11545"
+  },
+  {
+   "id": "kr:sgg:11560",
+   "ko": "영등포구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11560"
+  },
+  {
+   "id": "kr:sgg:11590",
+   "ko": "동작구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11590"
+  },
+  {
+   "id": "kr:sgg:11620",
+   "ko": "관악구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11620"
+  },
+  {
+   "id": "kr:sgg:11650",
+   "ko": "서초구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11650"
+  },
+  {
+   "id": "kr:sgg:11680",
+   "ko": "강남구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11680"
+  },
+  {
+   "id": "kr:sgg:11710",
+   "ko": "송파구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11710"
+  },
+  {
+   "id": "kr:sgg:11740",
+   "ko": "강동구",
+   "kind": "sgg",
+   "region": "seoul",
+   "si": "kr:sgg:11740"
+  },
+  {
+   "id": "kr:sgg:26110",
+   "ko": "중구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26110"
+  },
+  {
+   "id": "kr:sgg:26140",
+   "ko": "서구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26140"
+  },
+  {
+   "id": "kr:sgg:26170",
+   "ko": "동구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26170"
+  },
+  {
+   "id": "kr:sgg:26200",
+   "ko": "영도구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26200"
+  },
+  {
+   "id": "kr:sgg:26230",
+   "ko": "부산진구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26230"
+  },
+  {
+   "id": "kr:sgg:26260",
+   "ko": "동래구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26260"
+  },
+  {
+   "id": "kr:sgg:26290",
+   "ko": "남구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26290"
+  },
+  {
+   "id": "kr:sgg:26320",
+   "ko": "북구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26320"
+  },
+  {
+   "id": "kr:sgg:26350",
+   "ko": "해운대구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26350"
+  },
+  {
+   "id": "kr:sgg:26380",
+   "ko": "사하구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26380"
+  },
+  {
+   "id": "kr:sgg:26410",
+   "ko": "금정구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26410"
+  },
+  {
+   "id": "kr:sgg:26440",
+   "ko": "강서구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26440"
+  },
+  {
+   "id": "kr:sgg:26470",
+   "ko": "연제구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26470"
+  },
+  {
+   "id": "kr:sgg:26500",
+   "ko": "수영구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26500"
+  },
+  {
+   "id": "kr:sgg:26530",
+   "ko": "사상구",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26530"
+  },
+  {
+   "id": "kr:sgg:26710",
+   "ko": "기장군",
+   "kind": "sgg",
+   "region": "busan",
+   "si": "kr:sgg:26710"
+  },
+  {
+   "id": "kr:sgg:27110",
+   "ko": "중구",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27110"
+  },
+  {
+   "id": "kr:sgg:27140",
+   "ko": "동구",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27140"
+  },
+  {
+   "id": "kr:sgg:27170",
+   "ko": "서구",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27170"
+  },
+  {
+   "id": "kr:sgg:27200",
+   "ko": "남구",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27200"
+  },
+  {
+   "id": "kr:sgg:27230",
+   "ko": "북구",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27230"
+  },
+  {
+   "id": "kr:sgg:27260",
+   "ko": "수성구",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27260"
+  },
+  {
+   "id": "kr:sgg:27290",
+   "ko": "달서구",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27290"
+  },
+  {
+   "id": "kr:sgg:27710",
+   "ko": "달성군",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27710"
+  },
+  {
+   "id": "kr:sgg:28125",
+   "ko": "제물포구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28125"
+  },
+  {
+   "id": "kr:sgg:28155",
+   "ko": "영종구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28155"
+  },
+  {
+   "id": "kr:sgg:28177",
+   "ko": "미추홀구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28177"
+  },
+  {
+   "id": "kr:sgg:28185",
+   "ko": "연수구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28185"
+  },
+  {
+   "id": "kr:sgg:28200",
+   "ko": "남동구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28200"
+  },
+  {
+   "id": "kr:sgg:28237",
+   "ko": "부평구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28237"
+  },
+  {
+   "id": "kr:sgg:28245",
+   "ko": "계양구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28245"
+  },
+  {
+   "id": "kr:sgg:28275",
+   "ko": "서해구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28275"
+  },
+  {
+   "id": "kr:sgg:28290",
+   "ko": "검단구",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28290"
+  },
+  {
+   "id": "kr:sgg:28710",
+   "ko": "강화군",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28710"
+  },
+  {
+   "id": "kr:sgg:28720",
+   "ko": "옹진군",
+   "kind": "sgg",
+   "region": "incheon",
+   "si": "kr:sgg:28720"
+  },
+  {
+   "id": "kr:sgg:12210",
+   "ko": "동구",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12210"
+  },
+  {
+   "id": "kr:sgg:12240",
+   "ko": "서구",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12240"
+  },
+  {
+   "id": "kr:sgg:12270",
+   "ko": "남구",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12270"
+  },
+  {
+   "id": "kr:sgg:12300",
+   "ko": "북구",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12300"
+  },
+  {
+   "id": "kr:sgg:12330",
+   "ko": "광산구",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12330"
+  },
+  {
+   "id": "kr:sgg:30110",
+   "ko": "동구",
+   "kind": "sgg",
+   "region": "daejeon",
+   "si": "kr:sgg:30110"
+  },
+  {
+   "id": "kr:sgg:30140",
+   "ko": "중구",
+   "kind": "sgg",
+   "region": "daejeon",
+   "si": "kr:sgg:30140"
+  },
+  {
+   "id": "kr:sgg:30170",
+   "ko": "서구",
+   "kind": "sgg",
+   "region": "daejeon",
+   "si": "kr:sgg:30170"
+  },
+  {
+   "id": "kr:sgg:30200",
+   "ko": "유성구",
+   "kind": "sgg",
+   "region": "daejeon",
+   "si": "kr:sgg:30200"
+  },
+  {
+   "id": "kr:sgg:30230",
+   "ko": "대덕구",
+   "kind": "sgg",
+   "region": "daejeon",
+   "si": "kr:sgg:30230"
+  },
+  {
+   "id": "kr:sgg:31110",
+   "ko": "중구",
+   "kind": "sgg",
+   "region": "ulsan",
+   "si": "kr:sgg:31110"
+  },
+  {
+   "id": "kr:sgg:31140",
+   "ko": "남구",
+   "kind": "sgg",
+   "region": "ulsan",
+   "si": "kr:sgg:31140"
+  },
+  {
+   "id": "kr:sgg:31170",
+   "ko": "동구",
+   "kind": "sgg",
+   "region": "ulsan",
+   "si": "kr:sgg:31170"
+  },
+  {
+   "id": "kr:sgg:31200",
+   "ko": "북구",
+   "kind": "sgg",
+   "region": "ulsan",
+   "si": "kr:sgg:31200"
+  },
+  {
+   "id": "kr:sgg:31710",
+   "ko": "울주군",
+   "kind": "sgg",
+   "region": "ulsan",
+   "si": "kr:sgg:31710"
+  },
+  {
+   "id": "kr:sgg:36110",
+   "ko": "세종시",
+   "kind": "sgg",
+   "region": "sejong",
+   "si": "kr:sgg:36110"
+  },
+  {
+   "id": "kr:sgg:41111",
+   "ko": "수원시 장안구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41110"
+  },
+  {
+   "id": "kr:sgg:41113",
+   "ko": "수원시 권선구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41110"
+  },
+  {
+   "id": "kr:sgg:41115",
+   "ko": "수원시 팔달구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41110"
+  },
+  {
+   "id": "kr:sgg:41117",
+   "ko": "수원시 영통구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41110"
+  },
+  {
+   "id": "kr:sgg:41131",
+   "ko": "성남시 수정구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41130"
+  },
+  {
+   "id": "kr:sgg:41133",
+   "ko": "성남시 중원구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41130"
+  },
+  {
+   "id": "kr:sgg:41135",
+   "ko": "성남시 분당구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41130"
+  },
+  {
+   "id": "kr:sgg:41150",
+   "ko": "의정부시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41150"
+  },
+  {
+   "id": "kr:sgg:41171",
+   "ko": "안양시 만안구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41170"
+  },
+  {
+   "id": "kr:sgg:41173",
+   "ko": "안양시 동안구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41170"
+  },
+  {
+   "id": "kr:sgg:41210",
+   "ko": "광명시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41210"
+  },
+  {
+   "id": "kr:sgg:41220",
+   "ko": "평택시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41220"
+  },
+  {
+   "id": "kr:sgg:41250",
+   "ko": "동두천시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41250"
+  },
+  {
+   "id": "kr:sgg:41271",
+   "ko": "안산시 상록구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41270"
+  },
+  {
+   "id": "kr:sgg:41273",
+   "ko": "안산시 단원구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41270"
+  },
+  {
+   "id": "kr:sgg:41281",
+   "ko": "고양시 덕양구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41280"
+  },
+  {
+   "id": "kr:sgg:41285",
+   "ko": "고양시 일산동구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41280"
+  },
+  {
+   "id": "kr:sgg:41287",
+   "ko": "고양시 일산서구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41280"
+  },
+  {
+   "id": "kr:sgg:41290",
+   "ko": "과천시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41290"
+  },
+  {
+   "id": "kr:sgg:41310",
+   "ko": "구리시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41310"
+  },
+  {
+   "id": "kr:sgg:41360",
+   "ko": "남양주시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41360"
+  },
+  {
+   "id": "kr:sgg:41370",
+   "ko": "오산시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41370"
+  },
+  {
+   "id": "kr:sgg:41390",
+   "ko": "시흥시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41390"
+  },
+  {
+   "id": "kr:sgg:41410",
+   "ko": "군포시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41410"
+  },
+  {
+   "id": "kr:sgg:41430",
+   "ko": "의왕시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41430"
+  },
+  {
+   "id": "kr:sgg:41450",
+   "ko": "하남시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41450"
+  },
+  {
+   "id": "kr:sgg:41461",
+   "ko": "용인시 처인구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41460"
+  },
+  {
+   "id": "kr:sgg:41463",
+   "ko": "용인시 기흥구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41460"
+  },
+  {
+   "id": "kr:sgg:41465",
+   "ko": "용인시 수지구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41460"
+  },
+  {
+   "id": "kr:sgg:41480",
+   "ko": "파주시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41480"
+  },
+  {
+   "id": "kr:sgg:41500",
+   "ko": "이천시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41500"
+  },
+  {
+   "id": "kr:sgg:41550",
+   "ko": "안성시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41550"
+  },
+  {
+   "id": "kr:sgg:41570",
+   "ko": "김포시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41570"
+  },
+  {
+   "id": "kr:sgg:41593",
+   "ko": "화성시 효행구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41590"
+  },
+  {
+   "id": "kr:sgg:41591",
+   "ko": "화성시 만세구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41590"
+  },
+  {
+   "id": "kr:sgg:41597",
+   "ko": "화성시 동탄구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41590"
+  },
+  {
+   "id": "kr:sgg:41595",
+   "ko": "화성시 병점구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41590"
+  },
+  {
+   "id": "kr:sgg:41610",
+   "ko": "광주시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41610"
+  },
+  {
+   "id": "kr:sgg:41630",
+   "ko": "양주시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41630"
+  },
+  {
+   "id": "kr:sgg:41650",
+   "ko": "포천시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41650"
+  },
+  {
+   "id": "kr:sgg:41670",
+   "ko": "여주시",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41670"
+  },
+  {
+   "id": "kr:sgg:41800",
+   "ko": "연천군",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41800"
+  },
+  {
+   "id": "kr:sgg:41820",
+   "ko": "가평군",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41820"
+  },
+  {
+   "id": "kr:sgg:41830",
+   "ko": "양평군",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41830"
+  },
+  {
+   "id": "kr:sgg:51110",
+   "ko": "춘천시",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51110"
+  },
+  {
+   "id": "kr:sgg:51130",
+   "ko": "원주시",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51130"
+  },
+  {
+   "id": "kr:sgg:51150",
+   "ko": "강릉시",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51150"
+  },
+  {
+   "id": "kr:sgg:51170",
+   "ko": "동해시",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51170"
+  },
+  {
+   "id": "kr:sgg:51190",
+   "ko": "태백시",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51190"
+  },
+  {
+   "id": "kr:sgg:51210",
+   "ko": "속초시",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51210"
+  },
+  {
+   "id": "kr:sgg:51230",
+   "ko": "삼척시",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51230"
+  },
+  {
+   "id": "kr:sgg:51720",
+   "ko": "홍천군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51720"
+  },
+  {
+   "id": "kr:sgg:51730",
+   "ko": "횡성군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51730"
+  },
+  {
+   "id": "kr:sgg:51750",
+   "ko": "영월군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51750"
+  },
+  {
+   "id": "kr:sgg:51760",
+   "ko": "평창군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51760"
+  },
+  {
+   "id": "kr:sgg:51770",
+   "ko": "정선군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51770"
+  },
+  {
+   "id": "kr:sgg:51780",
+   "ko": "철원군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51780"
+  },
+  {
+   "id": "kr:sgg:51790",
+   "ko": "화천군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51790"
+  },
+  {
+   "id": "kr:sgg:51800",
+   "ko": "양구군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51800"
+  },
+  {
+   "id": "kr:sgg:51810",
+   "ko": "인제군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51810"
+  },
+  {
+   "id": "kr:sgg:51820",
+   "ko": "고성군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51820"
+  },
+  {
+   "id": "kr:sgg:51830",
+   "ko": "양양군",
+   "kind": "sgg",
+   "region": "gangwon",
+   "si": "kr:sgg:51830"
+  },
+  {
+   "id": "kr:sgg:43130",
+   "ko": "충주시",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43130"
+  },
+  {
+   "id": "kr:sgg:43150",
+   "ko": "제천시",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43150"
+  },
+  {
+   "id": "kr:sgg:43111",
+   "ko": "청주시 상당구",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43110"
+  },
+  {
+   "id": "kr:sgg:43112",
+   "ko": "청주시 서원구",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43110"
+  },
+  {
+   "id": "kr:sgg:43113",
+   "ko": "청주시 흥덕구",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43110"
+  },
+  {
+   "id": "kr:sgg:43114",
+   "ko": "청주시 청원구",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43110"
+  },
+  {
+   "id": "kr:sgg:43720",
+   "ko": "보은군",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43720"
+  },
+  {
+   "id": "kr:sgg:43730",
+   "ko": "옥천군",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43730"
+  },
+  {
+   "id": "kr:sgg:43740",
+   "ko": "영동군",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43740"
+  },
+  {
+   "id": "kr:sgg:43750",
+   "ko": "진천군",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43750"
+  },
+  {
+   "id": "kr:sgg:43760",
+   "ko": "괴산군",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43760"
+  },
+  {
+   "id": "kr:sgg:43770",
+   "ko": "음성군",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43770"
+  },
+  {
+   "id": "kr:sgg:43800",
+   "ko": "단양군",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43800"
+  },
+  {
+   "id": "kr:sgg:43745",
+   "ko": "증평군",
+   "kind": "sgg",
+   "region": "chungbuk",
+   "si": "kr:sgg:43745"
+  },
+  {
+   "id": "kr:sgg:44131",
+   "ko": "천안시 동남구",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44130"
+  },
+  {
+   "id": "kr:sgg:44133",
+   "ko": "천안시 서북구",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44130"
+  },
+  {
+   "id": "kr:sgg:44150",
+   "ko": "공주시",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44150"
+  },
+  {
+   "id": "kr:sgg:44180",
+   "ko": "보령시",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44180"
+  },
+  {
+   "id": "kr:sgg:44200",
+   "ko": "아산시",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44200"
+  },
+  {
+   "id": "kr:sgg:44210",
+   "ko": "서산시",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44210"
+  },
+  {
+   "id": "kr:sgg:44230",
+   "ko": "논산시",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44230"
+  },
+  {
+   "id": "kr:sgg:44250",
+   "ko": "계룡시",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44250"
+  },
+  {
+   "id": "kr:sgg:44270",
+   "ko": "당진시",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44270"
+  },
+  {
+   "id": "kr:sgg:44710",
+   "ko": "금산군",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44710"
+  },
+  {
+   "id": "kr:sgg:44760",
+   "ko": "부여군",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44760"
+  },
+  {
+   "id": "kr:sgg:44770",
+   "ko": "서천군",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44770"
+  },
+  {
+   "id": "kr:sgg:44790",
+   "ko": "청양군",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44790"
+  },
+  {
+   "id": "kr:sgg:44800",
+   "ko": "홍성군",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44800"
+  },
+  {
+   "id": "kr:sgg:44810",
+   "ko": "예산군",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44810"
+  },
+  {
+   "id": "kr:sgg:44825",
+   "ko": "태안군",
+   "kind": "sgg",
+   "region": "chungnam",
+   "si": "kr:sgg:44825"
+  },
+  {
+   "id": "kr:sgg:12110",
+   "ko": "목포시",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12110"
+  },
+  {
+   "id": "kr:sgg:12130",
+   "ko": "여수시",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12130"
+  },
+  {
+   "id": "kr:sgg:12150",
+   "ko": "순천시",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12150"
+  },
+  {
+   "id": "kr:sgg:12170",
+   "ko": "나주시",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12170"
+  },
+  {
+   "id": "kr:sgg:12190",
+   "ko": "광양시",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12190"
+  },
+  {
+   "id": "kr:sgg:12710",
+   "ko": "담양군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12710"
+  },
+  {
+   "id": "kr:sgg:12720",
+   "ko": "곡성군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12720"
+  },
+  {
+   "id": "kr:sgg:12730",
+   "ko": "구례군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12730"
+  },
+  {
+   "id": "kr:sgg:12740",
+   "ko": "고흥군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12740"
+  },
+  {
+   "id": "kr:sgg:12750",
+   "ko": "보성군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12750"
+  },
+  {
+   "id": "kr:sgg:12760",
+   "ko": "화순군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12760"
+  },
+  {
+   "id": "kr:sgg:12770",
+   "ko": "장흥군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12770"
+  },
+  {
+   "id": "kr:sgg:12780",
+   "ko": "강진군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12780"
+  },
+  {
+   "id": "kr:sgg:12790",
+   "ko": "해남군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12790"
+  },
+  {
+   "id": "kr:sgg:12800",
+   "ko": "영암군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12800"
+  },
+  {
+   "id": "kr:sgg:12810",
+   "ko": "무안군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12810"
+  },
+  {
+   "id": "kr:sgg:12820",
+   "ko": "함평군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12820"
+  },
+  {
+   "id": "kr:sgg:12830",
+   "ko": "영광군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12830"
+  },
+  {
+   "id": "kr:sgg:12840",
+   "ko": "장성군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12840"
+  },
+  {
+   "id": "kr:sgg:12850",
+   "ko": "완도군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12850"
+  },
+  {
+   "id": "kr:sgg:12860",
+   "ko": "진도군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12860"
+  },
+  {
+   "id": "kr:sgg:12870",
+   "ko": "신안군",
+   "kind": "sgg",
+   "region": "jeonnam-gwangju",
+   "si": "kr:sgg:12870"
+  },
+  {
+   "id": "kr:sgg:47111",
+   "ko": "포항시 남구",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47110"
+  },
+  {
+   "id": "kr:sgg:47113",
+   "ko": "포항시 북구",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47110"
+  },
+  {
+   "id": "kr:sgg:47130",
+   "ko": "경주시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47130"
+  },
+  {
+   "id": "kr:sgg:47150",
+   "ko": "김천시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47150"
+  },
+  {
+   "id": "kr:sgg:47170",
+   "ko": "안동시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47170"
+  },
+  {
+   "id": "kr:sgg:47190",
+   "ko": "구미시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47190"
+  },
+  {
+   "id": "kr:sgg:47210",
+   "ko": "영주시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47210"
+  },
+  {
+   "id": "kr:sgg:47230",
+   "ko": "영천시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47230"
+  },
+  {
+   "id": "kr:sgg:47250",
+   "ko": "상주시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47250"
+  },
+  {
+   "id": "kr:sgg:47280",
+   "ko": "문경시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47280"
+  },
+  {
+   "id": "kr:sgg:47290",
+   "ko": "경산시",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47290"
+  },
+  {
+   "id": "kr:sgg:27720",
+   "ko": "군위군",
+   "kind": "sgg",
+   "region": "daegu",
+   "si": "kr:sgg:27720"
+  },
+  {
+   "id": "kr:sgg:47730",
+   "ko": "의성군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47730"
+  },
+  {
+   "id": "kr:sgg:47750",
+   "ko": "청송군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47750"
+  },
+  {
+   "id": "kr:sgg:47760",
+   "ko": "영양군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47760"
+  },
+  {
+   "id": "kr:sgg:47770",
+   "ko": "영덕군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47770"
+  },
+  {
+   "id": "kr:sgg:47820",
+   "ko": "청도군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47820"
+  },
+  {
+   "id": "kr:sgg:47830",
+   "ko": "고령군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47830"
+  },
+  {
+   "id": "kr:sgg:47840",
+   "ko": "성주군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47840"
+  },
+  {
+   "id": "kr:sgg:47850",
+   "ko": "칠곡군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47850"
+  },
+  {
+   "id": "kr:sgg:47900",
+   "ko": "예천군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47900"
+  },
+  {
+   "id": "kr:sgg:47920",
+   "ko": "봉화군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47920"
+  },
+  {
+   "id": "kr:sgg:47930",
+   "ko": "울진군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47930"
+  },
+  {
+   "id": "kr:sgg:47940",
+   "ko": "울릉군",
+   "kind": "sgg",
+   "region": "gyeongbuk",
+   "si": "kr:sgg:47940"
+  },
+  {
+   "id": "kr:sgg:48170",
+   "ko": "진주시",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48170"
+  },
+  {
+   "id": "kr:sgg:48220",
+   "ko": "통영시",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48220"
+  },
+  {
+   "id": "kr:sgg:48240",
+   "ko": "사천시",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48240"
+  },
+  {
+   "id": "kr:sgg:48250",
+   "ko": "김해시",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48250"
+  },
+  {
+   "id": "kr:sgg:48270",
+   "ko": "밀양시",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48270"
+  },
+  {
+   "id": "kr:sgg:48310",
+   "ko": "거제시",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48310"
+  },
+  {
+   "id": "kr:sgg:48330",
+   "ko": "양산시",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48330"
+  },
+  {
+   "id": "kr:sgg:48121",
+   "ko": "창원시 의창구",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48120"
+  },
+  {
+   "id": "kr:sgg:48123",
+   "ko": "창원시 성산구",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48120"
+  },
+  {
+   "id": "kr:sgg:48125",
+   "ko": "창원시 마산합포구",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48120"
+  },
+  {
+   "id": "kr:sgg:48127",
+   "ko": "창원시 마산회원구",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48120"
+  },
+  {
+   "id": "kr:sgg:48129",
+   "ko": "창원시 진해구",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48120"
+  },
+  {
+   "id": "kr:sgg:48720",
+   "ko": "의령군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48720"
+  },
+  {
+   "id": "kr:sgg:48730",
+   "ko": "함안군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48730"
+  },
+  {
+   "id": "kr:sgg:48740",
+   "ko": "창녕군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48740"
+  },
+  {
+   "id": "kr:sgg:48820",
+   "ko": "고성군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48820"
+  },
+  {
+   "id": "kr:sgg:48840",
+   "ko": "남해군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48840"
+  },
+  {
+   "id": "kr:sgg:48850",
+   "ko": "하동군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48850"
+  },
+  {
+   "id": "kr:sgg:48860",
+   "ko": "산청군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48860"
+  },
+  {
+   "id": "kr:sgg:48870",
+   "ko": "함양군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48870"
+  },
+  {
+   "id": "kr:sgg:48880",
+   "ko": "거창군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48880"
+  },
+  {
+   "id": "kr:sgg:48890",
+   "ko": "합천군",
+   "kind": "sgg",
+   "region": "gyeongnam",
+   "si": "kr:sgg:48890"
+  },
+  {
+   "id": "kr:sgg:50110",
+   "ko": "제주시",
+   "kind": "sgg",
+   "region": "jeju",
+   "si": "kr:sgg:50110"
+  },
+  {
+   "id": "kr:sgg:50130",
+   "ko": "서귀포시",
+   "kind": "sgg",
+   "region": "jeju",
+   "si": "kr:sgg:50130"
+  },
+  {
+   "id": "kr:sgg:41192",
+   "ko": "부천시 원미구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41190"
+  },
+  {
+   "id": "kr:sgg:41194",
+   "ko": "부천시 소사구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41190"
+  },
+  {
+   "id": "kr:sgg:41196",
+   "ko": "부천시 오정구",
+   "kind": "sgg",
+   "region": "gyeonggi",
+   "si": "kr:sgg:41190"
+  },
+  {
+   "id": "kr:sgg:52111",
+   "ko": "전주시 완산구",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52110"
+  },
+  {
+   "id": "kr:sgg:52113",
+   "ko": "전주시 덕진구",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52110"
+  },
+  {
+   "id": "kr:sgg:52130",
+   "ko": "군산시",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52130"
+  },
+  {
+   "id": "kr:sgg:52140",
+   "ko": "익산시",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52140"
+  },
+  {
+   "id": "kr:sgg:52180",
+   "ko": "정읍시",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52180"
+  },
+  {
+   "id": "kr:sgg:52190",
+   "ko": "남원시",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52190"
+  },
+  {
+   "id": "kr:sgg:52210",
+   "ko": "김제시",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52210"
+  },
+  {
+   "id": "kr:sgg:52710",
+   "ko": "완주군",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52710"
+  },
+  {
+   "id": "kr:sgg:52720",
+   "ko": "진안군",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52720"
+  },
+  {
+   "id": "kr:sgg:52730",
+   "ko": "무주군",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52730"
+  },
+  {
+   "id": "kr:sgg:52740",
+   "ko": "장수군",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52740"
+  },
+  {
+   "id": "kr:sgg:52750",
+   "ko": "임실군",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52750"
+  },
+  {
+   "id": "kr:sgg:52770",
+   "ko": "순창군",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52770"
+  },
+  {
+   "id": "kr:sgg:52790",
+   "ko": "고창군",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52790"
+  },
+  {
+   "id": "kr:sgg:52800",
+   "ko": "부안군",
+   "kind": "sgg",
+   "region": "jeonbuk",
+   "si": "kr:sgg:52800"
+  },
+  {
+   "id": "kr:sgg:41110",
+   "ko": "수원시",
+   "kind": "si",
+   "region": "gyeonggi"
+  },
+  {
+   "id": "kr:sgg:41130",
+   "ko": "성남시",
+   "kind": "si",
+   "region": "gyeonggi"
+  },
+  {
+   "id": "kr:sgg:41170",
+   "ko": "안양시",
+   "kind": "si",
+   "region": "gyeonggi"
+  },
+  {
+   "id": "kr:sgg:41270",
+   "ko": "안산시",
+   "kind": "si",
+   "region": "gyeonggi"
+  },
+  {
+   "id": "kr:sgg:41280",
+   "ko": "고양시",
+   "kind": "si",
+   "region": "gyeonggi"
+  },
+  {
+   "id": "kr:sgg:41460",
+   "ko": "용인시",
+   "kind": "si",
+   "region": "gyeonggi"
+  },
+  {
+   "id": "kr:sgg:41590",
+   "ko": "화성시",
+   "kind": "si",
+   "region": "gyeonggi"
+  },
+  {
+   "id": "kr:sgg:43110",
+   "ko": "청주시",
+   "kind": "si",
+   "region": "chungbuk"
+  },
+  {
+   "id": "kr:sgg:44130",
+   "ko": "천안시",
+   "kind": "si",
+   "region": "chungnam"
+  },
+  {
+   "id": "kr:sgg:47110",
+   "ko": "포항시",
+   "kind": "si",
+   "region": "gyeongbuk"
+  },
+  {
+   "id": "kr:sgg:48120",
+   "ko": "창원시",
+   "kind": "si",
+   "region": "gyeongnam"
+  },
+  {
+   "id": "kr:sgg:41190",
+   "ko": "부천시",
+   "kind": "si",
+   "region": "gyeonggi"
+  },
+  {
+   "id": "kr:sgg:52110",
+   "ko": "전주시",
+   "kind": "si",
+   "region": "jeonbuk"
+  }
+ ]
+}

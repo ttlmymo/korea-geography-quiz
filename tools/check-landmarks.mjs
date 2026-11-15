@@ -88,6 +88,8 @@ const rows = [];
 for (const [rk, places] of Object.entries(LINES)) {
   if (rk.startsWith('_')) continue;
   for (const [place, v] of Object.entries(places)) {
+    // '_' 로 시작하는 칸은 설명(_note 글 — 파이프라인 위치 한 줄 검사와 같은 규칙). 글이면 v.at 이 String.prototype.at 이라 '?? []' 가 걸리지 않고 멈췄다(E11 검수)
+    if (place.startsWith('_')) continue;
     for (const [name, lon, lat] of v.at ?? []) {
       const seen = new Set();
       const cands = [];

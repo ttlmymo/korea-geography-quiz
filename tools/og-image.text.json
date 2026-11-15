@@ -1,0 +1,14 @@
+{
+  "note": "node tools/og-image.mjs 가 쓴다 — public/social-image/og-image-{ko,en}.jpg 에 박힌 개수 줄. 손으로 고치지 않는다(tests/unit/og-text.test.ts 가 지금 범위 말과 견줌)",
+  "ver": "kr-20261001.2",
+  "ko": {
+    "pre": "",
+    "count": "전국 16개 시·도와 시·군·구",
+    "unit": "· 읍·면·동까지"
+  },
+  "en": {
+    "pre": "Districts of",
+    "count": "Seoul, Incheon, Gyeonggi and 11 more regions",
+    "unit": ""
+  }
+}
