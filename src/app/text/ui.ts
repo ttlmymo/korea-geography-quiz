@@ -683,7 +683,8 @@ export const UI_EN: UI = {
   exploreTitle: (r: string) => `Map of ${r}`,
   hideNames: 'Hide names', fillColor: 'Filled colors',
   exploreAria: (r: string) => `Map of ${r} with names`,
-  exploreEmpty: (r: string) => `Tap a place in ${r} to see where it is and what it borders`,
+  // 2026-11-18 한국어 문구와 같은 뜻으로(지역 이름을 쓰지 않는다 — 사용자 '영어도 같이 바꿔 줘')
+  exploreEmpty: (_r: string) => 'Tap a place on the map to see where it is and what is around it',
   touching: 'Borders',
   practice: (no: string) => `Practice ${no}, which has this place`,
   readMore: 'Read more',
