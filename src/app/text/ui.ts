@@ -319,7 +319,8 @@ export const UI_KO = {
   exploreTitle: (r: string) => `${r} 지도 보기`,
   hideNames: '이름 가리기', fillColor: '채움 색',
   exploreAria: (r: string) => `${r} 이름 지도`,
-  exploreEmpty: (r: string) => `${r}의 곳을 누르면 위치와 이웃이 나와요`,
+  // 2026-11-18 사용자가 정한 문구(전 '${r}의 곳을 누르면 위치와 이웃이 나와요' — '서울의 곳'이 어색하다). 지역 이름은 쓰지 않는다
+  exploreEmpty: (_r: string) => '지도에서 한 곳을 누르면 위치와 주변에 위치한 곳을 알려 줘요',
   touching: '맞닿은 곳',
   practice: (no: string) => `이곳이 든 ${no} 연습하기`,
   readMore: '자세히 읽기',
