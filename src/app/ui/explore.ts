@@ -31,7 +31,7 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
       <h1 class="pt-title">${esc(L.exploreTitle(rn))}</h1>
       <div class="x-tools">${toggle('hide', L.hideNames)}${toggle('fill', L.fillColor)}</div></div></header>
     <div class="x-body">
-      <div class="x-side"><div class="x-band"><div class="x-card" aria-live="polite"></div>${r.unit && !r.unit.gu && L.sourceEmd ? `<p class="x-src">${esc(L.sourceEmd)}</p>` : ''}</div></div>
+      <div class="x-side"><div class="x-band"><div class="x-card" aria-live="polite"></div></div></div>
       <div class="x-right">
         <div class="pr-cap"><span class="pr-ct">${esc(`${L.regionFull(r)} · ${L.count(r)}`)}</span><span class="legend pr-key" role="group" aria-label="${esc(L.legendAria)}"></span></div>
         <div class="play-stage"><div class="play-map" data-map="x" role="img" aria-label="${esc(L.exploreAria(rn))}"></div>

@@ -470,13 +470,10 @@ test('영어 구 고르기 다듬기(점검 A low): 화면 단추 첫 글자 대
   assert.match(k, /경기도 · 경기 47개 시·군·구/);
   assert.deepEqual(tabsOf(k), ['전체', '북서부', '북동부', '남서부', '남동부']);
   assert.match(k, /<h3 class="e-gh">수원시 <span>4개 구<\/span><\/h3>/);
-  // 지도 보기 아래의 출처 줄은 2026-11-18 사용자 결정으로 뺌(출처는 /sources/ 에만). 영어 동 단원의 이름 표기 안내만 남는다(한국어는 줄이 없다)
-  assert.ok(!('source' in UI_EN) && !('source' in UI_KO), '출처 줄 글은 없다');
-  assert.match(UI_EN.sourceEmd, /^Neighborhood names: Revised Romanization of Korean \(numbers as digits\)$/);
-  assert.equal(UI_KO.sourceEmd, '');
+  // 지도 보기 아래의 출처 줄과 영어 동 단원의 이름 표기 안내는 2026-11-18 사용자 결정으로 뺌(출처는 /sources/ 에만)
+  assert.ok(!('source' in UI_EN) && !('source' in UI_KO) && !('sourceEmd' in UI_EN) && !('sourceEmd' in UI_KO), '출처 줄·이름 표기 안내 글은 없다');
   const x = src('ui/explore.ts');
-  assert.ok(x.includes("${r.unit && !r.unit.gu && L.sourceEmd ? `<p class=\"x-src\">${esc(L.sourceEmd)}</p>` : ''}"), '이름 표기 안내 줄(영어 동 단원만)');
-  assert.ok(!x.includes('L.source}'), '출처 줄은 그리지 않는다');
+  assert.ok(!x.includes('L.source') && !x.includes('x-src'), '출처 줄·이름 표기 안내 줄은 그리지 않는다');
   // 둘러보기 이름표(점검 A medium): 영어 동·일반구 단원은 짧은 이름, 그 밖은 전과 같이 L.name
   assert.ok(x.includes("text: L.lang === 'en' && r.unit ? L.short(it) : L.name(it)"), '둘러보기 이름표');
 });

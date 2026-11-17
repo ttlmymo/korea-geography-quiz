@@ -7,7 +7,6 @@ import RegionMap from '../../../../components/RegionMap.astro';
 import { href } from '../../../../lib/paths';
 import { SEOUL_GU, type Gu } from '../../../../data/seoul';
 import { region, svgOf, neighborsEn, listEn, enNameOf, SEOUL_NORTH } from '../../../../lib/geo';
-import { DATA_VER } from '../../../../consts';
 
 export function getStaticPaths() {
   return SEOUL_GU.map((g) => ({ params: { slug: g.slug }, props: { g } }));
@@ -49,7 +48,7 @@ const north = SEOUL_NORTH.has(item.id);
       <h2>Find it on the blank map</h2>
       <a class="btn" href={href(`/en/#/kr/seoul/sgg/@${g.slug}`)}>Practice Seoul lesson {lesson.no} <span aria-hidden="true">→</span></a>
     </section>
-    <p class="meta">Boundaries: Statistics Korea SGIS (KOGL Type 1) · vuski/admdongkor (CC BY 4.0), October 1, 2026 edition, simplified · data {DATA_VER}.</p>
+    {/* 출처 표기 줄은 2026-11-18 사용자 결정으로 뺌('데이터 출처 탭을 제외한 모든 화면에서 삭제' — 출처는 /sources/ 에만, 한·영 같게) */}
   </div>
 </Base>
 

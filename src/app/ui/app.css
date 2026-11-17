@@ -786,7 +786,6 @@ html[lang="en"] .rg-later b { min-width: 7.5em; }
 .x-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding-top: 4px; }
 #app .xpl .x-acts .btn { width: auto; flex: 1 1 auto; min-height: 56px; padding: 0 20px; font-size: 18px; }
 .x-more { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ink); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 5px; }
-.x-src { font-size: 14px; line-height: 1.45; color: var(--ink-3); }
 .xpl .play-map.map-fail { position: absolute; }
 
 /* 600 이상(태블릿 포함): 머리 한 줄(← · 제목 · 토글 — 제목이 길면 줄임표), 주 단추는 제 폭(홈·과 시작 주 단추와 같은 규칙).
@@ -812,8 +811,6 @@ html[lang="en"] .rg-later b { min-width: 7.5em; }
   .x-line { font-size: 18px; line-height: 1.6; }
   .x-acts { padding-top: 8px; }
   #app .xpl .x-acts .btn { flex: none; min-height: 60px; padding: 0 32px; font-size: 18px; }
-  /* 출처는 왼쪽 열 맨 아래(#app p 의 margin 0 을 이기려고 #app 을 붙인다) */
-  #app .x-src { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
 }
 /* 가로로 눕힌 폰: 문제 화면과 같이 2단 — 머리 한 줄(← · 제목 · 토글), 왼쪽 정보 열 340(넘치면 열만 스크롤) | 지도(화면 높이) + [범례 줄] */
 @media (max-width: 1023px) and (max-height: 500px) and (orientation: landscape) {

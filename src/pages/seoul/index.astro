@@ -5,7 +5,6 @@ import Base from '../../layouts/Base.astro';
 import RegionMap from '../../components/RegionMap.astro';
 import { href } from '../../lib/paths';
 import { region, svgOf, SEOUL_NORTH, TONE_FILL } from '../../lib/geo';
-import { DATA_VER } from '../../consts';
 
 const r = region('seoul');
 const svg = svgOf('seoul');
@@ -51,6 +50,7 @@ const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
         ))}</tbody>
       </table></div>
     </section>
-    <p class="meta">행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 2026년 10월 1일 판 · 데이터 판 {DATA_VER}. 한강 남북은 강을 사이에 둔 구 경계로 나눴어요. <a href={href('/sources/')}>데이터 출처</a></p>
+    {/* 출처 표기 줄은 2026-11-18 사용자 결정으로 뺌('데이터 출처 탭을 제외한 모든 화면에서 삭제' — 출처는 /sources/ 에만, 한·영 같게) */}
+    <p class="meta">한강 남북은 강을 사이에 둔 구 경계로 나눴어요.</p>
   </div>
 </Base>

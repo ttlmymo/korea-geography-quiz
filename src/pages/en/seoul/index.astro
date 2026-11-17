@@ -5,7 +5,6 @@ import Base from '../../../layouts/Base.astro';
 import RegionMap from '../../../components/RegionMap.astro';
 import { href } from '../../../lib/paths';
 import { region, svgOf, enNameOf, SEOUL_NORTH, TONE_FILL } from '../../../lib/geo';
-import { DATA_VER } from '../../../consts';
 
 const r = region('seoul');
 const svg = svgOf('seoul');
@@ -48,7 +47,7 @@ const rows = [...r.items].sort((a, b) => Number(SEOUL_NORTH.has(b.id)) - Number(
         ))}</tbody>
       </table></div>
     </section>
-    <p class="meta">Boundaries: Statistics Korea SGIS (KOGL Type 1) · vuski/admdongkor (CC BY 4.0), October 1, 2026 edition · data {DATA_VER}.</p>
+    {/* 출처 표기 줄은 2026-11-18 사용자 결정으로 뺌('데이터 출처 탭을 제외한 모든 화면에서 삭제' — 출처는 /sources/ 에만, 한·영 같게) */}
   </div>
 </Base>
 

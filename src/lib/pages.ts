@@ -46,9 +46,12 @@ const UPDATED: Record<string, string> = {
   // 날짜가 운영 기준과 같아 점검 7 을 지나지 못하므로, 배포 빌드로 운영 기준 목록을 먼저 다시 쓰고 내보냈다(docs/WORKLOG.md 2026-11-16 영어 동 공부 배포)
   // 2026-11-17 서울 과 이름: 첫 카드 'Seoul lesson 1 · Northwest, 6 districts'
   '/en/': '2026-11-17',
-  // 2026-11-17 서울 과 이름: '배우는 순서' 글과 과 표(구 쪽 25 × 한·영의 '서울 N과 …에서' 줄은 아래 SEOUL_LESSONS_RENAMED)
-  '/seoul/': '2026-11-17',
-  '/en/seoul/': '2026-11-17',
+  // 2026-11-17 서울 과 이름: '배우는 순서' 글과 과 표(구 쪽 25 × 한·영의 '서울 N과 …에서' 줄은 아래 GU_PAGES_UPDATED)
+  // 2026-11-18 쪽 아래의 출처 표기 줄을 뺌(사용자 결정 — 출처는 /sources/ 에만, 한·영 같게): 서울·경기·인천 허브와 구 쪽 25 × 한·영(아래 GU_PAGES_UPDATED)
+  '/seoul/': '2026-11-18',
+  '/en/seoul/': '2026-11-18',
+  '/gyeonggi/': '2026-11-18',
+  '/incheon/': '2026-11-18',
   // 2026-11-18 소개 쪽을 줄임(지역·과 수 나열과 데이터 설명을 뺌 — 사용자 결정)
   '/about/': '2026-11-18',
   // 데이터 출처 '위치 한 줄' 항목에 지도로 확인하는 근거 '바닷가'를 더한 날(E11 — 새 근거 coast).
@@ -64,8 +67,8 @@ const UPDATED: Record<string, string> = {
 };
 
 const later = (a: string, b?: string | null) => (b && b > a ? b : a);
-/** 서울 과 이름을 방위로 바꾼 날: 구 쪽 25 × 한·영의 과 줄('서울 1과 '북서쪽'에서 …')이 바뀌었다 */
-const SEOUL_LESSONS_RENAMED = '2026-11-17';
+/** 구 쪽 25 × 한·영을 함께 고친 날: 2026-11-17 서울 과 이름을 방위로(과 줄 '서울 1과 '북서쪽'에서 …'), 2026-11-18 쪽 아래 출처 표기 줄을 뺌 */
+const GU_PAGES_UPDATED = '2026-11-18';
 const at = (path: string, base = DEFAULT_UPDATED): IndexPage => ({ path, updated: later(base, UPDATED[path]) });
 
 /** 허브 아래 곳 쪽(한·영 짝). 지금은 서울 25개 구뿐 — 새 지역의 곳 쪽(W3)은 애드센스 승인 뒤, 한 배포에 5쪽 이하로 */
@@ -76,7 +79,7 @@ const PLACES: Record<string, () => IndexPage[]> = {
     return SEOUL_GU.flatMap((g) => {
       const id = r.items.find((it) => it.slug === g.slug)!.id;
       // 한국어 구 쪽은 검수한 소개 글이 들어간 날 내용이 바뀐다(영어 쪽에는 소개 글이 없다)
-      return [at(`/seoul/${g.slug}/`, later(later(DEFAULT_UPDATED, introOf(id)?.reviewed), SEOUL_LESSONS_RENAMED)), at(`/en/seoul/${g.slug}/`, later(DEFAULT_UPDATED, SEOUL_LESSONS_RENAMED))];
+      return [at(`/seoul/${g.slug}/`, later(later(DEFAULT_UPDATED, introOf(id)?.reviewed), GU_PAGES_UPDATED)), at(`/en/seoul/${g.slug}/`, later(DEFAULT_UPDATED, GU_PAGES_UPDATED))];
     });
   },
 };
