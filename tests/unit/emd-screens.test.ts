@@ -221,10 +221,10 @@ test('섬 상자(E5 결정): 옹진군처럼 고를 칸이 모두 섬이면 격�
   const r = reg.addUnit(f);
   const S = buildShapes(unitTopo('28720'), specOf(r), f.labels);
   assert.equal(S.far, null, 'FAR_LON 먼 섬 상자는 끈다');
-  const l1 = r.lessons[0];
-  assert.equal(lessonView(l1).isles.length, 7);
+  // 2026-11-17(D2 사용자 결정 '과를 셋으로'): 1과 덕적·자월·2과 북도·영흥은 본 지도 한 장(상자 없음), 3과 먼 섬 셋(백령·대청·연평)만 상자. 단원 전체 화면은 일곱 섬 상자 그대로
+  assert.deepEqual(r.lessons.map((l) => lessonView(l).isles.length), [0, 0, 3]);
   assert.equal(wholeView(r).isles.length, 7);
-  const views = lessonView(l1).isles.map((id) => isleView(S.cells.get(id)!.rings, S.cells.get(id)!.r));
+  const views = wholeView(r).isles.map((id) => isleView(S.cells.get(id)!.rings, S.cells.get(id)!.r));
   const inset = Math.min(...views.map((v) => fitK(v, ISLE_W, ISLE_H)));
   // 폰 문제 화면의 지도 칸(390×844 에서 약 366×470, 여백 12)
   const g = layoutIsles(views, { x: 12, y: 12, w: 366, h: 470 }, true);
@@ -238,6 +238,7 @@ test('섬 상자(E5 결정): 옹진군처럼 고를 칸이 모두 섬이면 격�
   }
   // 쪽 지도에도 섬 상자
   assert.equal(unitPage(ctxOf(reg), 'incheon/ongjin-gun').maps!.unit.isles!.length, 7);
+  // 과 시작 화면의 지도는 단원 전체(이번 과만 밝게)라 일곱 섬 상자 그대로
   assert.equal(startPage(ctxOf(reg), 'incheon/ongjin-gun', 1).maps!.start.isles!.length, 7);
 });
 
@@ -246,7 +247,8 @@ test('섬 상자 축척 칸(2026-11-15 — 먼 섬 · 축척 다름 대신): 옹
   const f = unitFile('28720');
   const r = reg.addUnit(f);
   const S = buildShapes(unitTopo('28720'), specOf(r), f.labels);
-  const ids = lessonView(r.lessons[0]).isles;
+  const ids = wholeView(r).isles;   // 일곱 섬 상자는 단원 전체 화면에(과는 2026-11-17 부터 셋으로 나뉘어 3과만 상자 셋)
+  assert.equal(ids.length, 7);
   const views = ids.map((id) => isleView(S.cells.get(id)!.rings, S.cells.get(id)!.r));
   const layouts = [
     layoutIsles(views, { x: 12, y: 12, w: 366, h: 470 }, true),    // 폰 문제 화면
@@ -299,11 +301,13 @@ test('섬 상자 줄은 지도 칸 밖으로 넘치지 않는다(2026-11-15 점�
     const span = L.mode === 'col' ? L.shift.l + L.shift.r : L.shift.b;
     assert.ok(span <= STRIP_MAX * (L.mode === 'col' ? a.w : a.h) + 1e-9, `${what} 줄이 지도 칸의 절반 안(${span})`);
   };
-  // 완도군 전체 보기(단원 쪽·둘러보기·시험 결과): 섬 7곳 + 본 땅
+  // 완도군 전체 보기(단원 쪽·둘러보기·시험 결과): 섬 7곳 + 본 땅. 2026-11-16(D2 — 가까운 섬은 본 지도)부터 완도군에는 섬 상자가 없다 —
+  // 줄 넘침 규칙(stripFit)은 그 섬 7곳('섬' 화면의 곳)을 상자로 두었을 때의 범위로 계속 지킨다
   const { u, S } = unitAt('12850');
-  const wv = wholeView(u);
-  assert.equal(wv.isles.length, 7);
-  const views = wv.isles.map((id) => isleView(S.cells.get(id)!.rings, S.cells.get(id)!.r));
+  assert.equal(wholeView(u).isles.length, 0, '완도군: 섬 상자 없음(D2)');
+  const seven: string[] = u.screens.find((s: { key: string }) => s.key === 'islands').items;
+  assert.equal(seven.length, 7);
+  const views = seven.map((id) => isleView(S.cells.get(id)!.rings, S.cells.get(id)!.r));
   const phone = { x: 12, y: 12, w: 362, h: 347 }, tall = { x: 12, y: 12, w: 366, h: 470 }, wide = { x: 24, y: 24, w: 900, h: 600 };
   for (const [a, what] of [[phone, '폰 단원 쪽'], [tall, '폰 세로로 긴 칸'], [wide, '넓은 칸']] as const) inArea(layoutIsles(views, a, false), a, `완도 ${what}`);
   // 폰은 상자를 줄이고(본 지도가 보이게), 넓은 칸은 전과 같은 128×112 세로 두 줄

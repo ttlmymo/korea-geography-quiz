@@ -33,7 +33,7 @@ const rows = [...r.items].sort((a, b) => Number(SEOUL_NORTH.has(b.id)) - Number(
     </div>
     <section class="d-sec">
       <h2>How Fill the Map teaches Seoul</h2>
-      <p>The 25 districts are grouped into five lessons of four to six places. You start downtown, move to the southern half of the city, then finish in the northeast. After the five lessons there is a full practice with all 25 mixed together and a timed test.</p>
+      <p>The 25 districts are grouped into five lessons of four to six places. You start in the northwest, where downtown is, move across the southern half of the city, then finish in the east and north. After the five lessons there is a full practice with all 25 mixed together and a timed test.</p>
       <div class="tbl"><table>
         <thead><tr><th scope="col">Lesson</th><th scope="col">Districts</th></tr></thead>
         <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/en/#/kr/seoul/sgg/p${l.no}`)}>{l.no}. {l.en}</a></td><td>{l.items.map(enNameOf).join(', ')}</td></tr>)}</tbody>

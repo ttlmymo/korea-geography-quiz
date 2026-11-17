@@ -18,7 +18,7 @@ export interface Item {
 }
 
 /**
- * 지도 맥락 이름 칸(이웃 땅·한강 — map/shapes.ts Shapes.names, 화면 글 text/ui.ts ctxName 이 받는다). sido = 시·도 코드(한강 'water', 북한 'kp', 일본 'jp').
+ * 지도 맥락 이름 칸(이웃 땅·한강 — map/shapes.ts Shapes.names, 화면 글 text/ui.ts ctxName 이 받는다). sido = 시·도 코드(한강 'water', 북한 'kp', 일본 'jp', 바다 이름표 'sea:w'·'sea:s'·'sea:e' — map/sea.ts).
  * 동 단원 지도의 이웃 땅은 id(kr:sgg:…)·en(판 .2 topo out 의 영어 이름)이 있고, 일반구 단원의 나머지 칸(rest)은 id = 그 칸의 시·군 곳 id
  */
 export interface CtxCell { sido: string; text: string; id?: string; en?: string; rest?: boolean }
@@ -82,6 +82,8 @@ export interface UnitMeta {
   si?: string;          // 일반구 단원이면 시 층 id(kr:sgg:41280)
   meet: Record<string, Meet>;
   outside: Record<string, { ko: string; sido: string }>;
+  /** 섬 상자가 있는 동 단원: 그 가운데 정말 먼 섬(지역 표 먼 섬 규칙). 없으면 빈 목록, 옛 캐시 파일이면 열쇠가 없다 */
+  far?: string[];
 }
 
 /** units.json emdUnits 의 단원 한 줄(동 색인, 계획서 N17): 단원 파일 없이 '아는 곳'·복습 수·복습 차례·단원별 모으기를 판정한다 */
@@ -111,6 +113,7 @@ export interface EmdUnitFile {
   items: { id: string; ko: string; slug: string; kind: '동' | '읍' | '면'; en?: string }[];   // en: 판 .2 부터(옛 캐시에는 없음)
   lessons: Lesson[];
   screens: Screen[];
+  far?: string[];                         // 섬 상자가 있는 단원: 정말 먼 섬(없으면 [])
   neighbors: Record<string, string[]>;    // 단원 안 이웃
   labels: LabelsFile;                     // 이름표 점
   meet: Record<string, Meet>;

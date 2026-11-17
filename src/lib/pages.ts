@@ -39,11 +39,16 @@ const UPDATED: Record<string, string> = {
   // '광주특별시 27개 시·군·구'·'광주특별시는 여섯 과'가 됨('/about/' 날짜 그대로 2026-11-15). '/'·'/en/' 설명은 '전국 16개 시·도…'·'Seoul, Incheon, Gyeonggi …'라 그대로.
   // 배포는 마지막에 한 번(사용자 결정 11-14)이라 운영에서 세 쪽이 실제로 바뀌는 날은 배포일이다 — 배포 때 이 세 줄을 배포일로 바꾼다(PRIVACY_EFFECTIVE 와 함께).
   // 점검 7 은 기준일(11-06)보다 늦기만 하면 통과해 이 어긋남을 잡지 못한다. → 배포일 2026-11-16 으로 바꿈(/sources/ 도)
-  '/': '2026-11-16',
+  // 2026-11-17 서울 과 이름을 방위로 바꿔(사용자 결정 — '도심과 서북' → '북서쪽' 등) 첫 카드 '서울 1과 · 북서쪽 6개 구'가 됨
+  '/': '2026-11-17',
   // 영어 동 공부(설계안 docs/EN_EMD_PLAN_2026-11-16.md 9절): 영어 앱에 세종·제주(과 없는 지역)도 열려 영문 홈 설명이 'Seoul, Incheon, Gyeonggi and 11 more regions' →
   // 'all 16 provinces and cities of Korea'(lib/regions.ts scopeEn)로 바뀜. 전국 확대(79b1863)와 같은 날 2026-11-16 에 두 번째로 내보냄(사용자 결정 11-16 '오늘 배포') —
   // 날짜가 운영 기준과 같아 점검 7 을 지나지 못하므로, 배포 빌드로 운영 기준 목록을 먼저 다시 쓰고 내보냈다(docs/WORKLOG.md 2026-11-16 영어 동 공부 배포)
-  '/en/': '2026-11-16',
+  // 2026-11-17 서울 과 이름: 첫 카드 'Seoul lesson 1 · Northwest, 6 districts'
+  '/en/': '2026-11-17',
+  // 2026-11-17 서울 과 이름: '배우는 순서' 글과 과 표(구 쪽 25 × 한·영의 '서울 N과 …에서' 줄은 아래 SEOUL_LESSONS_RENAMED)
+  '/seoul/': '2026-11-17',
+  '/en/seoul/': '2026-11-17',
   '/about/': '2026-11-16',
   // 데이터 출처 '위치 한 줄' 항목에 지도로 확인하는 근거 '바닷가'를 더한 날(E11 — 새 근거 coast).
   // '합치기' 항목의 시 층 지도를 판에서 만들어 '경기·충북·전북'이 들어간 날(E13 검수, 2026-11-15). 배포 때 /·/en/·/about/ 처럼 배포일로 바꾼다.
@@ -57,6 +62,8 @@ const UPDATED: Record<string, string> = {
 };
 
 const later = (a: string, b?: string | null) => (b && b > a ? b : a);
+/** 서울 과 이름을 방위로 바꾼 날: 구 쪽 25 × 한·영의 과 줄('서울 1과 '북서쪽'에서 …')이 바뀌었다 */
+const SEOUL_LESSONS_RENAMED = '2026-11-17';
 const at = (path: string, base = DEFAULT_UPDATED): IndexPage => ({ path, updated: later(base, UPDATED[path]) });
 
 /** 허브 아래 곳 쪽(한·영 짝). 지금은 서울 25개 구뿐 — 새 지역의 곳 쪽(W3)은 애드센스 승인 뒤, 한 배포에 5쪽 이하로 */
@@ -67,7 +74,7 @@ const PLACES: Record<string, () => IndexPage[]> = {
     return SEOUL_GU.flatMap((g) => {
       const id = r.items.find((it) => it.slug === g.slug)!.id;
       // 한국어 구 쪽은 검수한 소개 글이 들어간 날 내용이 바뀐다(영어 쪽에는 소개 글이 없다)
-      return [at(`/seoul/${g.slug}/`, later(DEFAULT_UPDATED, introOf(id)?.reviewed)), at(`/en/seoul/${g.slug}/`)];
+      return [at(`/seoul/${g.slug}/`, later(later(DEFAULT_UPDATED, introOf(id)?.reviewed), SEOUL_LESSONS_RENAMED)), at(`/en/seoul/${g.slug}/`, later(DEFAULT_UPDATED, SEOUL_LESSONS_RENAMED))];
     });
   },
 };

@@ -6,7 +6,7 @@ import { DATA_VER } from '../../src/consts.ts';
 import { classifyTap } from '../../src/app/core/judge.ts';
 import { buildShapes, probeAt, specOf, type Shapes, type Topology } from '../../src/app/map/shapes.ts';
 import { createRegistry } from '../../src/app/registry.ts';
-import { wholeView } from '../../src/app/ui/maps.ts';
+import { INSET_SHRINK, insetPad, wholeView } from '../../src/app/ui/maps.ts';
 import { labelPx } from '../../src/app/map/svgmap.ts';
 import { boxOf, project, unproject } from '../../src/app/map/project.ts';
 import { clampView, contains, cssBetween, fitView, toMap, toScreen, viewBox, zoomAround, MAX_K } from '../../src/app/map/view.ts';
@@ -61,6 +61,14 @@ test('누른 점: 한강 한가운데는 강, 바다는 바다', () => {
   const sea = tap('incheon', 126.3, 37.3);
   assert.equal(sea.hit, null);
   assert.equal(sea.water, 'sea');
+  // 칸과 맞닿지 않아 그리지 않는 강(인천 지도 구석의 한강 — 화면에서는 이웃 땅색으로 메운다, 2026-11-17 바다 표현)은 강으로 치지 않는다:
+  // 이웃 땅·바다처럼 '밝은 칸 중에서 골라 주세요'(outside). 전에는 '땅을 눌러 주세요'(river)가 나왔다
+  const [hx, hy] = project(126.812, 37.599);   // 행주대교 부근 강 위
+  assert.ok(inside(shapes.incheon.water, hx, hy) && shapes.incheon.bankD === '', '인천 지도의 한강 띠 위 · 그리지 않는 강');
+  const hidden = tap('incheon', 126.812, 37.599);
+  assert.equal(hidden.water, 'sea');
+  assert.deepEqual(classifyTap(hidden, new Set(shapes.incheon.ids)), { type: 'outside' });
+  assert.equal(tap('gyeonggi', 126.812, 37.599, 2).water, 'river', '같은 자리도 강을 그리는 경기 지도에서는 강');
 });
 
 test('누른 점: 두 칸 경계 위를 넓은 화면에서 누르면 모호, 크게 키우면 칸', () => {
@@ -130,7 +138,7 @@ test('묶음 메쉬: 과 안 경계 · 강가까지 넣은 둘레 · 칸마다 �
       assert.ok([...inner].every((x) => edge.has(x)));
     }
   }
-  // 서울 1과(도심과 서북)는 한강에 닿는다: 강가를 넣으면 둘레가 길어진다. 인천에는 강가가 없어 같다
+  // 서울 1과(북서쪽 — 도심과 서북)는 한강에 닿는다: 강가를 넣으면 둘레가 길어진다. 인천에는 강가가 없어 같다
   const s1 = new Set(reg.lesson('seoul', 1)!.items);
   assert.ok(segs(shapes.seoul.rimOf(s1, { bank: true })).size > segs(shapes.seoul.rimOf(s1)).size);
   const i1 = new Set(reg.lesson('incheon', 1)!.items);
@@ -674,4 +682,198 @@ test('먼 섬: 인천 옹진군의 백령·대청·연평만 섬 상자로', () 
   assert.equal(inBox(124.67, 37.95), true);
   assert.equal(inBox(125.70, 37.66), true);
   assert.equal(inBox(126.13, 37.23), false);
+});
+
+/* ---------- 2026-11-16 묶음 점검 뒤 고치기 ---------- */
+
+test('먼 섬 상자 자리(maps.ts insetPad — 2026-11-16 점검 1): 본 지도가 가장 큰 안의 1/INSET_SHRINK 보다 작아지는 안은 고르지 않는다 · 낮은 폰 375×667(지도 칸 375×267) 전남광주 지역 지도가 97×67px 로 줄던 것', () => {
+  const fake = (w: number, h: number, iw: number, ih: number) => {
+    const cls = new Set<string>();
+    const host = {
+      clientWidth: w, clientHeight: h,
+      classList: { remove: (c: string) => cls.delete(c), toggle: (c: string, on: boolean) => { if (on) cls.add(c); else cls.delete(c); return on; } },
+      querySelector: () => ({ offsetLeft: 12, offsetWidth: iw, offsetHeight: ih }),
+    };
+    return { host: host as unknown as HTMLElement, cls };
+  };
+  const base = { t: 14, r: 14, b: 14, l: 14 };
+  const run = (key: string, w: number, h: number, iw: number, ih: number) => {
+    const r = reg.region(key)!, S = buildShapes(topoOf(key), specOf(r), geo.labels), box = boxOf(r.fit), size = { w, h };
+    const { host, cls } = fake(w, h, iw, ih);
+    const p = insetPad(host, S, box, S.ids, base);
+    return { p, bl: cls.has('inset-bl'), k: fitView(box, size, base).u / fitView(box, size, p).u };
+  };
+  // 전남광주(먼 섬 상자 77×160 — 세로로 긴 흑산·홍도·가거도): 위를 비우는 안(덮음 0, 지역 지도 28%) 대신 옆을 비우는 안(작은 섬 하나에 걸침, 거의 그대로)
+  for (const [w, h] of [[375, 267], [390, 264], [360, 220]] as const) {
+    const g = run('jeonnam-gwangju', w, h, 77, 160);
+    assert.equal(g.p.l, 12 + 77 + 14, `${w}x${h} 옆을 비움`);
+    assert.equal(g.p.t, 14, `${w}x${h} 위는 그대로`);
+    assert.ok(g.k >= 1 / INSET_SHRINK, `${w}x${h} 지역 지도 ${(g.k * 100).toFixed(0)}%`);
+  }
+  // 덮음을 피하느라 절반보다 덜 줄어드는 안(인천·충남 낮은 칸 — 지도 55~65%)은 전처럼 고른다(문턱이 1.5 면 이 경우들이 섬을 덮는 안으로 바뀌었다)
+  const ic = run('incheon', 343, 340, 130, 138);
+  assert.notDeepEqual(ic.p, base);
+  assert.ok(ic.k < 0.7 && ic.k >= 1 / INSET_SHRINK, `인천 343x340 ${(ic.k * 100).toFixed(0)}%`);
+  assert.equal(INSET_SHRINK, 2);
+});
+
+test('영어 둘러보기 깨끗한 흰 판(labelfit cleanPlates — 2026-11-16 점검 1): fit 에서 칸에도 빈 바탕에도 안 드는 이름을 남의 칸을 덮지 않는 판에 둔다, 그런 자리가 없으면 전처럼 뺀다 · 켜지 않으면 fit 그대로', () => {
+  // 가로 200 의 칸 셋이 위아래로 붙어 있다(가운데 칸 B 는 높이 16 이라 이름표 20 이 들지 않는다). 바탕 없음(within 이 칸 범위와 같아 빈 바탕 자리가 없다)
+  const sq = (x0: number, y0: number, x1: number, y1: number) => new Float64Array([x0, y0, x1, y0, x1, y1, x0, y1, x0, y0]);
+  const cell = (x0: number, y0: number, x1: number, y1: number) => ({ rings: [sq(x0, y0, x1, y1)], box: [x0, y0, x1, y1] as [number, number, number, number], label: [(x0 + x1) / 2, (y0 + y1) / 2] as const, r: Math.min(x1 - x0, y1 - y0) / 2 });
+  const cells: Record<string, ReturnType<typeof cell>> = { A: cell(0, 0, 200, 100), B: cell(0, 100, 200, 116), C: cell(0, 116, 200, 216) };
+  const asks = [{ id: 'B', w: 120, h: 20 }];
+  const opt = { mode: 'fit' as const, u: 1, obstacles: Object.values(cells).map((c) => ({ rings: c.rings, box: c.box })), within: [0, 0, 200, 216] as [number, number, number, number], center: [100, 108] as const };
+  const of = (id: string) => cells[id];
+  assert.deepEqual(placeLabels(of, asks, opt), [], 'fit — 칸에도 빈 바탕에도 안 들어 뺀다');
+  // A·C 도 이름표를 다는 칸이면 B 판은 위·아래로 가면 남의 칸을 덮어 둘 곳이 없다 → 뺀다
+  const all = [{ id: 'A', w: 40, h: 20 }, ...asks, { id: 'C', w: 40, h: 20 }];
+  assert.ok(!placeLabels(of, all, { ...opt, cleanPlates: true }).some((p) => p.id === 'B'), '남의 칸을 덮는 판은 쓰지 않는다');
+  // 이름표를 다는 칸이 B 뿐이면(A·C 는 다른 과) 판을 둔다 — 자기 점 위 22px(LIFT_PX) 위 판
+  const one = placeLabels(of, asks, { ...opt, cleanPlates: true });
+  assert.equal(one.length, 1);
+  assert.equal(one[0].out?.plate, true);
+  assert.ok(one[0].y < 108, '판이 점 위');
+});
+
+test('맥락 이름 자리 한 벌(svgmap ctxPlaced·layCtxLead — 결정표 D96 사용자 결정 11-17): 제자리 → 점을 덮은 채 조금 옮김 → 점·선(이름표를 놓은 뒤, 바다 이름보다 먼저)(소스)', () => {
+  const sv = fs.readFileSync(path.join(import.meta.dirname, '../../src/app/map/svgmap.ts'), 'utf8');
+  const body = (name: string) => { const i = sv.indexOf(`  function ${name}(`); return sv.slice(i, sv.indexOf('\n  }\n', i)); };
+  assert.match(body('drawContext'), /for \(const \{ n, t, w, h, at, show \} of ctxPlaced\(\)\)/);
+  assert.match(body('layLabels'), /const avoid = !opt\.contextNames \? \[\] : ctxPlaced\(\)\.flatMap/);
+  const cp = body('ctxPlaced');
+  // 강 이름은 옮기지 않는다(물가·띠 자리 ctxSpot)
+  assert.match(cp, /if \(n\.kind === 'water' \|\| !spot\) \{/);
+  // 그 땅의 점이 안 보이면 이름도 없다
+  assert.match(cp, /if \(hx < view\[0\] \|\| hx > view\[2\] \|\| hy < view\[1\] \|\| hy > view\[3\]\) \{ out\.push\(\{ n, t, w, h, at: spot, show: false \}\); continue; \}/);
+  // ① 제자리: 보이는 범위 안 · 겹침 없음 · 이 지역 칸에 걸치지 않음
+  assert.match(cp, /if \(homeIn && !block\.length && !onCell\(hx, hy, hb\)\) \{ drawn\.push\(hb\);/);
+  assert.match(cp, /const onCell = \(x: number, y: number, nb: Box\) => obstacles\.some\(\(ob\) => hit\(ob\.box, nb\) && boxHits\(ob\.rings, x, y, w, h\)\);/);
+  // ② 그 땅 안에서 글자(상자 여유를 뺀 것)가 드는 가장 가까운 자리 — 보이는 범위 안, 먼저 놓은 이름·화면에 붙은 것을 피해서(labelfit fitBox). 땅 도형이 없을 때만 점을 덮은 채 조금 옮기기
+  // (제 땅 안이라 강 띠에 걸치는 것은 둔다 — 사용자 11-17 '한강을 지우고 서울을 넣으면': 강 이름은 땅 이름 뒤에 놓고, 겹치면 강 이름을 뺀다)
+  assert.match(cp, /if \(n\.land\?\.length\) \{/);
+  assert.match(cp, /near = fitBox\(n\.land, vb, from, fw, th, st, Math\.hypot\(lb\[2\] - lb\[0\], lb\[3\] - lb\[1\]\), av\);/);
+  // 고른 자리의 글자 상자가 보이는 범위 안인지 다시 본다(fitBox 는 시작점이 땅 안이면 그 점을 돌려준다 — 탐침에서 지도 밖으로 잘린 이름 30곳쯤)
+  assert.match(cp, /if \(near && !boxIn\(view, near\[0\], near\[1\], w, h\)\) near = null;/);
+  assert.match(cp, /const vb: Box = \[Math\.max\(lb\[0\], view\[0\] \+ e\), Math\.max\(lb\[1\], view\[1\] \+ m\), Math\.min\(lb\[2\], view\[2\] - e\), Math\.min\(lb\[3\], view\[3\] - m\)\];/);
+  // 다 들지 않으면 글자 폭의 85%만 들어도 둔다(폰 경기 지도의 서울 — 그보다 좁으면 점·선)
+  assert.match(cp, /for \(const f of \[1, LAND_FIT\]\) \{/);
+  assert.match(sv, /const LAND_FIT = 0\.85;/);
+  // 강이 그 땅을 가르면(경기 지도의 서울) 땅과 강을 합친 곳 안에 드는 자리 — 글자가 강 위에 걸친다(사용자 11-17 '한강을 지우고 서울을 넣으면')
+  assert.match(cp, /if \(!river \|\| !S\.water\.length\) continue;/);
+  assert.match(cp, /landAt\.set\(key, c = landSpan\(n\.land, lb, hx, hy, fw, th, st\)\);/);
+  assert.match(body('landSpan'), /if \(!inside\(land, xx, yy\) && !inside\(S\.water, xx, yy\)\) return false;/);
+  assert.match(cp, /\} else near = nearest\(Math\.max\(0, w \/ 2 - 3 \* u\), Math\.max\(0, h \/ 2 - 2 \* u\), false, true\);/);
+  assert.match(cp, /for \(const n of \[\.\.\.S\.names\.filter\(\(m\) => m\.kind !== 'water'\), \.\.\.S\.names\.filter\(\(m\) => m\.kind === 'water'\)\]\) \{/);
+  assert.match(cp, /const show = !!spot && boxIn\(view, spot\[0\], spot\[1\], w, h\) && !drawn\.some\(\(k\) => hit\(grow\(k\), boxAt\(spot\[0\], spot\[1\], w, h\)\)\);/);
+  assert.match(cp, /return overRiver \|\| !\(river && S\.water\.length && hit\(waterBox, nb\) && boxHits\(S\.water, x, y, w, h\)\);/);
+  // ③ 아니면 지시선 대상 — 자리(at)가 없어 칸 밖 이름표가 피할 자리에서 빠진다. 전 방식 자리는 예비(fb)로 남긴다(이름을 빼지는 않는다)
+  assert.match(cp, /out\.push\(\{ n, t, w, h, at: null, show: false, lead: \{ home: \[hx, hy\], fb \} \}\);/);
+  assert.match(cp, /let fb: \[number, number\] \| null = homeIn \? \[hx, hy\] : null;/);
+  // 점이 화면에 붙은 것 밑이면 선 없이 전 방식으로
+  assert.match(cp, /if \(sc\.some\(\(k\) => hx >= k\[0\] && hx <= k\[2\] && hy >= k\[1\] && hy <= k\[3\]\)\) \{/);
+  // 지시선 이름은 이름표를 놓은 뒤·바다 이름보다 먼저(drawSea 맨 앞 — 이름표가 없는 지도도 지난다), 바다 이름은 그 글자 상자와 선을 피한다
+  const ds = body('drawSea');
+  assert.match(ds, /^  function drawSea\(\) \{\n\s+layCtxLead\(\);/);
+  assert.match(ds, /const blocked: Box\[\] = grid \? \[\] : \[\.\.\.screenBoxes\(\), \.\.\.ctxTaken, \.\.\.leadTaken\];/);
+  assert.match(ds, /const lines: \[number, number, number, number\]\[\] = grid \? \[\] : \[\.\.\.leadLines\];/);
+  const ll = body('layCtxLead');
+  // 피하는 것: 화면에 붙은 것·맥락 이름·칸 밖 이름표(+ 지시선)·지역 칸·그린 강. 선은 이름표(칸 안·밖)·다른 이름 위로 지나지 않고 다른 지시선과 엇갈리지 않는다
+  assert.match(ll, /const blocked: Box\[\] = \[\.\.\.screenBoxes\(\), \.\.\.ctxTaken\];/);
+  assert.match(ll, /blocked\.push\(\.\.\.outLab\);/);
+  assert.match(ll, /if \(obstacles\.some\(\(ob\) => hit\(ob\.box, nb\) && boxHits\(ob\.rings, cx, cy, w, h\)\)\) return false;/);
+  assert.match(ll, /if \(all\.some\(\(k\) => segBox\(seg, k\)\) \|\| inLab\.some\(\(k\) => segBox\(seg, k\)\)\) return false;/);
+  assert.match(ll, /return !allLines\.some\(\(l\) => segSeg\(seg, l\)\);/);
+  // 선이 이 지역 칸 위를 지나는 것은 둔다(칸에 둘러싸인 서울·세종 — 칸 밖 이름표 '완주군'의 지시선과 같다)
+  assert.doesNotMatch(ll, /inside\(ob\.rings/);
+  // 가까운 자리부터(선 길이 → 가운데 거리). 끌기만 했으면 전 자리를 그대로. 자리가 없으면 전 방식 자리 — 이름표·지시선과 겹치면 뺀다(공부할 칸의 이름표가 먼저)
+  assert.match(ll, /cands\.sort\(\(p, q\) => p\[4\] - q\[4\] \|\| p\[5\] - q\[5\]\);/);
+  assert.match(ll, /const found = \(was && was\.u === u && fits\(was\.at\) \? was\.at : undefined\) \?\? cands\.find\(fits\);/);
+  assert.match(ll, /if \(outLab\.some\(\(k\) => hit\(k, nb\)\) \|\| inLab\.some\(\(k\) => hit\(k, nb\)\) \|\| leadTaken\.some\(\(k\) => hit\(k, nb\)\) \|\| allLines\.some\(\(l\) => segBox\(l, nb\)\)\) continue;/);
+  // 선 끝은 점에서 글자 가운데로 긋는 선이 글자 상자와 만나는 곳(칸 밖 이름표의 지시선과 같은 함수)
+  assert.match(ll, /const \[ex, ey\] = leadToCenter\(\[cx - w \/ 2, cy - h \/ 2, cx \+ w \/ 2, cy \+ h \/ 2\], \[hx, hy\]\);/);
+  // 점·선은 따로 묶고(cm-ctxlead) 글은 맥락 이름 그대로(cm-ctxname out lead)
+  assert.match(ll, /pxGroup\(hx, hy, 'cm-ctxlead', gLead\)/);
+  assert.match(ll, /`cm-ctxname out\$\{found \? ' lead' : ''\}`/);
+  const css = fs.readFileSync(path.join(import.meta.dirname, '../../src/app/map/map.css'), 'utf8');
+  assert.match(css, /\.cm-ctxlead path \{ fill: none; stroke: var\(--ink-2\); stroke-width: 1; \}\n\.cm-ctxlead circle \{ fill: var\(--ink-2\); \}/);
+});
+
+test('지시선 끝(labelfit leaderEnd·leadToCenter — 사용자 11-17 \'점과 이어진 선이 글자와 정확히 이어지게, 전국 전부\'): 글자만 있는 이름은 글자 가운데 쪽으로, 흰 판은 판에서 점에 가장 가까운 곳', async () => {
+  const { leaderEnd, leadToCenter } = await import('../../src/app/map/labelfit.ts');
+  const b: [number, number, number, number] = [100, 50, 160, 70];   // 가운데 (130, 60), 반폭 30 · 반높이 10
+  // 가운데 쪽(이웃 땅 이름 — cut 0): 옆에서 오면 옆 변의 가운데 높이, 위·아래에서 오면 가로 가운데
+  assert.deepEqual(leadToCenter(b, [200, 60]), [160, 60]);
+  assert.deepEqual(leadToCenter(b, [130, 0]), [130, 50]);
+  assert.deepEqual(leadToCenter(b, [130, 200]), [130, 70]);
+  // 비낀 자리: 선은 가운데를 향하고(끝점·점·가운데가 한 줄), 끝점은 상자 변 위
+  for (const at of [[220, 30], [40, 110], [150, -40], [60, 55]] as [number, number][]) {
+    const [x, y] = leadToCenter(b, at);
+    assert.ok(Math.abs((x - 130) * (at[1] - 60) - (y - 60) * (at[0] - 130)) < 1e-6, `한 줄 ${at}`);
+    assert.ok(Math.abs(Math.max(Math.abs(x - 130) / 30, Math.abs(y - 60) / 10) - 1) < 1e-9, `변 위 ${at}`);
+    assert.ok((x - 130) * (at[0] - 130) >= 0 && (y - 60) * (at[1] - 60) >= 0, `점 쪽 ${at}`);
+  }
+  assert.deepEqual(leadToCenter(b, [220, 50]).map((v) => +v.toFixed(2)), [160, 56.67]);
+  assert.deepEqual(leadToCenter(b, [140, 62]), [140, 62], '점이 상자 안이면 그 점');
+  // 판 없는 칸 밖 이름표(g > 0): 가운데 쪽, 상자 여유를 뺀 글자 바로 옆(2px — g 가 GAP_PX 4px 일 때 지도 단위 1 = 1px)
+  assert.deepEqual(leaderEnd(b, [200, 60], 4), [158, 60]);
+  assert.deepEqual(leaderEnd(b, [130, 0], 4), [130, 52]);
+  assert.deepEqual(leaderEnd(b, [220, 50], 4), leadToCenter(b, [220, 50], 2));
+  // 흰 판(g = 0): 판에서 점에 가장 가까운 곳(판 테두리 — 선이 가장 짧다). 가운데 쪽으로 기울이면 이름표 자리는 그대로인데 옆 지시선과 엇갈렸다(배포 전 측정)
+  assert.deepEqual(leaderEnd(b, [220, 50], 0), [160, 50]);
+  assert.deepEqual(leaderEnd(b, [140, 0], 0), [140, 50]);
+  assert.deepEqual(leaderEnd(b, [200, 62], 0), [160, 62]);
+  // 그때 걸린 곳(마포구 3과 폰 — 화면 px): '도화동' 판(280~330 × 158~178, 점 323,225)의 선은 곧게 위로, '염리동' 판(241~291 × 178~198, 점 313,188)의 선은 곧게 옆으로 — 엇갈리지 않는다
+  const dohwa = leaderEnd([280, 158, 330, 178], [323, 225], 0), yeomni = leaderEnd([241, 178, 291, 198], [313, 188], 0);
+  assert.deepEqual([dohwa, yeomni], [[323, 178], [291, 188]]);
+  assert.ok(dohwa[0] > 313, '도화동 선(x = 323)은 염리동 선(x 291~313) 오른쪽');
+});
+
+test('이웃 땅 이름에 그 땅의 도형(shapes names.land): 글자가 그 땅 안에 드는 자리를 찾는 데 쓴다 — 강 이름에는 없다', () => {
+  const s = shapes.gyeonggi;
+  const seoul = s.names.find((n) => n.text === '서울특별시');
+  assert.ok(seoul?.land?.length, '서울 땅 도형');
+  // 이름 점은 그 땅 안
+  assert.ok(inside(seoul!.land!, seoul!.x, seoul!.y), '서울 이름 점이 서울 땅 안');
+  for (const n of s.names) assert.equal(!!n.land?.length, n.kind === 'out', `${n.text} ${n.kind}`);
+});
+
+test('섬 상자 묶음 글(결정표 D2 ⓑ · D111 — 사용자 결정 11-17): 정말 먼 섬이 없는 묶음은 \'섬\', 글과 막대가 상자보다 넓으면 막대를 아래 줄로', async () => {
+  const { layoutIsles, ISLE_NOTE_H, ISLE_W, ISLE_H } = await import('../../src/app/map/isles.ts');
+  // 글 칸 높이를 두 줄로 주면(상자 하나 — 가로 줄·세로 줄) 글 칸만 커지고 상자 크기는 그대로, 가로 줄은 본 지도가 그만큼 더 비킨다
+  const one: [number, number, number, number][] = [[0, 0, 1000, 800]];
+  for (const area of [{ x: 12, y: 12, w: 366, h: 470 }, { x: 24, y: 24, w: 900, h: 600 }]) {
+    const a = layoutIsles(one, area, false), b = layoutIsles(one, area, false, false, 2 * ISLE_NOTE_H - 2);
+    assert.equal(a.mode, b.mode);
+    assert.deepEqual([b.boxes[0].w, b.boxes[0].h], [ISLE_W, ISLE_H]);
+    assert.equal(b.note.h - a.note.h, ISLE_NOTE_H - 2);
+    assert.equal(b.note.w, a.note.w);
+    if (a.mode === 'row') { assert.equal(b.shift.b - a.shift.b, ISLE_NOTE_H - 2); assert.equal(b.boxes[0].y, a.boxes[0].y); assert.equal(a.note.y - b.note.y, ISLE_NOTE_H - 2); }
+    else { assert.deepEqual(b.shift, a.shift); assert.equal(b.note.y, a.note.y); }
+  }
+  const sv = fs.readFileSync(path.join(import.meta.dirname, '../../src/app/map/svgmap.ts'), 'utf8');
+  // 한 줄로 재서 상자 묶음보다 넓을 때만 두 줄(막대가 있는 묶음 — 상자 하나)
+  assert.match(sv, /if \(isleNoteBar && noteEl\.offsetWidth > L\.note\.w \+ 1\) \{ noteEl\.classList\.add\('wrap'\); L = lay\(2 \* ISLE_NOTE_H - 2\); \}/);
+  assert.match(sv, /width: noteEl\.classList\.contains\('wrap'\) \? `\$\{n\.w\}px` : ''/);
+  assert.match(fs.readFileSync(path.join(import.meta.dirname, '../../src/app/map/map.css'), 'utf8'), /\.cm-isles-note\.wrap \{ flex-direction: column; row-gap: 0; \}/);
+  // '섬' 글: 단원의 먼 섬 목록(farIsles)을 받았고 묶음에 그 섬이 하나도 없을 때만. 목록이 없으면(지역 지도·옛 캐시 파일) 전처럼 '먼 섬'
+  assert.match(sv, /label\.textContent = far && !ids\.some\(\(id\) => far\.includes\(id\)\) \? \(opt\.isleNote \?\? '섬'\) : \(opt\.insetNote \?\? '먼 섬'\);/);
+  assert.deepEqual([UI_KO.inset, UI_KO.isles, UI_EN.inset, UI_EN.isles], ['먼 섬', '섬', 'Far islands', 'Islands']);
+  for (const f of ['ui/maps.ts', 'ui/play.ts']) assert.match(fs.readFileSync(path.join(import.meta.dirname, '../../src/app', f), 'utf8'), /insetNote: L\.inset, isleNote: L\.isles, \.\.\.\((region|r)\?\.unit\?\.far \? \{ farIsles: (region|r)\.unit\.far \} : \{\}\)/);
+  // 판: 섬 상자가 있는 단원 일곱에만 far 열쇠 — 먼 섬이 있는 곳은 신안(흑산면)·옹진(백령·대청·연평)·제주시(추자면), 나머지 넷은 빈 목록('섬')
+  const dir = path.join(import.meta.dirname, '../../public/data/geo', DATA_VER, 'emd');
+  const got: Record<string, string[]> = {};
+  for (const f of fs.readdirSync(dir).filter((x) => /^\d{5}\.json$/.test(x))) {
+    const u = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    const boxed = [...u.lessons, ...u.screens].some((x: { insets?: string[] }) => x.insets?.length);
+    assert.equal(Array.isArray(u.far), boxed, `${u.ko}: far 열쇠는 섬 상자가 있는 단원에만`);
+    if (u.far) got[u.ko] = u.far.map((id: string) => u.items.find((it: { id: string }) => it.id === id).ko).sort();
+  }
+  assert.deepEqual(got, { 여수시: [], 영광군: [], 신안군: ['흑산면'], 옹진군: ['대청면', '백령면', '연평면'], '안산시 단원구': [], 제주시: ['추자면'], 부안군: [] });
+  // 등록: 단원 파일의 far 가 지역(unit.far)으로
+  const { createRegistry: mk } = await import('../../src/app/registry.ts');
+  const r2 = mk(geo);
+  const uf = JSON.parse(fs.readFileSync(path.join(dir, '28720.json'), 'utf8'));
+  assert.deepEqual(r2.addUnit(uf).unit!.far, uf.far);
+  assert.equal(r2.addUnit(JSON.parse(fs.readFileSync(path.join(dir, '11110.json'), 'utf8'))).unit!.far, undefined, '섬 상자 없는 단원');
 });

@@ -35,7 +35,7 @@ const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
 
     <section class="d-sec">
       <h2>채움지도에서 배우는 순서</h2>
-      <p>한 번에 외우기 좋게 4~6곳씩 다섯 과로 묶었어요. 도심에서 기준을 잡고, 한강 남쪽 동부와 서부를 거쳐 동북쪽으로 가요. 다섯 과를 마치면 25곳을 섞어 찾는 전체 연습과 시험이 있어요.</p>
+      <p>한 번에 외우기 좋게 4~6곳씩 다섯 과로 묶었어요. 도심이 있는 북서쪽에서 기준을 잡고, 한강 남쪽의 남동쪽과 남서쪽을 거쳐 동쪽과 북쪽으로 가요. 다섯 과를 마치면 25곳을 섞어 찾는 전체 연습과 시험이 있어요.</p>
       <div class="tbl"><table>
         <thead><tr><th scope="col">과</th><th scope="col">구</th></tr></thead>
         <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/#/kr/seoul/sgg/p${l.no}`)}>{l.no}과 {l.title}</a></td><td>{l.items.map(nm).join('\u00a0· ')}</td></tr>)}</tbody>

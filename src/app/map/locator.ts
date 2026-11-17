@@ -1,5 +1,5 @@
 // 위치 지도(2026-11-15 사용자 지시 — '1과는 서울 전체 지도가 나오는데 2과부터는 그 부분만 확대돼 어디인지 구분하기 어렵다'): 과 지도 귀퉁이의 작은 지도.
-// 지역(동 단원이면 그 시·군·구, 시·도 단원이면 전국) 전체 모양 위에 이번 과 칸을 흰 칸 + 먹 둘레(문제 화면 범례 '고를 칸')로 칠하고, 지금 보이는 범위를 먹선 네모로 그린다.
+// 바다색 바탕에 이웃 땅을 땅색으로 깔고(2026-11-17 바다 표현 — 전에는 흰 바탕), 지역(동 단원이면 그 시·군·구, 시·도 단원이면 전국) 전체 모양 위에 이번 과 칸을 흰 칸 + 먹 둘레(문제 화면 범례 '고를 칸')로 칠하고, 지금 보이는 범위를 먹선 네모로 그린다.
 // 과 지도는 칸이 16px 아래로 작아지지 않게(계획서 minTapPx) 과 범위로 확대하므로 확대는 그대로 두고 이것만 얹는다. 그리기·DOM 과 따로(svgmap 이 쓴다).
 // 모양은 이미 받은 지역·단원 경계(Shapes)를 작은 크기에 맞게 줄인 것이다(새로 받지 않는다 — 부팅 데이터 예산 그대로):
 // 꼭짓점을 위치 지도 0.5px 격자에 맞추고 겹친 점을 뺀다. 이웃 칸이 함께 쓰는 경계는 같은 점들이라 맞춘 뒤에도 같아 틈이 생기지 않는다(칸마다 따로 줄여도 된다).
@@ -101,8 +101,12 @@ export function meshLines(d: string): number[][] {
   return out;
 }
 
-/** 위치 지도 바탕 모양(틀 하나에 한 번): 지역 칸 모두(land), 칸에 닿는 강(water — 본 지도처럼 칸과 맞닿은 강만), 지역 외곽선(rim — 해안·다른 시·도 경계), 칸마다 모양(cell — 이번 과 칠에 쓴다) */
-export interface LocBase { land: string; water: string; rim: string; cell: Map<string, string> }
+/**
+ * 위치 지도 바탕 모양(틀 하나에 한 번): 이웃 땅(out — 틀에 걸치는 다른 시·도·시·군·구·나라 밖 땅과 잘린 변 밖으로 늘린 땅. 틀 바탕이 바다색이라 땅색으로 깐다 — 2026-11-17 바다 표현.
+ * far = 먼 이웃 땅 — 이웃 땅과 겹치고 고리 방향이 다를 수 있어 path 를 따로 둔다),
+ * 지역 칸 모두(land), 칸에 닿는 강(water — 본 지도처럼 칸과 맞닿은 강만), 지역 외곽선(rim — 해안·다른 시·도 경계), 칸마다 모양(cell — 이번 과 칠에 쓴다)
+ */
+export interface LocBase { far: string; out: string; land: string; water: string; rim: string; cell: Map<string, string> }
 const baseMemo = new WeakMap<Shapes, Map<string, LocBase>>();
 
 /** 바탕 모양: 같은 지역 모양(Shapes — ui/maps.ts 가 지역마다 한 번 만들어 둔다)과 같은 틀이면 다시 만들지 않는다(같은 지역의 문제 화면을 다시 열어도) */
@@ -114,7 +118,15 @@ export function locBase(S: Shapes, f: LocFrame): LocBase {
   if (!b) {
     const cell = new Map<string, string>();
     for (const id of S.ids) cell.set(id, snapD(S.cells.get(id)!.rings, f, true));
-    b = { land: [...cell.values()].join(''), water: S.bankD ? snapD(S.water, f, true) : '', rim: snapD(meshLines(S.rimD), f, false), cell };
+    // 늘린 땅 네모(shapes.ts extendRects)는 틀보다 훨씬 커서 틀 좌표로 옮긴 뒤 틀 둘레(±8px)로 잘라 둔다(path 숫자가 길어지지 않게)
+    const ext = S.outExt.map(([x0, y0, x1, y1]) => {
+      const c = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+      const ax = c((x0 - f.x0) * f.k + f.ox, -8, f.w + 8), bx = c((x1 - f.x0) * f.k + f.ox, -8, f.w + 8);
+      const ay = c((y0 - f.y0) * f.k + f.oy, -8, f.h + 8), by = c((y1 - f.y0) * f.k + f.oy, -8, f.h + 8);
+      return bx - ax > 0 && by - ay > 0 ? `M${ax.toFixed(1)} ${ay.toFixed(1)} ${bx.toFixed(1)} ${ay.toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)} ${ax.toFixed(1)} ${by.toFixed(1)}Z` : '';
+    }).join('');
+    // 그리지 않는 강(칸과 맞닿지 않는 강 — bankD 없음)은 본 지도처럼 이웃 땅색으로 메운다
+    b = { far: snapD(S.farRings, f, true), out: snapD(S.outRings, f, true) + ext + (S.bankD ? '' : snapD(S.water, f, true)), land: [...cell.values()].join(''), water: S.bankD ? snapD(S.water, f, true) : '', rim: snapD(meshLines(S.rimD), f, false), cell };
     if (m.size >= 8) m.clear();
     m.set(key, b);
   }

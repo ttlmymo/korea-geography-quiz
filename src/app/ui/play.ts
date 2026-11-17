@@ -143,14 +143,14 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     // 오른쪽 위는 '⤢ 전체 보기'(.map-reset — 지도 칸 밖 요소) 자리라 쓰지 않는다
     const r = ctx.reg.region(region);
     map = createSvgMap(ui.mapHost, {
-      shapes: s, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, ctxName: ctxNamer(ctx.reg), insetNote: L.inset, onTap, onZoomed: (z) => { ui.reset.hidden = !z; }, plateHome: r?.layer === 'sido',
+      shapes: s, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, ctxName: ctxNamer(ctx.reg), insetNote: L.inset, isleNote: L.isles, ...(r?.unit?.far ? { farIsles: r.unit.far } : {}), onTap, onZoomed: (z) => { ui.reset.hidden = !z; }, plateHome: r?.layer === 'sido',
       ...(r ? { locator: { whole: boxOf(wholeView(r).fit), avoid: ['tr'] } } : {}),
     });
   }
 
   /* ---------- 문제 · 단추·판정 자리 ---------- */
 
-  /** 판 제목: '서울 2과 · 한강 남쪽 동부' · '서울 전체 연습' · '서울 시험' · '오늘 복습' */
+  /** 판 제목: '서울 2과 · 남동쪽' · '서울 전체 연습' · '서울 시험' · '오늘 복습' */
   function boardTitle(d: Deck): string {
     const r = d.region ? ctx.reg.region(d.region) : null;
     const l = r && d.lesson !== null ? ctx.reg.lesson(r.key, d.lesson) : null;

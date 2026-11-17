@@ -174,6 +174,10 @@ html.app-full #app { position: fixed; inset: 0; background: var(--paper); }
   .pl-opts, .pl-act { flex: none; padding: 10px var(--gutter) max(14px, calc(10px + env(safe-area-inset-bottom, 0px))) max(var(--gutter), env(safe-area-inset-left, 0px)); }
   .pl-act > *, .pl-opts > * { max-width: none; }
   .pr-cap { padding-left: var(--gutter); }
+  /* 영어 보기(결정표 D113 — 사용자 결정 11-16 '함께 고치기'): 왼쪽 열 340 의 두 칸 보기는 안쪽이 약 91px 라 16px 글에서 'Cheongdam-dong' 같은 이름이
+     낱말 가운데서 끊겼다(동 이름 3,559 가운데 184). 글을 14px(좁은 화면 .opt.long 과 같은 크기)로, 오른쪽 안쪽 여백을 8px 로(왼쪽 24 는 번호 .k 자리) → 17
+     (한 조각이 15자 넘는 'Wangsimnidoseon-dong' 등 — 세로 폰에도 남는 것), 번호와 글 겹침 0, 세 줄 16 → 4, 보기 묶음 아래 끝 350 → 312(화면 390). 한국어 보기·세로 폰은 그대로 */
+  html[lang="en"] .opt { font-size: 14px; line-height: 19px; padding: 0 8px 0 24px; }
   /* 범례 줄은 지도 아래 오른쪽 열이라 판정 때도 접지 않는다(지도 칸 높이가 바뀌지 않게) */
   .play.judged .pr-cap { display: flex; }
 }
@@ -315,7 +319,7 @@ html.app-full #app { position: fixed; inset: 0; background: var(--paper); }
 @media (max-width: 719px) { html[lang="en"] .h-tab .u { display: none; } }
 /* (2026-11-15) 영어 긴 지역 이름('Jeonnam-Gwangju' — 영문을 켠 날)은 폰 탭 한 칸(넷이면 약 97px)에 한 줄로 들지 않아 이웃 탭('Incheon'·'More')과 겹쳤다.
    영어 폰 홈 지역 탭은 줄을 꺾을 수 있게 해 붙임표 뒤에서 두 줄('Jeonnam-' / 'Gwangju')로 둔다 — 줄 높이 24px 두 줄이 탭 높이 54px 안. 한 줄 이름은 전과 같다.
-   구 고르기 화면 탭(.e-scr — 높이 44px)은 지역 이름이 아니라 그대로 둔다 */
+   구 고르기 화면 탭(.e-scr — 높이 44px)은 지역 이름이 아니라 이 규칙에서 뺀다(영어 화면 탭은 아래 D42 규칙 — 낱말 사이에서만 꺾음) */
 @media (max-width: 599px) { html[lang="en"] .h-tabs:not(.e-scr) .h-tab { white-space: normal; text-align: center; } }
 /* 탭이 넘칠 때(공개 지역 5곳 이상, 또는 네 지역에 시·도 단원을 공부한 사람 — 계획서 N22, pages.ts homeTabs): 공부한 곳 3 + '다른 지역'(지역 고르기 링크).
    링크 탭도 같은 모양(밑줄 없음). 폰은 칸이 넷이면(네 지역, 세 지역 + 전국, 또는 넘칠 때) 한 칸이 약 97px 라 단위 글을 감춘다('다른 지역'의 +수는 남긴다) — n4 */
@@ -394,6 +398,9 @@ html[lang="en"] .h-title { font-size: 28px; letter-spacing: -.02em; }
 .h-ct { font-size: 16px; line-height: 24px; font-weight: 600; }
 .h-cs { font-size: 14px; line-height: 20px; color: var(--ink-3); }
 #app .h-map { height: auto; aspect-ratio: var(--ar, 1.23); max-height: min(60vh, 520px); background: var(--map-bg); }
+/* 지도가 붙으면(.cmap) 바탕은 바다색(map.css — 위 규칙이 더 세서 여기서 다시 준다). 받기 전·못 받은 칸은 면색 그대로 */
+#app .h-map.cmap { background: var(--map-sea); }
+#app .h-map.cmap.isle-grid { background: var(--map-bg); }   /* 섬 상자 격자는 면색(map.css — 상자 밖은 지도가 아니다) */
 .h-legend { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 20px; flex-wrap: wrap; padding-top: 10px; }
 .h-lg { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; line-height: 20px; color: var(--ink-2); }
 .h-lg .lg { display: inline-flex; align-items: center; gap: 5px; }
@@ -683,6 +690,9 @@ html[lang="en"] .pg-title { letter-spacing: -.02em; }
   .e-scr { margin-inline: 0; }
   .e-scr .h-tab { height: 44px; font-size: 16px; }
 }
+/* (2026-11-16 결정표 D42) 전남광주 넓은 화면 영어 이름 'Central Gwangju'는 폰 화면 탭 한 칸(다섯 칸 — 360 폭 약 66px·390 폭 약 72px)에 한 줄로 들지 않아
+   이웃 탭('Northwest')을 덮었다. 영어 폰 화면 탭은 낱말 사이에서 두 줄로 꺾는다(줄 높이 18px 두 줄이 탭 높이 44px 안). 한 낱말 이름과 한국어는 전과 같은 자리 */
+@media (max-width: 599px) { html[lang="en"] .e-scr .h-tab { white-space: normal; text-align: center; line-height: 18px; } }
 
 /* 지역 고르기: 지역 세 칸(과 카드 줄과 같은 칸 — 이름 · 꼬리표 / 곳 수 · 과 수 / 한 줄 / 네모 줄 / 채움) */
 .rg .h-lc .nm { font-size: 24px; line-height: 32px; }

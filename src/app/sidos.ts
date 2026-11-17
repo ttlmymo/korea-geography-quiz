@@ -62,3 +62,15 @@ export const partOf = (key: unknown, idOrCode: unknown) => {
   const code = idOrCode.replace(/^kr:sgg:/, '');
   return sidoOf(key.split('/')[0])?.parts?.find((p) => p.codes.includes(code));
 };
+/**
+ * 이름 앞부분이 다른 시·도의 짧은 이름과 겹치는 시·군·구(결정표 D97 — 2026-11-16 사용자 결정): 경기 '광주시'는 '광주특별시'(전남광주통합특별시의
+ * 법정 약칭)와 앞부분이 같아, 지역이 섞이는 화면(홈 복습 줄·복습 목록·오늘 복습)에서 '광주특별시 동구' 옆에 오면 그 시의 일부처럼 읽힌다.
+ * 그런 곳은 같은 이름 곳(판 sameNames)처럼 섞인 화면에서 지역 이름을 붙인다('경기 광주시', 영어 'Gwangju-si, Gyeonggi'). 지역 화면 안은 그대로('광주시').
+ * 규칙: 이름에서 끝의 시·군·구 한 글자를 뗀 줄기가 두 글자 이상이고, 다른 시·도(제 시·도 코드 code 와 다른 행)의 짧은 이름(지역 표 ko)이 그 줄기로 시작한다.
+ * 지금 전국 원자료에서 걸리는 곳은 경기 광주시 하나다(시험 legal-names). code = 시·도 코드(곳 id·단원 코드의 앞 두 자리)
+ */
+export const nearSidoName = (ko: unknown, code: unknown): boolean => {
+  if (typeof ko !== 'string' || typeof code !== 'string') return false;
+  const stem = ko.replace(/[시군구]$/, '');
+  return stem.length >= 2 && stem !== ko && SIDOS.some((s) => s.code !== code && s.ko.startsWith(stem));
+};

@@ -12,7 +12,7 @@ import { createRegistry } from '../../src/app/registry.ts';
 import type { EmdIndex, EmdUnitFile } from '../../src/app/types.ts';
 import { DIR_KO as APP_DIR_KO } from '../../src/app/text/ko.ts';
 import { ISLE_H, ISLE_MIN_PX, ISLE_PAD, ISLE_W, farInset, isleRange as appIsleRange } from '../../src/app/map/isles.ts';
-import { familyOf, famParts, checkTitle, dirIn, isleRange, seenBox, TAP_FAIL, INSET, DIR_KO, DIRS, PHONE, VIEW_WIDE } from '../../pipeline/emd-lib.mjs';
+import { buildUnit, familyOf, famParts, checkTitle, dirIn, isleRange, seenBox, TAP_FAIL, INSET, DIR_KO, DIRS, PHONE, VIEW_WIDE, EDGE_KEEP } from '../../pipeline/emd-lib.mjs';
 
 const root = path.join(import.meta.dirname, '../..');
 const dir = path.join(root, 'public/data/geo', DATA_VER);
@@ -168,12 +168,16 @@ test('숫자 가족(Q8 기본값): 노원구 상계 8곳은 번호가 이어지�
   assert.equal(m.lessons.filter((l) => l.items.some((id) => familyOf(mn[id])?.root === '면목')).length, 1, '면목 가족 한 과');
 });
 
-test('작은 단원·섬 단원: 증평군(2곳)은 한 과, 옹진군(맞닿은 동이 없는 섬 7곳)은 섬마다 섬 상자로 보이는 섬 과', () => {
+test('작은 단원·섬 단원: 증평군(2곳)은 한 과, 옹진군(맞닿은 동이 없는 섬 7곳)은 섬 과 셋 — 가까운 섬은 본 지도 한 장씩, 먼 섬 셋만 섬 상자(D2 사용자 결정 11-17)', () => {
   const z = fixture('43745');
   assert.equal(z.lessons.length, 1);
   assert.equal(z.lessons[0].items.length, 2, '증평: 보기를 이웃 단원에서 빌리지 않으므로 2곳 과(N10)');
   const o = fixture('28720');
-  assert.ok(o.lessons.every((l) => (l.insets ?? []).length === l.items.length), '옹진: 모든 과가 섬 과');
+  const on = Object.fromEntries(o.items.map((it: { id: string; ko: string }) => [it.id, it.ko]));
+  // 넷을 한 장에 두면 자월면 10px 라 전에는 일곱 곳 모두 섬 상자였다 → 가까운 섬끼리 둘로(17px · 23px), 지역 표 먼 섬 셋은 상자. 먼 섬 과가 맨 뒤
+  assert.deepEqual(o.lessons.map((l) => [l.title, l.items.map((id) => on[id]).sort().join('·'), (l.insets ?? []).length]),
+    [['남동쪽 섬', '덕적면·자월면', 0], ['동쪽 섬', '북도면·영흥면', 0], ['북서쪽 섬', '대청면·백령면·연평면', 3]]);
+  assert.ok(o.lessons.every((l) => l.minTapPx >= TAP_FAIL), '옹진: 과마다 16px');
   assert.equal(o.lessons.flatMap((l) => l.items).length, 7);
 });
 
@@ -321,7 +325,7 @@ test('E7 섬 과: 강화군 교동·삼산·서도는 섬 과 하나(서도면�
   assert.ok(lon >= gh.fit[0] && lon <= gh.fit[2] && lat >= gh.fit[1] && lat <= gh.fit[3], '단원 전체 지도(단원 쪽·둘러보기) 범위에도 서도면 — 폰에서 잘리지 않게');
   assert.equal(gh.lessons.length, 3);
   const oj = unitOf('incheon', '28720');
-  assert.deepEqual([oj.lessons.length, oj.lessons[0].items.length, oj.lessons[0].insets?.length], [1, 7, 7]);
+  assert.deepEqual([oj.lessons.length, oj.lessons.map((l) => l.items.length), oj.lessons.map((l) => l.insets?.length ?? 0)], [3, [2, 2, 3], [0, 0, 3]]);
   const dw = unitOf('gyeonggi', '41273'), nmD = nameIn(dw);
   const withDaebu = dw.lessons.find((l) => l.items.some((id) => nmD[id] === '대부동'))!;
   assert.deepEqual((withDaebu.insets ?? []).map((id) => nmD[id]), ['대부동']);
@@ -352,4 +356,73 @@ test('E7 넓은 화면·섞인 과 이름: 동 공개 지역에 3곳 이하 넓�
   assert.deepEqual(unitOf('gyeonggi', '41570').lessons.map((l) => l.title), ['시내 북서쪽', '읍·면', '시내 남동쪽']);
   // 남양주 3과(별내동 + 별내면·퇴계원·진건·오남·진접)는 읍·면이 많아 '읍·면'의 짝
   assert.deepEqual(unitOf('gyeonggi', '41360').lessons.map((l) => l.title), ['시내', '읍·면 남동쪽', '읍·면 북서쪽']);
+});
+
+/* ---------- D2 섬 상자(2026-11-16 사용자 결정 '가까운 섬 무리는 본 지도 한 장으로(칸 크기 다시 잼), 정말 먼 섬(흑산면 등)만 상자') ---------- */
+
+// 가짜 동(북쪽이 위인 미터): 가운데 (x, y), 상자 반폭 h, 내접원 r. far 면 지역 표 far 규칙으로 덩어리가 모두 먼 섬(near 없음)
+const fakeDong = (id: string, ko: string, x: number, y: number, h: number, r: number, o: { far?: boolean; near?: number[]; nb?: string[] } = {}) => {
+  const main = [x - h, y - h, x + h, y + h];
+  return { id, ko, kind: ko.endsWith('면') ? '면' : '동', x, y, r, area: (2 * h) ** 2, c: [x, y], box: { main, near: o.far ? null : (o.near ?? main), isle: main }, nb: o.nb ?? [], out: [], outer: true };
+};
+type Built = { lessons: { ids: string[]; insets: string[]; box: number[]; minTapPx: number }[]; screens: { insets: string[]; minTapPx: number }[]; view: number[]; stats: { far: number; kept: number } };
+const build = (U: unknown) => buildUnit(U) as Built;
+
+test('D2 섬 상자 규칙(emd-lib nearToMain): 먼 섬(지역 표 far 규칙 — near 없음)만 상자, 가까운 섬은 본 지도 한 장 · 본 지도에서 16px 를 못 지키면 가까운 섬도 상자에 남는다', () => {
+  // 서로 맞닿지 않은 가까운 섬 넷(1km 사이) + 45km 서쪽 먼 섬 하나 — 모두 섬이라 섬 과 하나·섬 화면 하나
+  const isl = (r: number) => ({ code: '99999', ko: '시험군', dongs: [
+    fakeDong('a', '가면', 0, 0, 2000, r), fakeDong('b', '나면', 5000, 0, 2000, r), fakeDong('c', '다면', 0, 5000, 2000, r), fakeDong('d', '라면', 5000, 5000, 2000, r),
+    fakeDong('f', '마면', -45000, 2500, 2000, 1500, { far: true }),
+  ] });
+  const ok = build(isl(1000));
+  assert.deepEqual([ok.lessons.map((l) => l.insets), ok.screens.map((s) => s.insets)], [[['f']], [['f']]], '먼 섬만 상자');
+  assert.ok(ok.lessons[0].minTapPx >= TAP_FAIL && ok.screens[0].minTapPx >= TAP_FAIL);
+  assert.deepEqual(ok.view, [-2000, -2000, 7000, 7000], '단원 범위는 상자에 남은 먼 섬을 뺀다');
+  assert.deepEqual([ok.stats.far, ok.stats.kept], [1, 0]);
+  // 섬이 작아(내접원 120m) 본 지도 한 장에서 16px 를 못 지키면 그대로 섬마다 상자(옹진 꼴 — 일부만 옮기지 않는다)
+  const small = build(isl(120));
+  assert.deepEqual(small.lessons.map((l) => [...l.insets].sort()), [['a', 'b', 'c', 'd', 'f']]);
+  assert.deepEqual([small.stats.far, small.stats.kept], [1, 4]);
+  // 땅 과에 붙은 가까운 섬 하나: 본 지도로 옮겨 16px 를 지키면 옮기고(전에는 섬 상자), 못 지키면 상자에 남는다(영광 낙월면·부안 위도면 꼴)
+  const withIsle = (gap: number, r: number) => ({ code: '99997', ko: '시험시', dongs: [
+    fakeDong('p', '가동', 0, 0, 1500, 900, { nb: ['q'] }), fakeDong('q', '나동', 3000, 0, 1500, 900, { nb: ['p', 'r'] }), fakeDong('r', '다동', 6000, 0, 1500, 900, { nb: ['q'] }),
+    fakeDong('s', '라면', 6000, -1500 - gap - 1500, 1500, r),
+  ] });
+  const near = build(withIsle(16000, 900)), far = build(withIsle(16000, 200));
+  assert.deepEqual([near.lessons.flatMap((l) => l.insets), near.stats.kept], [[], 0], '옮겨도 16px — 본 지도');
+  assert.deepEqual([far.lessons.flatMap((l) => l.insets), far.stats.kept], [['s'], 1], '옮기면 16px 미만 — 상자에 남음');
+});
+
+test('과 범위 끝 덩어리(emd-lib edgeFit — 서귀포시 2과): 보이는 범위 안의 같은 곳 덩어리는 칸 축척이 거의 그대로일 때만 과 범위에 넣는다', () => {
+  // 가로로 긴 세 동(맞닿음), 나동의 섬 조각이 남쪽 범위 밖 dy 에
+  const land = (dy: number, wide: boolean) => ({ code: '99998', ko: '시험시', dongs: [
+    fakeDong('p', '가동', 0, 0, 1500, 700, { nb: ['q'] }), fakeDong('q', '나동', 3000, 0, 1500, 700, { nb: ['p', 'r'], near: [1500, -1500 - dy, 4500, 1500] }),
+    fakeDong('r', '다동', wide ? 6000 : 3000, wide ? 0 : 3000, 1500, 700, { nb: ['q'] }),
+  ] });
+  // 짧은 변의 20%: 폰 축척 그대로(가로가 긴 변)·넓은 칸(4:3) 축척도 0.85배 안 → 넣는다
+  assert.deepEqual(build(land(600, true)).lessons[0].box, [-1500, -2100, 7500, 1500]);
+  // 네모난 범위면 세로가 늘어 폰 축척이 준다 → 넣지 않는다(main 상자 합 그대로)
+  assert.deepEqual(build(land(600, false)).lessons[0].box, [-1500, -1500, 4500, 4500]);
+  // 멀리 나간 덩어리(5km): 폰 축척은 그대로지만 넓은 칸 축척이 0.85배 밑 → 넣지 않는다
+  assert.deepEqual(build(land(5000, true)).lessons[0].box, [-1500, -1500, 7500, 1500]);
+  assert.deepEqual(EDGE_KEEP, { phone: 0.99, wide: 0.85 });
+  // 지금 판: 서귀포시 2과 범위의 남쪽 끝이 송산동 섶섬까지(전에는 33.2354 — 섬 조각이 범위 밖 칸 끝에서 반쯤 잘려 보였다)
+  const j = read(path.join(dir, 'emd', '50130.json'));
+  const l2 = j.lessons.find((l: { no: number }) => l.no === 2);
+  assert.ok(l2.fit[1] < 33.23 && l2.minTapPx >= TAP_FAIL, `서귀포시 2과 남쪽 끝 ${l2.fit[1]}`);
+});
+
+test('D2 지금 판: 섬 상자에 남은 곳은 먼 섬(신안 흑산면·옹진 백령·대청·연평면·제주시 추자면 — 지역 지도 먼 섬 상자와 같은 규칙)과 16px 때문에 남은 가까운 섬뿐 · 완도군은 상자 없음', () => {
+  const got: Record<string, string[]> = {};
+  for (const key of emdLive) for (const u of units.emdUnits[key] as UnitIndex[]) {
+    const j: UnitFile = read(path.join(dir, 'emd', `${u.code}.json`));
+    const ins = new Set([...j.lessons, ...j.screens].flatMap((x) => x.insets ?? []));
+    if (ins.size) got[j.ko] = [...ins].map((id) => j.items.find((it) => it.id === id)!.ko).sort();
+  }
+  assert.deepEqual(got, {
+    신안군: ['흑산면'], 제주시: ['추자면'],
+    // 16px 때문에 남은 가까운 섬: 옹진 넷(본 지도 한 장이면 자월면 10px — 결정표 D2 멈춤), 여수 '섬' 화면(남면·삼산면 — 본 지도 13px), 삼산면·낙월면·대부동·위도면(땅 과에 붙인 섬)
+    옹진군: ['대청면', '덕적면', '백령면', '북도면', '연평면', '영흥면', '자월면'],
+    여수시: ['남면', '삼산면'], 영광군: ['낙월면'], '안산시 단원구': ['대부동'], 부안군: ['위도면'],
+  });
 });

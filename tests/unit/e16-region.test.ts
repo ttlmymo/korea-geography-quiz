@@ -1,5 +1,5 @@
 // 전남광주(계획서 NATIONWIDE_PLAN E16 — 마지막 새 시·도): 지역 표 → 파이프라인 → 판 units.json → 앱이 전남광주에서 도는지 본다.
-// 이 단계에서 따로 볼 것(계획서 E11~E16 단계별 추가 사항 E16 줄 · N3 · N8 · N20): 27곳 393동, 넓은 화면 '광주'와 전남(자동 셋), 60m(지역 경계 고리 점 3만),
+// 이 단계에서 따로 볼 것(계획서 E11~E16 단계별 추가 사항 E16 줄 · N3 · N8 · N20): 27곳 393동, 넓은 화면 '광주 시내'(11-16 전 '광주')와 전남(자동 셋), 60m(지역 경계 고리 점 3만),
 // 신안·완도·여수·고흥 섬 과, 흑산·가거도 먼 섬(지역 표 far lonLt 125.7 — 앱 먼 섬 상자도 같은 경도), 진도·완도 다리(바다 건너 이웃),
 // 신안 단원 크기(이웃 범위를 맞닿은 시·군·구로 줄임), '광주특별시 동구'(섞인 화면 — 지역 표 parts, 2026-11-15 법정 약칭 — E16 에는 '광주 동구'), 영어(E16 은 숨김 — 2026-11-15 사용자 지시로 짧은 이름 'Jeonnam-Gwangju' 로 엶, 숨김 규칙은 가짜 지역 표로), 4과 카드 줄(E16 고침), 부팅 데이터 예산.
 // 동 단원 전수(파일·등록·16px·1곳 과·40KB·3곳 이하 화면)는 emd-units.test 가 본다
@@ -118,16 +118,16 @@ test('지역 표·판: 전남광주 공개(status·emd live, 일반구 없음, �
   assert.deepEqual([ks.indexOf(KEY), ks[ks.indexOf(KEY) - 1], ks[ks.indexOf(KEY) + 1]], [1, 'seoul', 'busan']);
   assert.deepEqual(r.lessons.map((l) => [l.no, l.title, l.en, l.items.map((id) => reg.place(id)!.item.ko)]),
     SRC.lessons.map((l: { no: number; title: string; en: string; items: string[] }) => [l.no, l.title, l.en, l.items]));
-  // 과 이름(쉬운 말 — 대표 지명·바다·방위): 1과는 광주 5구(계획서 N3)
-  assert.deepEqual(r.lessons.map((l) => [l.title, l.items.length]), [['광주', 5], ['광주 둘레', 5], ['서해 바닷가', 4], ['남서쪽 끝', 4], ['남쪽 바닷가', 4], ['순천 둘레', 5]]);
+  // 과 이름(쉬운 말 — 대표 지명·바다·방위): 1과는 광주 5구(계획서 N3). 2026-11-16 사용자 결정(결정표 D42): 1과 '광주' → '광주 시내', 5과 '남쪽 바닷가' → '보성·고흥 바닷가'
+  assert.deepEqual(r.lessons.map((l) => [l.title, l.items.length]), [['광주 시내', 5], ['광주 둘레', 5], ['서해 바닷가', 4], ['남서쪽 끝', 4], ['보성·고흥 바닷가', 4], ['순천 둘레', 5]]);
   for (const l of r.lessons) {
     assert.ok(l.minTapPx >= 16, `${l.no}과 ${l.minTapPx}px`);
     assert.ok(l.items.length >= 3 && l.items.length <= 6, `${l.no}과 ${l.items.length}곳`);
     assert.ok(l.title.length <= 12 && !/권역|도심/.test(l.title), l.title);
   }
-  // 넓은 화면: '광주'(5구) + 전남 셋. 전남 22곳 한 화면은 남구 8px, 서쪽·동쪽 둘로는 목포시 14px(파이프라인 --dry-all 로 잼 — 검수 표 jeonnam-gwangju.md 2번) — 셋으로 나눠 19px
-  assert.deepEqual(r.screens.map((s) => [s.key, s.ko, s.items.length]), [['gwangju', '광주', 5], ['nw', '북서쪽', 7], ['sw', '남서쪽', 6], ['east', '동쪽', 9]]);
-  assert.deepEqual(r.screens[0].items, r.lessons[0].items, "넓은 화면 '광주' = 1과");
+  // 넓은 화면: '광주 시내'(5구 — 11-16 전에는 '광주') + 전남 셋. 전남 22곳 한 화면은 남구 8px, 서쪽·동쪽 둘로는 목포시 14px(파이프라인 --dry-all 로 잼 — 검수 표 jeonnam-gwangju.md 2번) — 셋으로 나눠 19px
+  assert.deepEqual(r.screens.map((s) => [s.key, s.ko, s.items.length]), [['gwangju', '광주 시내', 5], ['nw', '북서쪽', 7], ['sw', '남서쪽', 6], ['east', '동쪽', 9]]);
+  assert.deepEqual(r.screens[0].items, r.lessons[0].items, "넓은 화면 '광주 시내' = 1과");
   for (const s of r.screens) assert.ok(s.minTapPx >= 16, `${s.ko} ${s.minTapPx}px`);
   assert.equal(new Set(r.screens.flatMap((s) => s.items)).size, 27, '27곳이 한 화면씩');
   for (const it of r.items) { assert.equal(it.slug, SRC.slugs[it.ko], it.ko); assert.match(it.slug, /^[a-z][a-z0-9-]{2,}$/); assert.match(it.id, /^kr:sgg:12\d{3}$/); }
@@ -209,10 +209,11 @@ test('먼 섬(N8 · E16): 지역 표 far lonLt 125.7 — 흑산면(흑산도·�
   // 125.9 였다면 진도 조도면·신안 비금·도초 섬까지 먼 섬 상자로 갔다(바꾼 까닭)
   const S9 = buildShapes(t, { ...specOf(r), farLon: 125.9 }, geo.labels);
   assert.deepEqual([...new Set(S9.far!.parts.map((p) => reg.place(p.id)!.item.ko))].sort(), ['신안군', '진도군']);
-  // 동 단원: 흑산면은 신안 2과 섬 상자(섬 과)에, 가거도 점검 좌표(흑산면 가장 남쪽 덩어리)는 판 manifest 점검에 든다
+  // 동 단원: 흑산면은 신안 2과 섬 상자(섬 과)에 — 2026-11-16(D2)부터 신안 섬 상자는 흑산면 하나뿐(같은 지역 표 far 규칙). 가거도 점검 좌표(흑산면 가장 남쪽 덩어리)는 판 manifest 점검에 든다
   const sn = unitFile('12870');
   const hs = sn.items.find((it) => it.ko === '흑산면')!.id;
   assert.ok(sn.lessons.some((l) => l.insets?.includes(hs)));
+  assert.deepEqual([...new Set([...sn.lessons, ...sn.screens].flatMap((x) => x.insets ?? []))], [hs]);
   assert.ok(read('pipeline/data/probes.json').probes.some((p: { name: string; rule?: { emd: string; pick: string } }) => p.name === '가거도' && p.rule?.emd === '흑산면' && p.rule.pick === 'south'));
 });
 
@@ -243,11 +244,11 @@ test('같은 이름(N3 · N12): 전남광주 동구·서구·남구·북구는 �
   assert.deepEqual([UI_EN.unitName(en, `${KEY}/dong-gu`), UI_EN.unitName(en, 'busan/dong-gu'), UI_EN.unitName(en, `${KEY}/gwangsan-gu`)], ['Dong-gu, Jeonnam-Gwangju', 'Dong-gu, Busan', 'Gwangsan-gu']);
 });
 
-test('홈·지역 쪽·지역 고르기: 전남광주 탭 \'27개 시·군·구\', 1과 광주, 여섯 과, 동까지 공부하기 · 지역 고르기 16곳 모두 열림(준비 중 없음) · 영어 앱에도 전남광주(11-15 — 숨김 규칙은 가짜 지역 표로)', () => {
+test('홈·지역 쪽·지역 고르기: 전남광주 탭 \'27개 시·군·구\', 1과 광주 시내, 여섯 과, 동까지 공부하기 · 지역 고르기 16곳 모두 열림(준비 중 없음) · 영어 앱에도 전남광주(11-15 — 숨김 규칙은 가짜 지역 표로)', () => {
   const h = sp(homePage(ctxOf(reg, { last: KEY })).html);
   assert.deepEqual([tabKeys(h), pressed(h)], [['seoul', 'incheon', KEY], KEY]);
   assert.match(h, /data-arg="jeonnam-gwangju" aria-pressed="true">광주특별시 <span class="u">27개 시·군·구<\/span>/);
-  assert.match(h, /<h1 class="h-title">광주<br><span class="h-hl hl">5개 구<\/span>를 채워요<\/h1>/);
+  assert.match(h, /<h1 class="h-title">광주 시내<br><span class="h-hl hl">5개 구<\/span>를 채워요<\/h1>/);
   assert.match(h, /<p class="h-places">서구 · 동구 · 남구 · 북구 · 광산구<\/p>/);
   assert.match(h, /<h2 id="h-path">광주특별시 여섯 과<\/h2>/);
   assert.match(h, /<ol class="h-lcs g6">/);
@@ -321,7 +322,7 @@ test('홈·지역 쪽·지역 고르기: 전남광주 탭 \'27개 시·군·구\
     assert.match(eh, /Seo-gu · Dong-gu · Nam-gu · Buk-gu · Gwangsan-gu/);
     assert.doesNotMatch(eh, /[가-힣]{2,}[시군구]/);
     assert.doesNotMatch(eh, BAD);
-    assert.deepEqual(en.region(KEY)!.lessons.map((l) => l.en), ['Gwangju', 'Around Gwangju', 'West coast', 'Southwest tip', 'South coast', 'Around Suncheon']);
+    assert.deepEqual(en.region(KEY)!.lessons.map((l) => l.en), ['Central Gwangju', 'Around Gwangju', 'West coast', 'Southwest tip', 'Boseong–Goheung coast', 'Around Suncheon']);
     // 영어 곳 이름 27곳(slug 를 대문자로 시작한 꼴 — 계획서 N26): 검수 표 jeonnam-gwangju.md '영문 이름' 표와 같다(광주 5구 + 전남 5시 17군)
     const EN_27 = ['Dong-gu', 'Seo-gu', 'Nam-gu', 'Buk-gu', 'Gwangsan-gu', 'Mokpo-si', 'Yeosu-si', 'Suncheon-si', 'Naju-si', 'Gwangyang-si', 'Damyang-gun', 'Gokseong-gun',
       'Gurye-gun', 'Goheung-gun', 'Boseong-gun', 'Hwasun-gun', 'Jangheung-gun', 'Gangjin-gun', 'Haenam-gun', 'Yeongam-gun', 'Muan-gun', 'Hampyeong-gun', 'Yeonggwang-gun',
@@ -382,16 +383,25 @@ test('동 단원(전남광주 27단원 393동): 색인 = 판 폴더 파일 · 1�
   }
   assert.deepEqual(two.sort(), ['광양시 3과', '완도군 1과']);
   const nm = (j: EmdUnitFile) => (id: string) => j.items.find((it) => it.id === id)!.ko;
-  // 신안군: 14곳이 모두 섬(단원 안 맞닿은 동 없음) — 두 섬 과, 섬마다 상자. 이웃 땅은 맞닿은 시·군·구(무안)로 줄여 40KB 안(계획서 2.2 의 62.8KB 는 상자 15% 범위)
+  // 신안군: 14곳이 모두 섬(단원 안 맞닿은 동 없음) — 두 섬 과. 이웃 땅은 맞닿은 시·군·구(무안)로 줄여 40KB 안(계획서 2.2 의 62.8KB 는 상자 15% 범위).
+  // 2026-11-16(D2 — 가까운 섬은 본 지도): 섬 상자는 먼 섬 흑산면 하나(2과·넓은 화면), 나머지 13곳은 본 지도 한 장. 과 이름은 본 지도에 보이는 곳으로
+  // 다시 재어 '북동쪽 섬'·'남서쪽 섬' → '북쪽 섬'·'남쪽 섬'(이름 규칙 N7)
   const sn = unitFile('12870');
-  assert.deepEqual(sn.lessons.map((l) => [l.title, l.items.length, l.insets?.length]), [['북동쪽 섬', 7, 7], ['남서쪽 섬', 7, 7]]);
-  assert.ok(gz9('emd/12870.topo.json') < 34 * 1024);
+  assert.deepEqual(sn.lessons.map((l) => [l.title, l.items.length, (l.insets ?? []).map(nm(sn))]), [['북쪽 섬', 7, []], ['남쪽 섬', 7, ['흑산면']]]);
+  assert.deepEqual(sn.screens.map((s) => [s.key, s.items.length, (s.insets ?? []).map(nm(sn))]), [['all', 14, ['흑산면']]]);
+  assert.ok([...sn.lessons, ...sn.screens].every((x) => x.minTapPx >= 16));
+  assert.ok(sn.fit[0] > 125.7, `단원 범위는 흑산면을 뺀다(서쪽 끝 ${sn.fit[0]})`);
+  // 2026-11-17(바다 표현): 먼 이웃 땅(far 층 — 목포·해남·진도 등 맞닿지 않은 둘레 땅을 거칠게)이 더해져 32.4KB → 35.8KB.
+  // 단원 지도 파일은 과 파일과 합쳐 40KB 안이 되게 37KB(pipeline FAR_UNIT_GZ)를 넘으면 far 간격을 올린다 — 신안이 그렇게 맞춘 단원
+  assert.ok(gz9('emd/12870.topo.json') <= 37 * 1024, `${gz9('emd/12870.topo.json')}B`);
+  assert.ok(topoOf('emd/12870.topo.json').objects.far, '먼 이웃 땅 층');
   const snOut = topoOf('emd/12870.topo.json').objects.out.geometries.map((g: { properties: { name: string } }) => g.properties.name);
   assert.deepEqual(snOut, ['무안군'], '맞닿은 시·군·구만');
   // 완도·여수·고흥 섬 과
   const wd = unitFile('12850'), ys = unitFile('12130'), gh = unitFile('12740');
   assert.deepEqual(wd.lessons.map((l) => l.title), ['가운데', '북동쪽 섬', '남서쪽 섬']);
-  assert.deepEqual(wd.lessons[2].insets!.map(nm(wd)).sort(), ['금당면', '청산면']);
+  // 2026-11-16(D2): 완도군 섬은 모두 가까운 섬 — 3과(전에는 금당면·청산면 섬 상자)와 '섬' 화면(전에는 7곳 모두 상자)도 본 지도
+  assert.ok([...wd.lessons, ...wd.screens].every((x) => !(x.insets ?? []).length && x.minTapPx >= 16));
   assert.equal(ys.lessons.find((l) => l.title === '섬')!.items.map(nm(ys)).sort().join(','), '남면,돌산읍,묘도동,삼산면,화정면');
   assert.deepEqual(ys.lessons.find((l) => l.title === '섬')!.insets!.map(nm(ys)), ['삼산면']);
   assert.deepEqual(gh.lessons.find((l) => l.title === '섬')!.items.map(nm(gh)).sort(), ['금산면', '동일면', '봉래면']);

@@ -112,9 +112,35 @@ export interface SpotOpt {
   note?: { clipped: boolean };
 }
 
-/** 지시선이 닿는 이름표 쪽 끝점: 상자에서 칸 안 점에 가장 가까운 곳(좌우로는 글자에 닿지 않게 g 만큼 띄운다) */
-const leaderEnd = (b: Box, at: readonly [number, number], g: number): [number, number] =>
-  [Math.min(b[2] + g, Math.max(b[0] - g, at[0])), Math.min(b[3], Math.max(b[1], at[1]))];
+/** 점 p 와 선분 a–b 사이 거리(지도 단위) */
+const segDist = (p: readonly [number, number], ax: number, ay: number, bx: number, by: number) => {
+  const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((p[0] - ax) * dx + (p[1] - ay) * dy) / l2)) : 0;
+  return Math.hypot(ax + t * dx - p[0], ay + t * dy - p[1]);
+};
+
+/**
+ * 글자만 있는 이름(판 없는 칸 밖 이름표·이웃 땅 이름)의 지시선 끝: 점에서 이름 가운데로 긋는 선이 글자(상자를 cut 만큼 줄인 것)와 만나는 곳.
+ * 선이 글자 가운데를 향하므로 어느 쪽에서 오든 글자에 닿는다(2026-11-17 사용자 '점과 이어진 선이 글자와 정확히 이어지게 — 전국 전부 동일하게').
+ * 전에는 상자에서 점에 가장 가까운 곳(모서리 쪽)에서 띄워 끝나, 옆으로 비낀 이름표('부천시'·'시흥시')는 선이 글자 위로 어긋나 보였다
+ */
+export const leadToCenter = (b: Box, at: readonly [number, number], cut = 0): [number, number] => {
+  const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
+  const hw = Math.max(0, (b[2] - b[0]) / 2 - cut), hh = Math.max(0, (b[3] - b[1]) / 2 - cut);
+  const dx = at[0] - cx, dy = at[1] - cy;
+  if (Math.abs(dx) <= hw && Math.abs(dy) <= hh) return [at[0], at[1]];
+  const t = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
+  return [cx + dx * t, cy + dy * t];
+};
+
+/**
+ * 지시선이 닿는 이름표 쪽 끝점.
+ *  - g > 0(판 없는 이름표): 글자 가운데 쪽으로, 상자 여유를 뺀 글자 바로 옆(2px)까지(leadToCenter)
+ *  - g = 0(흰 판): 판에서 칸 안 점에 가장 가까운 곳 — 선이 판 테두리에 닿으므로 어디에 닿아도 이어져 보이고, 선이 가장 짧아 다른 지시선과 덜 엇갈린다.
+ *    2026-11-17 에 판도 가운데 쪽으로 바꿨더니 이름표 자리는 그대로인데 선이 기울어, 과 시작·요약 화면에서 지시선끼리 엇갈린 쪽이 폰 한국어 38 → 46 · 가로 폰 80 → 106 으로 늘어
+ *    판은 되돌렸다(배포 전 측정 — 마포구 3과 '도화동' 선이 '염리동' 선을 가로지르고 그 점 2.2px 곁을 지났다)
+ */
+export const leaderEnd = (b: Box, at: readonly [number, number], g: number): [number, number] =>
+  (g ? leadToCenter(b, at, (2 * g) / GAP_PX) : [Math.min(b[2], Math.max(b[0], at[0])), Math.min(b[3], Math.max(b[1], at[1]))]);
 
 /**
  * 칸 밖 빈 바탕의 자리: at 에서 여러 방향으로 조금씩 나가며, 상자가 어떤 칸·물·이미 놓은 이름표와도 닿지 않고 within 안에 드는 첫 곳.
@@ -202,6 +228,23 @@ export interface PlaceOpt {
    * 그런 자리가 없는 작은 칸(세종·대전처럼 칸이 판보다 작은 곳)만 전처럼 칸 옆 판 + 지시선이다
    */
   plateHome?: boolean;
+  /**
+   * 지시선이 남의 지시선 끝 점(지름 6px) 곁을 지나지 않게 할 거리(화면 px — 점 가운데에서 지시선까지). 확대 상자 안 작은 지도(svgmap — zoombox.ts ZB_DOT_PX)만 쓴다.
+   * 켜면 흰 판 단계가 다른 이름표·점·지시선과 남의 점 둘레를 모두 피하는 자리(네 쪽 → 점 둘레 REACH_PX)를 먼저 본 뒤 전과 같은 차례로 간다.
+   * (칸 밖 빈 바탕 자리 outsideSpot 의 지시선은 남의 점 상자(8px 네모 — dots)만 피한다. 이 둘레까지 보는 조건을 넣었었는데 11-16 점검 2 흉내 2,684가지에서
+   *  결과를 한 번도 바꾸지 않아 뺐다.) 전에는 판 단계 첫 자리(네 쪽)가 다른 이름표만 피해, 점이 몇 px 씩 붙은 상자에서
+   * 지시선이 남의 점 바로 곁을 지났다(2026-11-15 확대 상자 점검 — 폰 제주시 3과 '화북동' 지시선이 '건입동' 점 4.7px 곁, 여수시 3과 '동문동' 지시선이 '한려동' 점 1.4px 곁 —
+   * 어느 점이 어느 판인지 헷갈린다). 넓은 지도(본 지도·문제 화면)는 점이 드물어 그대로 둔다(끄면 전과 같다)
+   */
+  dotPx?: number;
+  /** plateHome 판이 덮어도 되는 자기 칸 섬 수(기본 ISLE_OK). 시험이 Infinity 로 섬 규칙을 끈 자리(바꾸기 전과 같다)와 견준다 */
+  isleOk?: number;
+  /**
+   * fit 에서도 흰 판을 쓰되 깨끗한 자리만: 남의 칸(이름표를 다는 칸)을 덮지 않고, 지시선이 다른 이름표·점·지시선·화면에 붙은 것을 지나지 않는 자리
+   * (칸 옆 네 쪽 → 점 둘레 REACH_PX). 그런 자리가 없으면 fit 처럼 뺀다. 영어 동·일반구 단원 둘러보기(ui/explore.ts) — 2026-11-16 점검: 섬 단원을 한 장 지도로 바꾸자
+   * 영어 이름(한국어의 2배쯤 길다)이 칸에도 칸 밖 빈 바탕에도 들지 않아 낮은 폰 신안 둘러보기에 13곳 가운데 1곳만 이름이 보였다(한국어 12곳)
+   */
+  cleanPlates?: boolean;
 }
 
 /** 칸 안에 놓은 이름표와, 칸에 안 들어가 남은 것 */
@@ -255,6 +298,33 @@ export function placeOutside(cellOf: (id: string) => LabelCell | undefined, asks
 
 type Todo = { a: LabelAsk; c: LabelCell };
 
+/**
+ * 칸의 떨어진 조각(섬 — 이름표 점을 품은 고리 밖에 있는 고리. 그 고리 안의 구멍·호수는 뺀다). 칸마다 한 번 잰다.
+ * 2026-11-16: 폰 전국 시·도 지도에서 '광주특별시' 흰 판이 점 아래(남해안 다도해) 섬들을 덮었다 — 판 자리를 고를 때 자기 칸 섬도 피한다(plateHome)
+ */
+const isleCache = new WeakMap<LabelCell, Float64Array[]>();
+const islesOf = (c: LabelCell): Float64Array[] => {
+  let v = isleCache.get(c);
+  if (!v) {
+    const home = c.rings.filter((r) => inside([r], c.label[0], c.label[1]));
+    v = home.length ? c.rings.filter((r) => !home.includes(r) && !inside(home, r[0], r[1])) : [];
+    isleCache.set(c, v);
+  }
+  return v;
+};
+/** 판이 이만큼의 섬까지 덮는 것은 그대로 둔다(경기 판이 서해 섬 2~3개에 걸침 — 다른 시·도 판 자리를 바꾸지 않으려고) */
+const ISLE_OK = 4;
+const ringBoxes = new WeakMap<Float64Array, Box>();
+const ringBox = (r: Float64Array): Box => {
+  let b = ringBoxes.get(r);
+  if (!b) {
+    b = [Infinity, Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < r.length; i += 2) { b[0] = Math.min(b[0], r[i]); b[1] = Math.min(b[1], r[i + 1]); b[2] = Math.max(b[2], r[i]); b[3] = Math.max(b[3], r[i + 1]); }
+    ringBoxes.set(r, b);
+  }
+  return b;
+};
+
 /** placeOutside 한 차례: todo 차례로 놓는다. stuck = 지시선을 보지 않는 단계까지 가서 놓은 판(지시선이 다른 판 밑을 지날 수 있다) */
 function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAsk[], ins: InsideResult, opt: PlaceOpt, todo: Todo[], note: { clipped: boolean }): { out: Placed[]; stuck: string[] } {
   const { u } = opt;
@@ -269,16 +339,19 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
   const dots = todo.map(({ c }) => boxAt(c.label[0], c.label[1], 2 * GAP_PX * u, 2 * GAP_PX * u));
   const lines: Box[] = [];   // 이미 그은 지시선(작은 상자로 쪼갠 것): 다른 이름표·지시선이 그 위에 놓이지 않게
   const inView = (b: Box) => !opt.within || (b[0] >= opt.within[0] && b[1] >= opt.within[1] && b[2] <= opt.within[2] && b[3] <= opt.within[3]);
+  // 남의 점 둘레(dotPx — 확대 상자만): 지시선이 이 거리 안으로 지나지 않게
+  const dotR = opt.dotPx ? opt.dotPx * u : 0;
   todo.forEach(({ a, c }, i) => {
     const w = a.w * u, h = a.h * u;
     const dx = c.label[0] - opt.center[0], dy = c.label[1] - opt.center[1], dl = Math.hypot(dx, dy) || 1;
     const g = GAP_PX * u;
+    const others = dotR ? todo.filter((_, j) => j !== i).map((t) => t.c.label) : [];
     const spot = outsideSpot(c.label, w, h, opt.obstacles, [...dots, ...lines], opt.within, STEP_PX * u, REACH_PX * u, [dx / dl, dy / dl], {
       apart: { boxes: names, gap: APART_PX * u }, line: [...names, ...dots.filter((_, j) => j !== i), ...lines], lineGap: g, screen: opt.screen, note,
     });
     let x: number, y: number, plate = false;
     if (spot) [x, y] = spot;
-    else if (opt.mode === 'must') {
+    else if (opt.mode === 'must' || (opt.mode === 'fit' && opt.cleanPlates)) {
       // 빈 바탕이 없으면 칸 바로 옆에 흰 판으로: 위 → 아래 → 오른쪽 → 왼쪽 가운데 다른 이름표·점과 겹치지 않는 첫 자리.
       // 이름표를 다는 다른 칸(시험 결과의 다른 틀린 칸 등)도 덮지 않는 자리를 먼저 찾는다(plateHome 이면 그다음 판 가운데가 남의 칸 밖인 자리)
       const lift = LIFT_PX * u;
@@ -286,19 +359,28 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
       // 자기 점은 판이 피할 것(taken)에서 빼고 own 으로 따로 본다(cover 는 자기 점을 세지 않는다 — 네 쪽은 점에서 LIFT_PX 떨어져 늘 닿지 않는다)
       const taken = [...names, ...dots.filter((_, j) => j !== i), ...lines, ...(opt.screen ?? [])];
       const own = boxAt(c.label[0], c.label[1], 2 * g, 2 * g);
-      const clear = (b: Box) => !taken.some((k) => overlap(k, b)) && !overlap(own, b);
+      // cleanPlates(fit)면 다른 이름표·맥락 이름과 APART_PX 띄운다(붙여 두면 판 틀이 이웃 이름 글자 끝을 덮었다 — 11-16 영어 여수시 둘러보기 'Myodo' 판 × 'Namhae-gun')
+      const sep = opt.mode === 'must' ? 0 : APART_PX * u;
+      const clear = (b: Box) => !taken.some((k) => overlap(k, b)) && !overlap(own, b) && (!sep || !names.some((k) => overlap(k, grow(b, sep))));
       // 지시선(점 → 판의 가까운 변)이 지나면 안 되는 것: 'all' = 다른 이름표·점·지시선·화면에 붙은 것, 'names' = 다른 이름표(맥락 이름 포함)·화면에 붙은 것만.
       // 지시선이 다른 판 밑으로 지나면 판 둘이 한 줄에 붙고 점도 둘이라 어느 판이 어느 칸인지 헷갈린다(2026-11-15 점검: 폰 여수시 2과 '미평동' 지시선이 '문수동' 판 밑으로)
       const nameLines = [...names, ...(opt.screen ?? [])];
+      // dotPx(확대 상자)면 'all' 은 남의 점 둘레(dotR)도 피한다
       const leadOk = (b: Box, lead: false | 'all' | 'names') => {
         if (!lead) return true;
         const [ex, ey] = leaderEnd(b, c.label, 0);
-        return !(lead === 'all' ? taken : nameLines).some((k) => segHitsBox(c.label[0], c.label[1], ex, ey, k[0], k[1], k[2], k[3]));
+        if ((lead === 'all' ? taken : nameLines).some((k) => segHitsBox(c.label[0], c.label[1], ex, ey, k[0], k[1], k[2], k[3]))) return false;
+        return !(lead === 'all' && dotR && others.some((p) => segDist(p, c.label[0], c.label[1], ex, ey) < dotR));
       };
-      const free = (spare: boolean) => sides.find(([sx, sy]) => {
+      // plateHome 이면 첫 단계(spare)에서 자기 칸의 섬을 ISLE_OK 개 넘게 덮는 쪽도 건너뛴다(그다음 단계 — 판 가운데가 제 칸 안인 자리, homeSpot — 로 간다)
+      const isles = opt.plateHome ? islesOf(c) : [], isleOk = opt.isleOk ?? ISLE_OK;
+      /** (x0, y0) 가운데 판이 닿는 자기 칸 섬 수 */
+      const isleHits = (x0: number, y0: number) => { const b = boxAt(x0, y0, w, h); let n = 0; for (const r of isles) if (overlap(ringBox(r), b) && boxHits([r], x0, y0, w, h)) n++; return n; };
+      const free = (spare: boolean, lead: 'all' | 'names' = 'names') => sides.find(([sx, sy]) => {
         const x0 = c.label[0] + sx, y0 = c.label[1] + sy, b = boxAt(x0, y0, w, h);
         if (!inView(b)) { note.clipped = true; return false; }
-        if (!clear(b) || !leadOk(b, 'names')) return false;
+        if (!clear(b) || !leadOk(b, lead)) return false;
+        if (spare && isles.length && isleHits(x0, y0) > isleOk) return false;
         return !spare || !targets.some((t) => t.id !== a.id && overlap(t.c.box, b) && boxHits(t.c.rings, x0, y0, w, h));
       });
       // plateHome: 판 가운데가 제 칸 안이고 다른 이름표·점·지시선과 겹치지 않는 자리 가운데 점에 가장 가까운 곳(점 둘레 REACH_PX 안을 STEP_PX 격자로 훑는다).
@@ -338,8 +420,40 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
       // 네 쪽이 다 막혀 '광산구' 판이 '동구' 판을 덮었고, 인천 1과 폰에서는 '계양구' 판이 보이는 범위를 넘었다. 그다음은 반지름 2배.
       // 점이 몰린 곳(폰 동 단원 — 칸이 몇 px)은 어느 쪽으로 나가도 지시선이 남의 점을 지나므로, 지시선이 다른 이름표·화면에 붙은 것만 피하는 자리를 그다음에 본다
       // (점검 흉내: 폰 동 단원 과 11곳에서 지시선이 다른 판 밑으로 지났다). 그런 자리도 없을 때만 지시선을 보지 않는 자리, 마지막에 가리는 넓이가 가장 작은 쪽
-      let side = free(true)
-        ?? (opt.plateHome ? nearest(true, 'names') ?? nearest(false, 'names') : undefined)
+      // plateHome: 판 가운데가 제 칸 안인 가장 가까운 자리가 자기 칸 섬을 ISLE_OK 개 넘게 덮으면, 같은 조건(제 칸 안·다른 이름표·점·지시선과 겹치지 않음·
+      // 지시선이 이름표를 지나지 않음) 가운데 덮는 섬이 가장 적은 자리(같으면 점에 가까운 곳)로 옮긴다.
+      // 2026-11-16 사용자 결정: 폰 전국 지도 '광주특별시' 판이 점 아래 남해안 다도해(섬 25~40개)를 가렸다 → 육지 안 빈자리나 점 위로.
+      // 섬 몇 개에 걸치는 판(경기 판 — 서해 섬 2~3개)과 섬 없는 칸은 전과 같은 자리
+      const homeSpot = (): [number, number] | undefined => {
+        const p = nearest(true, 'names');
+        if (!p || !isles.length) return p;
+        let best = p, bn = isleHits(c.label[0] + p[0], c.label[1] + p[1]), bd = p[0] ** 2 + p[1] ** 2;
+        if (bn <= isleOk) return p;
+        const R = REACH_PX * u, st = STEP_PX * u;
+        for (let sx = -R; sx <= R + 1e-9; sx += st) for (let sy = -R; sy <= R + 1e-9; sy += st) {
+          const d = sx * sx + sy * sy, x0 = c.label[0] + sx, y0 = c.label[1] + sy;
+          if (d > R * R || x0 < c.box[0] || x0 > c.box[2] || y0 < c.box[1] || y0 > c.box[3] || !inside(c.rings, x0, y0)) continue;
+          const b = boxAt(x0, y0, w, h);
+          if (!inView(b) || !clear(b) || !leadOk(b, 'names')) continue;
+          const n = isleHits(x0, y0);
+          if (n < bn || (n === bn && d < bd)) { best = [sx, sy]; bn = n; bd = d; }
+        }
+        return best;
+      };
+      // fit + cleanPlates(영어 동 단원 둘러보기): 남의 칸을 덮지 않고 지시선이 다른 이름표·점·지시선을 지나지 않는 판(네 쪽 → 점 둘레)만. 없으면 뺀다(fit)
+      if (opt.mode !== 'must') {
+        const clean = free(true, 'all') ?? nearest(false, 'all', true);
+        if (!clean) return;
+        x = c.label[0] + clean[0];
+        y = c.label[1] + clean[1];
+        plate = true;
+      } else {
+      // dotPx(확대 상자): 지시선이 다른 이름표·점·지시선과 남의 점 둘레를 모두 피하는 자리(네 쪽 → 점 둘레)를 먼저(PlaceOpt dotPx 주석)
+      // 2026-11-17(사용자 '더 손본다'): 본 지도도 네 쪽 가운데 지시선이 다른 이름표·점·지시선을 지나지 않는 쪽을 먼저 본다. 전에는 본 지도의 네 쪽 판이 다른 이름표만 피해(free(true)),
+      // 지시선 끝을 글자 가운데 쪽으로 바꾼 뒤(leaderEnd) 지시선끼리 엇갈린 과 시작·요약 화면이 늘었다(폰 한국어 38 → 46쪽 등 — 배포 전 측정)
+      let side = (dotR ? free(true, 'all') ?? free(false, 'all') ?? nearest(false, 'all', true) ?? nearest(false, 'all') : free(true, 'all'))
+        ?? free(true)
+        ?? (opt.plateHome ? homeSpot() ?? nearest(false, 'names') : undefined)
         ?? free(false)
         ?? nearest(false, 'all', true) ?? nearest(false, 'all');
       if (!side) {
@@ -353,9 +467,10 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
       x = c.label[0] + side[0];
       y = c.label[1] + side[1];
       plate = true;
+      }
     } else return;
     const b = boxAt(x, y, w, h);
-    // 지시선은 이름표 상자에서 칸 안 점에 가장 가까운 곳으로(글자에 닿지 않게 조금 띄운다. 흰 판은 판의 변까지)
+    // 지시선: 판 없는 이름표는 칸 안 점에서 글자 가운데 쪽으로 글자 바로 옆까지, 흰 판은 판에서 점에 가장 가까운 곳까지(leaderEnd)
     const [ax, ay] = leaderEnd(b, c.label, plate ? 0 : g);
     out.push({ id: a.id, x, y, out: { ax, ay, plate } });
     names.push(b);

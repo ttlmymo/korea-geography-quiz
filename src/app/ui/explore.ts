@@ -5,7 +5,7 @@
 // 지도는 그대로 두고(확대 유지) 정보와 칸 상태만 바꾼다. 고른 곳은 주소(#/kr/{지역}/explore/{slug})에도 남긴다
 import type { Tap } from '../core/judge.ts';
 import { toHash } from '../router.ts';
-import type { SvgMap } from '../map/svgmap.ts';
+import type { LabelOpt, SvgMap } from '../map/svgmap.ts';
 import type { Pad } from '../map/view.ts';
 import { fillsOf, type Ctx } from './ctx.ts';
 import { ICON, esc } from './dom.ts';
@@ -103,7 +103,10 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
     const names = r.items.map((it) => ({ id: it.id, text: L.lang === 'en' && r.unit ? L.short(it) : L.name(it) }));
     // 이름 가리기 중 누른 칸 하나(peek)는 꼭 보이게(must: 칸에 안 들면 칸 밖·흰 판). 다 보일 때는 자리가 있는 이름만(fit).
     // 시·도 단원(korea, E10)은 16칸뿐이라 다 보일 때도 꼭 보이게 — fit 이면 칸 밖 빈 바탕에만 이름을 두어 안쪽 작은 칸(서울·세종·대전·대구)의 이름이 빠진다
-    map.setLabels(st.hide ? (st.peek ? names.filter((n) => n.id === st.peek) : []) : names, st.hide || r.layer === 'sido' ? { mode: 'must', minWidth: 0 } : { mode: 'fit', minWidth: 0 });
+    // 영어 동·일반구 단원은 칸에도 빈 바탕에도 들지 않는 이름을 깨끗한 흰 판에(cleanPlates — 남의 칸을 덮지 않고 지시선이 아무것도 지나지 않는 자리만, 없으면 뺀다).
+    // 2026-11-16 점검: 섬을 한 장 지도로 바꾸자 낮은 폰 영어 신안 둘러보기에 13곳 가운데 1곳만 이름이 보였다(한국어 12곳 — 이름이 짧아 칸에 든다)
+    const fit: LabelOpt = { mode: 'fit', minWidth: 0, ...(L.lang === 'en' && r.unit ? { cleanPlates: true } : {}) };
+    map.setLabels(st.hide ? (st.peek ? names.filter((n) => n.id === st.peek) : []) : names, st.hide || r.layer === 'sido' ? { mode: 'must', minWidth: 0 } : fit);
     map.setFills(st.fill ? fillsOf(ctx.mastery, r) : null);
     map.setQuestion(st.sel);
   }

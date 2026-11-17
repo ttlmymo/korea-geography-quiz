@@ -188,7 +188,7 @@ test('지도: 경기 경계 파일의 sgg 층에서 일반구 24곳만 칸, 나�
   const s = buildShapes(topo, spec, geo.labels);
   assert.equal(s.ids.length, 24);
   const names = s.names.filter((n) => n.kind === 'out').map((n) => n.text);
-  for (const n of ['의왕시', '군포시', '과천시', '서울']) assert.ok(names.includes(n), `맥락 이름 ${n}`);
+  for (const n of ['의왕시', '군포시', '과천시', '서울특별시']) assert.ok(names.includes(n), `맥락 이름 ${n}`);   // 이웃 시·도는 정식 이름(D96 — 2026-11-17)
   assert.ok(!names.includes('수원시 장안구'), '공부 칸은 맥락 이름이 아님');
   assert.ok(s.rimD.length > 0 && s.outD.length > 0);
 });

@@ -2,7 +2,10 @@
 // (「전남광주통합특별시 설치를 위한 특별법」 법률 제21446호 — 현행 제21620호 — 제7조 제1항 '약칭은 광주특별시로 한다').
 // 정식 이름(지역 표 full = 원자료 sidonm)·지역 키 jeonnam-gwangju(주소·저장값·GA)·영어 짧은 이름 Jeonnam-Gwangju(법정 영문 없음)는 그대로다.
 // 같은 이름 구분(여러 시·도에 있는 동구·서구·남구·북구)도 법정 약칭으로 '광주특별시 동구', 영어는 지역 영어 이름과 맞춰 'Dong-gu, Jeonnam-Gwangju'.
-// 과 이름 '광주'·'광주 둘레'·넓은 화면 '광주'는 지역 안 땅 이름(행정 이름이 아님)이라 그대로 둔다(docs/review/jeonnam-gwangju.md 17번).
+// 과 이름 '광주'·'광주 둘레'·넓은 화면 '광주'는 지역 안 땅 이름(행정 이름이 아님)이라 11-15 에는 그대로 두었고(docs/review/jeonnam-gwangju.md 17번),
+// 2026-11-16 사용자 결정(결정표 D42)으로 1과·넓은 화면 '광주' → '광주 시내'(영어 'Central Gwangju'·'central Gwangju'), 5과 '남쪽 바닷가' → '보성·고흥 바닷가'('Boseong–Goheung coast').
+// 같은 날 결정: 섞인 화면의 경기 '광주시'는 '경기 광주시'(D97). 지도 이웃 시·도 이름표를 모두 법정 정식 이름으로 하는 결정(D96)은 폰 지도에서 이름이 겹쳐
+// 멈췄다(결정표 D96 — 이웃 이름표 규칙은 11-15 그대로: 시 꼴 짧은 이름·도 꼴 정식 이름).
 // 커밋되는 파일만 읽는다(지역 표·원고·판·src 코드·공유 그림 글) — dist·docs·.cache 는 읽지 않는다
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,10 +14,11 @@ import path from 'node:path';
 import { DATA_VER } from '../../src/consts.ts';
 import type { Mastery, Rec } from '../../src/app/core/mastery.ts';
 import { registerUnits } from '../../src/app/core/units.ts';
-import { buildShapes, shortSido, specOf, type Topology } from '../../src/app/map/shapes.ts';
+import { buildShapes, ctxSido, shortSido, specOf, type Topology } from '../../src/app/map/shapes.ts';
 import { createRegistry, type Registry } from '../../src/app/registry.ts';
 import type { EmdUnitFile } from '../../src/app/types.ts';
-import { SIDOS, partOf } from '../../src/app/sidos.ts';
+import { SIDOS, nearSidoName, partOf } from '../../src/app/sidos.ts';
+import { mixPre } from '../../src/app/text/ui.ts';
 import { UI_EN, UI_KO, setLang } from '../../src/app/text/ui.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, pickPage, regionsPage, unitPage } from '../../src/app/ui/pages.ts';
@@ -145,7 +149,7 @@ test('화면 문구에 바뀌기 전 짧은 이름 \'전남광주\'가 남지 �
   } finally { setLang('ko'); }
 });
 
-test('지도 이웃 시·도 이름표(맥락 이름): 판의 모든 이웃 땅 이름이 법정 정식 이름(도 꼴) 또는 지역 표 짧은 이름(시 꼴 — 전남광주는 법정 약칭 광주특별시)', () => {
+test('지도 이웃 시·도 이름표(맥락 이름 — 결정표 D96 사용자 결정 11-17): 판의 모든 이웃 땅 이름이 법정 정식 이름 그대로, 전남광주만 법정 약칭 광주특별시', () => {
   const byFull = new Map(SIDOS.map((s) => [s.full, s]));
   const dir = path.join(root, `public/data/geo/${DATA_VER}`);
   const topos = fs.readdirSync(dir, { recursive: true }).map(String).filter((f) => f.endsWith('.topo.json'));
@@ -159,9 +163,11 @@ test('지도 이웃 시·도 이름표(맥락 이름): 판의 모든 이웃 땅 
       const row = byFull.get(p.name);
       if (!row) continue;   // 시·도 이름이 아닌 이웃 땅(동 단원의 이웃 구·북한·일본)
       assert.equal(p.sido, row.code, `${f}: ${p.name} 의 시·도 코드`);
-      const text = shortSido(p.name, p.sido);
-      // 시 꼴(특별시·광역시·특별자치시·통합특별시)은 지역 표 짧은 이름, 도 꼴(도·특별자치도)은 법정 이름 그대로
-      assert.equal(text, /(특별시|광역시|특별자치시)$/.test(p.name) ? row.ko : row.full, `${f}: ${p.name}`);
+      const text = ctxSido(p.name, p.sido);
+      // 시 꼴(특별시·광역시·특별자치시)도 도 꼴(도·특별자치도)도 법정 이름 그대로, 통합특별시만 법정 약칭(지역 표 짧은 이름)
+      assert.equal(text, p.name === LEGAL_FULL ? row.ko : row.full, `${f}: ${p.name}`);
+      // 앱이 그 시·도를 부르는 짧은 이름(shortSido — 지역 표 ko)은 그대로 남아 있다
+      assert.equal(shortSido(p.name, p.sido), /(특별시|광역시|특별자치시)$/.test(p.name) ? row.ko : row.full, `${f}: ${p.name} 짧은 이름`);
       seen.set(p.name, text);
     }
   }
@@ -169,20 +175,72 @@ test('지도 이웃 시·도 이름표(맥락 이름): 판의 모든 이웃 땅 
   assert.equal(seen.size, 16);
   assert.equal(seen.get(LEGAL_FULL), LEGAL_SHORT, '전남광주통합특별시 → 법정 약칭(전에는 꼬리만 떼어 \'전남광주통합\')');
   for (const n of ['강원특별자치도', '전북특별자치도', '제주특별자치도']) assert.equal(seen.get(n), n, `${n} 은 정식 이름(전에는 '강원도'·'전북도'·'제주도')`);
-  assert.deepEqual(['서울특별시', '세종특별자치시', '경기도', '충청북도'].map((n) => seen.get(n)), ['서울', '세종', '경기도', '충청북도']);
+  assert.deepEqual(['서울특별시', '세종특별자치시', '경기도', '충청북도'].map((n) => seen.get(n)), ['서울특별시', '세종특별자치시', '경기도', '충청북도']);
+  assert.deepEqual([ctxSido('부산광역시', '26'), ctxSido('서울특별시'), ctxSido(LEGAL_FULL, '12'), ctxSido('경기도', '41')], ['부산광역시', '서울특별시', LEGAL_SHORT, '경기도']);
   // 실제 지도 모양: 충남 지도(광주특별시·강원·전북이 이웃)와 광주특별시 지도(제주가 이웃)의 맥락 이름 — 한국어는 그대로, 영어는 지역 표 영어 이름
   const outNames = (key: string) => {
     const s = buildShapes(JSON.parse(fs.readFileSync(path.join(dir, `${key}-sgg.topo.json`), 'utf8')) as Topology, specOf(reg.region(key)!), geo.labels);
     return s.names.filter((n) => n.kind === 'out');
   };
   const cn = outNames('chungnam');
-  for (const n of [LEGAL_SHORT, '강원특별자치도', '전북특별자치도', '경기도', '충청북도', '세종', '대전']) assert.ok(cn.some((x) => x.text === n), `충남 지도 이웃 ${n}`);
+  for (const n of [LEGAL_SHORT, '강원특별자치도', '전북특별자치도', '경기도', '충청북도', '세종특별자치시', '대전광역시']) assert.ok(cn.some((x) => x.text === n), `충남 지도 이웃 ${n}`);
   for (const x of cn) {
-    assert.doesNotMatch(x.text, /^(강원도|전북도|제주도|전남광주통합)$/, x.text);
+    assert.doesNotMatch(x.text, /^(강원도|전북도|제주도|전남광주통합|서울|인천|세종|대전)$/, x.text);
     assert.equal(UI_KO.ctxName(x), x.text);
   }
   assert.equal(UI_EN.ctxName({ sido: '12', text: cn.find((x) => x.text === LEGAL_SHORT)!.text }), 'Jeonnam-Gwangju');
   assert.ok(outNames(KEY).some((x) => x.text === '제주특별자치도' && x.sido === '50'), '광주특별시 지도 남쪽 이웃 제주');
+});
+
+test('섞인 화면 \'경기 광주시\'(결정표 D97 사용자 결정 11-16): 이름 앞부분이 다른 시·도 이름과 겹치는 곳은 섞인 화면에서 지역 이름을 붙이고, 경기 화면 안은 \'광주시\' 그대로', async () => {
+  // 규칙(sidos.ts nearSidoName): 전국 원자료 시·군·구 이름 가운데 걸리는 곳은 경기 광주시 하나
+  const all = BAN.regions.flatMap((r: { items: { id: string; ko: string }[] }) => r.items).filter((it: { id: string }) => it.id.startsWith('kr:sgg:'));
+  assert.ok(all.length > 200, `판 곳 ${all.length}`);
+  assert.deepEqual(all.filter((it: { id: string; ko: string }) => nearSidoName(it.ko, it.id.slice('kr:sgg:'.length, 'kr:sgg:'.length + 2))).map((it: { ko: string }) => it.ko), ['광주시']);
+  // 제 시·도 이름과 같은 줄기(세종시·제주시)는 붙이지 않는다
+  assert.deepEqual([nearSidoName('세종시', '36'), nearSidoName('제주시', '50')], [false, false]);
+  // 동 단원 이름(판 동 색인 — 일반구 단위 단원 이름 '수원시 장안구' 등 포함)도 걸리는 것은 광주시 하나
+  const units = Object.values(BAN.emdUnits as Record<string, { code: string; ko: string }[]>).flat();
+  assert.deepEqual(units.filter((u) => nearSidoName(u.ko, u.code.slice(0, 2))).map((u) => u.ko), ['광주시']);
+  assert.equal(nearSidoName('광주시', '12'), false, '같은 시·도 안의 이름은 붙이지 않는다(가짜)');
+  assert.equal(nearSidoName('서구', '26'), false, '줄기 한 글자(서구 — \'서울\')는 보지 않는다');
+  const GJ = 'kr:sgg:41610';
+  // 섞인 화면: 곳 이름 · 문제 앞 이름 · 동 단원 이름(한·영)
+  assert.equal(UI_KO.fullName(reg, GJ), '경기 광주시');
+  assert.equal(UI_KO.fullPre(reg, GJ), '경기');
+  assert.equal(mixPre(reg, GJ, UI_KO), '경기');
+  assert.equal(reg.mixName('gyeonggi/gwangju-si'), '경기 광주시');
+  const en = createRegistry(geoEn, EN_ON);
+  assert.deepEqual([UI_EN.fullName(en, GJ), UI_EN.fullPre(en, GJ), UI_EN.unitName(en, 'gyeonggi/gwangju-si')], ['Gwangju-si, Gyeonggi', 'Gyeonggi', 'Gwangju-si, Gyeonggi']);
+  // 이웃 곳(하남시)·같은 이름 곳(부산 동구)은 전과 같다
+  assert.deepEqual([UI_KO.fullName(reg, 'kr:sgg:41450'), UI_KO.fullName(reg, 'kr:sgg:26170')], ['하남시', '부산 동구']);
+  // 경기 화면 안(과 이름 목록·둘러보기 이름)은 '광주시' 그대로 — 곳 이름은 ko
+  assert.equal(reg.place(GJ)!.item.ko, '광주시');
+  // 그린 화면: 홈 복습 줄(광주특별시 동구 옆) — '경기 광주시', 경기 단원 쪽은 '광주시'
+  const m: Mastery = Object.fromEntries(['12210', '41610', '26170'].map((c) => [sgg(c), rec(1, T)]));
+  const home = sp(homePage(ctxOf(reg, { mastery: m, last: KEY })).html);
+  assert.match(home, /<p class="h-places">[^<]*광주특별시 동구[^<]*경기 광주시[^<]*<\/p>/);
+  const gu = sp(unitPage(ctxOf(reg), 'gyeonggi').html);
+  assert.doesNotMatch(gu, /경기 광주시/);
+});
+
+test('전남광주 과 이름(결정표 D42 사용자 결정 11-16): 1과·넓은 화면 \'광주 시내\', 5과 \'보성·고흥 바닷가\' — 원고·판·영어 이름, 홈 카드·과 시작 큰 제목', () => {
+  const titles = ['광주 시내', '광주 둘레', '서해 바닷가', '남서쪽 끝', '보성·고흥 바닷가', '순천 둘레'];
+  const ens = ['Central Gwangju', 'Around Gwangju', 'West coast', 'Southwest tip', 'Boseong–Goheung coast', 'Around Suncheon'];
+  for (const r of [SRC.regions.find((x: { key: string }) => x.key === KEY), BAN.regions.find((x: { key: string }) => x.key === KEY)]) {
+    assert.deepEqual(r.lessons.map((l: { title: string }) => l.title), titles);
+    assert.deepEqual(r.lessons.map((l: { en: string }) => l.en), ens);
+    assert.deepEqual(r.screens.map((s: { ko: string; en: string }) => [s.ko, s.en]), [['광주 시내', 'central Gwangju'], ['북서쪽', 'northwest'], ['남서쪽', 'southwest'], ['동쪽', 'east']]);
+    assert.deepEqual(r.screens[0].items, r.lessons[0].items, "넓은 화면 '광주 시내' = 1과 다섯 구");
+  }
+  // 화면 탭·화면이 바뀔 때 알림(한·영)
+  const scr = reg.region(KEY)!.screens[0];
+  assert.deepEqual([UI_KO.screenTab(scr), UI_KO.screenName(LEGAL_SHORT, scr), UI_EN.screenTab(scr), UI_EN.screenName('Jeonnam-Gwangju', scr)], ['광주 시내', '광주특별시 광주 시내', 'Central Gwangju', 'Jeonnam-Gwangju, central Gwangju']);
+  // 홈 첫 과 카드·과 시작 큰 제목
+  const h = sp(homePage(ctxOf(reg, { last: KEY })).html);
+  assert.match(h, /<h1 class="h-title">광주 시내<br><span class="h-hl hl">5개 구<\/span>를 채워요<\/h1>/);
+  assert.doesNotMatch(h, /남쪽 바닷가/);
+  assert.match(sp(unitPage(ctxOf(reg), KEY).html), /보성·고흥 바닷가/);
 });
 
 test('지역 안 묶음 장치(지역 표 parts): 묶음 이름이 지역 이름과 달라도 섞인 화면은 묶음 이름을 쓴다 — 가짜 지역 표로', async () => {

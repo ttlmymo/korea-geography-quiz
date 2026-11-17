@@ -132,7 +132,7 @@ test('짧은 이름(D101): -dong 만 떼고, 남는 글이 4자 미만이면 그
 // 과·화면 낱말 표(설계안 7.2 · D104). 화면 글은 지역 화면과 같게 첫 글자를 소문자로 쓴다('Gyeonggi, northwest'처럼 쉼표 뒤에 붙는 말)
 const WORDS: Record<string, string> = {
   북서쪽: 'Northwest', 북쪽: 'North', 북동쪽: 'Northeast', 서쪽: 'West', 가운데: 'Center', 동쪽: 'East', 남서쪽: 'Southwest', 남쪽: 'South', 남동쪽: 'Southeast',
-  섬: 'Islands', '북동쪽 섬': 'Northeast islands', '남서쪽 섬': 'Southwest islands', 전체: 'All', 시내: 'Urban area', '읍·면': 'Towns and townships',
+  섬: 'Islands', '북쪽 섬': 'North islands', '북동쪽 섬': 'Northeast islands', '남서쪽 섬': 'Southwest islands', '남쪽 섬': 'South islands', '남동쪽 섬': 'Southeast islands', '동쪽 섬': 'East islands', '북서쪽 섬': 'Northwest islands', 전체: 'All', 시내: 'Urban area', '읍·면': 'Towns and townships',
   '시내 북서쪽': 'Urban northwest', '시내 북쪽': 'Urban north', '시내 북동쪽': 'Urban northeast', '시내 서쪽': 'Urban west', '시내 동쪽': 'Urban east',
   '시내 남서쪽': 'Urban southwest', '시내 남쪽': 'Urban south', '시내 남동쪽': 'Urban southeast',
   '읍·면 북서쪽': 'Northwest towns', '읍·면 북쪽': 'North towns', '읍·면 북동쪽': 'Northeast towns', '읍·면 서쪽': 'West towns', '읍·면 동쪽': 'East towns',
@@ -169,7 +169,7 @@ test('판 전수: 동 단원 256개의 곳·과·화면 en 이 비지 않고 한
     const titles = j.lessons.map((l) => l.en);
     assert.equal(new Set(titles).size, titles.length, `${j.key} 과 영어 이름 겹침`);
   }
-  assert.deepEqual([lessons, screens], [672, 351], '과·화면 수(2026-10-01 판)');
+  assert.deepEqual([lessons, screens], [674, 351], '과·화면 수(2026-10-01 판 — 2026-11-17 옹진군이 과 하나에서 셋으로: 672 → 674)');
 });
 
 test('판 전수: 동 단원 지도의 이웃 땅(topo out) 이름 en — 비지 않고 한글 없음, 같은 id 는 어디서나 같은 en, 시·군·구는 시·군·구 영어 이름', () => {

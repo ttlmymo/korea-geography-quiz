@@ -10,7 +10,7 @@ import { createDeck } from '../../src/app/core/deck.ts';
 import { lessonQuestions } from '../../src/app/core/questions.ts';
 import { rngFrom } from '../../src/app/core/rng.ts';
 import { step } from '../../src/app/core/session.ts';
-import { inside } from '../../src/app/map/poly.ts';
+import { boxHits, inside } from '../../src/app/map/poly.ts';
 import { tomorrowCount } from '../../src/app/core/tally.ts';
 import { gaUnit } from '../../src/app/core/units.ts';
 import { createRegistry, unitOptions } from '../../src/app/registry.ts';
@@ -62,6 +62,9 @@ test('시·도 단원 판: 16곳(지역 표 차례의 코드 전부), 곳 이름
     assert.deepEqual([it.ko, it.slug], [s.ko, s.key]);
   }
   assert.deepEqual(K.lessons.map((l) => [l.no, l.title, l.en, l.items]), SRC.korea.lessons.map((l: { no: number; title: string; en: string; items: string[] }) => [l.no, l.title, l.en, l.items.map((n) => idOfKo[n])]));
+  // 영어 과 이름(결정표 D112 — 사용자 결정 11-16 '함께 고치기'): 1과는 관사 없이 'Northwest: capital area'. 전 'Northwest: the capital area' 는
+  // 375×667 영어 과 시작 제목이 네 줄이라 주 단추 아래 끝이 첫 화면 밖 9px(676/667) — 세 줄이면 641
+  assert.deepEqual(K.lessons.map((l) => l.en), ['Northwest: capital area', 'Center: Chungcheong', 'Northeast', 'Southeast', 'Southwest and Jeju']);
   assert.deepEqual(K.screens.map((s) => [s.key, s.ko, s.items]), SRC.korea.screens.map((s: { key: string; ko: string; items: string[] }) => [s.key, s.ko, s.items.map((n) => idOfKo[n])]));
   for (const list of [K.lessons, K.screens]) {
     const all = list.flatMap((x) => x.items);
@@ -223,6 +226,40 @@ test('전국 시·도 지도 이름표(E10 — E8 이 넘긴 이름표 방식): 
     caughtBefore += strayOf(placeLabels((id) => s.cells.get(id), asks, opt)).filter((id) => (2 * s.cells.get(id)!.r) / v.u >= plateH).length;
   }
   assert.ok(caughtBefore > 0, 'plateHome 없이는 큰 칸 판이 남의 칸 위에 가는 경우가 있어야 이 시험이 뜻이 있다');
+});
+
+test('전국 시·도 지도 \'광주특별시\' 판(2026-11-16 사용자 결정 — 폰에서 점 아래 남해안 섬을 가렸다): 판이 되는 크기에서 섬을 거의 덮지 않는 점 위쪽으로, 다른 시·도 판 자리는 그대로', () => {
+  const topo = read(`public/data/geo/${DATA_VER}/sido.topo.json`) as Topology;
+  const s = buildShapes(topo, specOf(reg.region('korea')!), K.labels);
+  const GJ = 'kr:sido:12', c = s.cells.get(GJ)!;
+  const home = c.rings.filter((r) => inside([r], c.label[0], c.label[1]));
+  const isles = c.rings.filter((r) => !home.includes(r) && !inside(home, r[0], r[1]));
+  assert.ok(isles.length > 50, `광주특별시 칸 섬 고리 ${isles.length}`);
+  // 섬 규칙을 끈 자리(isleOk Infinity — 바꾸기 전 labelfit 과 같다)와 견준다: 다른 시·도 판도 섬 규칙 때문에 옮겨지면 잡힌다(점검 2 — 전에는 광주특별시 칸 섬만 지운 칸과 견줘
+  // 다른 시·도 판이 옮겨져도 못 잡았다)
+  const cases: [number, number, number, number][] = [[358, 440, 14, 15], [358, 560, 14, 15], [390, 787, 12, 14], [375, 760, 12, 14], [360, 740, 12, 14], [375, 580, 12, 14], [760, 760, 14, 15]];
+  let plates = 0;
+  for (const [w, h, pad, px] of cases) {
+    const v = fitView(boxOf(K.fit), { w, h }, { t: pad, r: pad, b: pad, l: pad });
+    const [x, y, vw, vh] = viewBox(v, { w, h });
+    const asks = K.items.map((it) => ({ id: it.id, ...labelBox(it.ko, px) }));
+    const opt = {
+      mode: 'must' as const, u: v.u, obstacles: s.ids.map((id) => ({ rings: s.cells.get(id)!.rings, box: s.cells.get(id)!.box })), plateHome: true,
+      within: [x + 4 * v.u, y + 4 * v.u, x + vw - 4 * v.u, y + vh - 4 * v.u] as [number, number, number, number], center: [(s.box[0] + s.box[2]) / 2, (s.box[1] + s.box[3]) / 2] as [number, number],
+    };
+    const now = placeLabels((id) => s.cells.get(id), asks, opt);
+    const before = placeLabels((id) => s.cells.get(id), asks, { ...opt, isleOk: Infinity });
+    for (const p of now) if (p.id !== GJ) assert.deepEqual(p, before.find((q) => q.id === p.id), `${w}x${h}: ${reg.place(p.id)!.item.ko} 자리 그대로`);
+    const g = now.find((p) => p.id === GJ)!, g0 = before.find((p) => p.id === GJ)!;
+    if (!g.out?.plate) { assert.deepEqual(g, g0, `${w}x${h}: 판이 아니면 그대로`); continue; }
+    plates++;
+    const a = asks.find((q) => q.id === GJ)!, W = a.w * v.u, H = a.h * v.u;
+    const hits = (p: { x: number; y: number }) => isles.filter((r) => boxHits([r], p.x, p.y, W, H)).length;
+    assert.ok(hits(g0) >= 20, `${w}x${h}: 바꾸기 전 판은 섬 ${hits(g0)}개를 덮었다(이 시험이 잡는 것)`);
+    assert.ok(hits(g) <= 8, `${w}x${h}: 판이 덮는 섬 ${hits(g)}개`);
+    assert.ok(g.y < c.label[1] && inside(c.rings, g.x, g.y), `${w}x${h}: 판 가운데가 점 위·제 칸 안`);
+  }
+  assert.ok(plates >= 3, `광주특별시가 판인 크기 ${plates}`);
 });
 
 test('하루 몫(N32 — 시·도 단원은 시·군·구 몫): 과를 끝내면 daily 만 늘고, 시·도 복습은 시·군·구 판(지역 korea), 몫이 모자라면 korea 다음 과를 추천하지 않는다', () => {

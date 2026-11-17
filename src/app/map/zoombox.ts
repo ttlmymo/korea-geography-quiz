@@ -46,6 +46,13 @@ export function zoomNeed(boxes: readonly Box[], u: number): boolean {
 export const ZB_W = 196, ZB_H = 148, ZB_W_WIDE = 264, ZB_H_WIDE = 196;
 export const zoomSize = (wide: boolean): Size => (wide ? { w: ZB_W_WIDE, h: ZB_H_WIDE } : { w: ZB_W, h: ZB_H });
 /**
+ * 상자 그림 폭을 가장 넓은 이름표 판(plate px — 상자 글자 크기)이 여백(ZB_PAD) 안에 ZB_SLACK 의 틈을 두고 들게 넓힌다(높이는 그대로 — 판 자리는 3px 격자로 찾아 꼭 맞으면 놓이지 않는다). 판이 그림보다 넓으면 어디에 두어도 상자 끝에서 잘린다:
+ * 가로로 돌린 폰(844×390 — 폰 상자 196)의 영어 상당구 2과 'Yongdam·Myeongam·Sanseong' 판 225px(2026-11-16 영어 점검 — 결정표 D110).
+ * 한국어 동 이름 판은 가장 긴 것도 폰 상자 안이라('용담·명암·산성동' 115px) 바뀌지 않는다. 영어 짧은 이름은 9곳이 폰 상자를 넘는다(시험 zoombox.test.ts)
+ */
+export const ZB_SLACK = 8;
+export const zoomWide = (pic: Size, plate: number): Size => (plate + 2 * ZB_PAD + ZB_SLACK > pic.w ? { w: Math.ceil(plate + 2 * ZB_PAD + ZB_SLACK), h: pic.h } : pic);
+/**
  * 아래 줄에서 상자 그림을 낮출 수 있는 가장 낮은 높이(px)와 그때의 문턱: 아래 줄까지 합친 높이는 지도 칸 높이 상한(cap — 폰은 주 단추가 첫 화면에 들게, 계획서 3.3) 안이라,
  * 낮은 화면에서 다 큰 상자를 아래 줄에 두면 지역 지도 그림이 늘리기 전의 ZB_KEEP 배보다 낮아진다(390×664 — 주소줄 있는 보통 폰 — 의 제주시 2과: 176 → 78px).
  * 그러면 상자 그림을 ZB_H_MIN 까지 낮춰 지역 지도에 높이를 돌려준다(같은 폰 제주시 2과: 지역 126px · 상자 그림 196×100)
@@ -53,6 +60,14 @@ export const zoomSize = (wide: boolean): Size => (wide ? { w: ZB_W_WIDE, h: ZB_H
 export const ZB_H_MIN = 100, ZB_KEEP = 0.5;
 /** 상자 지도 안 여백(px): 과 범위를 이만큼 안쪽에 맞춘다(이름표 범위도 이 안 — svgmap viewRect) */
 export const ZB_PAD = 10;
+/**
+ * 상자 안 지시선이 남의 지시선 끝 점(지름 6px)에서 떨어질 거리(px — 점 가운데에서 지시선까지, labelfit PlaceOpt.dotPx). 점 반지름 3 + 틈 3.
+ * 상자 안은 점이 몇 px 씩 붙어 있어, 판 단계가 다른 이름표만 피하면 지시선이 남의 점 바로 곁을 지났다(2026-11-15 확대 상자 점검 남긴 것 — 폰 390×844·360×800
+ * 제주시 3과 '화북동' 지시선이 '건입동' 점 4.7px 곁, 여수시 3과 '동문동' 지시선이 '한려동' 점 1.4px 곁. 사용자 결정 11-16 '함께 고치기').
+ * 흉내(상자가 붙는 과 × 일곱 크기 — 한국어 187곳, 점 곁 = 6px 안): 끄면 점 곁 지시선이 있는 곳 24 · 지시선 엇갈림 28쌍, 5 면 14 · 22쌍, 6 이면 6 · 18쌍
+ * (6 은 강릉시 2과 엇갈림까지 풀린다). 이름표 겹침·상자 밖은 셋 다 0. 나빠진 곳은 가로 폰 순천시 4과 하나(점 곁 4.2px 대신 엇갈림 1쌍)
+ */
+export const ZB_DOT_PX = 6;
 const ZB_PADS = { t: ZB_PAD, r: ZB_PAD, b: ZB_PAD, l: ZB_PAD };
 
 /**
@@ -116,9 +131,19 @@ export const ZB_ROOM = 10;
 
 /**
  * 상자 범위: 상자 그림 pic 에 fit 을 맞췄을 때 몰리고(zoomCrowd) 위 ①·② 가운데 하나이면 큰 칸을 뺀 칸 상자 묶음을 맞춘 범위(낮춘 상자는 둘레 ZB_ROOM 을
- * 더 두어 — 상자 여백 ZB_PAD 로 다시 맞추면 같은 보기가 되는 상자), 아니면 fit 그대로(같은 배열)
+ * 더 두어 — 상자 여백 ZB_PAD 로 다시 맞추면 같은 보기가 되는 상자), 아니면 fit 그대로(같은 배열).
+ * alt = 같은 칸을 다른 말 이름표 판 크기로 잰 것(영어 앱 동 과 — 한국어 이름 판, svgmap MapLabel.fitText). cells 로 좁히지 않으면 alt 로 한 번 더 잰다.
+ * 몰림은 이름표 판 크기로 재므로(지시선 칸), 판이 긴 영어(짧은 이름도 한글보다 길다 — 'Yongdam 1' 85px · '용담1동' 64px)에서는 큰 칸까지 지시선 칸이 되어 점 묶음이 넓어지고
+ * 몰림으로 덜 잡혔다. 그래서 같은 과에서 한국어는 상자를 1km 로 좁히는데 영어는 2km 그대로라, 낮은 폰 제주시 1과 'Yongdam 1' 판이 상자 끝에서 잘리고
+ * 375×667 여수시 3과 'Hallyeo' 판이 반쯤 가려졌다(2026-11-16 영어 점검 — 결정표 D110, 사용자 결정 11-16 '함께 고치기'). 좁힌 범위는 칸 상자로만 정하므로
+ * 두 말이 같은 상자를 본다. 한국어 앱은 alt 를 주지 않아 전과 같다
  */
-export function zoomFit(fit: Box, cells: readonly ZoomCell[], pic: Size): Box {
+export function zoomFit(fit: Box, cells: readonly ZoomCell[], pic: Size, alt?: readonly ZoomCell[] | null): Box {
+  const z = fitOnce(fit, cells, pic);
+  return z === fit && alt?.length ? fitOnce(fit, alt, pic) : z;
+}
+
+function fitOnce(fit: Box, cells: readonly ZoomCell[], pic: Size): Box {
   if (!cells.length) return fit;
   const u = fitView(fit, pic, ZB_PADS).u;
   if (!zoomCrowd(cells, u)) return fit;

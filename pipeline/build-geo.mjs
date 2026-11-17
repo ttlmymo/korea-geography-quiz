@@ -117,12 +117,16 @@ const CTX = readJson('pipeline/data/context.json');          // 이웃 땅·북�
 const GU_SLUGS = readJson('pipeline/data/gu-slugs.json').slugs;   // 일반구 동 단원 slug 뒤쪽('수원시 장안구' → jangan-gu)
 const EMD_EN = readJson('pipeline/data/emd-en.json').names;      // 읍·면·동 영어 이름 손 표: 행정동 코드 → [한글, 영어](tools/emd-en.mjs 가 씀)
 const EMD_EN_AGAIN = 'node tools/emd-en.mjs 로 표를 다시 쓰고 새 줄을 검수(docs/review/en-emd-names.md)';
-// 동 과·화면 이름의 영어(설계안 7.2 · D104). 과 이름은 emd-lib 이 이 31가지 낱말과 '{방위} · {동} 둘레'(같은 단원 안 겹친 방위)로만 짓는다
-// (2026-10-01 판 과 이름 33종 = 낱말 31 + 둘레 2, 화면 이름은 단원 이름 + 낱말 22종) — 표에 없는 이름이면 실패.
+// 동 과·화면 이름의 영어(설계안 7.2 · D104). 과 이름은 emd-lib 이 이 33가지 낱말과 '{방위} · {동} 둘레'(같은 단원 안 겹친 방위)로만 짓는다
+// (11-16 전: 2026-10-01 판 과 이름 33종 = 낱말 31 + 둘레 2, 화면 이름은 단원 이름 + 낱말 22종) — 표에 없는 이름이면 실패.
+// 2026-11-16(D2): 신안군 섬이 본 지도로 옮겨 과 이름이 '북동쪽 섬'·'남서쪽 섬' → '북쪽 섬'·'남쪽 섬'(이름 규칙 N7 이 본 지도에 보이는 곳으로 다시 잼) — 두 낱말을 더함
+// (완도군은 '북동쪽 섬'·'남서쪽 섬' 그대로라 과 이름 35종 = 낱말 33 + 둘레 2, 화면 이름 낱말은 22종 그대로).
 // 화면 글은 지역 화면 en('northwest'·'islands' — 토스트 'Gyeonggi, northwest')처럼 첫 글자를 소문자로 쓴다(unitJson screens)
 const EN_WORDS = {
   북서쪽: 'Northwest', 북쪽: 'North', 북동쪽: 'Northeast', 서쪽: 'West', 가운데: 'Center', 동쪽: 'East', 남서쪽: 'Southwest', 남쪽: 'South', 남동쪽: 'Southeast',
-  섬: 'Islands', '북동쪽 섬': 'Northeast islands', '남서쪽 섬': 'Southwest islands', 전체: 'All', 시내: 'Urban area', '읍·면': 'Towns and townships',
+  섬: 'Islands', '북쪽 섬': 'North islands', '북동쪽 섬': 'Northeast islands', '남서쪽 섬': 'Southwest islands', '남쪽 섬': 'South islands',
+  // 2026-11-17(D2 '과를 셋으로'): 옹진군이 섬 과 셋으로 나뉘며 새로 생긴 이름
+  '남동쪽 섬': 'Southeast islands', '동쪽 섬': 'East islands', '북서쪽 섬': 'Northwest islands', 전체: 'All', 시내: 'Urban area', '읍·면': 'Towns and townships',
   '시내 북서쪽': 'Urban northwest', '시내 북쪽': 'Urban north', '시내 북동쪽': 'Urban northeast', '시내 서쪽': 'Urban west', '시내 동쪽': 'Urban east',
   '시내 남서쪽': 'Urban southwest', '시내 남쪽': 'Urban south', '시내 남동쪽': 'Urban southeast',
   '읍·면 북서쪽': 'Northwest towns', '읍·면 북쪽': 'North towns', '읍·면 북동쪽': 'Northeast towns', '읍·면 서쪽': 'West towns', '읍·면 동쪽': 'East towns',
@@ -940,8 +944,11 @@ function emdUnitInput(sggId) {
       box: { main: boxN(b.main), near: boxN(b.near), isle: boxN(b.isle), ...(b.island ? { island: boxN(b.island) } : {}) },
       nb: nb.filter((o) => inUnit.has(o)), out: [...new Set(nb.filter((o) => !inUnit.has(o)).map((o) => sggOfEmd[o]))].sort(), outer: outer[p.id] };
   });
-  return { code: sggId.slice(7), ko: sggNameOf[sggId], dongs };
+  const code = sggId.slice(7);
+  return { code, ko: sggNameOf[sggId], dongs, ...(LESSON_MOVES[code] ? { moves: LESSON_MOVES[code] } : {}) };
 }
+// 사람이 정한 과 옮기기(emd-lib buildUnit U.moves): 시·군·구 코드 → [{ ko: 옮길 곳, with: 그 곳이 갈 과에 든 곳 }]
+const LESSON_MOVES = readJson('pipeline/data/lesson-moves.json').moves;
 const emdBuilt = new Map();   // 시·군·구 id → { U, res } (한 번만 계산)
 const unitOf = (sggId) => { if (!emdBuilt.has(sggId)) { const U = emdUnitInput(sggId); emdBuilt.set(sggId, { U, res: buildUnit(U) }); } return emdBuilt.get(sggId); };
 // 단원 slug(N30): 시·군·구 층 지역은 units.json slugs 그대로, 시 층 지역의 일반구는 '{시 slug}-{일반구 slug}'(pipeline/data/gu-slugs.json)
@@ -985,6 +992,9 @@ function unitJson(sggId, R) {
     items: items.map((d) => ({ id: d.id, ko: d.ko, en: EMD_EN[d.code]?.[1] ?? '', slug: d.code.slice(5), kind: d.kind })),
     lessons: res.lessons.map((L) => ({ no: L.no, title: L.title, en: emdTitleEn(L.title, U.dongs), items: L.ids, fit: llOfN(L.box), minTapPx: L.minTapPx, ambiguous: L.ambiguous, ...(L.insets.length ? { insets: L.insets } : {}) })),
     screens: res.screens.map((s) => ({ key: s.key, ko: s.ko, en: s.ko === U.ko ? en : lowerFirst(emdTitleEn(s.ko, U.dongs)), items: s.ids, fit: llOfN(s.box), minTapPx: s.minTapPx, ambiguous: s.ambiguous, ...(s.insets.length ? { insets: s.insets } : {}) })),
+    // 섬 상자가 있는 단원에만: 그 가운데 정말 먼 섬(지역 표 먼 섬 규칙 — 없으면 빈 목록). 앱이 상자 묶음 글을 '먼 섬'/'섬'으로 나눈다(D2 ⓑ 사용자 결정 2026-11-17).
+    // 열쇠가 없는 파일(옛 캐시·섬 상자 없는 단원)은 전처럼 '먼 섬'
+    ...([...res.lessons, ...res.screens].some((x) => x.insets.length) ? { far: res.far } : {}),
     neighbors: Object.fromEntries(items.map((d) => [d.id, [...d.nb].sort()])),
     labels: Object.fromEntries(items.map((d) => [d.id, labels[d.id]])),
     meet: Object.fromEntries(items.map((d) => [d.id, res.meet[d.id]])),
@@ -1536,7 +1546,8 @@ const SGG_SIMPLIFY_BY = Object.fromEntries(REGIONS.filter((r) => sggSimplifyOf(r
 const ringPts = (g) => polysOf(g).reduce((t, p) => t + p.reduce((u, r) => u + r.length, 0), 0);
 const ptsOf = (T, name) => (T.objects[name] ? topo.feature(T, T.objects[name]).features.reduce((s, f) => s + ringPts(f.geometry), 0) : 0);
 // 고리 점(계획서 N20·7절): 지역 경계 파일을 그릴 때의 점 수 = 칸(첫 공부 층) + 이웃 땅 + 강 띠
-const ringOf = (T, cellLayer) => { const r = { cell: ptsOf(T, cellLayer), out: ptsOf(T, 'out'), water: ptsOf(T, 'water') }; r.total = r.cell + r.out + r.water; return r; };
+// far = 먼 이웃 땅(2026-11-17 — total 에는 넣지 않고 따로 적는다: N20 의 고리 점 정의는 그대로)
+const ringOf = (T, cellLayer) => { const r = { cell: ptsOf(T, cellLayer), out: ptsOf(T, 'out'), water: ptsOf(T, 'water'), far: ptsOf(T, 'far') }; r.total = r.cell + r.out + r.water; return r; };
 const gz = (s) => zlib.gzipSync(s).length;
 const kb = (n) => +(n / 1024).toFixed(1);
 async function regionSgg(sido, layer, simplifyM) {
@@ -1572,6 +1583,23 @@ async function regionSgg(sido, layer, simplifyM) {
       if (lp) T.objects[name].geometries[i].properties = { ...T.objects[name].geometries[i].properties, lp };
     });
   }
+  // 먼 이웃 땅(far 층): 지역·과·넓은 화면(일반구 단원 것도 — 같은 파일을 쓴다)을 화면에 맞췄을 때 보이는 범위 + 칸 전체(먼 섬까지). 자기 시·도는 뺀다
+  // (out 은 상자 bb 안의 다른 시·도·나라 밖 땅을 모두 담으므로 그 안쪽은 도려낸다)
+  const us = [units.find((u) => u.sido === sido)].filter(Boolean);
+  if (us.length && guIndex[us[0].key]) us.push(guIndex[us[0].key]);
+  const all = unionLL(sel(L.sgg).features.map((f) => f.properties.sggId), 'all');
+  // 먼 섬 상자가 붙는 지역(칸 전체가 가까운 상자 밖으로 나감 — 인천·전남광주 등)과 섬 상자로 보이는 곳이 있는 지역(경북 울릉)은 본 지도가 비켜 그려진다
+  const inset = all[0] < lon0 || all[1] < lat0 || all[2] > lon1 || all[3] > lat1 || us.some((u) => [...u.lessons, ...u.screens].some((x) => x.insets?.length));
+  const st = (fit) => ({ fit, strip: inset && FAR_STRIP_SHIFT_REGION });   // 지역 지도는 확대 상자 옆 줄이 섬 줄과 겹쳐 서지 않는다 — 먼 섬 상자 폭(140px / 560 의 반)만큼만
+  const wide = farBox({ whole: [[lon0, lat0, lon1, lat1], ...us.map((u) => u.fit)].map(st), part: us.flatMap((u) => [...u.lessons.map((l) => l.fit), ...u.screens.map((s) => s.fit)]).map(st), keep: [all] });
+  // far 몫이 FAR_REGION_ADD 를 넘으면 한 단계 거칠게(지역 지도의 먼 땅은 넓은 범위의 배경이다)
+  const bare = JSON.stringify(T), base = gz(bare);
+  for (const [i, step] of FAR_STEPS.filter((s) => s >= farStep(wide)).entries()) {
+    const withFar = addFar(JSON.parse(bare), await farLand(wide, (p) => p.sido === sido, step, farCore(bb.map(Number))));
+    T.arcs = withFar.arcs;
+    if (withFar.objects.far) T.objects.far = withFar.objects.far; else delete T.objects.far;
+    if (i >= 1 || gz(JSON.stringify(T)) - base <= FAR_REGION_ADD) break;
+  }
   return T;
 }
 const emdTopo = async (sido) => String((await ms(`-i emd.json name=emd -o format=topojson quantization=${QUANT} target=emd out.json`,
@@ -1583,6 +1611,112 @@ const emdTopo = async (sido) => String((await ms(`-i emd.json name=emd -o format
 const UNIT_CTX_MARGIN = 0.15, UNIT_GZ_MAX = 40 * 1024;
 const llBox = (g) => { let q = [Infinity, Infinity, -Infinity, -Infinity]; for (const p of polysOf(g)) for (const [x, y] of p[0]) q = [Math.min(q[0], x), Math.min(q[1], y), Math.max(q[2], x), Math.max(q[3], y)]; return q; };
 const llHits = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+/* ---------- 먼 이웃 땅(far 층 — 2026-11-17 사용자 결정 '모든 지도에 바다를 표현', docs/SEA_PLAN_2026-11-16.md 4절) ---------- */
+// 지도 바탕이 바다색이 되어, 이웃 땅(out)에 담기지 않은 땅은 화면에서 바다로 칠해진다. out 은 지역 상자를 30%(단원은 15%, 큰 단원은 맞닿은 시·군·구만) 넓힌 범위만 담는데
+// (칸과 같은 위상·같은 간격이라 크다), 세로 휴대폰·가로로 돌린 휴대폰·과 범위 확대에서는 화면이 그보다 넓게 보인다(2026-11-17 탐침: 지도 칸 가로세로 비 0.61~2.39 —
+// 신안군 둘러보기는 화면의 13%가 빠진 땅이었고, 전국 지도에는 일본·중국이, 인천 먼 섬 상자에는 북한 땅이 빠졌다). 그 범위의 땅을 거칠게 단순화해 topo 의 far 층으로 따로 싣는다.
+// 앱은 far → out → 칸 차례로 깐다(같은 면색이라 한 덩어리로 보인다 — src/app/map/shapes.ts buildShapes).
+//  · 범위(넓은 상자 farBox): 화면에 맞추는 범위들을 지도 칸 비로 넓힌 것 — 지역·단원 전체는 둘러보기·쪽 지도의 비 FAR_ASPECT, 과·넓은 화면은 문제 화면의 비 FAR_ASPECT_PLAY
+//    (비는 지도 칸 폭·높이를 안쪽 여백을 뺀 높이·폭으로 나눈 값으로 잡는다. 둘레 FAR_PAD 는 여백이 한쪽만 늘어 지도가 밀리는 몫 — 축척 막대를 비키면 위로 9% — 탐침의 지도 칸: 쪽 지도 560×234(여백 14 → 2.72, 축척 막대가 칸을 가려 아래 여백을 46 으로 늘리면 3.22) · 둘러보기 360×587(여백 12 → 0.57) ·
+//    문제 화면 504×289(여백 12 → 1.90)·360×497(0.68)) —
+//    과 칸 전체 상자(먼 섬까지 — 먼 섬 상자 둘레의 땅)를 품고 둘레 FAR_PAD. 화면에 붙는 것 때문에 더 보이는 몫도 넣는다:
+//      - 섬 상자 줄(동 단원의 섬 — insets)·먼 섬 상자(지역 지도)가 붙는 지도(strip): 본 지도가 그만큼 비켜 그려진다. 범위가 칸의 좁은 쪽에 꽉 차면 본 지도가 줄어
+//        FAR_STRIP_K 배 넓게 보이고(휴대폰 360 폭에서 상자 줄 136px 옆 본 지도 224px = 1.61배), 긴 쪽이 남으면 줄 폭만큼 옆으로 밀려 양옆으로 FAR_STRIP_SHIFT 씩 더 보인다
+//        (가로로 돌린 휴대폰 560 폭에서 섬 줄 136 + 확대 상자 옆 줄 200 의 반 = 0.3 — 여수시 3과 시작. 지역 지도는 먼 섬 상자 옆을 비우는 몫 FAR_STRIP_SHIFT_REGION)
+//      - 지역·단원 전체 지도(과 시작·요약)는 확대 상자를 지도 칸 아래에 늘린 줄에 둘 때 그 줄에도 지도가 이어져, 범위 높이의 FAR_BELOW 만큼 아래로 더 보인다
+//        (휴대폰: 본 지도 268px 아래 상자 줄 176px = 0.66 — 순천시 1과 시작)
+//  · 땅: 전국 위상 T1 의 시·군·구(강 띠 자르기 전 — 먼 곳의 강은 땅으로 메운다)에서 자기 것(지역 지도는 그 시·도, 단원 지도는 그 시·군·구)을 뺀 것 + 북한(휴전선 틈을 메운 nkLand)
+//    + Natural Earth 의 일본·중국·러시아. 넓은 상자로 자르고 한 덩어리로 합친 뒤(dissolve2) 작은 섬(1km² 또는 간격의 제곱 아래)은 뺀다
+//  · out 이 상자 안을 다 덮는 지도(지역 경계 파일 · 단원 scope 'box')는 그 상자 안쪽을 far 에서 도려낸다(FAR_LAP 만큼만 겹침 — 같은 땅을 두 번 싣지 않는다).
+//    맞닿은 시·군·구만 실은 단원(scope 'touch')은 상자 안에도 빠진 땅이 있어 도려내지 않는다
+//  · 단순화 간격: 넓은 상자 긴 변을 화면 FAR_PX px 로 보았을 때 1px 쯤(FAR_STEPS 가운데 그 이상인 첫 값 — 실제 화면은 그 범위를 360~900px 로 그려 1~2px 쯤이다.
+//    먼 땅은 화면 가장자리 배경이라 그 정도 거칠어도 된다). 단원 지도 파일은 far 를 붙여 FAR_UNIT_GZ(단원 예산 UNIT_GZ_MAX 에서 단원 과 파일 몫 3KB 를 뺀 것 —
+//    두 파일을 합쳐 40KB 안)를 넘거나 far 몫이 FAR_UNIT_ADD 를 넘으면(섬이 많은 남해안·서해안 단원 — scope box 만) 그 단원만 간격을 한 단계씩, 많아야 FAR_UNIT_UP 단계 올린다.
+//    지역 경계 파일은 far 몫이 FAR_REGION_ADD 를 넘으면 한 단계만 올리고, 전국 지도는 SIDO_MAP_GZ_MAX 에 1KB 여유로 들 때까지 올린다
+//  · 칸·out 과 한 위상에 넣지 않는다 — 넣으면 칸·out 의 호가 far 꼭짓점에서 쪼개져 기존 층이 바뀐다. 따로 계산해 topo 호 목록 끝에 덧붙인다(addFar — 기존 호·객체는 그대로)
+const FAR_ASPECT = [0.55, 3.3], FAR_ASPECT_PLAY = [0.62, 1.95], FAR_PAD = 0.1, FAR_STRIP_K = 1.65, FAR_STRIP_SHIFT = 0.3, FAR_STRIP_SHIFT_REGION = 0.15, FAR_BELOW = 0.7, FAR_LAP = 0.01, FAR_PX = 700, FAR_PX_KOREA = 900, FAR_STEPS = [30, 60, 120, 250, 500, 1000, 2000, 4000, 8000], FAR_MIN_AREA = 1e6;
+/**
+ * 넓은 상자(경위도 [서, 남, 동, 북]): whole = 지역·단원 전체 범위들, part = 과·넓은 화면 범위들, keep = 통째로 품을 상자(칸 전체).
+ * 범위는 [서, 남, 동, 북] 또는 { fit, strip } — strip 이면 섬 상자 줄·먼 섬 상자가 붙는 지도(true 면 옆 밀림 FAR_STRIP_SHIFT, 숫자면 그 값)
+ */
+const farBox = ({ whole = [], part = [], keep = [] }) => {
+  let q = [Infinity, Infinity, -Infinity, -Infinity];
+  const add = (b) => { q = [Math.min(q[0], b[0]), Math.min(q[1], b[1]), Math.max(q[2], b[2]), Math.max(q[3], b[3])]; };
+  const fit = (b, [a0, a1], below = 0) => {
+    const [w, s, e, n] = Array.isArray(b) ? b : b.fit, strip = !Array.isArray(b) && b.strip;
+    const W = (e - w) * KX, H = (n - s) * KY, cx = (w + e) / 2, cy = (s + n) / 2;
+    const k = strip ? FAR_STRIP_K : 1, shift = strip ? 1 + 2 * (strip === true ? FAR_STRIP_SHIFT : strip) : 1;
+    // 가로로 긴 칸(비 a1)에 맞추면 폭이, 세로로 긴 칸(비 a0)에 맞추면 높이가 늘어난다
+    const vw = Math.max(W * k, H * a1 * shift) * (1 + 2 * FAR_PAD), vh = Math.max(H, W / a0) * k * (1 + 2 * FAR_PAD);
+    add([cx - vw / 2 / KX, cy - (vh / 2 + below * H) / KY, cx + vw / 2 / KX, cy + vh / 2 / KY]);
+  };
+  for (const b of whole) fit(b, FAR_ASPECT, FAR_BELOW);
+  for (const b of part) fit(b, FAR_ASPECT_PLAY);
+  for (const [w, s, e, n] of keep) { const m = Math.max((e - w) * KX, (n - s) * KY) * FAR_PAD; add([w - m / KX, s - m / KY, e + m / KX, n + m / KY]); }
+  return q.map((v) => Math.round(v * 1e4) / 1e4);
+};
+/** 넓은 상자의 기본 단순화 간격(m) */
+const FAR_UNIT_GZ = 37 * 1024, FAR_UNIT_ADD = 5 * 1024, FAR_UNIT_UP = 2, FAR_REGION_ADD = 4 * 1024;
+// (px = 넓은 상자 긴 변을 몇 px 로 보나: 단원·지역 FAR_PX · 전국 FAR_PX_KOREA)
+const farStep = (box, px = FAR_PX) => { const long = Math.max((box[2] - box[0]) * KX, (box[3] - box[1]) * KY); return FAR_STEPS.find((x) => x >= long / px) ?? FAR_STEPS[FAR_STEPS.length - 1]; };
+/** 가까운 상자(out 을 자른 상자)를 FAR_LAP 만큼 안으로 줄인 것 — far 에서 도려낼 범위 */
+const farCore = ([w, s, e, n]) => { const mx = (e - w) * FAR_LAP, my = (n - s) * FAR_LAP; return [w + mx, s + my, e - mx, n - my]; };
+const farSggSrc = topo.feature(T1, T1.objects.sgg).features.map((f) => ({ type: 'Feature', geometry: f.geometry, properties: { sggId: f.properties.sggId, sido: f.properties.sido } }));
+const farSimp = new Map();   // 간격(m) → 그 간격으로 단순화한 전국 시·군·구(상자와 함께)
+async function farSggAt(step) {
+  if (!farSimp.has(step)) {
+    const r = await ms(`-i sgg.json -simplify interval=${step} keep-shapes -filter-islands min-area=${Math.max(FAR_MIN_AREA, step ** 2)} -o format=geojson geojson-type=FeatureCollection out.json`,
+      { 'sgg.json': JSON.stringify({ type: 'FeatureCollection', features: farSggSrc }) });
+    farSimp.set(step, fcOf(r['out.json']).features.filter((f) => f.geometry).map((f) => ({ ...f, box: llBox(f.geometry) })));
+  }
+  return farSimp.get(step);
+}
+// 나라 밖 땅: 북한(L.out 의 kp — 휴전선 틈을 메운 것)과 Natural Earth 일본·중국·러시아의 덩어리마다 상자
+const farAbroad = [...nkLand.flatMap((f) => polysOf(f.geometry)), ...['JPN', 'CHN', 'RUS'].flatMap((a3) => polysOf(neFeats.find((f) => f.properties.ADM0_A3 === a3)?.geometry))]
+  .map((p) => ({ p, box: llBox({ type: 'Polygon', coordinates: p }) }));
+/** 넓은 상자 box 안의 먼 이웃 땅(덩어리 목록 — 경위도). mine(시·군·구 속성) = 자기 것(뺀다), step = 단순화 간격(m), core = 도려낼 상자(없으면 도려내지 않음) */
+async function farLand(box, mine, step, core = null) {
+  const sgg = (await farSggAt(step)).filter((f) => !mine(f.properties) && llHits(f.box, box));
+  const abroad = farAbroad.filter((x) => llHits(x.box, box)).map((x) => x.p);
+  const feats = [...sgg.map((f) => ({ type: 'Feature', properties: {}, geometry: f.geometry })), ...(abroad.length ? [{ type: 'Feature', properties: {}, geometry: { type: 'MultiPolygon', coordinates: abroad } }] : [])];
+  if (!feats.length) return [];
+  // 자르기·합치기를 먼저 한다: 상자만 겹치고 잘린 뒤 비는 지도(울릉군 등)는 여기서 끝난다(빈 층에 -filter-islands 를 돌리면 mapshaper 가 멈춘다)
+  const f4 = (b) => b.map((v) => v.toFixed(4)).join(',');
+  const c = await ms(`-i land.json -clip bbox=${f4(box)} ${core ? `-erase bbox=${f4(core)} ` : ''}-dissolve2 -o format=geojson geojson-type=FeatureCollection cut.json`,
+    { 'land.json': JSON.stringify({ type: 'FeatureCollection', features: feats }) });
+  const cut = fcOf(c['cut.json']).features.filter((f) => f.geometry && polysOf(f.geometry).length);
+  if (!cut.length) return [];
+  const r = await ms(`-i cut.json -simplify interval=${step} keep-shapes -filter-islands min-area=${Math.max(FAR_MIN_AREA, step ** 2)} -o format=geojson geojson-type=FeatureCollection out.json`,
+    { 'cut.json': JSON.stringify({ type: 'FeatureCollection', features: cut }) });
+  return fcOf(r['out.json']).features.flatMap((f) => polysOf(f.geometry));
+}
+/**
+ * topo T 에 far 층을 덧붙인다: 덩어리의 고리마다 호 하나(T 의 양자화 그대로 — 호 목록 끝에 더하므로 기존 호 번호·객체는 바뀌지 않는다).
+ * 양자화로 점이 셋 아래로 줄어든 고리는 뺀다. 덩어리가 없으면 아무것도 하지 않는다(far 층 없음 — 사방이 바다인 지도)
+ */
+function addFar(T, polys) {
+  const tr = T.transform;
+  if (!tr) throw new Error('addFar: 양자화 transform 이 없는 topo');
+  const arcsOf = [];
+  for (const p of polys) {
+    const rings = [];
+    for (const ring of p) {
+      const arc = [];
+      let px = 0, py = 0, n = 0;
+      for (const [lon, lat] of ring) {
+        const x = Math.round((lon - tr.translate[0]) / tr.scale[0]), y = Math.round((lat - tr.translate[1]) / tr.scale[1]);
+        if (n && x === px && y === py) continue;
+        arc.push([x - px, y - py]); px = x; py = y; n++;
+      }
+      if (n < 4) { if (!rings.length) break; continue; }   // 바깥 고리가 무너지면 덩어리째, 구멍 고리면 그 고리만 뺀다
+      rings.push([T.arcs.length]);
+      T.arcs.push(arc);
+    }
+    if (rings.length) arcsOf.push(rings);
+  }
+  if (arcsOf.length) T.objects.far = { type: 'GeometryCollection', geometries: [{ type: 'MultiPolygon', arcs: arcsOf }] };
+  return T;
+}
 let sggBoxLL = null;   // 시·군·구 id → 경위도 상자(처음 쓸 때 계산)
 async function unitTopo(sggId, scope = 'box') {
   // 나라 밖 이웃 땅(L.out — 북한 kp, E15 부터 일본 jp)은 sido 를 열쇠로
@@ -1625,22 +1759,53 @@ async function unitTopo(sggId, scope = 'box') {
     });
   }
   const text = JSON.stringify(T);
-  const pts = { cell: ptsOf(T, 'emd'), out: ptsOf(T, 'out'), water: ptsOf(T, 'water') };
+  const pts = { cell: ptsOf(T, 'emd'), out: ptsOf(T, 'out'), water: ptsOf(T, 'water'), far: 0 };
   pts.total = pts.cell + pts.out + pts.water;
-  return { text, gz: gz(text), bytes: Buffer.byteLength(text), pts, scope };
+  return { text, gz: gz(text), bytes: Buffer.byteLength(text), pts, scope, bb };
+}
+/**
+ * 단원 파일에 먼 이웃 땅(far 층)을 붙인다: 단원 전체·과·넓은 화면을 화면에 맞췄을 때 보이는 범위 + 동 전체(먼 섬까지). 자기 시·군·구는 뺀다.
+ * base = far 없는 단원 파일(unitTopo — 칸·이웃 땅·강은 그대로 둔다). scope 'box' 면 상자 안쪽을 도려낸다(out 이 다 덮는다).
+ * 붙여서 FAR_UNIT_GZ 를 넘거나 far 몫이 FAR_UNIT_ADD 를 넘으면 간격을 한 단계씩(많아야 FAR_UNIT_UP 단계) 올려 다시 만든다. 예산(FAR_UNIT_GZ)은 그 뒤에도 넘으면 끝까지 올린다
+ * (far 없이도 넘는 단원은 기본 간격 그대로)
+ */
+async function unitFar(sggId, base) {
+  const { res } = unitOf(sggId);
+  // 섬 상자(insets)가 붙는 과·화면과, 그런 화면이 하나라도 있는 단원의 전체 지도는 본 지도가 상자 줄만큼 비켜 그려진다
+  const isle = (x) => x.insets.length > 0;
+  const wide = farBox({ whole: [{ fit: llOfN(res.view ?? res.base), strip: res.screens.some(isle) }],
+    part: [...res.lessons, ...res.screens].map((x) => ({ fit: llOfN(x.box), strip: isle(x) })), keep: [unionLL(emdOfSgg.get(sggId).map((f) => f.properties.id), 'all')] });
+  const step0 = farStep(wide);
+  let got = null;
+  const steps = FAR_STEPS.filter((s) => s >= step0);
+  for (const [i, step] of steps.entries()) {
+    const T = addFar(JSON.parse(base.text), await farLand(wide, (p) => p.sggId === sggId, step, base.scope === 'box' ? farCore(base.bb) : null));
+    const text = JSON.stringify(T);
+    got = { ...base, text, gz: gz(text), bytes: Buffer.byteLength(text), pts: { ...base.pts, far: ptsOf(T, 'far') }, farStep: step, farBox: wide };
+    if (base.gz > FAR_UNIT_GZ) break;
+    // far 몫 상한은 상자 안을 이웃 땅이 덮는 단원(box)만: 맞닿은 시·군·구만 실은 단원(touch — 신안·옹진)은 far 가 가까운 둘레 땅이라 거칠게 하지 않는다
+    if (got.gz <= FAR_UNIT_GZ && (base.scope !== 'box' || got.gz - base.gz <= FAR_UNIT_ADD || i >= FAR_UNIT_UP)) break;
+  }
+  return got;
 }
 /**
  * 단원 파일: 'box' 가 예산을 넘으면 'touch'. 둘 다 재서 보고한다.
  * 모든 곳이 섬 과(섬 상자)로 보이는 단원(인천 옹진군 등)은 처음부터 'touch' — 본 지도가 화면에 나오지 않아 상자 범위의 이웃 땅은 쓰이지 않는데,
  * 먼 섬까지 든 상자를 15% 늘리면 이웃 땅이 고리 점의 72%(옹진, E3 검수)가 된다
  */
+const unitTopoMemo = new Map();   // 시·군·구 id → 단원 파일(보고·내보내기·시험용 파일이 같은 것을 다시 계산하지 않게)
 async function unitTopoFit(sggId) {
+  if (unitTopoMemo.has(sggId)) return unitTopoMemo.get(sggId);
   const { U, res } = unitOf(sggId);
-  if (res.islands.length === U.dongs.length) { const b = await unitTopo(sggId, 'touch'); return { ...b, boxGz: null, allIsland: true }; }
-  const a = await unitTopo(sggId, 'box');
-  if (a.gz <= UNIT_GZ_MAX) return { ...a, boxGz: a.gz };
-  const b = await unitTopo(sggId, 'touch');
-  return { ...b, boxGz: a.gz };
+  // scope 는 먼 이웃 땅을 붙이기 전 크기로 정한다(2026-11-17 전과 같은 판정 — 칸·이웃 땅 층은 그대로다). 먼 이웃 땅은 그 뒤에 붙인다(unitFar)
+  let got;
+  if (res.islands.length === U.dongs.length) got = { ...(await unitFar(sggId, await unitTopo(sggId, 'touch'))), boxGz: null, allIsland: true };
+  else {
+    const a = await unitTopo(sggId, 'box');
+    got = { ...(await unitFar(sggId, a.gz <= UNIT_GZ_MAX ? a : await unitTopo(sggId, 'touch'))), boxGz: a.gz };
+  }
+  unitTopoMemo.set(sggId, got);
+  return got;
 }
 
 /* ---------- --dry-all: 전국 점검 보고서(저장소에는 아무것도 쓰지 않는다) ---------- */
@@ -1787,6 +1952,7 @@ if (DRY) {
     tapFailLessons: tot((u) => u.lessonList.filter((l) => l.minTapPx < 16).length), failedUnits: failed.length, over7: tot((u) => u.lessonList.filter((l) => l.items.length > 7).length), disconnected: tot((u) => u.disconnected),
     virtualLessons: tot((u) => u.virtualLessons), mixLessons: tot((u) => u.mixLessons),
     islands: tot((u) => u.islands), islandLessons: tot((u) => u.islandLessons), insetSingles: tot((u) => u.insetSingles), virtual: tot((u) => u.virtual),
+    farIsles: tot((u) => u.far), keptIsles: tot((u) => u.kept),
     families: famAll.length, famWhole: famBy('whole'), famSplit: famBy('split'), famSplitGap: famBy('split-gap'), famFolded: famBy('folded'), famSpread: famAll.filter((f) => f.broken).length,
     center: tot((u) => u.center), renamed: tot((u) => u.renamed), suffixed: tot((u) => u.suffixed), nameFailUnits: U_.filter((u) => u.problemKinds.includes('name')).length,
     screens: tot((u) => u.screens), screensMax: Math.max(...U_.map((u) => u.screens)), screenFail: tot((u) => u.screenList.filter((s) => s.minTapPx < 16).length),
@@ -1802,6 +1968,7 @@ if (DRY) {
     `- **1·2·3곳 과 ${ES.small.join(' · ')}** · 8곳 넘는 과(외톨이를 맞닿은 과에 합친 마지막 수단) ${ES.over7} · 16px 미만 과 ${ES.tapFailLessons} · 문제가 남은 단원 **${ES.failedUnits}**`,
     `- 맞닿음: 실제로 맞닿지 않은 곳이 섞인 과 ${ES.disconnected}(가상 이웃은 이웃으로 치지 않음) · 가상 이웃(단원 안에 맞닿은 동이 없어 가까운 동과 이어 친 곳)이 든 과 ${ES.virtualLessons} · 동과 읍·면을 따로 묶은 단원에서 다른 무리의 곳이 든 섞인 과 ${ES.mixLessons}`,
     `- 섬: 먼 섬 동 ${ES.islands} · 섬 과 ${ES.islandLessons} · 섬 하나를 가까운 과의 섬 상자로 넣은 과 ${ES.insetSingles} · 맞닿은 동이 없어 가까운 동과 이어 묶은 곳 ${ES.virtual}`,
+    `- 섬 상자(D2 — 2026-11-16): 지역 표 far 규칙의 먼 섬 ${ES.farIsles}곳만 상자에 두고 가까운 섬은 본 지도로 옮긴다. **16px 때문에 상자에 남은 가까운 섬 ${ES.keptIsles}곳**: ${U_.filter((u) => u.kept).map((u) => `${u.sidoKo} ${u.ko} ${u.kept}`).join(' · ') || '없음'}`,
     `- 숫자 가족(2곳 이상) ${ES.families}: 한 과 그대로 ${ES.famWhole} · 8곳 이상이라 번호가 이어지게 나눔 ${ES.famSplit} · 8곳 이상인데 번호가 이어지게 자를 자리가 없어 반으로 자름(번호가 끊기거나 빠짐) ${ES.famSplitGap} · 서로 맞닿지 않아 규칙을 접음(맞닿은 조각만 묶음) ${ES.famFolded} · 한 과에 모으려던 조각이 16px 검사로 갈라진 가족 ${ES.famSpread}`,
     `- 과 이름: '가운데' ${ES.center}과 · 겹친 이름을 상대 방위로 고친 과 ${ES.renamed} · 그래도 겹쳐 동 이름을 붙인 과 ${ES.suffixed} · 이름 검사에 걸린 단원 ${ES.nameFailUnits}`,
     '- 과 이름 검사 기준(N7): 이름은 이름표 점의 넓이 가중 중심으로 짓고(과 2~3개면 과 중심들의 평균에서 본 상대 방위, 4개 이상이면 기준 상자 9칸, \'가운데\'는 다른 과가 세 방향 이상에서 둘러쌀 때만이고 아니면 열린 쪽 방위), 검사는 **실제 칠한 넓이 중심**으로 따로 잰다 — 방위 낱말은 과 넓이 중심이 무리의 나머지 곳들의 넓이 중심에서 그 방향 ±60도이고 둘 사이가 무리 등가 반지름의 0.1배보다 멀 것, \'가운데\'는 과 넓이 중심이 무리 넓이 중심에서 등가 반지름의 0.35배 안. 규칙 이름이 검사에 걸리면 후보 방위(9칸·열린 쪽·상대 방위·한 칸 옆) 가운데 검사를 지나는 첫 것으로 바꾸고, 겹친 이름을 풀 때도 검사를 지나는 이름만 쓴다. 후보가 다 걸리면 규칙 이름 그대로 두고 문제로 남긴다',
@@ -1902,7 +2069,7 @@ for (const R of OPEN_REGIONS) {
   put(`${R.key}-sgg.topo.json`, text);
   // 공통 완료 조건 2: 파일 gz 와 고리 점(칸 + 이웃 땅 + 강)
   const ring = ringOf(T, R.layer === 'si' ? 'si' : 'sgg');
-  note(`${R.ko} 지역 경계 파일: gz ${kb(gz(text))}KB · 고리 점 ${ring.total} = 칸 ${ring.cell} + 이웃 땅 ${ring.out} + 강 ${ring.water} · 이웃 땅 ${(T.objects.out?.geometries ?? []).map((g) => g.properties.name).join('·')}`);
+  note(`${R.ko} 지역 경계 파일: gz ${kb(gz(text))}KB · 고리 점 ${ring.total} = 칸 ${ring.cell} + 이웃 땅 ${ring.out} + 강 ${ring.water} · 먼 땅 ${ring.far} · 이웃 땅 ${(T.objects.out?.geometries ?? []).map((g) => g.properties.name).join('·')}`);
   // 일본 땅(대마도)이 실린 공개 지역(manifest context_jp — 출처 쪽 '이웃 땅' 항목이 읽는다)
   if (!R.preview && (T.objects.out?.geometries ?? []).some((g) => g.properties.sido === 'jp')) CONTEXT_JP.push(R.key);
   // 과 없는 지역(layer emd — 세종)의 칸은 시·군·구 층(sgg)
@@ -1945,6 +2112,19 @@ const SIDO_MAP_M = 400, SIDO_MAP_GZ_MAX = 35 * 1024;
   const T = JSON.parse(String(t['map.json']));
   T.objects.sido.geometries.forEach((g) => { g.properties = { id: g.properties.id, name: g.properties.name, sido: g.properties.sido, l: SIDO_M.labels[g.properties.id] }; });
   if (T.objects.out) T.objects.out.geometries = T.objects.out.geometries.filter((g) => g.type);
+  // 먼 이웃 땅(far 층 — 2026-11-17 바다 표현): 나라 안은 모두 칸이라 나라 밖 땅만(북위 39.4도 위 북한·일본·중국·러시아). 범위는 시·도 단원(korea)의 전체·과·넓은 화면
+  {
+    const b = KOREA ?? { fit: unionLL(L.sgg.features.map((f) => f.properties.sggId), 'all'), lessons: [], screens: [] };
+    const wide = farBox({ whole: [b.fit], part: [...b.lessons.map((l) => l.fit), ...b.screens.map((s) => s.fit)] });
+    // 예산(SIDO_MAP_GZ_MAX)을 넘으면 간격을 한 단계씩 올린다(나라 밖 땅은 화면 가장자리 배경)
+    const bare = JSON.stringify(T);
+    for (const step of FAR_STEPS.filter((s) => s >= farStep(wide, FAR_PX_KOREA))) {
+      const withFar = addFar(JSON.parse(bare), await farLand(wide, () => true, step));
+      T.arcs = withFar.arcs;
+      if (withFar.objects.far) T.objects.far = withFar.objects.far; else delete T.objects.far;
+      if (gz(JSON.stringify(T)) <= SIDO_MAP_GZ_MAX - 1024) break;
+    }
+  }
   const ids = T.objects.sido.geometries.map((g) => g.properties.id);
   if (ids.length !== SIDO.length || ids.some((id) => !SIDO_M.labels[id])) throw new Error(`전국 시·도 지도: 칸 ${ids.length}(기대 ${SIDO.length}) 또는 이름표 점 없음`);
   // 점검 섬(계획서 E10 완료 조건 2 · N23): 독도·울릉도·마라도·백령도의 점검 점(pipeline/data/probes.json — 원자료 덩어리의 polylabel 점, 백령도는 좌표)이
@@ -1965,7 +2145,7 @@ const SIDO_MAP_M = 400, SIDO_MAP_GZ_MAX = 35 * 1024;
   if (gz(text) > SIDO_MAP_GZ_MAX) throw new Error(`전국 시·도 지도: gz ${kb(gz(text))}KB(>${kb(SIDO_MAP_GZ_MAX)}KB, 7절 예산)`);
   put('sido.topo.json', text);
   const ring = ringOf(T, 'sido');
-  note(`전국 시·도 지도(${SIDO_MAP_M}m): gz ${kb(gz(text))}KB · 고리 점 ${ring.total} = 칸 ${ring.cell} + 이웃 땅 ${ring.out} · 덧붙인 점검 섬 ${kept.join('·')} · 범위 [${bb.map((v) => v.toFixed(4)).join(', ')}]`);
+  note(`전국 시·도 지도(${SIDO_MAP_M}m): gz ${kb(gz(text))}KB · 고리 점 ${ring.total} = 칸 ${ring.cell} + 이웃 땅 ${ring.out} · 먼 땅 ${ring.far} · 덧붙인 점검 섬 ${kept.join('·')} · 범위 [${bb.map((v) => v.toFixed(4)).join(', ')}]`);
 }
 // 같은 이름 시·군·구(계획서 2.3 · N12 · E11): 전국에서 두 시·도 이상에 있는 시·군·구 이름(중구 5·동구 5·서구 4·남구 4·북구 4·강서구 2·고성군 2 = 26곳).
 // 앱은 지역이 섞이는 화면(오늘 복습·복습 목록)에서 이 이름의 곳·동 단원에 시·도 이름을 붙인다('부산 중구' — 아직 연 지역에 겹치는 곳이 없어도 같은 이름이면).

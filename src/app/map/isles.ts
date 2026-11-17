@@ -90,7 +90,8 @@ export const fitK = (v: Box, w: number, h: number) => Math.min(w / Math.max(1e-9
  * east(섬이 모두 본 지도 동쪽 — 머리 주석)면 세로 줄은 오른쪽 끝, 가로 줄은 오른쪽 끝에 붙인다(상자 차례는 그대로 지리 차례). 격자에는 쓰지 않는다.
  * boxes[i] 는 views[i] 의 자리다. 자리 차례(slot)는 지리 차례(머리 주석)
  */
-export function layoutIsles(views: Box[], area: IsleRect, grid: boolean, east = false): IsleLayout {
+export function layoutIsles(views: Box[], area: IsleRect, grid: boolean, east = false, noteH = ISLE_NOTE_H): IsleLayout {
+  // noteH = '먼 섬' 글 칸 높이(줄 모드만 — 글과 막대가 상자 묶음보다 넓어 막대를 아래 줄로 내리면 두 줄 높이, 결정표 D111). 줄의 방향·상자 크기(stripFit)는 한 줄 높이로 정한 그대로
   const n = views.length, g = ISLE_GAP;
   const cx = (i: number) => (views[i][0] + views[i][2]) / 2, cy = (i: number) => (views[i][1] + views[i][3]) / 2;
   const idx = views.map((_, i) => i);
@@ -119,14 +120,14 @@ export function layoutIsles(views: Box[], area: IsleRect, grid: boolean, east = 
   const boxes: IsleRect[] = [];
   if (col) {
     // 세로 줄: 위에서 아래로, 높이(글 줄 빼고)가 모자라면 옆 줄로(왼쪽 줄은 오른쪽으로, 오른쪽 줄은 왼쪽으로 늘어난다)
-    const per = Math.max(1, Math.floor((area.h - ISLE_NOTE_H + g) / (Hh + g)));
+    const per = Math.max(1, Math.floor((area.h - noteH + g) / (Hh + g)));
     const cols = Math.ceil(n / per), rows = Math.min(n, per);
     const width = cols * W + (cols - 1) * g;
     const x0 = east ? area.x + area.w - width : area.x;
     for (let i = 0; i < n; i++) boxes.push({ x: x0 + Math.floor(i / per) * (W + g), y: area.y + (i % per) * (Hh + g), w: W, h: Hh });
     const order = [...idx].sort((a, b) => cy(a) - cy(b) || cx(a) - cx(b));   // 북→남
     const nw = Math.max(width, W);
-    return { mode: 'col', side, boxes: place(order, boxes), note: { x: east ? area.x + area.w - nw : area.x, y: area.y + rows * (Hh + g) - g - 1, w: nw, h: ISLE_NOTE_H + 1 }, shift: { l: east ? 0 : width + 2 * g, r: east ? width + 2 * g : 0, b: 0 }, minK: Math.min(...views.map((v) => fitK(v, W, Hh))) };
+    return { mode: 'col', side, boxes: place(order, boxes), note: { x: east ? area.x + area.w - nw : area.x, y: area.y + rows * (Hh + g) - g - 1, w: nw, h: noteH + 1 }, shift: { l: east ? 0 : width + 2 * g, r: east ? width + 2 * g : 0, b: 0 }, minK: Math.min(...views.map((v) => fitK(v, W, Hh))) };
   }
   // 아래 가로 줄: 서→동 차례로 왼쪽부터(east 면 줄 전체를 오른쪽 끝에 붙인다), 폭이 모자라면 윗줄로. '먼 섬' 칸은 줄 위
   const per = Math.max(1, Math.floor((area.w + g) / (W + g)));
@@ -135,9 +136,9 @@ export function layoutIsles(views: Box[], area: IsleRect, grid: boolean, east = 
   const rowW = Math.min(area.w, Math.min(n, per) * (W + g) - g);
   const x0 = east ? area.x + area.w - rowW : area.x;
   for (let i = 0; i < n; i++) boxes.push({ x: x0 + (i % per) * (W + g), y: top + Math.floor(i / per) * (Hh + g), w: W, h: Hh });
-  const height = rows * Hh + (rows - 1) * g + ISLE_NOTE_H;
+  const height = rows * Hh + (rows - 1) * g + noteH;
   const order = [...idx].sort((a, b) => cx(a) - cx(b) || cy(a) - cy(b));   // 서→동
-  return { mode: 'row', side, boxes: place(order, boxes), note: { x: x0, y: top - ISLE_NOTE_H, w: rowW, h: ISLE_NOTE_H + 1 }, shift: { l: 0, r: 0, b: height + g }, minK: Math.min(...views.map((v) => fitK(v, W, Hh))) };
+  return { mode: 'row', side, boxes: place(order, boxes), note: { x: x0, y: top - noteH, w: rowW, h: noteH + 1 }, shift: { l: 0, r: 0, b: height + g }, minK: Math.min(...views.map((v) => fitK(v, W, Hh))) };
 }
 
 /** 줄(세로·가로)이 차지해도 되는 몫: 지도 칸 폭(세로 줄)·높이(가로 줄)의 이만큼까지 — 넘으면 stripFit 이 다른 방향이나 작은 상자로 바꾼다 */

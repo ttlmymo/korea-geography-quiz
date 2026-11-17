@@ -1,12 +1,12 @@
 /* 채움지도 디자인 토큰: 합본(2026-11-13 확정) — 흰 바탕에 먹색 글자·단추·선, 색은 지도에만.
-   초록 두 단계 = 익힌 곳, 노랑 = 지금 배울 곳, 하늘 = 물. 글꼴은 IBM Plex Sans KR 하나(굵기 400·600·700) */
+   초록 두 단계 = 익힌 곳, 노랑 = 지금 배울 곳, 하늘 = 물(강은 옅게, 바다는 조금 더 파랗게). 글꼴은 IBM Plex Sans KR 하나(굵기 400·600·700) */
 :root {
   color-scheme: only light;
 
   /* 바탕·글자·선 */
   --paper: #FFFFFF;
   --surface: #FFFFFF;
-  --sunk: #EFF1EE;            /* 면: 지도 바탕, 눌린 자리 */
+  --sunk: #EFF1EE;            /* 면: 지도 칸 자리, 이웃 땅, 눌린 자리 */
   --line: #DCE0DD;            /* 약한 선: 칸 사이 */
   --line-mid: #8A938F;        /* 중간 선: 막대 틀, 흐린 네모 테두리 */
   --frame: #C9CFCB;           /* 지도 틀 */
@@ -32,15 +32,18 @@
   --m-learning: #7FD0A8;
   --m3: #0D7B50;              /* 위에 흰 글자 5.29:1 */
 
-  /* 지도: 바탕(지역 밖·바다)은 면색, 물색은 한강 같은 지역 안 물에만. 선은 먹색(칸 경계 1px, 지역 외곽선 굵게) */
-  --map-bg: #EFF1EE;          /* 지도 바탕: 바다·이웃 땅 */
-  --map-water: #BEDCF3;
-  --map-out: #EFF1EE;
+  /* 지도: 바탕은 바다색, 이웃 땅(다른 시·도·시·군·구·나라 밖 땅)은 면색, 강(한강 등 강 띠)은 옅은 물색. 선은 먹색(칸 경계 1px, 지역 외곽선 굵게).
+     2026-11-17 사용자 결정 '모든 지도에 바다를 표현, 바다 색은 강보다 조금 더 파란색'(docs/SEA_PLAN_2026-11-16.md) — 전에는 바다와 이웃 땅이 같은 면색이었다.
+     바다색은 강과 색차(CIE76) 9.9 · 이웃 땅과 28 · 흰 칸과 30 · 초록 칸과 45(적록 색각 흉내에서도 강 9~11 · 나머지 23 이상) */
+  --map-bg: #EFF1EE;          /* 지도 칸 자리(지도를 받기 전) */
+  --map-sea: #A3CDF2;         /* 바다(지도 바탕) */
+  --map-water: #BEDCF3;       /* 강 */
+  --map-out: #EFF1EE;         /* 이웃 땅 */
   --map-ctx: #EFF1EE;         /* 이번 과가 아닌 칸 */
   --map-ctx-edge: #C4CAC6;    /* 그 칸의 선 */
   --map-edge: #15191A;
   --map-edge-strong: #15191A;
-  --map-water-ink: #335E7A;   /* 강 이름 글자: 물색 위 4.87:1 · 바탕 위 6.1:1 */
+  --map-water-ink: #234E6B;   /* 강·바다 이름 글자: 바다색 위 5.30:1 · 강색 위 6.20:1 · 이웃 땅 위 7.79:1 (2026-11-17 전 #335E7A — 바다색 위 4.16:1 이라 더 짙게) */
   --q-outline: #15191A;
   --sw-edge: rgba(21, 25, 26, .55);   /* 범례 네모 테두리 */
   /* 묶음 칠: 정적 쪽 지도에서 한강 남북·권역 같은 무리를 나눌 때만(표에 색 견본을 함께 둔다).
@@ -225,7 +228,7 @@ button, input, select, textarea { font-family: inherit; }
 .tbl td > a { display: inline-block; padding-block: 10px; margin-block: -10px; }
 .tbl tbody tr:last-child > * { border-bottom: 0; }
 .tbl td:first-child { white-space: nowrap; }
-/* 영어 폰: 첫 칸('1. Downtown and northwest')이 줄을 막으면 둘째 칸이 좁아져 이름이 하이픈에서 끊긴다 */
+/* 영어 폰: 첫 칸(전에는 '1. Downtown and northwest' — 2026-11-17 부터 서울 과 이름은 방위 'Northwest')이 줄을 막으면 둘째 칸이 좁아져 이름이 하이픈에서 끊긴다 */
 @media (max-width: 599px) { html[lang="en"] .tbl td:first-child { white-space: normal; } }
 .tbl td p { margin: 0 0 6px; }
 .tbl td p:last-child { margin-bottom: 0; }

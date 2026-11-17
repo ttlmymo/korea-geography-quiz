@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<title>이름표 손으로 놓기 (개발용)</title>
+<!--
+  개발용 도구(운영에 나가지 않는다): 지도 화면 하나를 띄워 이름·점·지시선을 마우스로 끌어 놓고, 그 자리를 내보낸다.
+  쓰는 법: 빌드한 dist 에 이 파일을 __arrange.html 로 복사하고 미리보기 서버(8793)에서 /__arrange.html 을 연다.
+  (dist 는 빌드할 때마다 지워지므로 운영 빌드에 섞이지 않는다)
+  2026-11-17 사용자: '많이 어긋난 한 개를 내가 직접 마우스로 정리할 수 있게 — 그걸 기준 삼아 다른 곳을 손보자'
+-->
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 'Malgun Gothic', system-ui, sans-serif; color: #15191A; background: #E3E6E2; display: flex; height: 100vh; }
+  aside { width: 320px; flex: none; background: #fff; border-right: 1px solid #C9CFCB; padding: 16px; overflow: auto; }
+  main { flex: 1; overflow: auto; padding: 24px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 18px 0 6px; }
+  p { margin: 4px 0; color: #454D50; }
+  label { display: block; margin: 8px 0 2px; font-weight: 600; }
+  select, input, button, textarea { font: inherit; }
+  select, input[type=text] { width: 100%; padding: 6px; border: 1px solid #15191A; background: #fff; }
+  button { padding: 8px 12px; border: 1px solid #15191A; background: #fff; cursor: pointer; }
+  button.main { background: #15191A; color: #fff; width: 100%; margin-top: 10px; font-weight: 700; }
+  button:disabled { opacity: .4; cursor: default; }
+  .row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .row button { flex: 1; }
+  ol { margin: 4px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  kbd { border: 1px solid #5F686B; padding: 0 4px; font: inherit; background: #F4F5F3; }
+  #state { margin-top: 10px; padding: 8px; background: #FFF4C2; border: 1px solid #15191A; font-weight: 600; }
+  #state.edit { background: #CFEEDD; }
+  #log { margin-top: 8px; color: #454D50; min-height: 20px; }
+  textarea { width: 100%; height: 150px; margin-top: 8px; font: 12px/1.4 Consolas, monospace; }
+  #stage { transform-origin: 0 0; display: inline-block; background: #fff; box-shadow: 0 0 0 1px #15191A; }
+  iframe { display: block; border: 0; background: #fff; }
+</style>
+<body>
+<aside>
+  <h1>이름표 손으로 놓기</h1>
+  <p>화면 하나를 띄워 이름·점·선을 마우스로 맞춥니다. 여기서 맞춘 자리는 사이트에 바로 들어가지 않고, 기준으로만 씁니다.</p>
+
+  <label for="screen">화면</label>
+  <select id="screen"></select>
+  <label for="hash">또는 주소(#/kr/… 로 시작)</label>
+  <input type="text" id="hash" placeholder="#/kr/gyeonggi/explore">
+  <label for="size">화면 크기</label>
+  <select id="size">
+    <option value="390x844">폰 390×844</option>
+    <option value="360x800">폰 360×800</option>
+    <option value="390x664">낮은 폰 390×664</option>
+    <option value="844x390">가로 폰 844×390</option>
+    <option value="768x1024">태블릿 768×1024</option>
+    <option value="1440x900">PC 1440×900</option>
+  </select>
+  <label for="lang">언어</label>
+  <select id="lang"><option value="ko">한국어</option><option value="en">영어</option></select>
+  <label for="wheel">휠로 지도 키우는 폭</label>
+  <select id="wheel"><option value="1">보통(사이트와 같음 — 한 칸 16%)</option><option value="0.3" selected>촘촘하게(한 칸 5%)</option><option value="0.1">아주 촘촘하게(한 칸 1.5%)</option></select>
+  <label for="zoom">크게 보기</label>
+  <select id="zoom"><option value="1">1배</option><option value="1.5" selected>1.5배</option><option value="2">2배</option></select>
+  <button class="main" id="load">이 화면 열기</button>
+
+  <div id="state">① 화면을 여세요</div>
+
+  <h2>순서</h2>
+  <ol>
+    <li>화면을 연 뒤, 지도 보기 화면이면 지도를 <b>끌거나 휠로 키워</b> 크기와 자리를 먼저 맞춥니다(휠 폭은 위에서 고릅니다).</li>
+    <li><b>이름 맞추기 시작</b>을 누릅니다(그 뒤로는 지도가 움직이지 않습니다).</li>
+    <li>이름을 <b>끌어서</b> 옮깁니다. 멀리 옮기면 원래 자리에 점이 남고 선이 이어집니다.</li>
+    <li>점도 끌 수 있습니다. 이름을 <b>두 번 누르면</b> 선이 켜지고 꺼집니다.</li>
+    <li>이름을 누른 뒤 <kbd>Delete</kbd> 를 누르면 그 이름을 숨깁니다. <kbd>Ctrl</kbd>+<kbd>Z</kbd> 는 한 단계 되돌리기입니다.</li>
+    <li>다 맞추면 <b>저장</b>을 누르고 Claude 에게 "다 했어"라고 알려 주세요.</li>
+  </ol>
+
+  <button class="main" id="edit" disabled>이름 맞추기 시작</button>
+  <div class="row">
+    <button id="undo" disabled>되돌리기</button>
+    <button id="reset" disabled>처음으로</button>
+  </div>
+  <button class="main" id="save" disabled>저장</button>
+  <div id="log"></div>
+  <textarea id="out" readonly placeholder="저장하면 맞춘 자리가 여기에 나옵니다(Claude 가 직접 읽으니 복사하지 않아도 됩니다)"></textarea>
+</aside>
+<main><div id="stage"><iframe id="f" title="지도 화면"></iframe></div></main>
+
+<script>
+const SCREENS = [
+  ['경기 지도 보기', '#/kr/gyeonggi/explore'],
+  ['충남 지도 보기', '#/kr/chungnam/explore'],
+  ['전북 지도 보기', '#/kr/jeonbuk/explore'],
+  ['경남 지도 보기', '#/kr/gyeongnam/explore'],
+  ['마포구 3과 시작', '#/kr/seoul/emd/mapo-gu/p3'],
+  ['구미시 1과 시작', '#/kr/gyeongbuk/emd/gumi-si/p1'],
+  ['서울 1과 시작', '#/kr/seoul/sgg/p1'],
+  ['강릉시 1과 시작', '#/kr/gangwon/emd/gangneung-si/p1'],
+  ['여수시 지도 보기', '#/kr/jeonnam-gwangju/emd/yeosu-si/explore'],
+];
+const $ = (id) => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+for (const [t, h] of SCREENS) $('screen').add(new Option(t, h));
+const f = $('f'), stage = $('stage');
+let S = null;          // 편집 상태: { items, doc, hist }
+let seq = 0;
+const log = (t) => { $('log').textContent = t; };
+const setState = (t, edit) => { $('state').textContent = t; $('state').classList.toggle('edit', !!edit); };
+
+function applyZoom() {
+  const k = +$('zoom').value, [w, h] = $('size').value.split('x').map(Number);
+  stage.style.transform = `scale(${k})`;
+  stage.style.width = `${w}px`; stage.style.height = `${h}px`;
+  stage.parentElement.style.minWidth = `${w * k + 48}px`;
+  stage.parentElement.style.minHeight = `${h * k + 48}px`;
+}
+$('zoom').onchange = applyZoom;
+
+$('load').onclick = () => {
+  const [w, h] = $('size').value.split('x').map(Number);
+  const hash = ($('hash').value.trim() || $('screen').value);
+  if (!/^#\/kr\//.test(hash)) { log('주소는 #/kr/ 로 시작해야 합니다'); return; }
+  S = null;
+  f.style.width = `${w}px`; f.style.height = `${h}px`;
+  applyZoom();
+  // 주소(해시)만 바꾸면 다시 열리지 않으므로 물음표 뒤 값을 바꿔 새로 연다
+  f.src = `${$('lang').value === 'en' ? '/en/' : '/'}?arrange=${++seq}${hash}`;
+  for (const id of ['edit', 'undo', 'reset', 'save']) $(id).disabled = true;
+  setState('화면을 여는 중…');
+  f.onload = () => setTimeout(() => {
+    // 휠을 촘촘하게: 원래 휠을 막고 폭을 줄인 휠을 다시 보낸다(사이트의 동작은 그대로 — 이 도구 안에서만)
+    const fd = f.contentDocument, fw = f.contentWindow;
+    fd.addEventListener('wheel', (e) => {
+      if (e.__fine) return;
+      const k = +$('wheel').value;
+      if (k === 1) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      const ev = new fw.WheelEvent('wheel', { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY, deltaX: e.deltaX * k, deltaY: e.deltaY * k, deltaMode: e.deltaMode, ctrlKey: e.ctrlKey });
+      ev.__fine = true;
+      e.target.dispatchEvent(ev);
+    }, { capture: true, passive: false });
+    const n = f.contentDocument.querySelectorAll('.cmap svg').length;
+    if (!n) { setState('이 화면에는 지도가 없습니다. 다른 화면을 여세요'); return; }
+    $('edit').disabled = false; $('reset').disabled = false;
+    setState('② 지도 크기·자리를 맞춘 뒤 [이름 맞추기 시작]');
+    log(`지도 ${n}개`);
+  }, 2500);
+};
+$('reset').onclick = () => $('load').click();
+
+/* ---------- 좌표 ---------- */
+const tfOf = (g) => { const m = /translate\(([-\d.e]+)[ ,]+([-\d.e]+)\)\s*scale\(([-\d.e]+)\)/.exec(g.getAttribute('transform') || ''); return m ? { x: +m[1], y: +m[2], u: +m[3] } : null; };
+const setTf = (g, t) => g.setAttribute('transform', `translate(${t.x} ${t.y}) scale(${t.u})`);
+/** 상자(g 안 좌표, px)에서 점(px)에 가장 가까운 곳 / 가운데 쪽 */
+const nearestOn = (b, p) => [Math.min(b.x + b.width, Math.max(b.x, p[0])), Math.min(b.y + b.height, Math.max(b.y, p[1]))];
+const towardCenter = (b, p) => {
+  const cx = b.x + b.width / 2, cy = b.y + b.height / 2, hw = b.width / 2, hh = b.height / 2, dx = p[0] - cx, dy = p[1] - cy;
+  if (Math.abs(dx) <= hw && Math.abs(dy) <= hh) return [p[0], p[1]];
+  const t = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
+  return [cx + dx * t, cy + dy * t];
+};
+
+/* ---------- 항목 모으기 ---------- */
+// 항목 = 이름 하나. name = 이름이 놓인 묶음(g), dot = 점·선이 든 묶음(g, 없을 수 있음), 한 묶음 안에 둘 다 든 것(칸 밖 이름표)은 joint
+function collect(doc) {
+  const items = [];
+  for (const svg of doc.querySelectorAll('.cmap svg')) {
+    for (const g of svg.querySelectorAll('g.cm-label')) {
+      const text = g.querySelector('text'); if (!text) continue;
+      if (g.classList.contains('out')) items.push({ kind: g.querySelector('.cm-plate') ? '칸 이름표(흰 판)' : '칸 이름표(선)', svg, joint: g, text, t: text.textContent });
+      else items.push({ kind: '칸 이름표', svg, name: g, text, t: text.textContent, lineCls: 'label' });
+    }
+    for (const g of svg.querySelectorAll('g.cm-ctxname')) {
+      const text = g.querySelector('text'); if (!text) continue;
+      const prev = g.previousElementSibling;
+      const lead = g.classList.contains('lead') && prev && prev.classList.contains('cm-ctxlead') ? prev : null;
+      const kind = g.classList.contains('water') ? '강 이름' : g.classList.contains('cell') ? '길잡이 이름' : '이웃 이름';
+      items.push({ kind, svg, name: g, dot: lead, text, t: text.textContent, lineCls: 'ctx' });
+    }
+    for (const g of svg.querySelectorAll('g.cm-seaname')) {
+      const text = g.querySelector('text'); if (!text) continue;
+      items.push({ kind: '바다 이름', svg, name: g, text, t: text.textContent, lineCls: null });
+    }
+  }
+  return items;
+}
+
+/** 항목의 지금 상태(되돌리기·내보내기용) */
+function snap(it) {
+  if (it.joint) {
+    const plate = it.joint.querySelector('.cm-plate');
+    return { tf: it.joint.getAttribute('transform'), tx: it.text.getAttribute('x'), ty: it.text.getAttribute('y'), px: plate && plate.getAttribute('x'), py: plate && plate.getAttribute('y'),
+      d: it.joint.querySelector('path') && it.joint.querySelector('path').getAttribute('d'), hide: it.joint.style.display, line: it.joint.querySelector('path') ? it.joint.querySelector('path').style.display : '' };
+  }
+  return { tf: it.name.getAttribute('transform'), dtf: it.dot ? it.dot.getAttribute('transform') : null, hasDot: !!it.dot, d: it.dot ? it.dot.querySelector('path').getAttribute('d') : null,
+    hide: it.name.style.display, line: it.dot ? it.dot.style.display : '' };
+}
+function restore(it, s) {
+  if (it.joint) {
+    const plate = it.joint.querySelector('.cm-plate'), path = it.joint.querySelector('path');
+    it.joint.setAttribute('transform', s.tf); it.text.setAttribute('x', s.tx); it.text.setAttribute('y', s.ty);
+    if (plate) { plate.setAttribute('x', s.px); plate.setAttribute('y', s.py); }
+    if (path) { path.setAttribute('d', s.d); path.style.display = s.line; }
+    const c = it.joint.querySelector('circle'); if (c) c.style.display = s.line;
+    it.joint.style.display = s.hide;
+    return;
+  }
+  it.name.setAttribute('transform', s.tf); it.name.style.display = s.hide;
+  if (it.dot && !s.hasDot) { it.dot.remove(); it.dot = null; }
+  if (it.dot) { it.dot.setAttribute('transform', s.dtf); it.dot.querySelector('path').setAttribute('d', s.d); it.dot.style.display = s.hide === 'none' ? 'none' : s.line; }
+}
+
+/** 선을 다시 긋는다(점 → 이름) */
+function redraw(it) {
+  if (it.joint) {
+    const path = it.joint.querySelector('path'); if (!path) return;
+    const plate = it.joint.querySelector('.cm-plate');
+    const b = plate ? plate.getBBox() : it.text.getBBox();
+    const e = plate ? nearestOn(b, [0, 0]) : towardCenter({ x: b.x - 2, y: b.y - 1, width: b.width + 4, height: b.height + 2 }, [0, 0]);
+    path.setAttribute('d', `M0 0L${e[0].toFixed(1)} ${e[1].toFixed(1)}`);
+    return;
+  }
+  if (!it.dot) return;
+  const n = tfOf(it.name), d = tfOf(it.dot), bb = it.text.getBBox();
+  const off = [(n.x - d.x) / d.u, (n.y - d.y) / d.u];
+  const b = { x: off[0] + bb.x - 2, y: off[1] + bb.y - 1, width: bb.width + 4, height: bb.height + 2 };
+  const e = towardCenter(b, [0, 0]);
+  it.dot.querySelector('path').setAttribute('d', `M0 0L${e[0].toFixed(1)} ${e[1].toFixed(1)}`);
+}
+
+/** 이름만 있던 것에 점·선을 만든다(점 = 처음 자리) */
+function addDot(it) {
+  if (it.joint || it.dot || !it.lineCls) return;
+  const base = tfOf(it.base), g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', it.lineCls === 'ctx' ? 'cm-ctxlead' : 'cm-label out');
+  setTf(g, base);
+  const path = document.createElementNS(NS, 'path'), c = document.createElementNS(NS, 'circle');
+  if (it.lineCls === 'ctx') c.setAttribute('r', '2.5'); else { path.setAttribute('class', 'cm-leader'); c.setAttribute('class', 'cm-leader-dot'); c.setAttribute('r', '3'); }
+  g.append(path, c);
+  it.name.parentNode.insertBefore(g, it.name);
+  it.dot = g; it.made = true;
+  bindDot(it);
+  redraw(it);
+}
+
+/* ---------- 끌기 ---------- */
+let sel = null, ring = null;
+function mark(it) {
+  sel = it;
+  if (ring) ring.remove();
+  if (!it) return;
+  const r = it.text.getBoundingClientRect(), doc = S.doc;
+  ring = doc.createElement('div');
+  Object.assign(ring.style, { position: 'fixed', left: `${r.left - 3}px`, top: `${r.top - 3}px`, width: `${r.width + 6}px`, height: `${r.height + 6}px`, outline: '2px dashed #D9480F', pointerEvents: 'none', zIndex: 99999 });
+  doc.body.appendChild(ring);
+  log(`${it.kind} '${it.t}'`);
+}
+const push = () => { S.hist.push(S.items.map(snap)); if (S.hist.length > 80) S.hist.shift(); $('undo').disabled = false; };
+function undo() {
+  const h = S.hist.pop(); if (!h) return;
+  S.items.forEach((it, i) => restore(it, h[i]));
+  mark(null); $('undo').disabled = !S.hist.length;
+}
+$('undo').onclick = undo;
+
+function drag(el, onMove, it) {
+  el.style.cursor = 'move';
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    push();
+    try { el.setPointerCapture(e.pointerId); } catch { /* 잡지 못해도 끌기는 된다 */ }
+    const k = 1 / it.svg.getScreenCTM().a;   // 화면 1px = 지도 단위 k
+    let lx = e.clientX, ly = e.clientY, moved = false;
+    const mv = (ev) => { const dx = ev.clientX - lx, dy = ev.clientY - ly; if (!dx && !dy) return; lx = ev.clientX; ly = ev.clientY; moved = true; onMove(dx, dy, k); mark(it); };
+    const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); if (!moved) { S.hist.pop(); $('undo').disabled = !S.hist.length; } mark(it); };
+    el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
+  });
+}
+function bindDot(it) {
+  const c = it.dot.querySelector('circle');
+  c.style.pointerEvents = 'all';
+  drag(c, (dx, dy, k) => { const t = tfOf(it.dot); t.x += dx * k; t.y += dy * k; setTf(it.dot, t); redraw(it); }, it);
+}
+function bind(it) {
+  it.base = (it.joint || it.name).cloneNode(false);   // 처음 자리(transform)
+  it.first = snap(it);
+  it.firstRect = it.text.getBoundingClientRect();
+  if (it.joint) {
+    const plate = it.joint.querySelector('.cm-plate'), circle = it.joint.querySelector('circle');
+    const moveName = (dx, dy) => {
+      it.text.setAttribute('x', (+it.text.getAttribute('x') + dx).toFixed(1)); it.text.setAttribute('y', (+it.text.getAttribute('y') + dy).toFixed(1));
+      if (plate) { plate.setAttribute('x', (+plate.getAttribute('x') + dx).toFixed(1)); plate.setAttribute('y', (+plate.getAttribute('y') + dy).toFixed(1)); }
+      redraw(it);
+    };
+    drag(it.text, moveName, it);
+    if (plate) drag(plate, moveName, it);
+    if (circle) { circle.style.pointerEvents = 'all'; drag(circle, (dx, dy, k) => { const t = tfOf(it.joint); t.x += dx * k; t.y += dy * k; setTf(it.joint, t); moveName(-dx, -dy); }, it); }
+  } else {
+    drag(it.text, (dx, dy, k) => {
+      const t = tfOf(it.name); t.x += dx * k; t.y += dy * k; setTf(it.name, t);
+      // 처음 자리에서 12px 넘게 옮기면 점·선을 만든다(바다 이름은 빼고)
+      if (!it.dot && it.lineCls) { const b = tfOf(it.base); if (Math.hypot(t.x - b.x, t.y - b.y) / t.u > 12) addDot(it); }
+      redraw(it);
+    }, it);
+    if (it.dot) bindDot(it);
+  }
+  // 두 번 누르면 선 켜고 끄기
+  it.text.addEventListener('dblclick', (e) => {
+    e.preventDefault(); e.stopPropagation(); push();
+    if (it.joint) { for (const el of it.joint.querySelectorAll('path, circle')) el.style.display = el.style.display === 'none' ? '' : 'none'; }
+    else if (it.dot) it.dot.style.display = it.dot.style.display === 'none' ? '' : 'none';
+    else addDot(it);
+  });
+}
+
+$('edit').onclick = () => {
+  const doc = f.contentDocument, win = f.contentWindow;
+  const items = collect(doc);
+  if (!items.length) { log('이 화면의 지도에는 이름이 없습니다'); return; }
+  // 이름·점이 눌리게 하고, 그 밖의 조작(지도 끌기·휠·칸 누르기)은 막는다
+  const st = doc.createElement('style');
+  st.textContent = '.cm-ctx, .cm-labels, .cm-ctx text, .cm-labels text, .cm-labels rect { pointer-events: all !important; } .cmap text { user-select: none; -webkit-user-select: none; }';
+  doc.head.appendChild(st);
+  const block = (e) => { if (!e.target.closest || !e.target.closest('.cm-ctx, .cm-labels')) { e.stopPropagation(); e.preventDefault(); } };
+  for (const ev of ['pointerdown', 'pointerup', 'click', 'wheel', 'touchstart', 'mousedown', 'dblclick']) doc.addEventListener(ev, block, { capture: true, passive: false });
+  doc.addEventListener('keydown', (e) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); push(); (sel.joint || sel.name).style.display = 'none'; if (sel.dot) sel.dot.style.display = 'none'; mark(null); }
+    if (e.key.toLowerCase() === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); }
+  }, true);
+  S = { doc, win, items, hist: [] };
+  items.forEach(bind);
+  $('edit').disabled = true; $('save').disabled = false;
+  setState(`③ 이름 맞추는 중 — 이름 ${items.length}개`, true);
+  log('이름을 끌어 옮기세요');
+};
+
+/* ---------- 내보내기 ---------- */
+function exportData() {
+  if (!S) return null;
+  const doc = S.doc, maps = [...doc.querySelectorAll('.cmap')];
+  const r1 = (v) => Math.round(v * 10) / 10;
+  const out = {
+    saved: new Date().toISOString(), hash: f.contentWindow.location.hash, lang: $('lang').value, size: $('size').value,
+    maps: maps.map((m) => { const r = m.getBoundingClientRect(), svg = m.querySelector('svg'); return { rect: [r1(r.left), r1(r.top), r1(r.width), r1(r.height)], viewBox: svg ? svg.getAttribute('viewBox') : null }; }),
+    items: S.items.map((it) => {
+      const host = it.svg.closest('.cmap').getBoundingClientRect();
+      const g = it.joint || it.name, hidden = g.style.display === 'none';
+      const r = it.text.getBoundingClientRect();
+      const rel = (x) => [r1(x.left - host.left), r1(x.top - host.top), r1(x.width), r1(x.height)];
+      let dot = null, line = false, plate = false;
+      if (it.joint) {
+        const c = it.joint.querySelector('circle'), p = it.joint.querySelector('path');
+        plate = !!it.joint.querySelector('.cm-plate');
+        if (c) { const cr = c.getBoundingClientRect(); dot = [r1(cr.left + cr.width / 2 - host.left), r1(cr.top + cr.height / 2 - host.top)]; }
+        line = !!p && p.style.display !== 'none';
+      } else if (it.dot) {
+        const cr = it.dot.querySelector('circle').getBoundingClientRect();
+        dot = [r1(cr.left + cr.width / 2 - host.left), r1(cr.top + cr.height / 2 - host.top)];
+        line = it.dot.style.display !== 'none';
+      }
+      const now = rel(r), was = [r1(it.firstRect.left - host.left), r1(it.firstRect.top - host.top), r1(it.firstRect.width), r1(it.firstRect.height)];
+      const moved = Math.hypot(now[0] - was[0], now[1] - was[1]) > 0.5;
+      return { text: it.t, kind: it.kind, map: maps.indexOf(it.svg.closest('.cmap')), hidden, plate, line, dot, name: now, was, moved, madeLine: !!it.made };
+    }),
+  };
+  return out;
+}
+$('save').onclick = () => {
+  const data = exportData(); if (!data) return;
+  const text = JSON.stringify(data, null, 1);
+  $('out').value = text;
+  try { localStorage.setItem('kgq_arrange_last', text); localStorage.setItem(`kgq_arrange:${data.lang}:${data.size}:${data.hash}`, text); } catch { /* 저장 공간이 막혀 있어도 화면의 글은 남는다 */ }
+  window.__arrange = data;
+  const n = data.items.filter((x) => x.moved || x.hidden).length;
+  log(`저장했습니다 — 옮기거나 숨긴 이름 ${n}개. Claude 에게 "다 했어"라고 알려 주세요`);
+};
+applyZoom();
+</script>
+</body>
+</html>

@@ -5,14 +5,15 @@
 // 선은 칸마다 그리지 않는다: 칸 경계·외곽선·과 안 경계·묶음 둘레·굵은 테두리가 저마다 메쉬 path 하나다(동 단위 수백 칸에서도 가볍게)
 import { AMBIGUOUS_ZOOM, classifyTap, type Tap } from '../core/judge.ts';
 import { devLog } from '../devlog.ts';
-import { fitBox, labelBox, placeInside, placeOutside, scaleStep, textWidth, type InsideResult, type LabelMode, type Obstacle, type Placed } from './labelfit.ts';
+import { fitBox, labelBox, leadToCenter, placeInside, placeOutside, scaleStep, textWidth, type InsideResult, type LabelMode, type Obstacle, type Placed } from './labelfit.ts';
 import { boxHits } from './poly.ts';
 import { unionBox, type Box } from './project.ts';
-import { cornerCover, farInset, fitK, insetScale, isleEast, isleView, layoutIsles, pickCorner, scaleChip, ISLE_W, OWN_W, type Corner, type IsleCell, type IsleLayout } from './isles.ts';
+import { cornerCover, farInset, fitK, insetScale, isleEast, isleView, layoutIsles, pickCorner, scaleChip, ISLE_NOTE_H, ISLE_W, OWN_W, type Corner, type IsleCell, type IsleLayout } from './isles.ts';
 import { LOC_MARGIN, LOC_MIN, locBase, locCorners, locCover, locFrame, locLit, locRect, locShow, locSide, pickLoc, viewCover, type LocFrame } from './locator.ts';
-import { ZB_PAD, ZB_WIDE_CAP, ZOOM_ROW, zoomFit, zoomNeed, zoomPlace, zoomSize, type Rect, type ZoomCell, type ZoomLayout, type ZoomPlace } from './zoombox.ts';
+import { ZB_DOT_PX, ZB_PAD, ZB_WIDE_CAP, ZB_W_WIDE, ZOOM_ROW, zoomFit, zoomNeed, zoomPlace, zoomSize, zoomWide, type Rect, type ZoomCell, type ZoomLayout, type ZoomPlace } from './zoombox.ts';
 import { perf } from '../perf.ts';
 import { edgeDist, inside, probeAt, type Shapes } from './shapes.ts';
+import { SEA_KO, coastSeas, landMask, outDIn, seaCode, seaSpots, type SeaKey, type SeaSpot } from './sea.ts';
 import { clampView, contains, cssBetween, fitView, toMap, viewBox, zoomAround, NO_PAD, type Pad, type Size, type View } from './view.ts';
 import type { CtxCell } from '../types.ts';
 
@@ -39,6 +40,14 @@ const COVER_PX = 28;
 const SYM_R = 13;
 /** 맥락 이름 글자 크기 · 강 이름의 자간(em, map.css 와 같게) · 강 이름을 강 따라 옮기는 가장 먼 거리(px) */
 const CTX_PX = 14, WATER_SPACING = 0.3, WATER_REACH_PX = 160;
+/** 이웃 땅 이름이 다른 맥락 이름·화면에 붙은 것과 겹칠 때 옮겨 볼 가장 먼 거리(px — 옆으로 벗어나는 데 더 들면 이름 글자 폭까지)와, 옮긴 뒤 겹쳤던 것과 띄울 틈(px — drawContext ctxPlaced) */
+const NUDGE_PX = 48, NUDGE_GAP_PX = 3;
+/** 이웃 땅에 들지 않는 이웃 이름의 지시선: 점에서 이름 상자까지 가장 긴 선·가장 짧은 선(px), 자리를 찾는 격자(px), 점 반지름 */
+const LEAD_REACH_PX = 200, LEAD_MIN_PX = 6, LEAD_GRID_PX = 6, LEAD_DOT_R = 2.5;
+/** 이웃 땅 이름을 그 땅 안에 둘 때 땅 안에 들어야 하는 글자 폭의 비율(나머지는 경계에 걸쳐도 둔다) */
+const LAND_FIT = 0.85;
+/** 바다 이름이 피하는 '⤢ 전체 보기' 단추 자리(지도 칸 오른쪽 위에서 잰 폭·높이 px — 단추 + 둘레) */
+const SEA_RESET_W = 160, SEA_RESET_H = 62;
 /** 강이 지역 밖으로 흐르는 물가로 보는 거리(m): 칸 경계에서 이만큼 넘게 떨어진 강 띠 꼭짓점 */
 const SHORE_M = 300;
 /** 섬 상자(먼 섬) 안을 누르면 이만큼 안의 가장 가까운 섬으로 본다(상자 최대 크기는 isles.ts ISLE_W×ISLE_H — farInset) */
@@ -60,14 +69,28 @@ export interface MapOptions {
   /** 섬 상자 글('먼 섬'). 먼 섬 상자는 이 글 옆에, 동 단원 섬 상자는 상자마다 그 상자의 축척 막대를 둔다(2026-11-15 — 전에는 '먼 섬 · 축척 다름') */
   insetNote?: string;
   /**
+   * 섬 상자 묶음에 정말 먼 섬이 하나도 없을 때의 글('섬' — 결정표 D2 ⓑ 사용자 결정 2026-11-17: 16px 때문에 상자에 남은 가까운 섬은 '먼 섬'이 아니다).
+   * farIsles = 이 단원의 정말 먼 섬(단원 파일 far). 주지 않으면(지역 지도·옛 캐시 파일) 전처럼 insetNote
+   */
+  isleNote?: string;
+  farIsles?: readonly string[];
+  /**
    * 먼 섬 상자를 밝은 칸과 상관없이 늘 보인다(지역 전체 지도 — 과 시작: 이번 과에 먼 섬이 없어도 홈 지도처럼 지역 모양 그대로, 2026-11-15).
    * 끄면(기본) 공부할 칸에 먼 섬이 있거나 채움 지도일 때만(paintInset)
    */
   insetAlways?: boolean;
   /** 칸 밖 흰 판 이름표의 가운데를 남의 칸 위에 두지 않는다(전국 시·도 지도 — labelfit PlaceOpt.plateHome, E10 검수) */
   plateHome?: boolean;
+  /** 지시선이 남의 지시선 끝 점 곁(px)을 지나지 않게 한다(확대 상자 안 작은 지도 — labelfit PlaceOpt.dotPx · zoombox.ts ZB_DOT_PX) */
+  labelDotPx?: number;
   /** 이웃 땅·한강 이름을 흐리게 그린다(문제·둘러보기). 홈 카드처럼 작은 지도는 끈다 */
   contextNames?: boolean;
+  /**
+   * 바다 이름(map/sea.ts — 2026-11-17 사용자 결정 '바다 이름을 넣는다'): 보이는 바다의 빈자리에 '황해'·'남해'·'동해'. 기본 켬.
+   * 이름표·맥락 이름·화면에 붙은 것을 모두 놓은 뒤 남는 바다에만 두고(다른 것의 자리를 바꾸지 않는다), 자리가 없으면 그리지 않는다.
+   * 확대 상자 안 작은 지도는 끈다(본 지도에 있다). 글은 ctxName 이 바꾼다(CtxCell.sido 'sea:w'·'sea:s'·'sea:e')
+   */
+  seaNames?: boolean;
   /** 맥락 이름 바꾸기(영어 화면 — text/ui.ts ctxNamer). 이름 칸: sido 는 시도 코드(한강은 'water'), 동 단원 지도의 이웃 땅은 id·en, 일반구 단원의 나머지 칸은 id·rest */
   ctxName?(n: CtxCell): string;
   /**
@@ -105,7 +128,11 @@ export interface Marks {
 }
 
 /** 이름표 하나. tone 을 안 주면 칸 색으로 정한다(다 익힌 칸 위 = white, 그 밖 = ink) */
-export interface MapLabel { id: string; text: string; tone?: 'ink' | 'white' }
+/**
+ * 이름표 하나. tone 을 안 주면 칸 색으로 정한다(다 익힌 칸 위 = white, 그 밖 = ink).
+ * fitText = 확대 상자 범위 좁히기(zoombox.ts zoomFit alt)를 다른 말 이름 판 크기로도 잴 때 그 이름(영어 동 과 시작·요약 — 한국어 이름, ui/pages.ts)
+ */
+export interface MapLabel { id: string; text: string; tone?: 'ink' | 'white'; fitText?: string }
 
 export interface LabelOpt {
   /**
@@ -117,6 +144,8 @@ export interface LabelOpt {
   mode?: LabelMode;
   /** 이름표를 그리는 가장 좁은 지도 칸 폭(px). 기본은 fit 이면 COMPACT_PX(휴대폰 홈 지도에는 이름표 없음), 그 밖은 0(늘 그린다) */
   minWidth?: number;
+  /** fit 에서도 깨끗한 자리(남의 칸을 덮지 않고 지시선이 아무것도 지나지 않음)에만 흰 판을 쓴다(labelfit PlaceOpt.cleanPlates — 영어 동·일반구 단원 둘러보기) */
+  cleanPlates?: boolean;
 }
 
 export interface SvgMap {
@@ -207,10 +236,12 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   host.appendChild(svg);
 
   // 층(아래→위): 이웃 땅 → 칸 채움 → 한강 → 칸 경계 → 강가·외곽선 → (과 판) 과 안 경계·밝은 묶음 둘레 → 묶음 둘레 → 굵은 테두리
-  //             → 맥락 이름 → 문제 칸·판정 겹층 → 화살표 머리 → 기호 → 이름표 → 복습 점
+  //             → 맥락 이름 → 바다 이름 → 문제 칸·판정 겹층 → 화살표 머리 → 기호 → 이름표 → 복습 점
   // 묶음의 둘레·굵은 테두리는 강가(-bank)를 따로 긋는다: 강이 좁게 보이는 보기(.thin-bank)에서 강가만 가는 선으로 낮추려고
   // 이웃 땅은 바탕과 같은 면색으로만 깐다(이웃끼리 경계는 그리지 않는다 — 색은 지도 칸에만)
   const gOut = el('g', { class: 'cm-out' }, svg);
+  // 먼 이웃 땅(far 층 — 2026-11-17 바다 표현)을 이웃 땅 밑에 같은 면색으로(둘은 겹치고 고리 방향이 다를 수 있어 path 를 따로 둔다). 없는 지도는 path 를 두지 않는다
+  if (S.farD) el('path', { d: S.farD, class: 'cm-out-fill' }, gOut);
   el('path', { d: S.outD, class: 'cm-out-fill' }, gOut);
   const gCells = el('g', { class: 'cm-cells' }, svg);
   const cellEl = new Map<string, SVGPathElement>();
@@ -218,9 +249,11 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     const p = el('path', { d: S.cells.get(cid)!.d, class: 'cm-cell' }, gCells);
     cellEl.set(cid, p);
   }
-  // 물색은 지역 안의 물에만: 칸과 맞닿지 않는 강(인천 지도 구석의 한강)은 그리지 않는다(바탕색 그대로)
+  // 물색은 지역 안의 물에만: 칸과 맞닿지 않는 강(충남 지도 구석의 한강 등)은 그리지 않는다 — 이웃 땅은 강 띠를 뺀 모양이라 그 자리를 이웃 땅색으로 메운다
+  // (2026-11-17 바다 표현 — 전에는 바탕이 이웃 땅과 같은 색이라 비워 두면 됐다. 이제 비우면 바다색 띠가 된다)
   const river = S.bankD !== '';
   if (river) el('path', { d: S.waterD, class: 'cm-water' }, svg);
+  else if (S.waterD) el('path', { d: S.waterD, class: 'cm-out-fill' }, gOut);
   el('path', { d: S.edgeD, class: 'cm-edge' }, svg);
   el('path', { d: S.bankD, class: 'cm-bank' }, svg);
   el('path', { d: S.rimD, class: 'cm-rim' }, svg);
@@ -232,6 +265,8 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   const boldEl = el('path', { d: '', class: 'cm-bold' }, svg);
   const boldBank = el('path', { d: '', class: 'cm-bold cm-set-bank' }, svg);
   const gCtx = el('g', { class: 'cm-ctx' }, svg);
+  const gLead = el('g', { class: 'cm-ctx cm-lead' }, svg);
+  const gSea = el('g', { class: 'cm-ctx cm-sea' }, svg);
   const gState = el('g', { class: 'cm-state' }, svg);
   const gPx = el('g', { class: 'cm-px' }, svg);
   const gSym = el('g', { class: 'cm-px cm-syms' }, svg);
@@ -248,6 +283,8 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     box.setAttribute('aria-hidden', 'true');   // 그림의 일부: 보조 기술에는 지도 칸의 설명(aria-label)만 읽힌다
     const isvg = el('svg', { class: 'cm-inset-svg', viewBox: vb.join(' '), width: iw, height: ih, 'aria-hidden': 'true' });
     box.appendChild(isvg);
+    // 바탕은 바다색(map.css), 상자 범위에 드는 이웃 땅(백령·연평 둘레의 북한 땅 등)은 본 지도처럼 땅색으로 깐다(2026-11-17 바다 표현 — 전에는 흰 바탕에 섬만)
+    for (const d of outDIn(S, [vb[0], vb[1], vb[0] + vb[2], vb[1] + vb[3]])) if (d) el('path', { d, class: 'cm-out-fill' }, isvg);
     const paths = F.parts.map((p) => ({ id: p.id, rings: p.rings, el: el('path', { d: p.d, class: 'cm-cell' }, isvg) }));
     // 아래 칸: '먼 섬' + 막대 + 길이 글. 한 줄에 안 들면 막대가 다음 줄로 꺾인다(map.css — 상자 폭은 그림 폭과 가장 긴 조각 가운데 큰 쪽)
     const note = document.createElement('span');
@@ -288,7 +325,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     return { box, text, bar };
   })() : null;
 
-  // 위치 지도(map/locator.ts): 귀퉁이에 얹는 작은 지도. 바탕 모양 → 강 → 지역 외곽선 → 이번 과 칠 → 이번 과 둘레 → 보이는 범위 네모.
+  // 위치 지도(map/locator.ts): 귀퉁이에 얹는 작은 지도. 바다색 바탕 → 이웃 땅 → 바탕 모양 → 강 → 지역 외곽선 → 이번 과 칠 → 이번 과 둘레 → 보이는 범위 네모.
   // 그림의 일부라 보조 기술에는 읽히지 않고(aria-hidden), 누름은 밑의 본 지도로 간다(map.css). 보일지·귀퉁이는 syncLoc 이 정한다
   const loc = opt.locator ? (() => {
     const box = document.createElement('div');
@@ -297,7 +334,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     box.hidden = true;
     const lsvg = el('svg', { class: 'cm-loc-svg', 'aria-hidden': 'true', focusable: 'false' });
     const p = (cls: string) => el('path', { d: '', class: cls }, lsvg);
-    const parts = { land: p('cm-loc-land'), water: p('cm-loc-water'), rim: p('cm-loc-rim'), lit: p('cm-loc-lit'), litRim: p('cm-loc-lit-rim') };
+    const parts = { far: p('cm-loc-out'), out: p('cm-loc-out'), land: p('cm-loc-land'), water: p('cm-loc-water'), rim: p('cm-loc-rim'), lit: p('cm-loc-lit'), litRim: p('cm-loc-lit-rim') };
     const view = el('rect', { class: 'cm-loc-view' }, lsvg);
     box.appendChild(lsvg);
     host.appendChild(box);
@@ -330,6 +367,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   let labels: MapLabel[] = [];
   let labelMode: LabelMode = 'must';
   let labelMinW = COMPACT_PX;
+  let labelClean = false;
   let badges: string[] = [];
   let dimLabels: { id: string; text: string }[] = [];
   let litKey = '';             // 밝은 칸 묶음이 바뀔 때만 과 판 선을 다시 만든다
@@ -353,7 +391,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   let shoreAt = new Map<string, [number, number] | null>();
 
   /*
-   * 섬 상자(동 단원, setIsles): 섬마다 상자 하나. 상자 안에는 그 범위에 드는 칸을 모두 그린다(이웃 땅은 그리지 않는다 — 바다처럼 바탕).
+   * 섬 상자(동 단원, setIsles): 섬마다 상자 하나. 상자 안에는 그 범위에 드는 칸을 모두 그리고, 바탕은 바다색·범위에 드는 이웃 땅은 땅색(2026-11-17 — 전에는 흰 바탕에 칸만).
    * 상자마다 배율이 달라(범위를 상자에 meet 으로 맞춤) 상자 안 귀퉁이에 그 상자의 축척 칸(막대 + 길이 글)을 둔다(2026-11-15 — 전에는 묶음 글 '먼 섬 · 축척 다름' 하나).
    * 상자가 하나뿐이면(경북 울릉·여수 삼산면 등) 막대를 묶음 글 '먼 섬' 옆에 둔다 — 먼 섬 상자와 같은 꼴이고 섬 그림을 덮지 않는다(작은 정사각 상자는 어느 귀퉁이든 섬에 닿았다).
    * fit = 상자 안쪽 크기(key)가 바뀔 때만 다시 재는 막대·칸 폭·귀퉁이별 덮는 정도(그리기마다 재지 않는다 — 성능 기준)
@@ -485,20 +523,31 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     const area = { x: pad.l, y: pad.t, w: Math.max(1, size.w - pad.l - pad.r), h: Math.max(1, size.h - pad.t - pad.b - zGrow) };
     // 섬이 모두 본 지도 범위 동쪽이면(경북 울릉군) 줄을 오른쪽에(isles.ts 머리 주석 — E14 검수)
     const views = isles.map((it) => it.view);
-    isleL = layoutIsles(views, area, grid, !grid && isleEast(views, homeBox));
-    isleTray.className = `cm-isles ${isleL.mode}`;
-    isles.forEach((it, i) => {
-      const b = isleL!.boxes[i];
-      Object.assign(it.box.style, { left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` });
-      fitIsleScale(it, b.w - 2, b.h - 2);   // 상자 안쪽(테두리 1px 씩 뺀 곳)이 그림(svg)과 축척 칸의 틀
-      placeIsleScale(it);
-    });
-    const n = isleL.note;
+    const lay = (noteH: number) => {
+      const L = isleL = layoutIsles(views, area, grid, !grid && isleEast(views, homeBox), noteH);
+      isleTray!.className = `cm-isles ${L.mode}`;
+      isles.forEach((it, i) => {
+        const b = L.boxes[i];
+        Object.assign(it.box.style, { left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` });
+        fitIsleScale(it, b.w - 2, b.h - 2);   // 상자 안쪽(테두리 1px 씩 뺀 곳)이 그림(svg)과 축척 칸의 틀
+        placeIsleScale(it);
+      });
+      return L;
+    };
+    let L = lay(ISLE_NOTE_H);
+    // 글과 막대가 한 줄로는 상자 묶음보다 넓으면(영어 'Far islands ━ 2km' — 상자 하나 128px) 막대를 글 아래 줄로 내리고 글 칸을 두 줄 높이로(결정표 D111 사용자 결정 2026-11-17:
+    // 전에는 글 칸이 옆으로 늘어나 낮은 폰에서 확대 상자가 그 끝 '2km' 를 덮었다). 한국어 '먼 섬 ━ 2km' 는 상자 안에 들어 그대로다
+    const noteEl = isleNote!;
+    noteEl.classList.remove('wrap');
+    Object.assign(noteEl.style, { minWidth: '', width: '', height: '' });
+    if (isleNoteBar && noteEl.offsetWidth > L.note.w + 1) { noteEl.classList.add('wrap'); L = lay(2 * ISLE_NOTE_H - 2); }
+    const n = L.note;
     // 폭은 상자 묶음 폭 이상(minWidth) — 글이 더 길면 오른쪽으로 늘어난다(E14: 영어 앱이 지역 섬 상자 — 경북 울릉 — 를 처음 그려
     // 그때 글 'Far islands · not to scale' 이 128px 칸에서 잘렸다. 2026-11-15 부터 글은 '먼 섬'·'Far islands' 뿐이라 칸 안에 든다).
     // 오른쪽 줄(side 'r')이면 칸 오른쪽 끝을 지도 칸 안쪽 끝에 맞춰 왼쪽으로 늘어나게 한다(지도 칸 밖으로 나가지 않게)
-    Object.assign(isleNote!.style, { left: `${n.x}px`, top: `${n.y}px`, minWidth: `${n.w}px`, height: `${n.h}px` });
-    if (isleL.side === 'r') { const w = isleNote!.offsetWidth; if (w > n.w) isleNote!.style.left = `${n.x + n.w - w}px`; }
+    // 두 줄로 꺾은 칸은 폭을 상자 묶음 폭에 못 박는다(세로로 쌓으면 칸이 지도 칸 끝까지 늘어나 글이 확대 상자 밑으로 들어갔다)
+    Object.assign(isleNote!.style, { left: `${n.x}px`, top: `${n.y}px`, minWidth: `${n.w}px`, width: noteEl.classList.contains('wrap') ? `${n.w}px` : '', height: `${n.h}px` });
+    if (L.side === 'r') { const w = isleNote!.offsetWidth; if (w > n.w) isleNote!.style.left = `${n.x + n.w - w}px`; }
     svg.style.visibility = grid ? 'hidden' : '';
     host.classList.toggle('isle-grid', grid);
   }
@@ -586,6 +635,8 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       box.dataset.id = id;
       const isvg = el('svg', { class: 'cm-inset-svg cm-isle-svg', viewBox: `${view[0]} ${view[1]} ${view[2] - view[0]} ${view[3] - view[1]}`, preserveAspectRatio: 'xMidYMid meet', 'aria-hidden': 'true' });
       box.appendChild(isvg);
+      // 상자 범위에 드는 이웃 땅(다른 시·군·구 — 안산 대부동 상자의 화성시 등)을 칸 밑에(바탕은 바다색 — 2026-11-17)
+      for (const d of outDIn(S, view)) if (d) el('path', { d, class: 'cm-out-fill' }, isvg);
       // 상자 범위에 드는 칸(섬 자신 + 가까운 다른 동). 섬 자신을 맨 위에
       const inView = S.ids.filter((cid) => { const b = S.cells.get(cid)!.box; return cid !== id && b[0] < view[2] && b[2] > view[0] && b[1] < view[3] && b[3] > view[1]; });
       const paths = [...inView, id].map((cid) => ({ id: cid, rings: S.cells.get(cid)!.rings, el: el('path', { d: S.cells.get(cid)!.d, class: 'cm-cell' }, isvg) }));
@@ -606,7 +657,8 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     const note = document.createElement('span');
     note.className = 'cm-isles-note';
     const label = document.createElement('span');
-    label.textContent = opt.insetNote ?? '먼 섬';
+    const far = opt.farIsles;
+    label.textContent = far && !ids.some((id) => far.includes(id)) ? (opt.isleNote ?? '섬') : (opt.insetNote ?? '먼 섬');
     note.appendChild(label);
     if (solo) note.appendChild((isleNoteBar = scaleChipEl({ px: 0, text: '' })));
     tray.appendChild(note);
@@ -666,6 +718,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     if (syncZoom()) { home = fitView(homeBox, size, effPad()); if (!zoomedFlag) commit(home); }
     syncLoc();                         // 이번 과가 바뀌면 위치 지도 칠·귀퉁이(이름표가 위치 지도를 피하려면 먼저)
     if (labels.length) drawLabels();   // 이름표 색(흰·먹)이 칸 색을 따른다
+    else drawSea();                    // 위치 지도·섬 상자 자리가 바뀌었으면 바다 이름도 비킨다
     mirrorZoom();
   }
 
@@ -765,7 +818,9 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   function layoutZoom(ids: string[], base: Size, v: View, p: Pad, cap: number, scaleOn: boolean, keep: ZoomPlace | null): ZoomPlace {
     const z = zb ?? (zb = buildZoom());
     const fit = zoom!.fit;
-    const wide = base.w >= COMPACT_PX, full = zoomSize(wide);
+    // 상자 그림은 가장 넓은 이번 과 이름표 판이 들 폭 이상(zoomWide — 상자 글자는 폰·넓은 상자 모두 labelPx 14)
+    const plate = Math.max(0, ...ids.map((id) => { const t = labels.find((l) => l.id === id)?.text; return t ? labelBox(t, labelPx(ZB_W_WIDE)).w : 0; }));
+    const wide = base.w >= COMPACT_PX, full = zoomWide(zoomSize(wide), plate);
     const zpad: Pad = { t: ZB_PAD, r: ZB_PAD, b: ZB_PAD, l: ZB_PAD };
     // 작은 지도: 크기를 먼저 준 뒤(지도가 자기 칸을 잰다) 과 범위로 맞춘다. 상자 틀 몫(테두리·아래 칸)은 이 크기로 잰다
     const sizeMap = (s: Size) => Object.assign(z.mapEl.style, { width: `${s.w}px`, height: `${s.h}px` });
@@ -773,14 +828,16 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     sizeMap(pic);
     z.box.hidden = false;
     z.label.textContent = zoom!.note;
-    if (!z.map) z.map = createSvgMap(z.mapEl, { shapes: { ...S, far: null }, interaction: 'none' });
+    if (!z.map) z.map = createSvgMap(z.mapEl, { shapes: { ...S, far: null }, interaction: 'none', labelDotPx: ZB_DOT_PX, seaNames: false });
     const chrome: Size = { w: z.box.offsetWidth - pic.w, h: z.box.offsetHeight - pic.h };
     // 상자 범위(zoombox.ts zoomFit — 큰 칸이 과 범위를 넓혀 상자 그림 s 에서도 작은 동이 몰리면 작은 칸 묶음으로 좁힌다. 이름표 판은 상자 그림 폭의 글자 크기)
-    const text = new Map(labels.map((l) => [l.id, l.text]));
-    const fitOf = (s: Size) => zoomFit(fit, ids.map((id): ZoomCell => {
-      const c = S.cells.get(id)!, t = text.get(id);
+    const text = new Map(labels.map((l) => [l.id, l.text])), alt = new Map(labels.filter((l) => l.fitText).map((l) => [l.id, l.fitText!]));
+    const cellsOf = (s: Size, tx: Map<string, string>) => ids.map((id): ZoomCell => {
+      const c = S.cells.get(id)!, t = tx.get(id);
       return { box: c.box, pt: c.label, lb: t ? labelBox(t, labelPx(s.w)) : { w: 0, h: 0 } };
-    }), s);
+    });
+    // 영어 동 과는 한국어 이름 판 크기로도 잰다(fitText — zoomFit alt, 결정표 D110)
+    const fitOf = (s: Size) => zoomFit(fit, cellsOf(s, text), s, alt.size ? cellsOf(s, alt) : null);
     // 상자 그림 s 가 보이는 범위(지도 단위)와, 본 지도를 cell 크기·여백 add 로 맞췄을 때 그 범위의 자리(px)
     const range = (s: Size) => viewBox(fitView(fitOf(s), s, zpad), s);
     const layout: ZoomLayout = (cell, add, s) => {
@@ -803,8 +860,8 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       cells.push({ rings: c.rings, box: c.box, own: own.has(id) });
     }
     // 넓어도 낮은 칸(가로로 돌린 폰 — ZB_WIDE_CAP)에서 넓은 상자가 귀퉁이에 들지 않으면 폰 상자로(alt)
-    const alt = wide && cap < ZB_WIDE_CAP ? zoomSize(false) : null;
-    const at = zoomPlace({ size: base, cap, pic: full, chrome, blocks, view, cells, layout, keep: keep && { mode: keep.mode, pic: keep.pic }, alt });
+    const small = wide && cap < ZB_WIDE_CAP ? zoomWide(zoomSize(false), plate) : null;
+    const at = zoomPlace({ size: base, cap, pic: full, chrome, blocks, view, cells, layout, keep: keep && { mode: keep.mode, pic: keep.pic }, alt: small });
     // 고른 상자 크기로 작은 지도를 맞추고(아래 줄에서 낮출 수 있다), 축척 칸과 본 지도의 범위 네모(지도 단위)를 그린다
     if (at.pic.w !== pic.w || at.pic.h !== pic.h) sizeMap((pic = at.pic));
     // 범위 네모 = 작은 지도가 실제로 보이는 범위(같은 fitZ · 같은 그림 크기 · 같은 여백)
@@ -914,6 +971,8 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       const b = locBase(S, f);
       Object.assign(L.svg.style, { width: `${f.w}px`, height: `${f.h}px` });
       L.svg.setAttribute('viewBox', `0 0 ${f.w} ${f.h}`);
+      L.far.setAttribute('d', b.far);
+      L.out.setAttribute('d', b.out);
       L.land.setAttribute('d', b.land);
       L.water.setAttribute('d', b.water);
       L.rim.setAttribute('d', b.rim);
@@ -982,6 +1041,9 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     return out;
   }
 
+  /** 기본 보기에서 확대·이동했나(3% 넘게 키우거나 줄였거나 12px 넘게 옮김) */
+  const movedFrom = (v: View) => Math.abs(v.u / home.u - 1) > 0.03 || Math.hypot(v.cx - home.cx, v.cy - home.cy) / v.u > 12;
+
   function commit(v: View) {
     const t0 = performance.now();
     rendered = shown = v;
@@ -997,9 +1059,10 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     syncLoc();                         // 위치 지도도(귀퉁이는 바뀔 때만 다시 정하고, 그리기마다는 보이는 범위 네모만)
     if (opt.contextNames || dimLabels.length) drawContext();
     if (labels.length) drawLabels();   // 칸 안·칸 밖·빼기는 배율에 따라 달라진다
+    else drawSea();                    // 이름표가 없는 지도도 바다 이름은 둔다(drawLabels 는 끝에 바다 이름을 놓는다)
     if (marks.ok || marks.no) drawSymbols();   // 기호는 이름표를 비켜 놓는다
     if (badges.length) drawBadges();
-    const z = Math.abs(v.u / home.u - 1) > 0.03 || Math.hypot(v.cx - home.cx, v.cy - home.cy) / v.u > 12;
+    const z = movedFrom(v);
     if (z !== zoomedFlag) {
       zoomedFlag = z;
       opt.onZoomed?.(z);
@@ -1154,21 +1217,284 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
    * 길잡이는 글자가 칸 안에 드는 자리가 먼저고, 안 들면 main 때처럼 칸 지름이 DIM_LABEL_PX 이상인 칸의 이름표 점에 둔다 —
    * 이웃도 바탕색 칸이라 글자가 그 칸에 걸쳐도 읽힌다. 다만 이번 과 칸(밝은 칸)·강·다른 이름과 겹치면 뺀다
    */
-  function drawContext() {
-    dropPx(gCtx);
-    const u = rendered.u, view = viewRect(4);
-    const taken: Box[] = [];   // 그린 이름의 글자 상자(길잡이가 피한다)
+  /**
+   * 맥락 이름(이웃 땅·한강)의 자리 한 벌: 그리기(drawContext)와 칸 밖 이름표가 피할 자리(drawLabels avoid)가 같은 자리를 쓴다.
+   * 이웃 땅 이름은 데이터 자리, 강 이름은 ctxSpot. show = 보이는 범위에 온전히 들어 그린다.
+   * 이웃 땅 이름(out — 일반구 단원의 나머지 칸 이름 포함)이 먼저 그린 맥락 이름이나 화면에 붙은 것(위치 지도·확대 상자·섬 상자·축척 막대 — screenBoxes)과
+   * 겹치면, 겹친 것에서 NUDGE_GAP_PX 떨어지는 자리 가운데 가장 가까운 곳(화면 3px 격자, NUDGE_PX 안 — 옆으로 벗어나는 데 더 들면 이름 글자 폭까지)으로 옮긴다 — 보이는 범위 안이고 지역 칸·그린 강·
+   * 다른 맥락 이름·화면에 붙은 것과 겹치지 않는 곳. 그런 자리가 없으면 전처럼 데이터 자리(이름을 빼지는 않는다 — 이웃 시·도 이름 꼴은 D96 결정 거리).
+   * 2026-11-16 점검: 완도군 둘러보기 폰에서 '강진군'·'장흥군'이 붙어 '강진군장흥군'으로 읽혔고(영어 'Gangjin-gun'·'Jangheung-gun'은 거의 포갬),
+   * 완도 3과·고흥 1과 문제 화면에서 이웃 이름이 위치 지도 밑에 깔렸다
+   */
+  type CtxPut = {
+    n: Shapes['names'][number]; t: string; w: number; h: number; at: [number, number] | null; show: boolean;
+    /** 이웃 땅에 들지 않아 지시선으로 둘 이름(layCtxLead 가 이름표를 놓은 뒤 자리를 찾는다): home = 이웃 땅의 점, fb = 지시선 자리가 없을 때 쓸 전 방식 자리(없으면 그리지 않는다) */
+    lead?: { home: [number, number]; fb: [number, number] | null };
+  };
+  /**
+   * 이웃 땅 이름의 자리(2026-11-17 사용자 결정 D96 '정식 이름 + 완주군처럼 점을 찍고 선을 이어서'):
+   *  ① 데이터 자리(이웃 땅에서 경계와 가장 먼 점)에 글자가 든다 — 보이는 범위 안이고, 이 지역 칸에 걸치지 않고, 먼저 놓은 맥락 이름·화면에 붙은 것과 겹치지 않으면 그대로
+   *  ② 점을 덮은 채로 조금 옮겨 풀리면 그 자리(선 없이 — 이름이 여전히 그 땅 점 위에 있다)
+   *  ③ 아니면 지시선 대상(lead): 이름표를 다 놓은 뒤 layCtxLead 가 빈자리를 찾아 점·선·이름을 그린다. 칸 밖 이름표가 피할 자리(avoid)에서는 빠진다 — 공부할 칸의 이름표가 먼저다
+   *  점이 보이는 범위 밖이면 이름을 두지 않는다. 점이 화면에 붙은 것(위치 지도 등) 밑이면 선을 그을 수 없어 전 방식(가장 가까운 빈자리로 옮김 — 2026-11-16)으로 둔다.
+   * 전 방식은 지시선 자리가 없을 때의 예비(fb)로도 남는다: 그때는 전처럼 그린다(이름을 빼지는 않는다)
+   */
+  function ctxPlaced(): CtxPut[] {
+    const u = rendered.u, view = viewRect(4), g = NUDGE_GAP_PX * u;
+    const hit = (a: Box, b: Box) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
     const boxAt = (x: number, y: number, w: number, h: number): Box => [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
-    if (opt.contextNames) for (const n of S.names) {
+    const grow = (k: Box): Box => [k[0] - g, k[1] - g, k[2] + g, k[3] + g];
+    const out: CtxPut[] = [];
+    const drawn: Box[] = [];
+    let screen: Box[] | null = null;
+    // 이웃 땅 이름을 먼저, 강 이름은 그 뒤에: 좁은 지도에서 서울 땅에 '서울특별시'와 '한 강'이 함께 들지 않으면 강 이름을 뺀다(땅 이름이 먼저다)
+    for (const n of [...S.names.filter((m) => m.kind !== 'water'), ...S.names.filter((m) => m.kind === 'water')]) {
       if (n.kind === 'water' && !river) continue;   // 그리지 않은 강에는 이름도 없다
       const t = ctxText(n);
       if (!t) continue;   // 영어 이름을 확인하지 않은 시·도(지역 표 enChecked false)는 영어 지도에 이름을 두지 않는다
-      const b = ctxSize(t, n.kind), at = ctxSpot(n, t);
-      if (!at || !boxIn(view, at[0], at[1], b.w * u, b.h * u)) continue;
+      const b = ctxSize(t, n.kind), w = b.w * u, h = b.h * u;
+      const spot = ctxSpot(n, t);
+      if (n.kind === 'water' || !spot) {
+        // 강 이름: 먼저 놓은 이웃 땅 이름과 겹치면 뺀다
+        const show = !!spot && boxIn(view, spot[0], spot[1], w, h) && !drawn.some((k) => hit(grow(k), boxAt(spot[0], spot[1], w, h)));
+        if (show && spot) drawn.push(boxAt(spot[0], spot[1], w, h));
+        out.push({ n, t, w, h, at: spot, show });
+        continue;
+      }
+      const [hx, hy] = spot;
+      // 그 땅의 점이 안 보이면 이름도 두지 않는다
+      if (hx < view[0] || hx > view[2] || hy < view[1] || hy > view[3]) { out.push({ n, t, w, h, at: spot, show: false }); continue; }
+      const sc = screen ??= screenBoxes();
+      const onCell = (x: number, y: number, nb: Box) => obstacles.some((ob) => hit(ob.box, nb) && boxHits(ob.rings, x, y, w, h));
+      const homeIn = boxIn(view, hx, hy, w, h), hb = boxAt(hx, hy, w, h);
+      const block = [...drawn, ...sc].filter((k) => hit(k, hb));
+      // ① 데이터 자리 그대로
+      if (homeIn && !block.length && !onCell(hx, hy, hb)) { drawn.push(hb); out.push({ n, t, w, h, at: spot, show: true }); continue; }
+      // 겹친 것·화면에 붙은 것과 NUDGE_GAP_PX 떨어지고 지역 칸·그린 강·보이는 범위 밖에 걸치지 않는 자리
+      const ok = (x: number, y: number, overRiver: boolean) => {
+        if (!boxIn(view, x, y, w, h)) return false;
+        const nb = boxAt(x, y, w, h);
+        if (drawn.some((k) => hit(grow(k), nb)) || sc.some((k) => hit(grow(k), nb))) return false;
+        if (onCell(x, y, nb)) return false;
+        return overRiver || !(river && S.water.length && hit(waterBox, nb) && boxHits(S.water, x, y, w, h));
+      };
+      const st = 3 * u;
+      const nearest = (rx: number, ry: number, round: boolean, overRiver: boolean): [number, number] | null => {
+        const ni = Math.floor(rx / st), nj = Math.floor(ry / st);
+        const offs: [number, number, number][] = [];
+        for (let i = -ni; i <= ni; i++) for (let j = -nj; j <= nj; j++) { const d = Math.hypot(i, j) * st; if (d > 0 && (!round || d <= rx)) offs.push([i * st, j * st, d]); }
+        offs.sort((p, q) => p[2] - q[2]);
+        const mv = offs.find(([dx, dy]) => ok(hx + dx, hy + dy, overRiver));
+        return mv ? [hx + mv[0], hy + mv[1]] : null;
+      };
+      // ② 그 땅 안에서 글자가 드는 가장 가까운 자리(선 없이). 글자 자체(상자 여유 2px 씩을 뺀 것)가 땅 안에 들면 된다. 제 땅 안이라 강 띠에 걸치는 것은 둔다 —
+      //    2026-11-17 사용자 '한강을 지우고 서울을 넣으면 될 것 같다'(경기 지도: 한강이 서울 가운데를 지난다. 강 이름은 땅 이름 뒤에 놓고 겹치면 뺀다).
+      //    땅 도형이 없으면(옛 캐시) 점을 덮은 채로 조금 옮기는 것까지만
+      let near: [number, number] | null = null;
+      if (n.land?.length) {
+        const m = 2 * u, tw = Math.max(u, w - 2 * m), th = Math.max(u, h - 2 * m);
+        let lb = landBoxes.get(n.land);
+        if (!lb) {
+          lb = [Infinity, Infinity, -Infinity, -Infinity];
+          for (const r of n.land) for (let i = 0; i < r.length; i += 2) { lb[0] = Math.min(lb[0], r[i]); lb[1] = Math.min(lb[1], r[i + 1]); lb[2] = Math.max(lb[2], r[i]); lb[3] = Math.max(lb[3], r[i + 1]); }
+          landBoxes.set(n.land, lb);
+        }
+        // 글자가 다 들지 않으면 글자 폭의 LAND_FIT(85%)만 들어도 둔다 — 양끝이 5px 쯤 경계에 걸친다(폰 경기 지도의 서울: 땅 폭이 글자 폭과 거의 같다)
+        for (const f of [1, LAND_FIT]) {
+          const fw = tw * f, e = m + (tw - fw) / 2;   // e = 땅 안에 들어야 하는 폭 밖으로 나가는 글자 상자의 한쪽 몫
+          // 가운데가 올 범위: 땅 상자와 보이는 범위(글자 상자 전체가 들게 e 만큼 안쪽)가 겹치는 곳
+          const vb: Box = [Math.max(lb[0], view[0] + e), Math.max(lb[1], view[1] + m), Math.min(lb[2], view[2] - e), Math.min(lb[3], view[3] - m)];
+          if (vb[2] - vb[0] < fw || vb[3] - vb[1] < th) continue;
+          const av = [...drawn, ...sc].map((k): Box => [k[0] - g - e, k[1] - g - m, k[2] + g + e, k[3] + g + m]);
+          // 찾기는 범위 안으로 당긴 점에서 시작하고, 고른 자리의 글자 상자가 보이는 범위 안인지 다시 본다(fitBox 는 시작점이 땅 안이면 범위를 보지 않고 그 점을 돌려준다 —
+          // 2026-11-17 탐침: 동 단원 지도 30곳쯤에서 이웃 이름이 지도 가장자리 밖으로 잘렸다)
+          const from: [number, number] = [Math.min(Math.max(hx, vb[0] + fw / 2), vb[2] - fw / 2), Math.min(Math.max(hy, vb[1] + th / 2), vb[3] - th / 2)];
+          near = fitBox(n.land, vb, from, fw, th, st, Math.hypot(lb[2] - lb[0], lb[3] - lb[1]), av);
+          if (near && !boxIn(view, near[0], near[1], w, h)) near = null;
+          if (near) break;
+          // 강이 그 땅을 가르면(경기 지도의 서울 — 한강이 강북·강남 두 조각으로 나눈다) 땅과 강을 합친 곳 안에 드는 자리. 글자가 강 위에 걸친다
+          if (!river || !S.water.length) continue;
+          const key = `${u.toPrecision(6)}|${n.x},${n.y},${t}|${f}`;
+          let c = landAt.get(key);
+          if (c === undefined) {
+            if (landAt.size > 200) landAt.clear();
+            landAt.set(key, c = landSpan(n.land, lb, hx, hy, fw, th, st));
+          }
+          if (!c || !boxIn(view, c[0], c[1], w, h)) continue;
+          const nb = boxAt(c[0], c[1], w, h);
+          if (drawn.some((k) => hit(grow(k), nb)) || sc.some((k) => hit(grow(k), nb))) continue;
+          near = c;
+          break;
+        }
+      } else near = nearest(Math.max(0, w / 2 - 3 * u), Math.max(0, h / 2 - 2 * u), false, true);
+      if (near) { drawn.push(boxAt(near[0], near[1], w, h)); out.push({ n, t, w, h, at: near, show: true }); continue; }
+      // 전 방식 자리(예비): 글자가 보이는 범위에 들 때 데이터 자리, 겹친 것이 있으면 가장 가까운 빈자리(화면 3px 격자, NUDGE_PX 안 — 겹친 것을 옆으로 벗어나는 데 더 들면 이름 글자 폭까지)
+      let fb: [number, number] | null = homeIn ? [hx, hy] : null;
+      if (homeIn && block.length) {
+        const side = Math.max(...block.map((k) => Math.min(hb[2] - k[0], k[2] - hb[0]) + g + 2 * st));
+        const reach = Math.max(NUDGE_PX * u, Math.min(w, side));
+        fb = nearest(reach, reach, true, false) ?? fb;
+      }
+      // 점이 화면에 붙은 것 밑이면 선을 그을 수 없다 — 전 방식으로
+      if (sc.some((k) => hx >= k[0] && hx <= k[2] && hy >= k[1] && hy <= k[3])) {
+        if (fb) drawn.push(boxAt(fb[0], fb[1], w, h));
+        out.push({ n, t, w, h, at: fb, show: !!fb });
+        continue;
+      }
+      // ③ 지시선 대상
+      out.push({ n, t, w, h, at: null, show: false, lead: { home: [hx, hy], fb } });
+    }
+    return out;
+  }
+
+  /** 이웃 땅 도형의 상자(지도 단위 — 한 번만 잰다) */
+  const landBoxes = new WeakMap<Float64Array[], Box>();
+  /** 땅과 강을 합친 곳 안의 자리(배율·이름·비율마다 한 번 — landSpan) */
+  const landAt = new Map<string, [number, number] | null>();
+  /**
+   * 그 땅과 그린 강을 합친 곳 안에 글자(폭 fw · 높이 th)가 드는, 이름 점에서 가장 가까운 자리(격자 st). 겹침·보이는 범위는 보지 않는다(부르는 쪽이 본다).
+   * 글자 상자의 위·가운데·아래 줄을 st 간격으로 찍어 모든 점이 땅이나 강 안이면 든 것으로 친다. 없으면 null
+   */
+  function landSpan(land: Float64Array[], lb: Box, hx: number, hy: number, fw: number, th: number, st: number): [number, number] | null {
+    const nx = Math.max(2, Math.ceil(fw / st) + 1);
+    const fits = (x: number, y: number) => {
+      for (const yy of [y - th / 2, y, y + th / 2]) for (let i = 0; i < nx; i++) {
+        const xx = x - fw / 2 + (fw * i) / (nx - 1);
+        if (!inside(land, xx, yy) && !inside(S.water, xx, yy)) return false;
+      }
+      return true;
+    };
+    const offs: [number, number, number][] = [];
+    for (let x = hx - Math.floor((hx - lb[0]) / st) * st; x <= lb[2]; x += st) for (let y = hy - Math.floor((hy - lb[1]) / st) * st; y <= lb[3]; y += st) offs.push([x, y, Math.hypot(x - hx, y - hy)]);
+    offs.sort((p, q) => p[2] - q[2]);
+    const at = offs.find(([x, y]) => fits(x, y));
+    return at ? [at[0], at[1]] : null;
+  }
+  /** 지시선으로 둔 이웃 이름의 글자 상자와 선(지도 단위 — 바다 이름이 피한다) · 자리를 정한 조건(같으면 다시 재지 않는다) */
+  let leadTaken: Box[] = [];
+  let leadLines: [number, number, number, number][] = [];
+  let leadSig = '';
+  let leadPrev = new Map<string, { u: number; at: [number, number, number, number] }>();   // 이름@점 → 이름 가운데·선 끝(지도 단위)
+  /**
+   * 이웃 땅에 들지 않는 이웃 이름(ctxPlaced ③)을 빈자리에: 그 땅의 점에서 가까운 순으로(화면 LEAD_GRID_PX 격자, 선 길이 LEAD_MIN_PX ~ LEAD_REACH_PX) 글자 상자가
+   * 보이는 범위 안이고 지역 칸·그린 강·맥락 이름·길잡이 이름·칸 밖 이름표·화면에 붙은 것과 NUDGE_GAP_PX 넘게 떨어진 곳. 선은 이름표·다른 이름 위로 지나지 않고 다른 지시선과 엇갈리지 않는다.
+   * 선이 이 지역 칸 위를 지나는 것은 둔다 — 칸에 둘러싸인 땅(경기 지도의 서울, 충남 지도의 세종)은 그래야 빈자리에 닿는다(칸 밖 이름표 '완주군'의 지시선과 같다. 색으로 나뉜다 — 이쪽은 회색).
+   * 이름표를 놓은 뒤에 부른다(drawSea 맨 앞 — 이름표가 있든 없든 모든 그리기 길의 끝). 지도를 끌기만 했으면(배율 같음) 전에 둔 자리가 아직 쓸 만할 때 그대로 둔다(이름이 옮겨 다니지 않게).
+   * 자리가 없으면 전 방식 자리(fb) — 이름표·지시선·먼저 놓은 지시선 이름과 겹치면 뺀다(겹쳐서 못 읽는 것보다 없는 편이 낫다 — 공부할 칸의 이름표가 먼저다).
+   */
+  function layCtxLead() {
+    const asks = opt.contextNames ? ctxPlaced().filter((p) => p.lead) : [];
+    if (!asks.length) {
+      if (leadSig) { leadSig = ''; dropPx(gLead); leadTaken = []; leadLines = []; leadPrev = new Map(); }
+      return;
+    }
+    const u = rendered.u, view = viewRect(4), g = NUDGE_GAP_PX * u;
+    const hit = (a: Box, b: Box) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+    const boxAt = (x: number, y: number, w: number, h: number): Box => [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
+    const grow = (k: Box): Box => [k[0] - g, k[1] - g, k[2] + g, k[3] + g];
+    const blocked: Box[] = [...screenBoxes(), ...ctxTaken];
+    const outLab: Box[] = [], inLab: Box[] = [];   // 칸 밖 이름표 · 칸 안 이름표의 글자 상자
+    const lines: [number, number, number, number][] = [];
+    const list = new Map(labels.map((l) => [l.id, l.text]));
+    const fs = labelPx(size.w);
+    for (const p of placed) {
+      const c = S.cells.get(p.id), b = labelBox(list.get(p.id) ?? '', fs);
+      const bx: Box = [p.x - (b.w / 2) * u, p.y - (b.h / 2) * u, p.x + (b.w / 2) * u, p.y + (b.h / 2) * u];
+      if (!p.out) { inLab.push(bx); continue; }
+      outLab.push(bx);
+      if (c) lines.push([c.label[0], c.label[1], p.out.ax, p.out.ay]);
+    }
+    blocked.push(...outLab);
+    if (zOn && zb) {
+      const f = zb.frame, a = (k: string) => +(f.getAttribute(k) ?? 0);
+      blocked.push([a('x'), a('y'), a('x') + a('width'), a('y') + a('height')]);
+    }
+    if (interaction === 'full' && movedFrom(rendered)) blocked.push([...toMap(rendered, size, size.w - SEA_RESET_W, 0), ...toMap(rendered, size, size.w, SEA_RESET_H)] as Box);
+    const r1 = (v: number) => Math.round(v / u);
+    const sig = `${u.toPrecision(6)}|${view.map(r1).join(',')}|${asks.map((a) => `${a.t}@${r1(a.lead!.home[0])},${r1(a.lead!.home[1])}`).join(';')}|${blocked.map((b) => b.map(r1).join(',')).join(';')}|${lines.map((l) => l.map(r1).join(',')).join(';')}`;
+    if (sig === leadSig) return;
+    leadSig = sig;
+    dropPx(gLead);
+    leadTaken = [];
+    leadLines = [];
+    // 선분이 상자에 닿나(Liang–Barsky) · 선분끼리 엇갈리나
+    const segBox = (l: readonly number[], k: Box) => {
+      let t0 = 0, t1 = 1;
+      const dx = l[2] - l[0], dy = l[3] - l[1];
+      for (const [p, q] of [[-dx, l[0] - k[0]], [dx, k[2] - l[0]], [-dy, l[1] - k[1]], [dy, k[3] - l[1]]]) {
+        if (p === 0) { if (q < 0) return false; continue; }
+        const r = q / p;
+        if (p < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; }
+      }
+      return true;
+    };
+    const side = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => Math.sign((bx - ax) * (cy - ay) - (by - ay) * (cx - ax));
+    const segSeg = (a: readonly number[], b: readonly number[]) =>
+      side(a[0], a[1], a[2], a[3], b[0], b[1]) !== side(a[0], a[1], a[2], a[3], b[2], b[3]) && side(b[0], b[1], b[2], b[3], a[0], a[1]) !== side(b[0], b[1], b[2], b[3], a[2], a[3]);
+    const st = LEAD_GRID_PX * u, reach = LEAD_REACH_PX * u, min = LEAD_MIN_PX * u;
+    const keep: typeof leadPrev = new Map();
+    for (const a of asks) {
+      const [hx, hy] = a.lead!.home, { w, h, t } = a;
+      const all = [...blocked, ...leadTaken], allLines = [...lines, ...leadLines];
+      const ni = Math.ceil((reach + w / 2) / st), nj = Math.ceil((reach + h / 2) / st);
+      const cands: [number, number, number, number, number, number][] = [];
+      for (let i = -ni; i <= ni; i++) for (let j = -nj; j <= nj; j++) {
+        const cx = hx + i * st, cy = hy + j * st;
+        // 선 끝은 점에서 글자 가운데로 긋는 선이 글자 상자와 만나는 곳(판 없는 칸 밖 이름표의 지시선과 같다 — labelfit leadToCenter)
+        const [ex, ey] = leadToCenter([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], [hx, hy]);
+        const d = Math.hypot(ex - hx, ey - hy);
+        if (d >= min && d <= reach) cands.push([cx, cy, ex, ey, d, Math.hypot(cx - hx, cy - hy)]);
+      }
+      cands.sort((p, q) => p[4] - q[4] || p[5] - q[5]);
+      const fits = ([cx, cy, ex, ey]: readonly number[]) => {
+        if (!boxIn(view, cx, cy, w, h)) return false;
+        const nb = boxAt(cx, cy, w, h), gb = grow(nb);
+        if (all.some((k) => hit(k, gb))) return false;
+        if (obstacles.some((ob) => hit(ob.box, nb) && boxHits(ob.rings, cx, cy, w, h))) return false;
+        if (river && S.water.length && hit(waterBox, nb) && boxHits(S.water, cx, cy, w, h)) return false;
+        if (allLines.some((l) => segBox(l, gb))) return false;         // 이름이 다른 지시선 위에 놓이지 않게
+        const seg = [hx, hy, ex, ey];
+        if (all.some((k) => segBox(seg, k)) || inLab.some((k) => segBox(seg, k))) return false;   // 선이 이름표·다른 이름·화면에 붙은 것 위로 지나지 않게
+        return !allLines.some((l) => segSeg(seg, l));                  // 지시선끼리 엇갈리지 않게
+      };
+      // 전에 둔 자리(같은 배율)가 아직 쓸 만하면 그대로
+      const pk = `${t}@${r1(hx)},${r1(hy)}`, was = leadPrev.get(pk);
+      const found = (was && was.u === u && fits(was.at) ? was.at : undefined) ?? cands.find(fits);
+      if (found) keep.set(pk, { u, at: [found[0], found[1], found[2], found[3]] });
+      let at: [number, number] | null = found ? [found[0], found[1]] : null;
+      if (!at) {
+        // 지시선 자리가 없다: 전 방식 자리에(이름표·지시선·먼저 놓은 지시선 이름과 겹치면 뺀다)
+        const fb = a.lead!.fb;
+        if (!fb) continue;
+        const nb = boxAt(fb[0], fb[1], w, h);
+        if (outLab.some((k) => hit(k, nb)) || inLab.some((k) => hit(k, nb)) || leadTaken.some((k) => hit(k, nb)) || allLines.some((l) => segBox(l, nb))) continue;
+        at = fb;
+      }
+      if (found) {
+        const gl = pxGroup(hx, hy, 'cm-ctxlead', gLead);
+        el('path', { d: `M0 0L${((found[2] - hx) / u).toFixed(1)} ${((found[3] - hy) / u).toFixed(1)}` }, gl);
+        el('circle', { r: LEAD_DOT_R }, gl);
+        leadLines.push([hx, hy, found[2], found[3]]);
+      }
+      el('text', { x: 0, y: baseline(t, CTX_PX), 'text-anchor': 'middle' }, pxGroup(at[0], at[1], `cm-ctxname out${found ? ' lead' : ''}`, gLead)).textContent = t;
+      leadTaken.push(boxAt(at[0], at[1], w, h));
+    }
+    leadPrev = keep;
+  }
+
+  /** 그린 맥락 이름·길잡이 이름의 글자 상자(지도 단위 — drawContext 가 채운다. 바다 이름이 피한다) */
+  let ctxTaken: Box[] = [];
+  function drawContext() {
+    dropPx(gCtx);
+    const u = rendered.u, view = viewRect(4);
+    const taken: Box[] = ctxTaken = [];   // 그린 이름의 글자 상자(길잡이가 피한다)
+    const boxAt = (x: number, y: number, w: number, h: number): Box => [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
+    if (opt.contextNames) for (const { n, t, w, h, at, show } of ctxPlaced()) {
+      if (!show || !at) continue;
       // 자간은 글자 뒤에 붙으므로 넓은 자간의 강 이름(한글)은 자간 반만큼 오른쪽으로 옮겨야 가운데에 온다
       const sp = n.kind === 'water' ? waterSp(t) : 0;
       el('text', { x: (sp * CTX_PX) / 2, y: baseline(t, CTX_PX), 'text-anchor': 'middle' }, pxGroup(at[0], at[1], `cm-ctxname ${n.kind}${sp ? ' ko' : ''}`, gCtx)).textContent = t;
-      taken.push(boxAt(at[0], at[1], b.w * u, b.h * u));
+      taken.push(boxAt(at[0], at[1], w, h));
     }
     if (!dimLabels.length) return;
     const key = `${u.toPrecision(6)}|${dimLabels.map((l) => `${l.id}:${l.text}`).join(',')}`;
@@ -1231,8 +1557,85 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     return 'white';
   };
 
-  /** 이름표: 글자 상자가 칸 안에 드는 자리 → (mode 에 따라) 칸 밖 빈 바탕 + 지시선 → 칸 위쪽 흰 판 */
+  /* ---------- 바다 이름(map/sea.ts) ---------- */
+
+  const seaOn = opt.seaNames !== false;
+  const SEAS: SeaKey[] = ['w', 's', 'e'];
+  /** 바다 이름 글(영어 화면은 ctxName 이 바꾼다 — text/ui.ts) */
+  const seaText = (k: SeaKey) => { const n: CtxCell = { sido: seaCode(k), text: SEA_KO[k] }; return opt.ctxName ? opt.ctxName(n) : n.text; };
+  let seaPrev: SeaSpot[] = [];   // 지금 그려 둔 자리(아직 쓸 수 있으면 그대로 — 지도를 끌 때 이름이 옮겨 다니지 않게)
+  let seaHome = '';              // 지도 칸 크기·기본 보기·여백이 바뀌면 전 자리를 버리고 새로 고른다
+  let seaSig = '';               // 자리를 정한 조건(보기·피할 것)이 같으면 다시 재지 않는다
+
+  /**
+   * 바다 이름: 이름표·맥락 이름·화면에 붙은 것이 다 놓인 뒤, 남는 바다의 가장 넓은 빈자리에 바다마다 하나(seaSpots). 다른 것의 자리는 바꾸지 않는다.
+   * 피하는 것: 지역 칸·이웃 땅·강(땅 판정 격자 + 다각형 확인), 칸 밖 이름표와 그 지시선, 맥락 이름·길잡이 이름, 화면에 붙은 것(먼 섬 상자·섬 상자·축척 막대·위치 지도·확대 상자),
+   * 확대 상자의 범위 네모. 자리가 없으면 그리지 않는다. 본 지도를 숨기는 섬 상자 격자에서는 없다
+   */
+  function drawSea() {
+    layCtxLead();   // 이웃 땅에 들지 않는 이웃 이름(점·선) — 이름표 다음, 바다 이름보다 먼저
+    if (!seaOn) return;
+    const grid = isleL?.mode === 'grid';
+    // 범위는 보이는 지도 전체에서 가장자리 8px 만 뺀 곳(이름표·맥락 이름의 viewRect 와 달리 여백을 빼지 않는다 — 여백은 칸을 맞추는 자리일 뿐 바다는 거기에도 보이고,
+    // 여백을 쓰는 것(먼 섬 상자·섬 상자 줄·확대 상자)은 screenBoxes 로 따로 피한다. 빼면 먼 섬 상자 옆을 비운 전남광주 휴대폰 지도는 왼쪽 바다 100px 를 못 썼다)
+    const u = rendered.u, [vx, vy, vw, vh] = viewBox(rendered, size);
+    const view: Box = [vx + 8 * u, vy + 8 * u, vx + vw - 8 * u, vy + vh - 8 * u];
+    const ep = effPad();
+    const hk = `${Math.round(size.w)}x${Math.round(size.h)}|${homeBox.map((v) => v.toFixed(0)).join(',')}|${ep.t},${ep.r},${ep.b},${ep.l}`;
+    if (hk !== seaHome) { seaHome = hk; seaPrev = []; }
+    // 이 지도의 칸이 닿는 바다가 있으면 그 바다만(멀리 보이는 다른 바다에는 이름을 두지 않는다 — sea.ts coastSeas). 닿는 바다가 없는 내륙 지도는 보이는 바다를 그대로
+    const coast = coastSeas(S);
+    const asks = grid ? [] : SEAS.filter((key) => !coast.length || coast.includes(key)).flatMap((key) => { const text = seaText(key); return text ? [{ key, text, ...ctxSize(text, 'water') }] : []; });
+    const blocked: Box[] = grid ? [] : [...screenBoxes(), ...ctxTaken, ...leadTaken];
+    const lines: [number, number, number, number][] = grid ? [] : [...leadLines];
+    if (!grid) {
+      const list = new Map(labels.map((l) => [l.id, l.text]));
+      const fs = labelPx(size.w);
+      for (const p of placed) {
+        if (!p.out) continue;
+        const c = S.cells.get(p.id), b = labelBox(list.get(p.id) ?? '', fs);
+        blocked.push([p.x - (b.w / 2) * u, p.y - (b.h / 2) * u, p.x + (b.w / 2) * u, p.y + (b.h / 2) * u]);
+        if (c) lines.push([c.label[0], c.label[1], p.out.ax, p.out.ay]);
+      }
+      if (zOn && zb) {
+        const f = zb.frame, n = (a: string) => +(f.getAttribute(a) ?? 0);
+        blocked.push([n('x'), n('y'), n('x') + n('width'), n('y') + n('height')]);
+      }
+      // 확대·이동하면 오른쪽 위에 '⤢ 전체 보기' 단추가 뜬다(문제 화면·둘러보기 — 지도 칸 밖 요소 .map-reset: 위 12 · 오른쪽 12 · 높이 44, 폭은 글에 따라 130px 안팎)
+      if (interaction === 'full' && movedFrom(rendered)) blocked.push([...toMap(rendered, size, size.w - SEA_RESET_W, 0), ...toMap(rendered, size, size.w, SEA_RESET_H)] as Box);
+    }
+    const r1 = (v: number) => Math.round(v / u);
+    const sig = `${u.toPrecision(6)}|${view.map(r1).join(',')}|${asks.map((a) => a.text).join(',')}|${blocked.map((b) => b.map(r1).join(',')).join(';')}|${lines.map((l) => l.map(r1).join(',')).join(';')}`;
+    if (sig === seaSig) return;
+    seaSig = sig;
+    dropPx(gSea);
+    seaPrev = !asks.length ? [] : seaSpots({
+      mask: landMask(S), view, u, asks, blocked, lines, prev: seaPrev,
+      // 고른 상자가 지역 칸·그린 강(obstacles)·이웃 땅·늘린 땅·그리지 않은 강 띠에 닿지 않나
+      ok: (x, y, w, h) => {
+        const b: Box = [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
+        const hit = (k: Box) => k[0] < b[2] && k[2] > b[0] && k[1] < b[3] && k[3] > b[1];
+        if (obstacles.some((ob) => hit(ob.box) && boxHits(ob.rings, x, y, w, h))) return false;
+        if (S.outRings.length && boxHits(S.outRings, x, y, w, h)) return false;
+        if (S.farRings.length && boxHits(S.farRings, x, y, w, h)) return false;
+        if (S.outExt.some(hit)) return false;
+        return river || !S.water.length || !boxHits(S.water, x, y, w, h);
+      },
+    });
+    for (const s of seaPrev) {
+      const text = asks.find((a) => a.key === s.key)!.text, sp = waterSp(text);
+      el('text', { x: (sp * CTX_PX) / 2, y: baseline(text, CTX_PX), 'text-anchor': 'middle' }, pxGroup(s.x, s.y, `cm-seaname ${s.key}${sp ? ' ko' : ''}`, gSea)).textContent = text;
+    }
+  }
+
+  /** 이름표를 놓고(layLabels), 남는 바다에 바다 이름을(drawSea — 이름표 자리가 바뀌면 다시 본다) */
   function drawLabels() {
+    layLabels();
+    drawSea();
+  }
+
+  /** 이름표: 글자 상자가 칸 안에 드는 자리 → (mode 에 따라) 칸 밖 빈 바탕 + 지시선 → 칸 위쪽 흰 판 */
+  function layLabels() {
     dropPx(gLab);
     placed = [];
     // 섬 상자에 든 칸의 이름은 상자 왼쪽 위에(paintIsles) — 본 지도에서는 자리를 찾지 않는다. 확대 상자가 있으면 이번 과 이름표는 상자 안에만(mirrorZoom —
@@ -1256,13 +1659,11 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       const within = viewRect(4), screen = screenBoxes();
       const at = `${Math.round(rendered.cx)},${Math.round(rendered.cy)}`;
       const ep = effPad();
-      const kOut = `${labelMode}|${kIn}|${Math.round(size.w)}x${Math.round(size.h)}|${ep.t},${ep.r},${ep.b},${ep.l}|${screen.length}`;
+      const kOut = `${labelMode}${labelClean ? '+' : ''}|${kIn}|${Math.round(size.w)}x${Math.round(size.h)}|${ep.t},${ep.r},${ep.b},${ep.l}|${screen.length}`;
       const size0 = new Map(asks.map((a) => [a.id, a]));
       // 칸 밖 이름표와 그 지시선은 맥락 이름(이웃 시도·한강) 자리도 피한다. 한강 이름은 보이는 범위에 따라 옮겨 다닌다(물가 옆 바탕)
-      const avoid = !opt.contextNames ? [] : S.names.filter((n) => n.kind !== 'water' || river).flatMap((n): Box[] => {
-        const t = ctxText(n), b = ctxSize(t, n.kind), p = t ? ctxSpot(n, t) : null;
-        return p ? [[p[0] - (b.w / 2) * u, p[1] - (b.h / 2) * u, p[0] + (b.w / 2) * u, p[1] + (b.h / 2) * u]] : [];
-      });
+      // (ctxPlaced — 그린 자리와 같다. 겹쳐서 옮긴 이웃 이름은 옮긴 자리)
+      const avoid = !opt.contextNames ? [] : ctxPlaced().flatMap(({ w, h, at: p }): Box[] => (p ? [[p[0] - w / 2, p[1] - h / 2, p[0] + w / 2, p[1] + h / 2]] : []));
       const hitAny = (ks: Box[], x: number, y: number, w: number, h: number) => ks.some((k) => x - w / 2 < k[2] && x + w / 2 > k[0] && y - h / 2 < k[3] && y + h / 2 > k[1]);
       // 지도를 옮긴 뒤에도 쓸 수 있나: 지난번에 범위 때문에 밀려난 이름이 없었고, 놓았던 이름표가 아직 보이는 범위 안에 있으며
       // 화면에 붙은 것 밑에 깔리지 않고 맥락 이름과 겹치지 않는다
@@ -1275,7 +1676,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       if (kOut !== outKey || (at !== outAt && !stillGood())) {
         outKey = kOut;
         outAt = at;
-        outRes = placeOutside(cellOf, asks, inRes, { mode: labelMode, u, obstacles, within, center, avoid, screen, plateHome: opt.plateHome });
+        outRes = placeOutside(cellOf, asks, inRes, { mode: labelMode, u, obstacles, within, center, avoid, screen, plateHome: opt.plateHome, ...(opt.labelDotPx ? { dotPx: opt.labelDotPx } : {}), ...(labelClean ? { cleanPlates: true } : {}) });
       }
       placed = [...inRes.placed, ...outRes.placed];
     }
@@ -1501,6 +1902,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       labels = list;
       labelMode = o?.mode ?? 'must';
       labelMinW = o?.minWidth ?? (labelMode === 'fit' ? COMPACT_PX : 0);
+      labelClean = !!o?.cleanPlates;
       drawLabels();
       paintIsles();
       mirrorZoom();
@@ -1519,7 +1921,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       home = fitView(homeBox, size, effPad());
       inKey = outKey = '';
       if (!zoomedFlag) commit(home);
-      else { paintScale(); syncLoc(); if (labels.length) drawLabels(); }
+      else { paintScale(); syncLoc(); if (labels.length) drawLabels(); else drawSea(); }
     },
     setHint(ids) {
       hint = ids ? new Set(ids) : null;
@@ -1536,6 +1938,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     setDimLabels(list) {
       dimLabels = list;
       drawContext();
+      drawSea();
     },
     mark(m) {
       marks = m;

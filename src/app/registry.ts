@@ -9,7 +9,7 @@
 // 스위치 셋(설계안 EN_EMD 5.1): 동(emd — 동 색인·과 없는 지역)·일반구(gu)·시·도 단원(korea)을 따로 끈다. 한국어 앱은 모두 켬, 영어 앱은 판에 영어 이름(units.json
 // enNames)이 있을 때만 EN_EMD·EN_GU·EN_KOREA 대로 켬(unitOptions). 전에는(N26) 영어 앱이 셋을 함께 껐다 — createRegistry(geo, { emd: false }) 하나가 셋을 막았다
 import type { EmdIndex, EmdUnitFile, GeoData, GuUnitFile, Item, KoreaFile, Lesson, Region, Screen, UnitsFile } from './types.ts';
-import { partOf } from './sidos.ts';
+import { nearSidoName, partOf } from './sidos.ts';
 
 export type Dir8 = 'E' | 'NE' | 'N' | 'NW' | 'W' | 'SW' | 'S' | 'SE';
 const DIRS: Dir8[] = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'];
@@ -152,15 +152,19 @@ export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Regist
   // 그것이 없는 판(옛 캐시)이면 이 창에 싣는 지역 사이에서 겹치는 이름만 센다.
   // 원래 데이터는 고치지 않고 그 곳만 full 을 붙인 사본을 쓴다(같은 데이터로 여러 레지스트리를 만들어도 섞이지 않게).
   // 지역 안 묶음(지역 표 parts — 전남광주의 자치구 5곳, 계획서 N3 · E16)에 든 곳은 지역 이름 대신 묶음 이름을 붙인다. 2026-11-15 부터 그 묶음 이름이
-  // 법정 약칭 '광주특별시'라 지역 이름과 같다('광주특별시 동구' — E16 의 '광주 동구'는 법정 이름이 아니어서 바꿈)
+  // 법정 약칭 '광주특별시'라 지역 이름과 같다('광주특별시 동구' — E16 의 '광주 동구'는 법정 이름이 아니어서 바꿈).
+  // 이름 앞부분이 다른 시·도 짧은 이름과 겹치는 곳(경기 '광주시' — sidos.ts nearSidoName, 결정표 D97 2026-11-16)도 같은 방법으로 '경기 광주시'
   const same = new Set<string>(Array.isArray(geo.units.sameNames) ? geo.units.sameNames.filter((n) => typeof n === 'string') : []);
   {
     const nameCount = new Map<string, number>();
     for (const r of geo.units.regions ?? []) if ((r?.layer === 'sgg' || r?.layer === 'si') && Array.isArray(r.items)) for (const it of r.items) if (typeof it?.ko === 'string') nameCount.set(it.ko, (nameCount.get(it.ko) ?? 0) + 1);
     for (const [n, c] of nameCount) if (c > 1) same.add(n);
   }
-  const withFull = (r: Region): Region => (r?.layer === 'sgg' || r?.layer === 'si') && Array.isArray(r.items) && r.items.some((it) => same.has(it?.ko) && !it.full)
-    ? { ...r, items: r.items.map((it) => (same.has(it.ko) && !it.full ? { ...it, full: `${partOf(r.key, it.id)?.ko ?? r.ko} ${it.ko}` } : it)) }
+  /** 섞인 화면에서 지역 이름을 붙일 곳: 같은 이름 곳 또는 이름 앞부분이 다른 시·도 이름과 겹치는 곳. code = 시·군·구 코드(곳 id 끝 또는 단원 코드) */
+  const tagged = (ko: unknown, code: unknown) => typeof ko === 'string' && (same.has(ko) || (typeof code === 'string' && nearSidoName(ko, code.slice(0, 2))));
+  const codeOfId = (id: unknown) => (typeof id === 'string' ? id.replace(/^kr:sgg:/, '') : '');
+  const withFull = (r: Region): Region => (r?.layer === 'sgg' || r?.layer === 'si') && Array.isArray(r.items) && r.items.some((it) => tagged(it?.ko, codeOfId(it?.id)) && !it.full)
+    ? { ...r, items: r.items.map((it) => (tagged(it.ko, codeOfId(it.id)) && !it.full ? { ...it, full: `${partOf(r.key, it.id)?.ko ?? r.ko} ${it.ko}` } : it)) }
     : r;
   for (const region0 of geo.units.regions ?? []) {
     let add: Map<string, Place> | null;
@@ -249,7 +253,7 @@ export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Regist
     const region: Region = {
       key: f.key, sido: f.sido, ko: f.ko, full: f.full, en: f.en, layer: 'emd', fit: f.fit, items,
       lessons: f.lessons, screens: f.screens ?? [],
-      unit: { parent: f.region, code: f.code, ...(f.si ? { si: f.si } : {}), meet: f.meet ?? {}, outside: f.outside ?? {} },
+      unit: { parent: f.region, code: f.code, ...(f.si ? { si: f.si } : {}), meet: f.meet ?? {}, outside: f.outside ?? {}, ...(Array.isArray(f.far) ? { far: f.far } : {}) },
     };
     for (const it of items) {
       if (!it.id.startsWith(`kr:emd:${f.code}`)) throw new Error(`${where}: 곳 id ${it.id} 가 단원 코드와 다름`);
@@ -388,7 +392,7 @@ export function createRegistry(geo: GeoData, opts: RegistryOptions = {}): Regist
       const area = regionByKey.get(unitByKey.get(key)?.region ?? unitRegion.get(key)?.unit?.parent ?? '');
       // 지역 안 묶음(parts, E16)에 든 단원은 묶음 이름('광주특별시 동구' — 2026-11-15 법정 약칭)
       const code = unitByKey.get(key)?.code ?? unitRegion.get(key)?.unit?.code ?? '';
-      return same.has(ko) && area ? `${partOf(area.key, code)?.ko ?? area.ko} ${ko}` : ko;
+      return tagged(ko, code) && area ? `${partOf(area.key, code)?.ko ?? area.ko} ${ko}` : ko;
     },
     addUnit,
     dropUnit,

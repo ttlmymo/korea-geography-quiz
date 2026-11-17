@@ -36,7 +36,8 @@ if (!units.korea) throw new Error('판에 시·도 단원(korea)이 없음 — �
 if (LIVE.length !== SIDOS.length) throw new Error(`공개 지역 ${LIVE.length}/${SIDOS.length}곳 — 일부만 열린 판의 개수 줄 모양은 새로 정해야 함`);
 
 // 색(src/styles/tokens.css 와 같은 값)
-const C = { ink: '#15191A', ink2: '#454D50', ink3: '#5F686B', bg: '#EFF1EE', frame: '#C9CFCB', m3: '#0D7B50', learning: '#7FD0A8', next: '#FFD84A', white: '#FFFFFF' };
+// sea = 바다(--map-sea, 2026-11-17), bg = 이웃 땅(북한·일본 — --map-out)
+const C = { ink: '#15191A', ink2: '#454D50', ink3: '#5F686B', bg: '#EFF1EE', sea: '#A3CDF2', frame: '#C9CFCB', m3: '#0D7B50', learning: '#7FD0A8', next: '#FFD84A', white: '#FFFFFF' };
 // 홈 시안(다음 과 날)과 같은 칠을 시·도 단원 과에: 1과 = 익히는 중(그 가운데 앞 두 곳은 다 익힘), 2과 = 익히는 중, 3과 = 다음 과(노랑 + 굵은 테두리), 4·5과 = 아직
 const fillOf = new Map();
 units.korea.lessons.forEach((l, i) => l.items.forEach((id, j) => fillOf.set(id, i === 0 ? (j < 2 ? C.m3 : C.learning) : i === 1 ? C.learning : i === 2 ? C.next : C.white)));
@@ -65,22 +66,53 @@ const fontCss = [400, 600, 700].flatMap((w) => [...fs.readFileSync(path.join(PKG
 })).join('\n');
 if (!fontCss) throw new Error('글꼴 조각을 찾지 못함');
 
-// 지도: 앱과 같은 투영(경도에 cos 37.5° — src/app/map 의 등장방형)과 같은 범위(지역 고르기 KOREA_FIT = manifest 전국 시·도 지도 범위)
-const FIT = [124.6098, 33.1119, 131.8713, 38.6169];
+// 지도: 앱과 같은 투영(경도에 cos 37.5° — src/app/map 의 등장방형).
+// 2026-11-17 사용자 결정('공유 그림에도 바다를 표현, 울릉도·독도처럼 육지에서 멀어 육지가 작게 보이게 만드는 섬은 사각형 틀에 넣어 확대 표시'):
+//  - 바탕은 바다색, 이웃 땅(판 sido.topo.json out = 북한 · far = 일본 등)은 면색
+//  - 본 지도 범위는 본토·제주와 가까운 섬(흑산·가거도·연평도까지). 전에는 지역 고르기와 같은 범위(KOREA_FIT 124.61~131.87 — 백령도에서 독도까지)라 본토가 지도 칸 폭의 절반쯤이었다
+//  - 범위를 넓히던 먼 섬 셋은 본 지도에서 빼고 상자에: 백령·대청·소청도(인천), 울릉도·독도(경북). 상자마다 제 축척(본 지도보다 크게)
+const FIT = [125.0, 33.05, 131.0, 38.65];
 const KX = Math.cos((37.5 * Math.PI) / 180);
 const S = 1000 / ((FIT[2] - FIT[0]) * KX);
 const px = ([lon, lat]) => `${(((lon - FIT[0]) * KX) * S).toFixed(1)},${((FIT[3] - lat) * S).toFixed(1)}`;
-const dOf = (geom) => {
-  const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
-  return polys.map((pl) => pl.map((r) => `M${r.map(px).join('L')}Z`).join('')).join('');
-};
-const cells = sido.objects.sido.geometries.map((g) => ({ id: g.properties.id, d: dOf(topo.feature(sido, g).geometry) }));
+/** 상자에 넣는 먼 섬(경도·위도 범위): 본 지도에서는 이 범위에 온전히 든 조각을 뺀다 */
+const FAR = [
+  { key: 'baengnyeong', sido: '28', box: [124.58, 37.74, 124.80, 38.00] },   // 백령·대청·소청도
+  { key: 'ulleung', sido: '47', box: [130.76, 37.44, 130.95, 37.57] },       // 울릉도
+  { key: 'dokdo', sido: '47', box: [131.853, 37.232, 131.882, 37.250] },     // 독도(동도·서도)
+];
+const polysOf = (geom) => (geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : []);
+const inBox = (pl, b) => pl[0].every(([x, y]) => x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]);
+const dPolys = (polys, f = px) => polys.map((pl) => pl.map((r) => `M${r.map(f).join('L')}Z`).join('')).join('');
+const cells = sido.objects.sido.geometries.map((g) => {
+  const polys = polysOf(topo.feature(sido, g).geometry);
+  const far = FAR.filter((F) => F.sido === g.properties.sido);
+  return { id: g.properties.id, sido: g.properties.sido, polys, d: dPolys(polys.filter((pl) => !far.some((F) => inBox(pl, F.box)))) };
+});
 if (cells.some((c) => !fillOf.has(c.id))) throw new Error('전국 지도 칸 가운데 시·도 단원 과에 없는 칸이 있음');
+// 층마다 따로 그린다(far 에도 북한이 들어 있어 out 과 한 path 로 이으면 감는 방향이 달라 겹친 곳이 비어 보였다)
+const landD = ['far', 'out'].flatMap((k) => (sido.objects[k] ? sido.objects[k].geometries.map((g) => dPolys(polysOf(topo.feature(sido, g).geometry))) : []));
+if (!landD.length) throw new Error('판 전국 지도에 이웃 땅(out·far)이 없음 — 바다와 이웃 땅을 나눠 칠할 수 없음');
 const W = 1000, H = Math.round((FIT[3] - FIT[1]) * S);
 const edge = Math.round(W * 0.03);
 const vb = [-edge, -edge, W + 2 * edge, H + 2 * edge];
-const MAP_H = 560, MAP_W = Math.round((MAP_H * vb[2]) / vb[3]);
+const MAP_H = 566, MAP_W = Math.round((MAP_H * vb[2]) / vb[3]);
 const nextD = cells.filter((c) => nextIds.has(c.id)).map((c) => c.d).join('');
+// 먼 섬 상자: 지도 칸 안의 자리(px — 왼쪽 위 기준)와 크기. 서해 북쪽 구석에 백령도, 동해에 울릉도(위)·독도(아래). 섬은 상자에 가득(여백 14%)
+const K = MAP_W / vb[2];                                         // 본 지도 px/단위
+const at = (lon, lat) => [(((lon - FIT[0]) * KX) * S - vb[0]) * K, ((FIT[3] - lat) * S - vb[1]) * K];
+const BOX = { baengnyeong: { at: at(125.02, 38.60), w: 78, h: 84 }, ulleung: { at: at(130.02, 38.02), w: 86, h: 72 }, dokdo: { at: [at(130.02, 38.02)[0], at(130.02, 38.02)[1] + 72 + 8], w: 86, h: 58 } };
+const insets = FAR.map((F) => {
+  const c = cells.find((x) => x.sido === F.sido), o = BOX[F.key];
+  const polys = c.polys.filter((pl) => inBox(pl, F.box));
+  if (!polys.length) throw new Error(`먼 섬 ${F.key}: 판 전국 지도에 그 섬 조각이 없음`);
+  let b = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const pl of polys) for (const [x, y] of pl[0]) b = [Math.min(b[0], x * KX), Math.min(b[1], -y), Math.max(b[2], x * KX), Math.max(b[3], -y)];
+  const k = Math.min(o.w / (b[2] - b[0]), o.h / (b[3] - b[1])) * 0.72;                 // px/도(투영한) — 섬이 상자의 72%
+  const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
+  const f = ([lon, lat]) => `${((lon * KX - cx) * k + o.w / 2).toFixed(1)},${((-lat - cy) * k + o.h / 2).toFixed(1)}`;
+  return { key: F.key, x: Math.round(o.at[0]), y: Math.round(o.at[1]), w: o.w, h: o.h, d: dPolys(polys, f), fill: fillOf.get(c.id), next: nextIds.has(c.id), zoom: k / (S * K) };
+});
 
 const page = (t, lang) => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><style>
 ${fontCss}
@@ -91,7 +123,9 @@ h1{margin:0;font-size:${lang === 'ko' ? 104 : 92}px;line-height:1.05;font-weight
 p{margin:0;font-size:${lang === 'ko' ? 34 : 28}px;line-height:1.35;font-weight:600;color:${C.ink2};letter-spacing:-0.01em}
 .row{margin-top:6px;padding-top:16px;border-top:2px solid ${C.ink};font-size:${lang === 'ko' ? 23 : 20}px;line-height:1.4;font-weight:600;text-wrap:balance}
 .unit{font-weight:400;color:${C.ink3}}
-.map{position:absolute;right:48px;top:${Math.round((630 - MAP_H) / 2)}px;width:${MAP_W}px;height:${MAP_H}px;outline:1px solid ${C.frame};outline-offset:-1px;background:${C.bg}}
+.map{position:absolute;right:48px;top:${Math.round((630 - MAP_H) / 2)}px;width:${MAP_W}px;height:${MAP_H}px;outline:1px solid ${C.frame};outline-offset:-1px;background:${C.sea};overflow:hidden}
+.far{position:absolute;box-sizing:border-box;border:1px solid ${C.ink};background:${C.sea}}
+.far svg{display:block;width:100%;height:100%}
 svg.m{display:block;width:100%;height:100%}
 svg.m path{vector-effect:non-scaling-stroke;stroke-linejoin:round}
 </style></head><body>
@@ -100,11 +134,14 @@ svg.m path{vector-effect:non-scaling-stroke;stroke-linejoin:round}
 <h1>${t.name}</h1><p>${t.tag.join('<br>')}</p>
 <div class="row">${t.pre ? `<span class="unit">${t.pre}</span> ` : ''}${t.count}${t.unit ? ` <span class="unit">${t.unit}</span>` : ''}</div></div>
 <div class="map"><svg class="m" viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg">
-<rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="${C.bg}"/>
+<rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="${C.sea}"/>
+${landD.map((d) => `<path d="${d}" fill="${C.bg}" stroke="none"/>`).join('')}
 <path d="${cells.map((c) => c.d).join('')}" fill="none" stroke="${C.ink}" stroke-width="2.4"/>
 ${cells.map((c) => `<path d="${c.d}" fill="${fillOf.get(c.id)}" stroke="${C.ink}" stroke-width="1"/>`).join('\n')}
 <path d="${nextD}" fill="none" stroke="${C.ink}" stroke-width="2.4"/>
-</svg></div></body></html>`;
+</svg>
+${insets.map((i) => `<div class="far" style="left:${i.x}px;top:${i.y}px;width:${i.w}px;height:${i.h}px"><svg viewBox="0 0 ${i.w} ${i.h}" xmlns="http://www.w3.org/2000/svg"><path d="${i.d}" fill="${i.fill}" stroke="${C.ink}" stroke-width="${i.next ? 2 : 1.2}" stroke-linejoin="round"/></svg></div>`).join('\n')}
+</div></body></html>`;
 
 for (const lang of ['ko', 'en']) {
   const html = path.join(work, `og-${lang}.html`);
@@ -130,6 +167,7 @@ for (const lang of ['ko', 'en']) {
   if (size !== '1200 x 630') throw new Error(`${lang}: 그림 크기 ${size}`);
   console.log(`${path.relative(root, jpg)} ${size} ${fs.statSync(jpg).size}B · ${[TEXT[lang].pre, TEXT[lang].count, TEXT[lang].unit].filter(Boolean).join(' ')}`);
 }
+console.log(`지도 칸 ${MAP_W}x${MAP_H} · 먼 섬 상자 ${insets.map((i) => `${i.key} ${i.w}x${i.h} 본 지도의 ${i.zoom.toFixed(1)}배`).join(' · ')}`);
 // 그림에 박은 글(개수 줄)을 남긴다 — 그림과 함께 커밋한다
 const sidecar = path.join(root, 'tools/og-image.text.json');
 fs.writeFileSync(sidecar, JSON.stringify({

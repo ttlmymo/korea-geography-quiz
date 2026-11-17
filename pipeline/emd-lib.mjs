@@ -62,11 +62,15 @@ export function unionOf(ids, D, kind) {
   return union(ids.map((id) => (kind === 'main' ? D[id].box.main : kind === 'isle' ? isleOf(D[id]) : nearOf(D[id]))));
 }
 
+/** 상자 b 를 휴대폰 지도 칸(phone — 긴 변의 pad 여백)에 맞춘 축척(px / m) */
+const fitScale = (b, phone) => { const w = b[2] - b[0], h = b[3] - b[1], p = Math.max(w, h) * phone.pad; return Math.min(phone.w / (w + 2 * p), phone.h / (h + 2 * p)); };
 /** 화면 하나의 칸 크기(build-geo.mjs screen() 과 같은 계산): 상자를 휴대폰 지도 칸에 맞췄을 때 곳마다 내접원 지름(px) */
 export function tap(ids, D, kind, phone) {
-  const b = unionOf(ids, D, kind);
-  const w = b[2] - b[0], h = b[3] - b[1], p = Math.max(w, h) * phone.pad;
-  const k = Math.min(phone.w / (w + 2 * p), phone.h / (h + 2 * p));
+  return tapIn(ids, unionOf(ids, D, kind), D, phone);
+}
+/** tap 과 같은 계산을 주어진 상자 b 로(과 범위를 끝 덩어리까지 넓힌 edgeFit) */
+function tapIn(ids, b, D, phone) {
+  const k = fitScale(b, phone);
   const sizes = ids.map((id) => ({ id, d: Math.round(2 * D[id].r * k) }));
   const min = sizes.reduce((a, s) => (s.d < a.d ? s : a));
   return { box: b, min: min.d, at: min.id, ambiguous: sizes.filter((s) => s.d < TAP_AMBIG).map((s) => s.id) };
@@ -125,6 +129,63 @@ function seenIsles(X, D, kind, phone) {
       break;
     }
   }
+}
+
+/**
+ * 가까운 섬은 본 지도로(D2 — 2026-11-16 사용자 결정 '가까운 섬 무리는 본 지도 한 장으로(칸 크기 다시 잼), 정말 먼 섬(흑산면 등)만 상자').
+ * 섬 상자(insets)에 남는 곳은 '먼 섬'(far — 지역 표 far 규칙으로 덩어리가 모두 먼 섬인 곳: 지역 지도·전국 지도의 먼 섬 상자와 같은 규칙)과,
+ * 본 지도로 옮기면 그 과·화면이 16px 를 지키지 못하는 가까운 섬뿐이다. 본 지도에 곳이 있으면 가까운 섬을 본 지도 무리에 가까운 차례로 하나씩 옮겨 보고
+ * (같으면 이름 차례) 16px 를 지킬 때만 옮긴다(바뀌지 않을 때까지). 본 지도에 곳이 없으면(섬만 든 과·화면 — 신안·옹진) 먼 섬이 아닌 섬을 한꺼번에 옮겨 보고
+ * 16px 를 지킬 때만 옮긴다(일부만 옮기면 같은 바다의 섬 가운데 몇만 상자로 떨어져 섬끼리의 자리를 더 알기 어렵다).
+ * 2026-10-01 판: 신안군(흑산면만 상자)·완도군(상자 없음)이 바뀌고, 옹진군 가까운 섬 4곳(자월면 10px)·여수 삼산면·여수 남면('섬' 화면)·영광 낙월면·안산 단원구 대부동·부안 위도면은
+ * 16px 때문에 상자에 남는다(build-geo --dry-all 보고서 '상자에 남은 가까운 섬')
+ */
+function nearToMain(X, D, kind, phone, far) {
+  const keep = X.insets.filter((id) => far.has(id));
+  if (keep.length === X.insets.length) return;
+  if (X.ids.every((id) => X.insets.includes(id))) {
+    if (tapWith(X.ids, keep, D, kind, phone).min >= TAP_FAIL) X.insets = keep;
+    return;
+  }
+  const gapTo = (id) => {
+    const a = nearOf(D[id]), b = unionOf(X.ids.filter((o) => !X.insets.includes(o)), D, kind);
+    return Math.hypot(Math.max(0, a[0] - b[2], b[0] - a[2]), Math.max(0, a[1] - b[3], b[1] - a[3]));
+  };
+  for (let again = true; again;) {
+    again = false;
+    for (const id of X.insets.filter((o) => !far.has(o)).sort((a, b) => gapTo(a) - gapTo(b) || byKo(D)(a, b))) {
+      const insets = X.insets.filter((o) => o !== id);
+      if (tapWith(X.ids, insets, D, kind, phone).min < TAP_FAIL) continue;
+      X.insets = insets;
+      again = true;
+      break;
+    }
+  }
+}
+const inside = (a, b) => a[0] >= b[0] && a[2] <= b[2] && a[1] >= b[1] && a[3] <= b[3];
+/**
+ * 과 범위 끝의 작은 덩어리(2026-11-16 — 서귀포시 2과 송산동 섶섬이 과 범위 끝에서 반쯤 잘려 보였다): 과 범위는 곳마다 가장 큰 덩어리 상자(main)의 합이라
+ * 같은 곳의 다른 덩어리(먼 섬을 뺀 near)가 범위 밖에 남는다. 그런 덩어리 상자가 보이는 범위(seenBox — 지도 칸 비율에 따라 범위 밖이 더 보이는 곳) 안에
+ * 다 들면 칸 비율에 따라 칸 끝에 걸쳐 잘려 보이므로 범위에 넣는다. 단 넣어도 휴대폰 지도 칸 축척이 그대로(EDGE_KEEP.phone — 1% 안)이고 넓은 지도 칸
+ * (4:3 — 1440 문제 화면·확대 상자 비율)의 축척이 EDGE_KEEP.wide(0.85배) 넘게 줄지 않을 때만이다 — 범위를 크게 넓히는 것은 사용자 결정 거리
+ * (과 화면은 곳마다 가장 큰 덩어리 기준, 작은 섬은 끌어서 본다 — build-geo.mjs 과 화면 규칙)라 칸 크기를 거의 바꾸지 않는 것만 고친다.
+ * 섬 상자 곳(insets)은 그대로 섬 상자에서 잰다. 넓은 화면(screens)은 그대로
+ */
+export const EDGE_KEEP = { phone: 0.99, wide: 0.85 };
+const WIDE43 = { w: 4, h: 3, pad: PHONE.pad };
+function edgeFit(X, D, phone) {
+  const t = tapWith(X.ids, X.insets, D, 'main', phone);
+  const main = X.ids.filter((id) => !X.insets.includes(id));
+  if (!main.length) return t;
+  const seen = seenBox(t.box);
+  const ext = main.filter((id) => !inside(nearOf(D[id]), t.box) && inside(nearOf(D[id]), seen));
+  if (!ext.length) return t;
+  const b = union(main.map((id) => (ext.includes(id) ? nearOf(D[id]) : D[id].box.main)));
+  if (fitScale(b, phone) < fitScale(t.box, phone) * EDGE_KEEP.phone || fitScale(b, WIDE43) < fitScale(t.box, WIDE43) * EDGE_KEEP.wide) return t;
+  const parts = [tapIn(main, b, D, phone), ...X.insets.map((id) => tap([id], D, 'isle', INSET))];
+  const min = parts.reduce((a, p) => (p.min < a.min ? p : a));
+  if (min.min < TAP_FAIL) return t;
+  return { box: b, min: min.min, at: min.at, ambiguous: [...new Set(parts.flatMap((p) => p.ambiguous))] };
 }
 
 /** 이어진 덩어리(맞닿음 그래프): ids 차례를 지키며 나눈다 */
@@ -539,6 +600,9 @@ export function buildUnit(U) {
   const core = linked.length ? widen(union(linked.map((id) => nearOf(D[id]))), CORE_MARGIN) : null;
   const islands = all.filter((id) => !D[id].nb.length && (!core || !hits(nearOf(D[id]), core)));
   const isIsland = new Set(islands);
+  // 그 가운데 섬 상자에 남길 '먼 섬'(D2 — nearToMain): 지역 표 far 규칙으로 덩어리가 모두 먼 섬인 곳(near 없음 — 지역 지도 먼 섬 상자와 같은 곳:
+  // 신안 흑산면, 옹진 백령·대청·연평면, 제주시 추자면). 단원 전체가 그런 곳(울릉군)이면 단원 안에서는 본 지도다(wholeIsle)
+  const farSet = new Set(wholeIsle ? [] : islands.filter((id) => D[id].box.near == null));
   const land = all.filter((id) => !isIsland.has(id));
   // 가까운 섬(E7): 먼 섬은 아니지만 땅으로 맞닿은 곳이 하나도 없는 곳(단원 안 이웃도, 단원 밖 시·군·구도 없음 — 강화 교동면·삼산면).
   // 먼 섬과 합쳐 둘 이상이면 먼 섬과 함께 섬 과로 묶는다(가까운 섬은 본 지도, 먼 섬만 섬 상자). 다른 단원에 둘러싸인 곳(단원 밖 이웃이 있음)은 섬이 아니다
@@ -571,7 +635,8 @@ export function buildUnit(U) {
   }
   const lessonTap = (L) => tapWith(L.ids, L.insets, D, 'main', PHONE);
   // 4 섬 과: 먼 섬 동끼리(가까운 것끼리 5~7곳), 섬마다 삽입 상자. 하나뿐이면 같은 무리의 과(7곳 안을 먼저) 가운데 가장 가까운 과에 넣고 삽입 상자로.
-  //   가까운 섬(nearIsles)이 있으면 먼 섬과 함께 묶고, 삽입 상자는 먼 섬만(가까운 섬은 본 지도에서 자리를 보인다)
+  //   가까운 섬(nearIsles)이 있으면 먼 섬과 함께 묶고, 삽입 상자는 먼 섬만(가까운 섬은 본 지도에서 자리를 보인다).
+  //   여기서 넣은 삽입 상자는 아래 seenIsles·nearToMain(D2 — 2026-11-16)이 줄인다: 끝까지 남는 것은 far(지역 표 먼 섬)와 16px 때문에 남은 섬뿐
   const allAdj = (id) => islands.filter((o) => o !== id);
   if (nearIsles.length) {
     const isleAll = [...islands, ...nearIsles].sort(byKo(D));
@@ -624,8 +689,39 @@ export function buildUnit(U) {
       if (lessonTap(merged).min >= TAP_FAIL) { M.ids = merged.ids; lessons = lessons.filter((x) => x !== L); break; }
     }
   }
+  // 사람이 정한 과 옮기기(U.moves — pipeline/data/lesson-moves.json, 결정표 D2 ⓐ 사용자 결정 2026-11-17): 자동 묶기가 방위와 어긋나게 묶은 곳을 다른 과로.
+  //   곳 이름(ko)을 with 가 든 과로 옮긴다. 두 과 모두 한 장에 두었을 때 16px 를 지켜야 하고, 판이 바뀌어 맞지 않으면 멈춘다(조용히 지나치지 않는다)
+  for (const mv of U.moves ?? []) {
+    const id = all.find((x) => D[x].ko === mv.ko), w = all.find((x) => D[x].ko === mv.with);
+    const from = lessons.find((L) => L.ids.includes(id)), to = lessons.find((L) => L.ids.includes(w));
+    if (!id || !w || !from || !to) throw new Error(`과 옮기기(${U.ko}): '${mv.ko}' 또는 '${mv.with}' 를 찾지 못함`);
+    if (from === to) continue;   // 이미 같은 과
+    const rest = from.ids.filter((x) => x !== id), next = [...to.ids, id];
+    const tr = tap(rest, D, 'main', PHONE).min, tn = tap(next, D, 'main', PHONE).min;
+    if (!rest.length || tr < TAP_FAIL || tn < TAP_FAIL) throw new Error(`과 옮기기(${U.ko}): '${mv.ko}' 를 옮기면 칸이 ${TAP_FAIL}px 밑(${tr}px · ${tn}px)`);
+    const boxed = from.insets.includes(id);
+    // 과 차례는 옮기기 전 묶음으로 정한다(orderIds — 옮긴 곳 하나로 과 번호가 뒤바뀌지 않게: 완도 2과 '북동쪽 섬'·3과 '남서쪽 섬' 그대로)
+    from.orderIds ??= [...from.ids];
+    to.orderIds ??= [...to.ids];
+    from.ids = rest;
+    from.insets = from.insets.filter((x) => x !== id);
+    to.ids = next;
+    if (boxed) to.insets = [...to.insets, id];
+  }
   // 보이는 범위에 든 먼 섬은 본 지도로(seenIsles — 강화 3과 서도면). 과 묶기는 그대로이고 섬 상자만 바뀐다
   for (const L of lessons) if (L.insets.length) seenIsles(L, D, 'main', PHONE);
+  // 가까운 섬은 본 지도로(D2 — 16px 를 지킬 때만). 과 묶기는 그대로이고 섬 상자만 바뀐다
+  for (const L of lessons) if (L.insets.length) nearToMain(L, D, 'main', PHONE, farSet);
+  // 섬 과에서 가까운 섬이 16px 때문에 상자에 남으면 가까운 섬끼리 따로 과로 나눈다(D2 사용자 결정 2026-11-17 '과를 셋으로' — 옹진: 덕적·자월·영흥·북도를
+  //   한 장에 두면 자월면 10px 라 섬마다 상자였다 → 덕적·자월 17px / 영흥·북도 23px / 먼 섬 셋(백령·대청·연평)은 상자). 조각이 모두 2곳 이상이고 16px 를 지킬 때만
+  for (const L of [...lessons]) {
+    if (L.group !== 'island') continue;
+    const nearIds = L.ids.filter((id) => !farSet.has(id)), farIds = L.ids.filter((id) => farSet.has(id));
+    if (nearIds.length < 2 || !L.insets.some((id) => !farSet.has(id))) continue;
+    const parts = splitUntil(nearIds, D, 'main', PHONE, (id) => nearIds.filter((o) => o !== id));
+    if (parts.length < 2 || parts.some((p) => p.length < 2 || tap(p, D, 'main', PHONE).min < TAP_FAIL)) continue;
+    lessons.splice(lessons.indexOf(L), 1, ...parts.map((ids) => ({ ids, group: 'island', insets: [] })), ...(farIds.length ? [{ ids: farIds, group: 'island', insets: [...farIds] }] : []));
+  }
   // 동과 읍·면을 따로 묶은 단원에서 1곳 과 처리나 섬 하나로 다른 무리의 곳이 든 과는 '섞인 과'(mix): 차례는 무리 과 뒤이고, 이름은 곳이 많은 무리의 앞말로 그 무리 과와 짝 지어 짓는다(7 이름)
   if (split) for (const L of lessons) if (L.group !== 'island' && new Set(L.ids.map(groupOf)).size > 1) L.group = 'mix';
 
@@ -659,7 +755,13 @@ export function buildUnit(U) {
     return pathOrder(list, (s) => centroid(s, D)).flat();
   };
   const ORDER = [...groups, 'mix', 'island'];
-  lessons = ORDER.flatMap((g) => famOrder(pathOrder(lessons.filter((L) => L.group === g), (L) => centroid(L.ids, D))));
+  // 섬 과 가운데 곳이 모두 먼 섬인 과(섬 상자로만 보이는 과 — 옹진 백령·대청·연평)는 본 지도로 배우는 섬 과 뒤에(D2 사용자 결정 2026-11-17 '덕적·자월 / 영흥·북도 / 먼 섬 셋')
+  const farOnly = (L) => L.ids.every((id) => farSet.has(id));
+  lessons = ORDER.flatMap((g) => {
+    const ls = lessons.filter((L) => L.group === g);
+    const parts = g === 'island' && ls.some(farOnly) && !ls.every(farOnly) ? [ls.filter((L) => !farOnly(L)), ls.filter(farOnly)] : [ls];
+    return parts.flatMap((p) => famOrder(pathOrder(p, (L) => centroid(L.orderIds ?? L.ids, D))));
+  });
   for (const L of lessons) L.ids = itemOrder(L.ids);
 
   // 7 이름(N7): 무리(동·읍면을 따로 묶은 단원은 그 무리, 섞인 과는 곳이 많은 무리(앞말 무리), 섬 과는 섬끼리, 그 밖은 섬을 뺀 단원)마다 dirsOf 로 방위를 정한다.
@@ -770,6 +872,7 @@ export function buildUnit(U) {
   parts = parts.filter((S) => S.ids.length);
   // 보이는 범위에 든 먼 섬은 본 지도로(seenIsles — 강화 전체 화면의 서도면)
   for (const S of parts) if (S.insets.length) seenIsles(S, D, SCREEN_KIND, PHONE_WIDE);
+  for (const S of parts) if (S.insets.length) nearToMain(S, D, SCREEN_KIND, PHONE_WIDE, farSet);
   parts = [...pathOrder(parts.filter((S) => S.group !== 'island'), (S) => centroid(S.ids, D)), ...parts.filter((S) => S.group === 'island')];
   // 화면 이름: 과 이름과 같은 규칙(dirsOf · resolveNames)으로, 무리마다(동·읍면을 따로 나눈 단원은 그 무리)
   const screenNames = parts.map(() => null);
@@ -820,7 +923,7 @@ export function buildUnit(U) {
   // 10 문제와 통계
   const problems = [];
   const outLessons = lessons.map((L, i) => {
-    const t = lessonTap(L);
+    const t = edgeFit(L, D, PHONE);
     const why = checkTitle(L.title, ctxL(shown(L), nameGroup(L)));
     if (t.min < TAP_FAIL) problems.push({ kind: 'tap', msg: `${i + 1}과 ${L.title}: 가장 작은 칸 ${D[t.at].ko} ${t.min}px (<${TAP_FAIL})` });
     if (L.ids.length === 1 && all.length > 1) problems.push({ kind: 'single', msg: `${i + 1}과 ${L.title}: 1곳 과(${D[L.ids[0]].ko}) — 이웃 과에 합치지 못함` });
@@ -854,6 +957,8 @@ export function buildUnit(U) {
     mixed, split, lessons: outLessons.length, sizes, small: [1, 2, 3].map((k) => sizes[k] ?? 0),
     minTapPx: Math.min(...outLessons.map((L) => L.minTapPx)), ambiguous: outLessons.reduce((t, L) => t + L.ambiguous.length, 0),
     islands: islands.length, nearIsles: nearIsles.length, islandLessons: outLessons.filter((L) => L.group === 'island').length, insetSingles: outLessons.filter((L) => L.group !== 'island' && L.insets.length).length,
+    // D2: 섬 상자에 남은 곳 — 먼 섬(far)과, 본 지도로 옮기면 16px 를 지키지 못해 남은 가까운 섬(kept, 과·화면 어디서든)
+    far: farSet.size, kept: [...new Set([...outLessons, ...screens].flatMap((X) => X.insets.filter((id) => !farSet.has(id))))].length,
     screens: screens.length, screenMinTapPx: Math.min(...screens.map((S) => S.minTapPx)), screenAmbiguous: screens.reduce((t, S) => t + S.ambiguous.length, 0),
     families, virtual: [...virt.keys()].filter((id) => !D[id].nb.length).length,
     disconnected: outLessons.filter((L) => L.apart).length,          // 실제로 맞닿지 않은 곳이 섞인 과(가상 이웃은 이웃으로 치지 않음)
@@ -862,10 +967,12 @@ export function buildUnit(U) {
     center: outLessons.filter((L) => L.center).length, fixed: outLessons.filter((L) => L.fixed).length, renamed: outLessons.filter((L) => L.renamed).length, suffixed: outLessons.filter((L) => L.suffixed).length,
     nameFail: new Set(problems.filter((p) => p.kind === 'name').map((p) => p.msg.split(':')[0])).size,
   };
-  // 단원 전체 지도 범위(view — 단원 쪽·둘러보기, 앱 maps.ts wholeView 가 섬 상자가 없으면 단원 fit 을 쓴다): 섬을 뺀 단원(base)에
-  // 넓은 화면에서 섬 상자로 남지 않은 먼 섬(seenIsles 로 본 지도에 둔 곳 — 강화 서도면)을 더한다. 그런 섬이 없으면 base 그대로(E7 검수: 폰 단원 쪽에서 서도면이 잘렸다)
+  // 단원 전체 지도 범위(view — 단원 쪽·둘러보기, 앱 maps.ts wholeView 가 섬 상자가 없으면 단원 fit 을 쓴다): 넓은 화면에서 섬 상자로 남지 않은 곳 모두
+  // (섬을 뺀 단원 + 본 지도에 둔 섬 — seenIsles 의 강화 서도면(E7 검수: 폰 단원 쪽에서 서도면이 잘렸다), D2 의 신안·완도 섬). 모든 곳이 섬 상자면(옹진) 단원 전체.
+  // 섬을 뺀 단원이 있는 단원은 전과 같은 값이다(섬 상자에 남은 섬을 뺀 합 = 섬을 뺀 단원 + 본 지도에 둔 섬)
   const screenIsles = new Set(screens.flatMap((S) => S.insets));
-  const seenFar = islands.filter((id) => !screenIsles.has(id));
-  const view = land.length && seenFar.length ? union([unitRef.box, ...seenFar.map((id) => nearOf(D[id]))]) : unitRef.box;
-  return { lessons: outLessons, screens, meet, problems, stats, base: unitRef.box, view, islands };
+  const vis = all.filter((id) => !screenIsles.has(id));
+  const view = vis.length ? union(vis.map((id) => nearOf(D[id]))) : unitRef.box;
+  // far = 지역 표 먼 섬 규칙으로 정말 먼 섬인 곳(신안 흑산면, 옹진 백령·대청·연평면, 제주시 추자면) — 앱이 섬 상자 묶음 글을 '먼 섬'과 '섬'으로 나눈다(D2 ⓑ)
+  return { lessons: outLessons, screens, meet, problems, stats, base: unitRef.box, view, islands, far: [...farSet].sort() };
 }

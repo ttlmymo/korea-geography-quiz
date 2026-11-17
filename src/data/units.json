@@ -11,11 +11,11 @@
         "용산구": "yongsan-gu", "은평구": "eunpyeong-gu", "종로구": "jongno-gu", "중구": "jung-gu", "중랑구": "jungnang-gu"
       },
       "lessons": [
-        { "no": 1, "title": "도심과 서북", "en": "Downtown and northwest", "items": ["종로구", "중구", "용산구", "은평구", "서대문구", "마포구"] },
-        { "no": 2, "title": "한강 남쪽 동부", "en": "South of the Han, east", "items": ["동작구", "서초구", "강남구", "송파구", "강동구"] },
-        { "no": 3, "title": "한강 남쪽 서부", "en": "South of the Han, west", "items": ["강서구", "양천구", "구로구", "금천구", "영등포구", "관악구"] },
-        { "no": 4, "title": "동북 아래쪽", "en": "Northeast, lower", "items": ["성동구", "광진구", "동대문구", "중랑구"] },
-        { "no": 5, "title": "동북 위쪽", "en": "Northeast, upper", "items": ["성북구", "강북구", "도봉구", "노원구"] }
+        { "no": 1, "title": "북서쪽", "en": "Northwest", "items": ["종로구", "중구", "용산구", "은평구", "서대문구", "마포구"] },
+        { "no": 2, "title": "남동쪽", "en": "Southeast", "items": ["동작구", "서초구", "강남구", "송파구", "강동구"] },
+        { "no": 3, "title": "남서쪽", "en": "Southwest", "items": ["강서구", "양천구", "구로구", "금천구", "영등포구", "관악구"] },
+        { "no": 4, "title": "동쪽", "en": "East", "items": ["성동구", "광진구", "동대문구", "중랑구"] },
+        { "no": 5, "title": "북쪽", "en": "North", "items": ["성북구", "강북구", "도봉구", "노원구"] }
       ]
     },
     {
@@ -28,15 +28,15 @@
         "영광군": "yeonggwang-gun", "장성군": "jangseong-gun", "완도군": "wando-gun", "진도군": "jindo-gun", "신안군": "sinan-gun"
       },
       "lessons": [
-        { "no": 1, "title": "광주", "en": "Gwangju", "items": ["서구", "동구", "남구", "북구", "광산구"] },
+        { "no": 1, "title": "광주 시내", "en": "Central Gwangju", "items": ["서구", "동구", "남구", "북구", "광산구"] },
         { "no": 2, "title": "광주 둘레", "en": "Around Gwangju", "items": ["담양군", "장성군", "함평군", "나주시", "화순군"] },
         { "no": 3, "title": "서해 바닷가", "en": "West coast", "items": ["영광군", "무안군", "목포시", "신안군"] },
         { "no": 4, "title": "남서쪽 끝", "en": "Southwest tip", "items": ["영암군", "해남군", "진도군", "완도군"] },
-        { "no": 5, "title": "남쪽 바닷가", "en": "South coast", "items": ["강진군", "장흥군", "보성군", "고흥군"] },
+        { "no": 5, "title": "보성·고흥 바닷가", "en": "Boseong–Goheung coast", "items": ["강진군", "장흥군", "보성군", "고흥군"] },
         { "no": 6, "title": "순천 둘레", "en": "Around Suncheon", "items": ["순천시", "곡성군", "구례군", "광양시", "여수시"] }
       ],
       "screens": [
-        { "key": "gwangju", "ko": "광주", "en": "Gwangju", "items": ["서구", "동구", "남구", "북구", "광산구"] },
+        { "key": "gwangju", "ko": "광주 시내", "en": "central Gwangju", "items": ["서구", "동구", "남구", "북구", "광산구"] },
         { "key": "nw", "ko": "북서쪽", "en": "northwest", "items": ["영광군", "함평군", "장성군", "무안군", "목포시", "신안군", "나주시"] },
         { "key": "sw", "ko": "남서쪽", "en": "southwest", "items": ["영암군", "해남군", "진도군", "완도군", "강진군", "장흥군"] },
         { "key": "east", "ko": "동쪽", "en": "east", "items": ["담양군", "화순군", "곡성군", "구례군", "순천시", "광양시", "여수시", "보성군", "고흥군"] }
@@ -256,7 +256,7 @@
   "korea": {
     "_note": "시·도 단원(전국 16 시·도, 계획서 E10 · N29 · N30). 지역 표 src/data/sido.json korea.status 가 live 일 때만 판에 실린다. 곳 이름은 지역 표 ko(짧은 이름), 과의 곳 차례 = 만나기 차례, 곳 slug 는 지역 키. 과 이름은 방위 + 권역 일상어(N7 — 파이프라인이 지도 검사). screens = 전체 연습·시험을 나눠 보이는 화면(16px 검사)",
     "lessons": [
-      { "no": 1, "title": "북서쪽 수도권", "en": "Northwest: the capital area", "items": ["서울", "인천", "경기"] },
+      { "no": 1, "title": "북서쪽 수도권", "en": "Northwest: capital area", "items": ["서울", "인천", "경기"] },
       { "no": 2, "title": "가운데 충청", "en": "Center: Chungcheong", "items": ["충남", "세종", "대전", "충북"] },
       { "no": 3, "title": "북동쪽", "en": "Northeast", "items": ["강원", "경북", "대구"] },
       { "no": 4, "title": "남동쪽", "en": "Southeast", "items": ["울산", "부산", "경남"] },

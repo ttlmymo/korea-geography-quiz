@@ -159,7 +159,7 @@ export const UI_KO = {
   legendNext: '다음 과',
   legendRiver: '한강',
   legendAria: '지도 색 풀이',
-  /** 큰 제목: '도심과 서북\n6개 구를 채워요'(형광펜은 count) */
+  /** 큰 제목: '북서쪽\n6개 구를 채워요'(형광펜은 count) */
   lessonHead: (lesson: string, count: string) => `${lesson}\n${eulReul(count)} 채워요`,
   places: (n: number) => `${n}곳`,
   /** 복습 날 큰 제목: '채운 4곳을\n다시 만나요'(형광펜은 places(n)) */
@@ -333,6 +333,7 @@ export const UI_KO = {
   back: '뒤로',
   /** 섬 상자 글(축척은 상자마다 막대로 — map/isles.ts insetScale. 2026-11-15 전에는 '먼 섬 · 축척 다름') */
   inset: '먼 섬',
+  isles: '섬',
   /** 확대 상자 글(과 시작·요약 지역 전체 지도에서 이번 과가 아주 작을 때 — map/zoombox.ts). 옆에 그 상자의 축척 막대 */
   zoom: '확대',
   /** 넓은 판에서 화면이 바뀔 때 알림: '경기 남서부' */
@@ -374,6 +375,12 @@ const emdCountEn = (e: ReturnType<typeof ends>) => { const w = emdWordsEn(e); re
  * (지도에 이름을 두지 않는다 — 한글을 영어 화면에 섞지 않게)
  */
 const sidoEn = (code: string) => { const s = sidoByCode(code); return s ? (s.enChecked ? s.en : '') : undefined; };
+/**
+ * 바다 이름(영어 — 지도 바다 이름표, map/sea.ts SEA_KO 의 짝. 2026-11-17): 국토지리정보원 '대한민국 국가지도집' 영문판 'Ocean' 쪽(nationalatlas.ngii.go.kr/pages/page_745.php)의 표기 —
+ * 'East Sea'(동해 — 정부가 나라 밖에 쓰는 이름)·'Yellow Sea'(서쪽 바다. 'West Sea' 는 그 쪽에 없다), 남쪽 바다는 그 쪽이 'South Sea' 와 'Korea Strait' 를 함께 쓴다(한국어 '남해'의 짝으로 'South Sea'.
+ * 나라 밖에서는 'Korea Strait' 가 통용 — 변도성·최병주 2018, 한국해양학회지 바다 23권 3호의 표기 조사)
+ */
+const SEA_EN: Record<string, string> = { 'sea:w': 'Yellow Sea', 'sea:s': 'South Sea', 'sea:e': 'East Sea' };
 function plural(n: number, one: string, many: string) { return `${n} ${n === 1 ? one : many}`; }
 /** 고르기 문제의 단위 낱말: 시·도 단원 'province or city', 동 단원 'neighborhood' · 'town, township or neighborhood', 그 밖 'city or county' 등(전과 같음) */
 const unitEn = (r: Region) => {
@@ -421,8 +428,10 @@ export const UI_EN: UI = {
   },
   // 강 띠는 한강, 북한은 'North Korea', 일본(E15 경남 지도의 대마도)은 'Japan'. 동 단원 지도의 이웃 땅(id 가 있는 칸)은 판의 영어 이름(en — 'Seongbuk-gu',
   // 'Cheonan-si Dongnam-gu')이고 en 이 없으면(옛 캐시) '' — 한글을 영어 지도에 두지 않는다(EN_EMD 5.4). 일반구 단원의 나머지 칸은 ctxNamer 가 레지스트리 이름을 en 으로 넘긴다.
-  // 그 밖(지역 지도의 이웃 시·도)은 지역 표 영어 이름(확인하지 않은 시·도는 '' — 지도에 두지 않음), 표에 없으면 원래 글
+  // 그 밖(지역 지도의 이웃 시·도)은 지역 표 영어 이름(확인하지 않은 시·도는 '' — 지도에 두지 않음), 표에 없으면 원래 글.
+  // 바다 이름(map/sea.ts — sido 'sea:w'·'sea:s'·'sea:e', 2026-11-17)은 SEA_EN
   ctxName: (n: CtxCell) => (n.sido === 'water' ? 'Han River' : n.sido === 'kp' ? 'North Korea' : n.sido === 'jp' ? 'Japan'
+    : n.sido in SEA_EN ? SEA_EN[n.sido]
     : n.en !== undefined ? n.en : n.id ? '' : sidoEn(n.sido) ?? n.text),
   /**
    * 단원 이름(오늘 복습 라벨·문제 앞): 동 단원은 단원 영어 이름('Jongno-gu'), 같은 이름이 여러 시·도에 있으면 지역(묶음) 이름을 붙인다('Jung-gu, Busan' ·
@@ -684,6 +693,7 @@ export const UI_EN: UI = {
   mixEnd: (r: string) => `All of ${r} done!`,
   back: 'Back',
   inset: 'Far islands',
+  isles: 'Islands',
   zoom: 'Zoomed in',
   // 영어 화면 이름이 없으면(옛 캐시 단원 파일 — en '') 한글 화면 이름(EN_EMD 5.4)
   screenName: (r: string, s: Screen) => `${r}, ${s.en || s.ko}`,

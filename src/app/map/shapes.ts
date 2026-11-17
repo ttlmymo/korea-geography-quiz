@@ -46,6 +46,20 @@ export interface Shapes {
   cells: Map<string, Cell>;
   box: Box;           // 공부 칸 전체
   outD: string;       // 이웃 땅(다른 시도·북한). 이웃 땅끼리 경계는 만들지 않는다(합본 디자인 — 이웃 땅은 바탕색 한 덩어리)
+  /**
+   * 먼 이웃 땅(topo far 층 — 2026-11-17 바다 표현, pipeline/build-geo.mjs farLand): 이웃 땅(out)이 담기지 않은 범위에서 화면에 보일 수 있는 땅을 거칠게 실은 것.
+   * 이웃 땅 밑에 같은 면색으로 깐다(farD → outD → 칸). 칸·이웃 땅과 위상을 함께 쓰지 않아(조금 겹친다) 선·맥락 이름에는 쓰지 않는다. 옛 판(far 층 없음)은 ''
+   */
+  farD: string;
+  /**
+   * 이웃 땅·먼 이웃 땅의 고리(지도 단위 — 2026-11-17 바다 표현): 바다 이름 자리(map/sea.ts 땅 판정), 섬 상자·먼 섬 상자·위치 지도에 이웃 땅을 그릴 때 쓴다.
+   * 둘은 겹치고 고리 방향도 다를 수 있어 늘 따로 다룬다(한 path·한 짝홀 판정에 섞지 않는다).
+   * outExt = 잘린 변 밖으로 늘린 땅(extendRects — outD 뒤쪽 조각과 같은 네모), outBox = 그 변을 정한 상자(이웃 땅과 먼 이웃 땅 전체. 둘 다 없으면 null)
+   */
+  outRings: Float64Array[];
+  farRings: Float64Array[];
+  outExt: Box[];
+  outBox: Box | null;
   waterD: string;     // 한강 띠
   water: Float64Array[];
   edgeD: string;      // 칸끼리
@@ -71,7 +85,8 @@ export interface Shapes {
    * 맥락 이름(설계서 5.2 층 7): 이웃 땅·한강의 이름과 자리(파이프라인이 lp 로 싣는다). 동 단원 지도의 이웃 땅은 id·en(판 .2 — 영어 화면이 쓴다, EN_EMD 5.2),
    * 일반구 단원의 나머지 칸은 id(그 칸의 시·군 곳 id)와 rest
    */
-  names: (CtxCell & { x: number; y: number; kind: 'out' | 'water' })[];
+  /** land = 그 이름의 땅 도형(이웃 땅 이름만 — 글자가 그 땅 안에 드는 자리를 찾는다, svgmap ctxPlaced) */
+  names: (CtxCell & { x: number; y: number; kind: 'out' | 'water'; land?: Float64Array[] })[];
 }
 
 const CITY_END = /(특별자치시|광역시|특별시)$/;
@@ -90,6 +105,13 @@ export const shortSido = (name: string, code?: string): string => {
   if (row && row.full === name) return row.ko;
   return /통합특별시$/.test(name) ? name : name.replace(CITY_END, '');
 };
+
+/**
+ * 지도에 적는 이웃 시·도 이름(2026-11-17 사용자 결정 — 결정표 D96): 법이 정한 정식 이름 그대로('서울특별시'·'세종특별자치시'·'경기도'),
+ * 전남광주통합특별시만 법정 약칭 '광주특별시'. 이름이 길어 이웃 땅에 들지 않으면 그 땅에 점을 찍고 빈자리의 이름까지 선을 잇는다(svgmap layCtxLead).
+ * 전에는 시 꼴을 짧은 이름으로 줄였다(shortSido — '서울').
+ */
+export const ctxSido = (name: string, code?: string): string => (/통합특별시$/.test(name) ? shortSido(name, code) : name);
 
 const polysOf = (g: Geo | null): Pos[][][] => (!g ? [] : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []);
 const linesOf = (g: Geo | null): Pos[][] => (!g ? [] : g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : []);
@@ -150,43 +172,59 @@ export const specOf = (region: Pick<Region, 'layer' | 'items'> & { unit?: Region
     ? { layer: 'sgg', idKey: 'sggId', ids: region.items.map((it) => it.id), farLon: farLonOf(region.key) }
     : { layer: region.layer, idKey: region.layer === 'si' ? 'siId' : 'sggId', ids: region.items.map((it) => it.id), farLon: farLonOf(region.key), ...(region.unit?.gu ? { rest: true } : {}) };
 
+/** 네모 [x0, y0, x1, y1] 의 path d(1m 로 반올림) */
+export const rectD = ([x0, y0, x1, y1]: Box) =>
+  `M${Math.round(x0)} ${Math.round(y0)} ${Math.round(x1)} ${Math.round(y0)} ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x0)} ${Math.round(y1)}Z`;
 /**
  * 이웃 땅은 지역 둘레만 잘라 담았다(파이프라인 CTX_MARGIN). 화면이 그보다 넓으면(세로 휴대폰에 지역 전체 등) 잘린 변이 직선으로 보이므로,
- * 잘린 변에 땅이 닿은 구간만 바깥으로 길게 늘여 그린다. 바다가 닿은 구간은 그대로 바다다. 변마다 고리와 만나는 점을 구해 짝홀로 구간을 찾는다
+ * 잘린 변에 땅이 닿은 구간만 바깥으로 길게 늘여 그린다. 바다가 닿은 구간은 그대로 바다다.
+ * rings = 이웃 땅 고리, box = 그 상자(이웃 땅을 자른 상자). 잘린 자리는 고리가 그 변을 따라 닫히므로, 변 위에 놓인 선분(두 끝이 모두 변 위)을 모아 구간으로 삼는다.
+ * 늘린 땅을 네모들(지도 단위)로 돌려준다 — 그리기는 rectD, 바다 판정(map/sea.ts)·섬 상자·위치 지도도 같은 네모를 쓴다.
+ * 2026-11-17(바다 표현) 전에는 칸까지 넣은 상자의 변 안쪽에서 고리와 만나는 점으로 구간을 찾았다. 바탕이 이웃 땅과 같은 색일 때는 보이지 않던 두 가지가 드러나 바꿨다:
+ *  · 칸이 상자 끝을 정하는 지도(전국 지도의 독도·백령도, 먼 섬이 있는 지역)는 그 끝 섬에서 가는 땅 띠가 변 밖으로 뻗었다(끝에 닿은 한 점도 구간으로 잡혔다)
+ *  · 그런 지도는 이웃 땅의 잘린 변이 상자 안쪽에 있어 늘려지지 않았다
  */
-function extendD(rings: Float64Array[], box: Box): string {
-  if (!rings.length || !isFinite(box[0])) return '';
+export function extendRects(rings: Float64Array[], box: Box): Box[] {
+  if (!rings.length || !isFinite(box[0])) return [];
   const W = box[2] - box[0], H = box[3] - box[1];
   const eps = Math.max(W, H) * 1e-4, far = Math.max(W, H) * 5;
-  const spans = (horizontal: boolean, at: number): [number, number][] => {
-    const xs: number[] = [];
-    for (const r of rings) {
-      for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
-        const [a0, a1, b0, b1] = horizontal ? [r[j], r[j + 1], r[i], r[i + 1]] : [r[j + 1], r[j], r[i + 1], r[i]];
-        if ((a1 > at) !== (b1 > at)) xs.push(a0 + ((at - a1) * (b0 - a0)) / (b1 - a1));
-      }
+  // 변마다 그 위에 놓인 선분 [시작, 끝](변을 따라 잰 좌표)
+  const on: Record<'t' | 'b' | 'l' | 'r', [number, number][]> = { t: [], b: [], l: [], r: [] };
+  const near = (v: number, at: number) => Math.abs(v - at) <= eps;
+  for (const r of rings) {
+    for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+      const x1 = r[j], y1 = r[j + 1], x2 = r[i], y2 = r[i + 1];
+      if (near(y1, box[1]) && near(y2, box[1])) on.t.push([Math.min(x1, x2), Math.max(x1, x2)]);
+      if (near(y1, box[3]) && near(y2, box[3])) on.b.push([Math.min(x1, x2), Math.max(x1, x2)]);
+      if (near(x1, box[0]) && near(x2, box[0])) on.l.push([Math.min(y1, y2), Math.max(y1, y2)]);
+      if (near(x1, box[2]) && near(x2, box[2])) on.r.push([Math.min(y1, y2), Math.max(y1, y2)]);
     }
-    xs.sort((a, b) => a - b);
+  }
+  // 이어진 선분을 한 구간으로(이웃 땅 덩어리끼리 맞닿은 곳도 이어진다). 점처럼 짧은 것은 뺀다
+  const spans = (list: [number, number][]): [number, number][] => {
+    list.sort((a, b) => a[0] - b[0]);
     const out: [number, number][] = [];
-    for (let i = 0; i + 1 < xs.length; i += 2) if (xs[i + 1] - xs[i] > eps) out.push([xs[i], xs[i + 1]]);
-    return out;
+    for (const s of list) {
+      const last = out[out.length - 1];
+      if (last && s[0] <= last[1] + eps) last[1] = Math.max(last[1], s[1]);
+      else out.push([s[0], s[1]]);
+    }
+    return out.filter(([a, b]) => b - a > eps);
   };
-  const rect = (x0: number, y0: number, x1: number, y1: number) =>
-    `M${Math.round(x0)} ${Math.round(y0)} ${Math.round(x1)} ${Math.round(y0)} ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x0)} ${Math.round(y1)}Z`;
-  const top = spans(true, box[1] + eps), bottom = spans(true, box[3] - eps);
-  const left = spans(false, box[0] + eps), right = spans(false, box[2] - eps);
-  let d = '';
-  for (const [a, b] of top) d += rect(a, box[1] - far, b, box[1] + eps);
-  for (const [a, b] of bottom) d += rect(a, box[3] - eps, b, box[3] + far);
-  for (const [a, b] of left) d += rect(box[0] - far, a, box[0] + eps, b);
-  for (const [a, b] of right) d += rect(box[2] - eps, a, box[2] + far, b);
+  const top = spans(on.t), bottom = spans(on.b), left = spans(on.l), right = spans(on.r);
+  const out: Box[] = [];
+  const rect = (x0: number, y0: number, x1: number, y1: number) => { out.push([x0, y0, x1, y1]); };
+  for (const [a, b] of top) rect(a, box[1] - far, b, box[1] + eps);
+  for (const [a, b] of bottom) rect(a, box[3] - eps, b, box[3] + far);
+  for (const [a, b] of left) rect(box[0] - far, a, box[0] + eps, b);
+  for (const [a, b] of right) rect(box[2] - eps, a, box[2] + far, b);
   // 두 변이 모두 땅으로 끝나는 모서리는 바깥 사분면도 땅
   const has = (sp: [number, number][], v: number) => sp.some(([a, b]) => a <= v + eps * 2 && b >= v - eps * 2);
-  if (has(top, box[0]) && has(left, box[1])) d += rect(box[0] - far, box[1] - far, box[0] + eps, box[1] + eps);
-  if (has(top, box[2]) && has(right, box[1])) d += rect(box[2] - eps, box[1] - far, box[2] + far, box[1] + eps);
-  if (has(bottom, box[0]) && has(left, box[3])) d += rect(box[0] - far, box[3] - eps, box[0] + eps, box[3] + far);
-  if (has(bottom, box[2]) && has(right, box[3])) d += rect(box[2] - eps, box[3] - eps, box[2] + far, box[3] + far);
-  return d;
+  if (has(top, box[0]) && has(left, box[1])) rect(box[0] - far, box[1] - far, box[0] + eps, box[1] + eps);
+  if (has(top, box[2]) && has(right, box[1])) rect(box[2] - eps, box[1] - far, box[2] + far, box[1] + eps);
+  if (has(bottom, box[0]) && has(left, box[3])) rect(box[0] - far, box[3] - eps, box[0] + eps, box[3] + far);
+  if (has(bottom, box[2]) && has(right, box[3])) rect(box[2] - eps, box[3] - eps, box[2] + far, box[3] + far);
+  return out;
 }
 
 export function buildShapes(topo: Topology, spec: LayerSpec, labels: LabelsFile): Shapes {
@@ -230,7 +268,12 @@ export function buildShapes(topo: Topology, spec: LayerSpec, labels: LabelsFile)
   const water = feature(topo, waterObj).features.map((f: { geometry: Geo }) => f.geometry);
   const outGeoms = feature(topo, outObj).features.map((f: { geometry: Geo }) => f.geometry);
   const outRings = outGeoms.flatMap(ringsOf);
-  const landRings = [...outRings, ...ids.flatMap((id) => cells.get(id)!.rings)];
+  // 먼 이웃 땅(far 층): 판 .2 를 2026-11-17 뒤에 다시 만든 것부터 있다(옛 캐시에는 없다 — 그때는 이웃 땅과 늘린 땅만)
+  const farGeoms = topo.objects.far ? feature(topo, topo.objects.far).features.map((f: { geometry: Geo }) => f.geometry) : [];
+  const farRings = farGeoms.flatMap(ringsOf);
+  const landRings = [...outRings, ...farRings];
+  const outBox = landRings.length ? boxOfRings(landRings) : null;
+  const outExt = outBox ? extendRects(landRings, outBox) : [];
   // 묶음별 메쉬는 문제마다 다시 불리므로 기억해 둔다(묶음 = 과·화면·복습할 곳이라 가짓수가 적다)
   const memo = new Map<string, string>();
   const meshOf = (kind: string, set: ReadonlySet<string>, make: () => string): string => {
@@ -249,14 +292,19 @@ export function buildShapes(topo: Topology, spec: LayerSpec, labels: LabelsFile)
     ids,
     cells,
     box: boxOfRings(ids.flatMap((id) => cells.get(id)!.rings)),
-    outD: outGeoms.map(polyD).join('') + extendD(landRings, boxOfRings(outRings.length ? landRings : [])),
+    outD: outGeoms.map(polyD).join('') + outExt.map(rectD).join(''),
+    farD: farGeoms.map(polyD).join(''),
+    outRings,
+    farRings,
+    outExt,
+    outBox,
     waterD: water.map(polyD).join(''),
     water: water.flatMap(ringsOf),
     edgeD: meshD(mesh(topo, cellsObj, (a, b) => a !== b)),
     bankD: meshD(mesh(topo, all, (a, b) => (k(a) === 'c' && k(b) === 'w') || (k(a) === 'w' && k(b) === 'c'))),
     rimD: meshD(mesh(topo, all, (a, b) => (a === b ? k(a) === 'c' : (k(a) === 'c' && k(b) === 'o') || (k(a) === 'o' && k(b) === 'c')))),
     far: farParts.length ? { box: boxOfRings(farParts.flatMap((p) => p.rings)), parts: farParts } : null,
-    names: [...outT.map((g) => ({ g, kind: 'out' as const, sido: g.properties?.sido ?? '', text: shortSido(g.properties?.name ?? '', g.properties?.sido) })),
+    names: [...outT.map((g) => ({ g, kind: 'out' as const, sido: g.properties?.sido ?? '', text: ctxSido(g.properties?.name ?? '', g.properties?.sido) })),
       ...waterT.map((g) => ({ g, kind: 'water' as const, sido: 'water', text: g.properties?.name ?? '한강' }))]
       .filter(({ g, text }) => text && Array.isArray((g.properties as { lp?: unknown } | undefined)?.lp))
       .map(({ g, kind, sido, text }) => {
@@ -264,14 +312,16 @@ export function buildShapes(topo: Topology, spec: LayerSpec, labels: LabelsFile)
         const [x, y] = project(lon, lat);
         // 동 단원 지도의 이웃 땅(emd/{코드}.topo.json out): 시·군·구 id 와 영어 이름(판 .2 — 옛 캐시에는 en 이 없다)
         const id = kind === 'out' ? g.properties?.id : undefined, en = kind === 'out' ? g.properties?.en : undefined;
-        return { text, x, y, kind, sido, ...(typeof id === 'string' ? { id } : {}), ...(typeof en === 'string' ? { en } : {}) };
+        const land = kind === 'out' ? ringsOf((feature(topo, g) as { geometry: Geo }).geometry) : [];
+        return { text, x, y, kind, sido, ...(typeof id === 'string' ? { id } : {}), ...(typeof en === 'string' ? { en } : {}), ...(land.length ? { land } : {}) };
       })
       // 이웃 땅으로 돌린 나머지 칸(spec.rest)의 이름: 칸 이름(sggName)을 그 칸의 이름표 점에('의왕시'). id = 칸 id(영어 화면은 그 곳의 레지스트리 이름 — text/ui.ts ctxNamer)
       .concat(restT.flatMap((g) => {
         const id = g.properties?.[idKey] ?? '', l = labels[id], text = g.properties?.sggName ?? '';
         if (!l || !text) return [];
         const [x, y] = project(l[0], l[1]);
-        return [{ text, x, y, kind: 'out' as const, sido: g.properties?.sido ?? '', id, rest: true }];
+        const land = ringsOf((feature(topo, g) as { geometry: Geo }).geometry);
+        return [{ text, x, y, kind: 'out' as const, sido: g.properties?.sido ?? '', id, rest: true, ...(land.length ? { land } : {}) }];
       })),
     rimOf(set, opt) {
       const bank = !!opt?.bank;
@@ -317,5 +367,7 @@ export function probeAt(s: Shapes, x: number, y: number, upp: number, active: Re
     }
     if (active.has(id) && (isIn || d <= rad)) near.push(id);
   }
-  return { hit, depth, near, water: hit ? null : inside(s.water, x, y) ? 'river' : 'sea' };
+  // 강은 그린 강만(칸과 맞닿은 강 — bankD 있음). 칸과 맞닿지 않아 그리지 않는 강 띠(인천 지도 구석의 한강 등)는 화면에서 이웃 땅색으로 메워져 있어
+  // (2026-11-17 바다 표현 — svgmap) 이웃 땅·바다와 같은 'sea'(판정 outside '밝은 칸 중에서 골라 주세요')로 넘긴다. 전에는 '땅을 눌러 주세요'(river)가 나왔다
+  return { hit, depth, near, water: hit ? null : s.bankD !== '' && inside(s.water, x, y) ? 'river' : 'sea' };
 }

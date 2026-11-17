@@ -16,14 +16,14 @@ import { locRect } from '../../src/app/map/locator.ts';
 import { labelBox, placeLabels } from '../../src/app/map/labelfit.ts';
 import { COMPACT_PX, labelPx } from '../../src/app/map/svgmap.ts';
 import {
-  ZB_BIG, ZB_CELL_PX, ZB_GAP_PX, ZB_GROUP_PX, ZB_H, ZB_H_MIN, ZB_H_WIDE, ZB_LEAD_MIN, ZB_NOTE_H, ZB_PAD, ZB_ROOM, ZB_SPACE_PX, ZB_WIDE, ZB_WIDE_CAP, ZOOM_ROW,
-  zoomCrowd, zoomFit, zoomGap, zoomNeed, zoomPlace, zoomSize,
+  ZB_BIG, ZB_CELL_PX, ZB_DOT_PX, ZB_GAP_PX, ZB_GROUP_PX, ZB_H, ZB_H_MIN, ZB_H_WIDE, ZB_LEAD_MIN, ZB_NOTE_H, ZB_PAD, ZB_ROOM, ZB_SLACK, ZB_SPACE_PX, ZB_W, ZB_WIDE, ZB_WIDE_CAP, ZOOM_ROW,
+  zoomCrowd, zoomFit, zoomGap, zoomNeed, zoomPlace, zoomSize, zoomWide,
   type Rect, type ZoomCell, type ZoomLayout, type ZoomPlace,
 } from '../../src/app/map/zoombox.ts';
 import { CARD_PAD, wholeView } from '../../src/app/ui/maps.ts';
 import { startPage, summaryPage, homePage, unitPage } from '../../src/app/ui/pages.ts';
 import { createRegistry, type Registry } from '../../src/app/registry.ts';
-import { placeName } from '../../src/app/text/ui.ts';
+import { UI_EN, placeName } from '../../src/app/text/ui.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import type { EmdUnitFile, Lesson, Region } from '../../src/app/types.ts';
 import { geo } from './fixtures.ts';
@@ -85,8 +85,8 @@ interface Sim {
   key: string; no: number; sz: SzName; need: boolean;
   /** 늘리기 전 지도 칸(px — 늘린 뒤 CSS 가 정한 높이) · 늘린 높이 · 자리 · 상자 · 범위 네모 · 이번 과 묶음(px) · 피할 것 · 지역 지도 그림 높이(px) */
   size: Size; grow: number; mode?: string; box?: Rect; frame?: Rect; own?: Rect; blocks: Rect[]; region?: Rect; pic?: Size;
-  /** 상자 안 이름표: 겹침 · 범위 밖 · 수 */
-  over: string[]; out: string[]; labels: number;
+  /** 상자 안 이름표: 겹침 · 범위 밖 · 수 · 지시선이 남의 지시선 끝 점에서 ZB_DOT_PX 안으로 지남('이름선~이름점:거리px') */
+  over: string[]; out: string[]; labels: number; dotNear: string[];
   /** 상자 범위(zoomFit — 좁혔으면 fit 과 다른 상자) · 좁혔는가 · 상자 1px 의 지도 단위 · 상자 판정 칸 · 이번 과 본 지도 칸 · 상자에 이름표를 둘 칸(svgmap zLab) */
   fitZ?: Box; narrowed?: boolean; zu?: number; zcells?: ZoomCell[]; ids?: string[]; zlab?: string[];
 }
@@ -96,12 +96,12 @@ interface Sim {
  * 먼 섬 상자(왼쪽 위 — insetPad 는 흉내 내지 않는다), 축척 막대(PC). 지도 칸을 늘리면(아래 줄·낮은 칸의 옆 줄) 높이 상한에서 늘린 높이를 빼(app.css #app .h-map.zoom-below)
  * 그 칸으로 다시 놓는다(고른 줄·상자 크기 그대로 — svgmap 의 keep)
  */
-function simulate(key: string, l: Lesson, sz: SzName, ar: number): Sim {
+function simulate(key: string, l: Lesson, sz: SzName, ar: number, dotPx = ZB_DOT_PX): Sim {
   const r = R.region(key)!, S = shapesOf(key), v0 = wholeView(r), home = boxOf(v0.fit), isles = v0.isles;
   const { cap } = SZ[sz], W = widthOf(sz, ar), natural = W / ar;
   const ids = l.items.filter((id) => !isles.includes(id));
   const grid = isles.length > 0 && l.items.every((id) => isles.includes(id));
-  const out: Sim = { key, no: l.no, sz, need: false, size: { w: W, h: Math.min(cap, natural) }, grow: 0, blocks: [], over: [], out: [], labels: 0 };
+  const out: Sim = { key, no: l.no, sz, need: false, size: { w: W, h: Math.min(cap, natural) }, grow: 0, blocks: [], over: [], out: [], labels: 0, dotNear: [] };
   const lay = (h: number): { p: Pad; il: IsleLayout | null } => {
     const p0 = CARD_PAD;
     if (!isles.length) return { p: p0, il: null };
@@ -136,8 +136,10 @@ function simulate(key: string, l: Lesson, sz: SzName, ar: number): Sim {
       if (isles.includes(id) || c.box[2] < view[0] || c.box[0] > view[2] || c.box[3] < view[1] || c.box[1] > view[3]) continue;
       cells.push({ rings: c.rings, box: c.box, own: own.has(id) });
     }
-    const wide = W >= COMPACT_PX, alt = wide && cap < ZB_WIDE_CAP ? zoomSize(false) : null;
-    const at = zoomPlace({ size, cap, pic: zoomSize(wide), chrome: { w: 2, h: 2 + ZB_NOTE_H }, blocks, view, cells, layout, keep, alt });
+    // svgmap layoutZoom 과 같다: 상자 그림은 가장 넓은 이번 과 이름표 판이 들 폭 이상(zoomWide)
+    const plate = Math.max(0, ...ids.map((id) => labelBox(placeName(R, id), labelPx(ZB_W)).w));
+    const wide = W >= COMPACT_PX, alt = wide && cap < ZB_WIDE_CAP ? zoomWide(zoomSize(false), plate) : null;
+    const at = zoomPlace({ size, cap, pic: zoomWide(zoomSize(wide), plate), chrome: { w: 2, h: 2 + ZB_NOTE_H }, blocks, view, cells, layout, keep, alt });
     return { at, p, blocks, layout };
   };
   let res = place(out.size.h, null);
@@ -170,7 +172,17 @@ function simulate(key: string, l: Lesson, sz: SzName, ar: number): Sim {
     for (const rg of S.water) for (let i = 0; i < rg.length; i += 2) { wb[0] = Math.min(wb[0], rg[i]); wb[2] = Math.max(wb[2], rg[i]); wb[1] = Math.min(wb[1], rg[i + 1]); wb[3] = Math.max(wb[3], rg[i + 1]); }
     if (S.bankD) obstacles.push({ rings: S.water, box: wb });
   }
-  const placed = placeLabels((id) => S.cells.get(id), asks, { mode: 'must', u, obstacles, within, center: [(S.box[0] + S.box[2]) / 2, (S.box[1] + S.box[3]) / 2], avoid: [], screen: [] });
+  const placed = placeLabels((id) => S.cells.get(id), asks, { mode: 'must', u, obstacles, within, center: [(S.box[0] + S.box[2]) / 2, (S.box[1] + S.box[3]) / 2], avoid: [], screen: [], ...(dotPx ? { dotPx } : {}) });
+  // 지시선(점 → 이름표 쪽 끝)이 남의 지시선 끝 점 곁을 지나는가(px — svgmap 은 지시선이 있는 칸에만 점을 그린다)
+  const seg = (p: readonly [number, number], a: readonly [number, number], b: readonly [number, number]) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2)) : 0;
+    return Math.hypot(a[0] + t * dx - p[0], a[1] + t * dy - p[1]);
+  };
+  for (const p of placed) for (const q of placed) {
+    if (p === q || !p.out || !q.out) continue;
+    const d = seg(S.cells.get(q.id)!.label, S.cells.get(p.id)!.label, [p.out.ax, p.out.ay]) / u;
+    if (d < ZB_DOT_PX) out.dotNear.push(placeName(R, p.id) + '선~' + placeName(R, q.id) + '점:' + d.toFixed(1));
+  }
   const bx = placed.map((p) => { const a = asks.find((q) => q.id === p.id)!; return { id: p.id, b: [p.x - (a.w * u) / 2, p.y - (a.h * u) / 2, p.x + (a.w * u) / 2, p.y + (a.h * u) / 2] as Box, inCell: !p.out }; });
   out.labels = bx.length;
   for (let i = 0; i < bx.length; i++) for (let j = i + 1; j < bx.length; j++) {
@@ -444,12 +456,14 @@ test('가로로 돌린 폰(844×390 — 지도 칸은 560 폭이지만 높이 �
 test('상자 범위 좁히기(D95 ㉣ ㉮ — 지금 판): 큰 칸 때문에 상자 안에서도 몰리는 과만 좁히고(폰 제주시 1과·순천시 1과, 낮은 폰은 더), 좁힌 상자에서 다시 재면 몰리지 않으며, 이름은 상자·본 지도 가운데 한 곳에, 좁히지 않은 상자는 l.fit 그대로', () => {
   const S = all().filter((s) => s.need);
   const on = (sz: SzName) => S.filter((s) => s.sz === sz && s.narrowed).map(tag).sort();
-  assert.deepEqual(on('phone'), ['jeju/jeju-si 1과', 'jeonnam-gwangju/suncheon-si 1과']);
+  // 서귀포시 2과(2026-11-16 더함): 과 범위가 송산동 섶섬까지 넓어져(emd-lib edgeFit — 섬 조각이 범위 끝에서 잘리던 것) 폰 상자 축척이 조금 줄며 몰림 판정이 생김 —
+  // 좁힌 상자(천지·중앙·정방동, 500m)에 세 동 이름, 송산·효돈동 이름은 본 지도(그림 d2c-sgp-p2-390x844-box)
+  assert.deepEqual(on('phone'), ['jeju/jeju-si 1과', 'jeju/seogwipo-si 2과', 'jeonnam-gwangju/suncheon-si 1과']);
   assert.deepEqual(on('low'), ['gyeongbuk/yeongju-si 1과', 'jeju/jeju-si 1과', 'jeju/jeju-si 2과', 'jeju/jeju-si 3과', 'jeonnam-gwangju/suncheon-si 1과', 'jeonnam-gwangju/yeosu-si 3과']);
   assert.deepEqual(on('pc'), []);
   // 가로로 돌린 폰(844×390 — 폰 상자): ①과 ②(남원시 1과 점 8.3px · 여수시 3과 낮춘 상자)
   assert.deepEqual(on('land'), [
-    'daejeon/dong-gu 3과', 'gyeongbuk/yeongju-si 1과', 'jeju/jeju-si 1과', 'jeju/jeju-si 2과', 'jeonbuk/namwon-si 1과', 'jeonnam-gwangju/gwangsan-gu 2과', 'jeonnam-gwangju/suncheon-si 1과',
+    'daejeon/dong-gu 3과', 'gyeongbuk/yeongju-si 1과', 'jeju/jeju-si 1과', 'jeju/jeju-si 2과', 'jeju/seogwipo-si 2과', 'jeonbuk/namwon-si 1과', 'jeonnam-gwangju/gwangsan-gu 2과', 'jeonnam-gwangju/suncheon-si 1과',
     'jeonnam-gwangju/yeosu-si 3과',
   ]);
   const bad: string[] = [];
@@ -525,15 +539,23 @@ test('확대 상자 svgmap 길(소스): 처음 붙을 때는 어느 길로 붙�
   assert.doesNotMatch(set, /mirrorZoom\(\)/);
   // 범위 네모 = 상자가 실제로 보이는 범위: 자리 고르기(range)·작은 지도 맞춤(setHome)·범위 네모(frame)가 같은 상자 범위(zoomFit)·같은 그림 크기·같은 여백에서 나온다
   const lay = body('layoutZoom');
-  assert.match(lay, /const fitOf = \(s: Size\) => zoomFit\(fit, ids\.map\(/);
+  // 상자 범위 판정은 이름표 판 크기로(영어 동 과는 한국어 이름 판 크기로도 — fitText · zoomFit alt, 결정표 D110)
+  assert.match(lay, /alt = new Map\(labels\.filter\(\(l\) => l\.fitText\)\.map\(\(l\) => \[l\.id, l\.fitText!\]\)\);/);
+  assert.match(lay, /const fitOf = \(s: Size\) => zoomFit\(fit, cellsOf\(s, text\), s, alt\.size \? cellsOf\(s, alt\) : null\);/);
   assert.match(lay, /const range = \(s: Size\) => viewBox\(fitView\(fitOf\(s\), s, zpad\), s\);/);
   assert.match(lay, /const fitZ = fitOf\(pic\);\n\s+z\.map\.setHome\(fitZ, zpad\);\n\s+const zv = fitView\(fitZ, pic, zpad\);\n[^\n]*\n\s+const \[rx, ry, rw, rh\] = viewBox\(zv, pic\);/);
   assert.match(lay, /z\.frame\.setAttribute\('x', rx\.toFixed\(1\)\);\n\s+z\.frame\.setAttribute\('y', ry\.toFixed\(1\)\);\n\s+z\.frame\.setAttribute\('width', rw\.toFixed\(1\)\);\n\s+z\.frame\.setAttribute\('height', rh\.toFixed\(1\)\);/);
   // 상자 이름표 칸: 좁히지 않았으면 이번 과 모두, 좁혔으면 이름표 점이 작은 지도 이름표 범위(여백 ZB_PAD 안) 안인 칸
   assert.match(lay, /zLab = new Set\(fitZ === fit \? ids : ids\.filter\(\(id\) => \{\n\s+const \[x, y\] = S\.cells\.get\(id\)!\.label;\n\s+return x >= rx && x <= rx \+ rw && y >= ry && y <= ry \+ rh;/);
-  // 넓어도 낮은 칸(가로로 돌린 폰)은 폰 상자
-  assert.match(lay, /const wide = base\.w >= COMPACT_PX, full = zoomSize\(wide\);/);
-  assert.match(lay, /const alt = wide && cap < ZB_WIDE_CAP \? zoomSize\(false\) : null;\n\s+const at = zoomPlace\(\{[^\n]*keep: keep && \{ mode: keep\.mode, pic: keep\.pic \}, alt \}\);/);
+  // 넓어도 낮은 칸(가로로 돌린 폰)은 폰 상자. 어느 상자든 가장 넓은 이름표 판이 들 폭 이상(zoomWide — 결정표 D110)
+  assert.match(lay, /const wide = base\.w >= COMPACT_PX, full = zoomWide\(zoomSize\(wide\), plate\);/);
+  assert.match(lay, /const small = wide && cap < ZB_WIDE_CAP \? zoomWide\(zoomSize\(false\), plate\) : null;\n\s+const at = zoomPlace\(\{[^\n]*keep: keep && \{ mode: keep\.mode, pic: keep\.pic \}, alt: small \}\);/);
+  // 작은 지도는 지시선이 남의 점 곁을 지나지 않게(labelfit dotPx — ZB_DOT_PX). 바다 이름은 본 지도에만(seaNames: false — 2026-11-17)
+  assert.match(lay, /createSvgMap\(z\.mapEl, \{ shapes: \{ \.\.\.S, far: null \}, interaction: 'none', labelDotPx: ZB_DOT_PX, seaNames: false \}\)/);
+  // 상자 폭(zoomWide)을 재는 판은 이 지도 말의 이름(.text — 영어 앱이면 영어 판)으로 잰다. fitText(한국어 판)로 재면 영어 상자가 한국어 폭이 된다(점검 2 변이 M14)
+  assert.match(lay, /const t = labels\.find\(\(l\) => l\.id === id\)\?\.text;/);
+  // 작은 지도의 labelDotPx 가 칸 밖 이름표 놓기(placeOutside)까지 이어진다(끊기면 앱에서 상자 안 지시선 규칙이 꺼진다 — 점검 2 변이 M15)
+  assert.match(body('layLabels'), /placeOutside\(cellOf, asks, inRes, \{[^}]*\.\.\.\(opt\.labelDotPx \? \{ dotPx: opt\.labelDotPx \} : \{\}\)[^;]*\}\);/);
   // 상자가 떨어지면 상자 이름표 칸을 비운다(남으면 섬 상자 있는 지도에서 본 지도가 이번 과 이름표를 거른다 — 점검 11-15 변이 시험에서 잡지 못했다)
   assert.match(sync, /zAt = on \? layoutZoom\([^\n]+\n\s+if \(!on\) zLab = new Set\(\);/);
   // 작은 지도 이름표는 상자 이름표 칸(zLab)만, 한 번만 놓는다
@@ -544,4 +566,70 @@ test('확대 상자 svgmap 길(소스): 처음 붙을 때는 어느 길로 붙�
   const ro = sv.slice(sv.indexOf('const ro = typeof ResizeObserver'), sv.indexOf('ro?.observe(host);'));
   assert.match(ro, /if \(!r\.width && !r\.height\) \{ ghost = true; return; \}\n\s+const before = size, was = ghost;\n\s+measure\(\);\n\s+if \(!was && before\.w === size\.w && before\.h === size\.h\) return;/);
   assert.match(sv, /ghost = !r\.width && !r\.height;\n\s+size = \{ w: Math\.max\(1, r\.width\), h: Math\.max\(1, r\.height\) \};/);
+});
+
+test('영어 동 과 상자 범위(결정표 D110 — 사용자 결정 11-16 \'함께 고치기\'): 이름표 판 크기로 좁히지 않으면 다른 말 판 크기(alt — 한국어 이름)로 한 번 더 재고, 좁힌 범위는 칸 상자로만 정해 두 말이 같다. alt 가 없으면 전과 같다', () => {
+  // 상자 196×148 · 범위 224×300(1px = 2.34): 큰 칸(200×300 — 상자에서 85×128px, 점은 가운데) 하나 + 작은 칸 셋(8×8, 점 간격 8).
+  // 판 40×20(한국어 흉내)이면 큰 칸은 판이 들어 지시선 칸이 아니고 작은 칸 셋만 지시선 칸 → 몰림 → 좁힌다
+  const pic = { w: 196, h: 148 }, fit: Box = [0, 0, 224, 300];
+  const mk = (lb: Size) => [{ box: [0, 0, 200, 300] as Box, pt: [100, 150] as const, lb }, ...[0, 1, 2].map((i) => ({ box: [200 + i * 8, 0, 208 + i * 8, 8] as Box, pt: [204 + i * 8, 4] as const, lb }))];
+  const ko = mk({ w: 40, h: 20 });
+  // 판이 넓으면(영어 흉내 100×20 — 큰 칸도 판보다 좁아 지시선 칸) 큰 칸 점까지 묶음에 들어 점 간격이 넓어져(62px / √4) 몰림이 아니다 → 그대로
+  const en = mk({ w: 100, h: 20 });
+  assert.equal(zoomCrowd(en, fitView(fit, pic, { t: ZB_PAD, r: ZB_PAD, b: ZB_PAD, l: ZB_PAD }).u), false);
+  assert.equal(zoomFit(fit, en, pic), fit);
+  // alt 로 한 번 더 재면 한국어와 같은 범위
+  const zk = zoomFit(fit, ko, pic);
+  assert.notEqual(zk, fit);
+  assert.deepEqual(zoomFit(fit, en, pic, ko), zk);
+  // 앞 판으로 좁히면 alt 는 보지 않는다 · alt 가 비었거나 없으면 그대로
+  assert.deepEqual(zoomFit(fit, ko, pic, en), zk);
+  assert.equal(zoomFit(fit, en, pic, []), fit);
+  assert.equal(zoomFit(fit, en, pic, null), fit);
+});
+
+test('영어 동 과 상자 범위(실제 판 — 결정표 D110): 낮은 폰·가로 폰 여수시 3과는 영어 짧은 이름 판만으로는 몰림으로 잡히지 않아 좁히지 않지만, 한국어 이름 판(alt)으로 한 번 더 재면 한국어와 같은 범위', () => {
+  const l = R.region('jeonnam-gwangju/yeosu-si')!.lessons.find((x) => x.no === 3)!, fit = boxOf(l.fit);
+  for (const sz of ['low', 'land'] as const) {
+    const s = all().find((x) => tag(x) === 'jeonnam-gwangju/yeosu-si 3과' && x.sz === sz)!;
+    assert.ok(s.narrowed, sz);
+    const en = s.ids!.map((id, i) => ({ ...s.zcells![i], lb: labelBox(UI_EN.short(R.place(id)!.item), labelPx(s.pic!.w)) }));
+    assert.equal(zoomFit(fit, en, s.pic!), fit, sz);
+    assert.deepEqual(zoomFit(fit, en, s.pic!, s.zcells!), s.fitZ, sz);
+  }
+});
+
+test('상자 그림 폭(결정표 D110): 가장 넓은 이번 과 이름표 판 + 여백 둘 + 틈(ZB_SLACK)이 그림보다 넓으면 그만큼 넓히고(높이 그대로), 한국어 동 이름 판은 모두 폰 상자 안이라 한국어 상자는 그대로다', () => {
+  assert.equal(ZB_SLACK, 8);
+  const p = zoomSize(false);
+  assert.equal(zoomWide(p, 100), p);
+  assert.equal(zoomWide(p, ZB_W - 2 * ZB_PAD - ZB_SLACK), p);
+  assert.deepEqual(zoomWide(p, 225), { w: 225 + 2 * ZB_PAD + ZB_SLACK, h: ZB_H });
+  assert.deepEqual(zoomWide(zoomSize(true), 225), zoomSize(true));
+  // 지금 판의 모든 동 단원 곳 한국어 이름(상자 글자 14px): 가장 넓은 판도 폰 상자에 든다
+  let widest = 0, who = '';
+  for (const key of unitS.keys()) for (const it of R.region(key)!.items) { const w = labelBox(placeName(R, it.id), labelPx(ZB_W)).w; if (w > widest) { widest = w; who = it.ko; } }
+  // 지금 가장 넓은 것은 '용담·명암·산성동' 115px(영어 짧은 이름 'Yongdam·Myeongam·Sanseong' 은 225px — 영어 판 9곳이 폰 상자를 넘는다)
+  assert.deepEqual([who, widest], ['용담·명암·산성동', 115]);
+  assert.ok(widest + 2 * ZB_PAD + ZB_SLACK <= ZB_W, `${who} ${widest}px`);
+});
+
+test('상자 안 지시선(사용자 결정 11-16 \'함께 고치기\' — labelfit PlaceOpt.dotPx = ZB_DOT_PX): 지시선이 남의 지시선 끝 점에서 ZB_DOT_PX 안으로 지나는 과는 남은 몇 곳뿐이고, 폰 제주시 3과·여수시 3과는 없다', () => {
+  assert.equal(ZB_DOT_PX, 6);
+  const S = all().filter((s) => s.need);
+  const near = S.filter((s) => s.dotNear.length).map((s) => `${tag(s)} ${s.sz}`).sort();
+  // 남은 곳: 낮은 폰·가로 폰에서 점이 몰려 남의 점을 비켜 갈 자리가 없는 과(판 단계가 전과 같은 차례로 간다). 흉내 전(dotPx 없음)에는 이 네 크기에서 16곳 —
+  // 제주시 3과(폰 '화북동' 선이 '건입동' 점 4.7px 곁)·여수시 3과(폰 '동문동' 선이 '한려동' 점 1.4px 곁)·안동시 2과·제천시 1과·강릉시 2과·대구 동구 2과·제주시 4과가 풀렸다
+  // 2026-11-17: 판 없는 이름표의 지시선 끝을 글자 가운데 쪽으로 바꾼 뒤(사용자 '선이 글자와 정확히 이어지게' — leadToCenter. 흰 판의 선은 전처럼 가장 가까운 곳) 지시선 자리가 달라져
+  // 제주시 1과 두 크기가 늘었다(판까지 가운데 쪽으로 바꿨을 때는 여섯 곳이 늘었다 — 대구 동구 2과·구미시 1과 세 크기·군산시 1과 두 크기: 판을 되돌려 없어짐)
+  assert.deepEqual(near, ['gyeongbuk/gimcheon-si 1과 land', 'gyeongbuk/gimcheon-si 1과 low', 'gyeonggi/hanam-si 1과 land', 'gyeongnam/jinju-si 1과 land', 'jeju/jeju-si 1과 land', 'jeju/jeju-si 1과 low', 'jeonnam-gwangju/suncheon-si 4과 land']);
+  for (const t of ['jeju/jeju-si 3과', 'jeonnam-gwangju/yeosu-si 3과']) for (const s of S.filter((x) => tag(x) === t)) assert.deepEqual(s.dotNear, [], `${t} ${s.sz}`);
+});
+
+test('상자 안 지시선 dotPx 를 끄면 전과 같다(실제 판 흉내): 폰 제주시 3과 \'화북동\' 지시선이 \'건입동\' 점 4.7px 곁, 여수시 3과 \'동문동\' 지시선이 \'한려동\' 점 1.4px 곁을 지나고, 켜면 없다', () => {
+  const ctx = ctxOf(R);
+  const one = (key: string, no: number, dot: number) => simulate(key, R.region(key)!.lessons.find((x) => x.no === no)!, 'phone', arOf(unitPage(ctx, key).html), dot).dotNear;
+  assert.deepEqual(one('jeju/jeju-si', 3, 0), ['화북동선~건입동점:4.7']);
+  assert.deepEqual(one('jeonnam-gwangju/yeosu-si', 3, 0), ['동문동선~한려동점:1.4']);
+  assert.deepEqual([one('jeju/jeju-si', 3, ZB_DOT_PX), one('jeonnam-gwangju/yeosu-si', 3, ZB_DOT_PX)], [[], []]);
 });

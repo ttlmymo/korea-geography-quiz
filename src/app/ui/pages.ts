@@ -17,7 +17,7 @@ import type { BBox, Region } from '../types.ts';
 import { fillOf, fillsOf, type Ctx } from './ctx.ts';
 import { backRow, esc } from './dom.ts';
 import { KOREA_MAP, viewSpec, wholeView, type MapSpec, type MapView } from './maps.ts';
-import { COMPACT_PX } from '../map/svgmap.ts';
+import { COMPACT_PX, type MapLabel } from '../map/svgmap.ts';
 import { ISLE_GAP, ISLE_H, ISLE_NOTE_H, ISLE_W } from '../map/isles.ts';
 
 export interface Page { html: string; maps?: Record<string, MapSpec>; title?: string }
@@ -200,6 +200,11 @@ const mapName = (ctx: Ctx, id: string) => (L.lang === 'en' ? L.short(ctx.reg.pla
  * 위 이름 줄·문제 큰 글자·결과 목록은 전체 이름 그대로. 한국어와 영어 시·군·구·일반구·시·도 과는 전과 같이 전체 이름
  */
 const lessonMapName = (ctx: Ctx, id: string) => (L.lang === 'en' && isEmd(id) ? L.short(ctx.reg.place(id)!.item) : nm(ctx, id));
+/**
+ * 과 시작·요약 지도 이름표 하나: 영어 동은 한국어 이름도 함께(fitText — 확대 상자 범위 좁히기를 한국어 이름 판 크기로도 잰다. 판이 긴 영어는 몰림으로 덜 잡혀
+ * 한국어는 좁히는 상자를 영어는 넓은 채 두었다 — 결정표 D110, svgmap MapLabel.fitText · zoombox.ts zoomFit alt). 한국어 앱 이름표는 전과 같다
+ */
+const lessonMapLabel = (ctx: Ctx, id: string): MapLabel => (L.lang === 'en' && isEmd(id) ? { id, text: lessonMapName(ctx, id), fitText: ctx.reg.place(id)!.item.ko } : { id, text: lessonMapName(ctx, id) });
 /**
  * 이름 줄(과 시작 .h-places)의 이름 하나: 영어는 이름 안에서 줄을 바꾸지 않는다(.nw — 'Muak-/dong' 처럼 붙임표에서 갈라지지 않게.
  * 가장 긴 영어 동 이름도 30자라 폰 한 줄에 든다). 한국어는 전과 같은 글(이스케이프만)
@@ -792,7 +797,7 @@ export function startPage(ctx: Ctx, regionKey: string, no: number): Page {
     // 이 과의 곳 이름은 꼭 보이게(must — 칸에 안 들면 칸 밖 지시선, 그래도 없으면 흰 판). 한 과는 3~8곳이라 흰 판이 덮을 칸이 적다
     // 이번 과가 지역 전체 지도에 너무 작게 그려지면 과 범위(l.fit)를 확대한 상자를 덧붙인다(zoom — maps.ts · map/zoombox.ts, D95 ㉣)
     // 영어 동은 지도에 짧은 이름(lessonMapName — 위 이름 줄은 전체 이름)
-    maps: { start: { region: r.key, active: l.items, highlight: l.items, bold: l.items, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => ({ id, text: lessonMapName(ctx, id) })), labelMode: 'must' } },
+    maps: { start: { region: r.key, active: l.items, highlight: l.items, bold: l.items, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => lessonMapLabel(ctx, id)), labelMode: 'must' } },
     html: `<div class="page">${backRow()}
       <div class="h-main">${head}${names}<div class="h-acts">${acts}</div>${prog}${mapCol}</div></div>`,
   };
@@ -839,7 +844,7 @@ export function summaryPage(ctx: Ctx, s: SummaryState): Page {
   return {
     title: L.sumTitle(`${L.region(r)} ${no}`),
     // 과 시작과 같이 이 과의 곳 이름은 꼭 보이게(must)
-    maps: { sum: { region: r.key, active: l.items, fills: lf, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => ({ id, text: lessonMapName(ctx, id) })), labelMode: 'must' } },
+    maps: { sum: { region: r.key, active: l.items, fills: lf, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => lessonMapLabel(ctx, id)), labelMode: 'must' } },
     html: `<div class="page">${backRow()}
       <div class="h-main">${head}${names}${acts}${prog}${mapCol}</div></div>`,
   };

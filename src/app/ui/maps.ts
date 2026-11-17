@@ -153,8 +153,11 @@ export const STAGE_SCALE_MIN = 480;
  * 과 범위(fit) 밖으로 나온 섬(강화 서쪽 섬 등)도 있어 상자 밑에 깔리는 정도를 재서 가장 적은 쪽을 고르고,
  * 같으면 지도가 덜 작아지는 쪽(그래서 가리는 것이 없으면 여백 그대로). 깔리는 정도 = 상자 안 칸 점(10×10 표본, 큰 칸) +
  * 상자와 겹치는 고리(섬 하나하나 — 표본 점 사이로 빠지는 작은 섬). 고른 자리는 host 의 inset-bl(왼쪽 아래, map.css)로 둔다.
+ * 단 본 지도가 가장 크게 그려지는 안보다 INSET_SHRINK 배 넘게 작아지는 안은 고르지 않는다(2026-11-16 점검 — 낮은 폰 375×667 지도 칸 375×267 에서
+ * 세로로 긴 전남광주 먼 섬 상자(77×160) 위를 비우는 안이 덮음 0 이라 골라져 지역 지도가 97×67px 로 줄었다. 옆을 비우는 안은 작은 섬 하나에 걸치지만 255×239).
  * 섬 상자가 없거나 숨었으면 base 그대로
  */
+export const INSET_SHRINK = 2;
 export function insetPad(host: HTMLElement, shapes: Shapes, box: Box, ids: Iterable<string>, base: Pad): Pad {
   host.classList.remove('inset-bl');
   const ins = host.querySelector<HTMLElement>('.cm-inset:not([hidden])');
@@ -176,7 +179,7 @@ export function insetPad(host: HTMLElement, shapes: Shapes, box: Box, ids: Itera
     if (far && x0 >= far[0] && x1 <= far[2] && y0 >= far[1] && y1 <= far[3]) continue;
     ringBoxes.push([x0, y0, x1, y1]);
   }
-  let best: { p: Pad; bl: boolean; cover: number; u: number } | null = null;
+  const opts: { p: Pad; bl: boolean; cover: number; u: number }[] = [];
   for (const bl of [false, true]) {
     const top = bl ? size.h - gap - ih : gap;
     const side: Pad = { ...base, l: gap + iw + base.l };
@@ -192,8 +195,14 @@ export function insetPad(host: HTMLElement, shapes: Shapes, box: Box, ids: Itera
       const E = 12;
       const [ax, ay] = toMap(v, size, gap - E, top - E), [bx, by] = toMap(v, size, gap + iw + E, top + ih + E);
       for (const b of ringBoxes) if (b[0] < bx && b[2] > ax && b[1] < by && b[3] > ay) cover++;
-      if (!best || cover < best.cover || (cover === best.cover && v.u < best.u - 1e-12)) best = { p, bl, cover, u: v.u };
+      opts.push({ p, bl, cover, u: v.u });
     }
+  }
+  const minU = Math.min(...opts.map((o) => o.u));
+  let best: (typeof opts)[number] | null = null;
+  for (const o of opts) {
+    if (o.u > minU * INSET_SHRINK) continue;
+    if (!best || o.cover < best.cover || (o.cover === best.cover && o.u < best.u - 1e-12)) best = o;
   }
   host.classList.toggle('inset-bl', best!.bl);
   return best!.p;
@@ -227,7 +236,7 @@ export async function mountMap(ctx: Ctx, host: HTMLElement, spec: MapSpec): Prom
   // 전국 시·도 지도(지역 고르기·시·도 단원)는 흰 판 이름표를 남의 시·도 칸 위에 두지 않는다(E10 검수 — 휴대폰에서 '충북' 판이 경기·충남 경계 위에 놓였다)
   const plateHome = spec.region === KOREA_MAP || region?.layer === 'sido';
   const map = createSvgMap(host, {
-    shapes, interaction: spec.interaction ?? 'none', contextNames: spec.contextNames, scaleBar: spec.scaleBar, scaleMinWidth: spec.scaleMinWidth, ctxName: ctxNamer(ctx.reg), insetNote: L.inset, onTap: spec.onTap, onZoomed: spec.onZoomed, plateHome,
+    shapes, interaction: spec.interaction ?? 'none', contextNames: spec.contextNames, scaleBar: spec.scaleBar, scaleMinWidth: spec.scaleMinWidth, ctxName: ctxNamer(ctx.reg), insetNote: L.inset, isleNote: L.isles, ...(region?.unit?.far ? { farIsles: region.unit.far } : {}), onTap: spec.onTap, onZoomed: spec.onZoomed, plateHome,
     ...(spec.whole ? { insetAlways: true } : {}),
   });
   // 보기를 먼저 맞춘다(이름표 자리는 배율에 달려 있다)
