@@ -1,50 +1,31 @@
 ---
 // 소개: 무엇·어떻게 공부하는지·지도 데이터·공부 기록·연락처. 지어낸 작성자는 쓰지 않는다
 // (2026-11-14 사용자 결정: '만드는 방식' 단락과 광고 안내 문장은 뺀다)
+// 2026-11-18 사용자 결정('굳이 사용자가 몰라도 되는 정보' 정리 — 소개 쪽도): 첫 단락에 지역 열여섯과 곳 수를 모두 늘어놓던 것,
+// 과 줄에 지역마다 과 수를 늘어놓던 것, '지도와 데이터'의 자료 이름·합치기·한강 설명을 줄였다. 자세한 것은 홈(지역 목록)과 데이터 출처 쪽에 있다
 import Base from '../../layouts/Base.astro';
 import { href } from '../../lib/paths';
 import { studyKo } from '../../lib/regions';
-import { UNITS, emdUnitFile } from '../../lib/geo';
-import { UI_KO } from '../../app/text/ui';
-import { koCount } from '../../app/text/ko';
+import { UNITS } from '../../lib/geo';
 import { SITE_NAME, CONTACT_EMAIL } from '../../consts';
-// 검색 제목·설명(계획서 E9): 공부할 수 있는 지역은 지역 표의 공개 지역에서. 본문 첫 단락·과 수 줄은 판의 공개 지역마다 앱과 같은 범위 말(UI_KO.count)과 과 수로 만든다(E11).
-// 시·도 단원(korea, E10)이 판에 있으면 설명과 첫 단락에 '전국 16개 시·도'를 넣는다(조사: 시·군을 → 시·도를)
+// 검색 제목·설명(계획서 E9)과 첫 단락의 범위 말: 공부할 수 있는 지역은 지역 표의 공개 지역에서(lib/regions.ts studyKo — 모두 열면 '전국 16개 시·도와 시·군·구').
+// 시·도 단원(korea, E10)이 판에 있으면 '전국 16개 시·도'가 들어간다. 새 지역을 열어도 여기는 고치지 않는다
 const korea = !!UNITS.korea;
-// 과 수 줄의 전국 과 수(판 units.json korea — E10 검수: 첫 단락에 시·도를 넣고 과 수 줄에 전국이 빠져 같은 쪽 안에서 어긋났다)
-// 과 수의 한글 수사는 앱과 같은 koCount(E13 — 제주 두 단원을 합친 11과가 '11 과'로 나와 '열한 과'로)
-const koreaLessons = korea ? `, 전국 16개 시·도는 ${koCount(UNITS.korea!.lessons.length)} 과` : '';
-// 첫 단락의 지역 범위와 과 수 줄(E11): 공개 지역(판 units.json regions — 지역 표 차례)마다 앱 홈 탭·지역 쪽과 같은 범위 말을 판에서 만든다
-// ('서울 25개 구'·'부산 15구 1군'·'인천 2군 9구'·'경기 31개 시·군' — 지역이 스스로 쓰는 차례는 앱 문구 규칙 ko.ts guFirst). 새 지역을 열어도 여기는 고치지 않는다(3절 6 — E11 검수)
-// 과 없는 지역(세종 — layer emd, N4 · E12: 곳·과가 동 단원에만 있음)은 동 단원 파일(판 emd/{코드}.json)에서 앱 구 고르기·단원 쪽과 같은 범위 말과 과 수를 만든다
-// ('세종 25개 읍·면·동'·'세종은 다섯 과' — 단원이 둘 이상인 제주는 단원을 합친 곳 수·과 수). 그 밖의 지역에 곳·과가 없으면 빌드를 멈춘다
-const scopeOf = (r: (typeof UNITS.regions)[number]) => {
-  if (r.layer !== 'emd') {
-    if (!r.items.length || !r.lessons.length) throw new Error(`소개 쪽: 공개 지역 ${r.key} 에 곳·과가 없음`);
-    return { count: UI_KO.count(r), lessons: r.lessons.length };
-  }
-  const files = (UNITS.emdUnits?.[r.key] ?? []).map((u) => emdUnitFile(u.code));
-  if (!files.length) throw new Error(`소개 쪽: 과 없는 지역 ${r.key} 에 동 단원이 없음(지역 표 emd live 인지 볼 것)`);
-  return { count: UI_KO.count({ ...files[0], items: files.flatMap((f) => f.items) } as unknown as (typeof UNITS.regions)[number]), lessons: files.reduce((t, f) => t + f.lessons.length, 0) };
-};
-const scopes = UNITS.regions.map((r) => ({ r, ...scopeOf(r) }));
-const areaList = scopes.map(({ r, count }) => `${r.ko} ${count}`).join(', ');
+const scope = studyKo(korea);
 const batchim = (w: string) => (w.charCodeAt(w.length - 1) - 0xac00) % 28 !== 0;   // 끝 글자 받침(조사 고르기)
-const topic = (w: string) => (batchim(w) ? '은' : '는');   // 서울은·부산은 / 경기는
-const lessonList = scopes.map(({ r, lessons }) => `${r.ko}${topic(r.ko)} ${koCount(lessons)} 과`).join(', ');
 const title = `${SITE_NAME} 소개 – 백지도로 행정구역 익히기`;
-const description = `${SITE_NAME}는 이름을 가린 백지도에서 ${studyKo(korea)}를 직접 찾으며 익히는 무료 웹사이트예요. 공부 방법과 지도 데이터를 소개해요.`;
+const description = `${SITE_NAME}는 이름을 가린 백지도에서 ${scope}를 직접 찾으며 익히는 무료 웹사이트예요. 공부 방법과 지도 데이터를 소개해요.`;
 ---
 <Base title={title} description={description} ads>
   <div class="wrap page">
     <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › 소개</nav>
     <article class="prose">
       <h1>채움지도 소개</h1>
-      <p>채움지도는 이름을 가린 백지도에서 행정구역을 직접 찾으며 익히는 무료 웹사이트예요. 지금은 {areaList}{korea ? `${batchim(areaList) ? '과' : '와'} 전국 16개 시·도를` : batchim(areaList) ? '을' : '를'} 공부할 수 있어요. 로그인 없이 바로 쓸 수 있고, 공부한 곳은 지도에 색으로 칠해져요.</p>
+      <p>채움지도는 이름을 가린 백지도에서 행정구역을 직접 찾으며 익히는 무료 웹사이트예요. 지금은 {scope}{batchim(scope) ? '을' : '를'}, 그리고 그 안의 읍·면·동까지 공부할 수 있어요. 로그인 없이 바로 쓸 수 있고, 공부한 곳은 지도에 색으로 칠해져요.</p>
 
       <h2>이렇게 공부해요</h2>
       <ul>
-        <li><b>3~6곳씩 한 과</b>: {lessonList}{koreaLessons}로 나눴어요.</li>
+        <li><b>몇 곳씩 한 과</b>: 가까운 곳끼리 묶어, 한 번에 외우기 좋은 크기의 과로 나눴어요.</li>
         <li><b>만나기 → 고르기 → 찾기</b>: 이름표를 보며 한 곳씩 만나고, 테두리 친 곳의 이름을 고르고, 이름을 가린 채 지도에서 찾아요.</li>
         <li><b>틀리면 바로 알려 줘요</b>: 누른 곳에서 정답이 어느 방향에 있는지 한 줄로 알려 주고, 정답 칸을 한 번 직접 누르게 해요. 틀린 곳은 몇 문제 뒤에 다시 나와요.</li>
         <li><b>다음 날 다시</b>: 익힌 곳은 하루, 이틀, 나흘처럼 간격을 두고 '오늘 복습'에 다시 나와요. 여러 번 맞히면 지도 색이 짙어져요.</li>
@@ -52,7 +33,7 @@ const description = `${SITE_NAME}는 이름을 가린 백지도에서 ${studyKo(
       </ul>
 
       <h2>지도와 데이터</h2>
-      <p>지도는 통계청 SGIS의 행정동 경계를 정리해 공개한 자료(vuski/admdongkor)의 2026년 10월 1일 판으로 직접 그려요. 인천의 2026년 7월 행정체제 개편이 반영된 판이에요. 행정동을 합쳐 시·군·구{korea ? '와 시·도' : ''} 경계를 만들고, 강북과 강남이 보이도록 한강을 따로 그려요. 자세한 출처와 가공 방법은 <a href={href('/sources/')}>데이터 출처</a>에 적었어요.</p>
+      <p>지도는 통계청의 행정동 경계(2026년 10월 1일 기준)를 바탕으로 직접 그려요. 어떤 자료를 썼는지는 <a href={href('/sources/')}>데이터 출처</a>에 적었어요.</p>
 
       <h2>공부 기록</h2>
       <p>공부 기록은 이용자의 브라우저에만 저장되고 서버로 보내지 않아요. 그래서 다른 브라우저나 기기에서는 기록이 이어지지 않아요. 자세한 내용은 <a href={href('/privacy.html')}>개인정보처리방침</a>을 참고하세요.</p>
