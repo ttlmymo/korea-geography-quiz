@@ -323,8 +323,9 @@ export const UI_KO = {
   touching: '맞닿은 곳',
   practice: (no: string) => `이곳이 든 ${no} 연습하기`,
   readMore: '자세히 읽기',
-  source: '행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 단순화·합침 가공',
-  /** 동 단원 둘러보기의 출처 줄 덧말(영어만 — 동 영어 이름의 근거). 한국어는 없음 */
+  // 지도 보기 화면 아래의 출처 줄('행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 단순화·합침 가공')은 2026-11-18 사용자 결정으로 뺌
+  // ('밑에 출처도 삭제 — 서울뿐 아니라 다른 도시도 전부'). 출처는 데이터 출처 쪽(/sources/)에만 둔다
+  /** 동 단원 둘러보기 아래의 이름 표기 안내(영어만 — 동 영어 이름의 근거). 한국어는 없음 */
   sourceEmd: '',
   // 그 밖
   mapFail: '지도를 불러오지 못했어요. 연결을 확인하고 새로 고쳐 주세요',
@@ -685,9 +686,8 @@ export const UI_EN: UI = {
   touching: 'Borders',
   practice: (no: string) => `Practice ${no}, which has this place`,
   readMore: 'Read more',
-  source: 'Boundaries: Statistics Korea SGIS (KOGL Type 1) · vuski/admdongkor (CC BY 4.0), simplified and merged',
-  // 동 단원 둘러보기에만 붙인다(동 이름이 보이는 곳 — 시·군·구 둘러보기와 관문이 닫힌 영어 앱에는 동 이름이 없다)
-  sourceEmd: ' · Neighborhood names: Revised Romanization of Korean (numbers as digits)',
+  // 동 단원 둘러보기에만 둔다(동 이름이 보이는 곳 — 시·군·구 둘러보기와 관문이 닫힌 영어 앱에는 동 이름이 없다). 출처 줄은 2026-11-18 에 뺐고 이 안내만 남는다
+  sourceEmd: 'Neighborhood names: Revised Romanization of Korean (numbers as digits)',
   mapFail: "Couldn't load the map. Check your connection and reload",
   loadFail: ["Couldn't load the map", 'Check your connection and reload'],
   reviewEnd: "Today's review is done! Your filled places are stronger now",
