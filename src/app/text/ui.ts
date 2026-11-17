@@ -150,7 +150,8 @@ export const UI_KO = {
   howSteps: [['① 만나기', '이름표를 보며 눌러 봐요'], ['② 찾기', '이름을 가리고 찾아요'], ['③ 복습', '다음 날 다시 나와요']],
   explore: '지역 알아보기',
   settings: '설정',
-  autoNext: ['정답을 맞히면 잠시 뒤 저절로 다음 문제로 넘어가기', '한 판에서 같은 곳을 처음 두 번 맞혔을 때는 위치 한 줄을 읽도록 늘 [다음]을 눌러요'],
+  // 2026-11-18 사용자 결정(안 2 — 전 문구 '정답을 맞히면 잠시 뒤 저절로 …' · '한 판에서 같은 곳을 처음 두 번 맞혔을 때는 …'가 어색하다)
+  autoNext: ['정답을 맞히면 다음 문제로 자동으로 넘어가기', '새로 맞힌 곳은 처음 두 번까지 위치 설명이 나와요. 이때는 [다음]을 눌러야 넘어가요'],
   legend: ['아직', '익히는 중', '익히는 중', '다 익힘'],
   // 홈(합본 디자인 3.2): 지역 탭 · 큰 제목 · 진도 · 과 카드 줄. 제목의 '\n' 은 줄바꿈
   homeTabs: '지역 고르기',
@@ -554,7 +555,7 @@ export const UI_EN: UI = {
   howSteps: [['① Meet', 'Tap each place with its name shown'], ['② Find', 'Find it with the names hidden'], ['③ Review', 'It comes back the next day']],
   explore: 'Explore regions',
   settings: 'Settings',
-  autoNext: ['Move to the next question by itself after a correct answer', 'The first two times you get the same place right in a round, you always press [Next]'],
+  autoNext: ['Go to the next question automatically after a correct answer', 'The first two times you get a place right, its location note is shown and you press [Next] to continue'],
   legend: ['Not yet', 'Learning', 'Learning', 'Mastered'],
   homeTabs: 'Choose a region',
   tabDue: 'review today',
