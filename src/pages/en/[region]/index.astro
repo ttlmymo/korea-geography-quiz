@@ -1,0 +1,93 @@
+---
+// English region hub (/en/{region key}/, 2026-11-19: every Korean page has an English page). Pair of src/pages/[region]/index.astro.
+// Counts and tables come from the boundary data. Place names link to the English place pages (/en/{region key}/{slug}/). No ads on English pages.
+import Base from '../../../layouts/Base.astro';
+import RegionMap from '../../../components/RegionMap.astro';
+import { href } from '../../../lib/paths';
+import { UNITS, region, svgOf, countKinds, enNameOf, enShortOf, listEn, ilbanGuOf } from '../../../lib/geo';
+import { sidoOf } from '../../../app/sidos';
+import { introEnOf, hubIntroOf } from '../../../data/region-intro';
+
+export function getStaticPaths() {
+  // 서울·인천·경기는 전용 허브 쪽이 있다(getStaticPaths 는 따로 실행되므로 상수를 안에 둔다)
+  const EXCLUDE = new Set(['seoul', 'incheon', 'gyeonggi']);
+  return UNITS.regions.filter((r) => !EXCLUDE.has(r.key) && sidoOf(r.key)?.hub?.en).map((r) => ({ params: { region: r.key }, props: { key: r.key } }));
+}
+const { key } = Astro.props as { key: string };
+const r = region(key);
+const row = sidoOf(key)!;
+const svg = svgOf(key);
+const itemOf = (id: string) => svg.items.find((it) => it.id === id)!;
+const all = r.items.flatMap((it) => itemOf(it.id).dongs);
+const k = countKinds(all);
+const n = (e: string) => r.items.filter((it) => it.ko.endsWith(e)).length;
+const plural = (c: number, one: string, many: string) => `${c} ${c === 1 ? one : many}`;
+const kinds = listEn([n('구') && plural(n('구'), 'autonomous district (gu)', 'autonomous districts (gu)'), n('시') && plural(n('시'), 'city (si)', 'cities (si)'), n('군') && plural(n('군'), 'county (gun)', 'counties (gun)')].filter(Boolean) as string[]);
+const emdOnly = r.layer === 'emd';
+const hasLessons = r.lessons.length > 0;
+const lessonOf = (id: string) => r.lessons.find((l) => l.items.includes(id));
+const screenOf = (id: string) => r.screens.find((s) => s.items.includes(id));
+const rows = [...r.items].sort((a, b) => (lessonOf(a.id)?.no ?? 0) - (lessonOf(b.id)?.no ?? 0) || enNameOf(a.id).localeCompare(enNameOf(b.id)));
+const withGu = r.items.filter((it) => ilbanGuOf(it.id).length);
+const [title, sub] = row.hub!.en!;
+const startHref = emdOnly ? `/en/#/kr/${key}/emd` : `/en/#/kr/${key}/sgg/p1`;
+const regionEn = row.en;
+const intro = hubIntroOf(key);
+const dateEn = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${dd}, ${y}`; };
+const neighborhoods = (dongs: string[]) => {
+  const c = countKinds(dongs);
+  return listEn([c.읍 && `${c.읍} eup`, c.면 && `${c.면} myeon`, c.동 && `${c.동} dong`].filter(Boolean) as string[]);
+};
+---
+<Base lang="en" alternate={{ ko: `/${key}/`, en: `/en/${key}/` }} title={`${title} on the map – Fill the Map`} description={`${regionEn} has ${kinds}. See each one on the map, with its number of towns, townships and neighborhoods${hasLessons ? ' and where it comes in the Fill the Map lessons' : ''}.`}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › {regionEn}</nav>
+    <div class="d-top hub">
+      <div class="d-head">
+        <h1 class="d-title">{title}</h1>
+      </div>
+      <div class="d-body">
+        <p class="lead">{regionEn} has {kinds}, {r.items.length} {r.items.length === 1 ? 'place' : 'places'} in all.{withGu.length > 0 && <> {listEn(withGu.map((it) => enNameOf(it.id)))} also {withGu.length === 1 ? 'has' : 'have'} {withGu.reduce((s, it) => s + ilbanGuOf(it.id).length, 0)} general districts (ilban-gu).</>} It has {all.length} towns, townships and neighborhoods in all: {k.읍} eup, {k.면} myeon and {k.동} dong (October 1, 2026 boundaries).</p>
+        <div class="d-acts"><a class="btn" href={href(startHref)}>{hasLessons ? `Start with ${regionEn} lesson 1` : `Practice ${regionEn}`} <span aria-hidden="true">→</span></a></div>
+      </div>
+      <figure class="d-map">
+        <RegionMap en region={key} labels label={`Map of ${regionEn}'s ${r.items.length} places`} />
+      </figure>
+    </div>
+
+    {intro?.en && (
+      <section class="d-sec intro">
+        {!intro.reviewed && <div class="draft" role="note"><b>Draft</b> — the Korean text has not been verified yet, so this page is not published.</div>}
+        <h2>About {regionEn}</h2>
+        {intro.en.paras.map((t) => <p>{t}</p>)}
+        <p class="meta">Sources: {intro.en.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)}{intro.reviewed && <> (checked against the sources on {dateEn(intro.reviewed)})</>}</p>
+      </section>
+    )}
+
+    {hasLessons && (
+      <section class="d-sec">
+        <h2>The learning order on Fill the Map</h2>
+        <p>The {r.items.length} places are split into {r.lessons.length} lessons of nearby places. After the lessons there are mixed practice and a quiz for all {r.items.length}.</p>
+        <div class="tbl"><table>
+          <thead><tr><th scope="col">Lesson</th><th scope="col">Places</th></tr></thead>
+          <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/en/#/kr/${key}/sgg/p${l.no}`)}>Lesson {l.no}: {l.en}</a></td><td>{l.items.map((id) => enNameOf(id)).join(' · ')}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+    )}
+
+    <section class="d-sec">
+      <h2>All {r.items.length} at a glance</h2>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">Place</th><th scope="col">Towns, townships and neighborhoods</th>{withGu.length > 0 && <th scope="col">General districts</th>}{hasLessons && <th scope="col">Lesson · screen</th>}</tr></thead>
+        <tbody>{rows.map((it) => (
+          <tr>
+            <td>{introEnOf(it.id) ? <a href={href(`/en/${key}/${it.slug}/`)}>{enNameOf(it.id)}</a> : enNameOf(it.id)}</td>
+            <td>{neighborhoods(itemOf(it.id).dongs)}</td>
+            {withGu.length > 0 && <td>{ilbanGuOf(it.id).map((g) => enShortOf(g.id)).join(' · ') || '—'}</td>}
+            {hasLessons && <td>{lessonOf(it.id)?.no} · {screenOf(it.id)?.en}</td>}
+          </tr>
+        ))}</tbody>
+      </table></div>
+    </section>
+  </div>
+</Base>

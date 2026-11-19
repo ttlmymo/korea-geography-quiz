@@ -32,3 +32,11 @@ export const introEnOf = (id: string): IntroEn | null => {
   if (!(regionIntroOf(id) ?? seoulIntroOf(id))) return null;
   return INTROS_EN.find((x) => x.id === id) ?? null;
 };
+
+// 시·도 허브 쪽 소개 글(2026-11-19): 서울·인천·경기 밖 13개 시·도. 한국어 글(paras·sources)과 영어(en). docs/tools/merge_hub_intros.py 가 합친다
+import HUB_RAW from './region-hub-intro.json';
+export interface HubIntro { paras: string[]; sources: { t: string; url: string }[]; read: string; reviewed: string | null; check: string[]; en?: { paras: string[]; sources: { t: string; url: string }[] } }
+const HUB = HUB_RAW as unknown as Record<string, HubIntro>;
+for (const [k, x] of Object.entries(HUB)) for (const w of HARD.words) if (x.paras.some((p) => p.includes(w))) throw new Error(`시·도 소개 글(${k})에 어려운 말 '${w}'`);
+/** 시·도 허브 소개 글(검수한 글, 개발 서버에서는 초안도) */
+export const hubIntroOf = (key: string): HubIntro | null => { const x = HUB[key]; return x && (x.reviewed || import.meta.env.DEV) ? x : null; };

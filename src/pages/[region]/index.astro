@@ -1,0 +1,89 @@
+---
+// 지역 허브(/{지역 키}/, 2026-11-19 사용자 지시): 서울·인천·경기 밖 13개 시·도의 허브를 경기 허브(gyeonggi/index.astro)를 일반화해 만든다.
+// 개수·표는 모두 경계 데이터로 센 것. 시·군·구 이름은 소개 글이 있는 곳 쪽(/{지역 키}/{slug}/)으로 링크한다.
+import Base from '../../layouts/Base.astro';
+import RegionMap from '../../components/RegionMap.astro';
+import { href } from '../../lib/paths';
+import { UNITS, region, svgOf, countKinds, kindsText, ilbanGuOf } from '../../lib/geo';
+import { sidoOf } from '../../app/sidos';
+import { regionIntroOf, hubIntroOf } from '../../data/region-intro';
+
+export function getStaticPaths() {
+  // 서울·인천·경기는 전용 허브 쪽이 있다(getStaticPaths 는 따로 실행되므로 상수를 안에 둔다)
+  const EXCLUDE = new Set(['seoul', 'incheon', 'gyeonggi']);
+  return UNITS.regions.filter((r) => !EXCLUDE.has(r.key) && sidoOf(r.key)?.hub).map((r) => ({ params: { region: r.key }, props: { key: r.key } }));
+}
+const { key } = Astro.props as { key: string };
+const r = region(key);
+const row = sidoOf(key)!;
+const svg = svgOf(key);
+const itemOf = (id: string) => svg.items.find((it) => it.id === id)!;
+const all = r.items.flatMap((it) => itemOf(it.id).dongs);
+const k = countKinds(all);
+const n = (e: string) => r.items.filter((it) => it.ko.endsWith(e)).length;
+const si = n('시'), gun = n('군'), gu = n('구');
+const kinds = [gu && `${gu}개 구`, si && `${si}개 시`, gun && `${gun}개 군`].filter(Boolean).join(' · ');
+const emdOnly = r.layer === 'emd';
+const hasLessons = r.lessons.length > 0;
+const lessonOf = (id: string) => r.lessons.find((l) => l.items.includes(id));
+const screenOf = (id: string) => r.screens.find((s) => s.items.includes(id));
+const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
+const rows = [...r.items].sort((a, b) => (lessonOf(a.id)?.no ?? 0) - (lessonOf(b.id)?.no ?? 0) || a.ko.localeCompare(b.ko, 'ko'));
+const withGu = r.items.filter((it) => ilbanGuOf(it.id).length);
+const [title, sub] = row.hub!.ko;
+const startHref = emdOnly ? `/#/kr/${key}/emd` : `/#/kr/${key}/sgg/p1`;
+const regionName = row.parts ? row.full : row.ko;
+const intro = hubIntroOf(key);
+---
+<Base alternate={{ ko: `/${key}/`, en: `/en/${key}/` }} title={`${title} 지도로 익히기 – 채움지도`} description={`${r.full}의 ${kinds}를 지도로 봐요. 시·군·구마다 읍·면·동 수${hasLessons ? '와 채움지도의 공부 순서' : ''}를 정리했어요.`}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › {regionName}</nav>
+    <div class="d-top hub">
+      <div class="d-head">
+        <h1 class="d-title">{title}</h1>
+      </div>
+      <div class="d-body">
+        <p class="lead">{r.full}은 {kinds}, 모두 {r.items.length}곳{r.items.length === 1 ? '' : '의 시·군·구'}으로 이뤄져요.{withGu.length > 0 && <> 이 가운데 {withGu.map((it) => it.ko).join('·')}에는 일반구가 {withGu.reduce((s, it) => s + ilbanGuOf(it.id).length, 0)}개 있어요.</>} 읍·면·동은 모두 {all.length}개(읍 {k.읍}·면 {k.면}·동 {k.동})예요(2026년 10월 1일 경계 기준).</p>
+        <div class="d-acts"><a class="btn" href={href(startHref)}>{hasLessons ? `${row.parts ? row.full : row.ko} 1과부터 공부하기` : `${row.ko} 공부하기`} <span aria-hidden="true">→</span></a></div>
+      </div>
+      <figure class="d-map">
+        <RegionMap region={key} labels label={`${r.full} ${r.items.length}개 시·군·구 지도`} />
+      </figure>
+    </div>
+
+    {intro && (
+      <section class="d-sec intro">
+        {!intro.reviewed && <div class="draft" role="note"><b>검수 전 초안</b> — 공개 전에 운영자가 출처와 대조합니다.{intro.check.length > 0 && <> 확인할 것: {intro.check.join(' / ')}</>}</div>}
+        <h2>{regionName}는 이런 곳이에요</h2>
+        {intro.paras.map((t) => <p>{t}</p>)}
+        <p class="meta">출처: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)} ({intro.reviewed ? <>{intro.reviewed.replace(/-0?/g, '. ')}. 원문 확인</> : <>{intro.read.replace(/-0?/g, '. ')}. 읽음</>})</p>
+      </section>
+    )}
+
+    {hasLessons && (
+      <section class="d-sec">
+        <h2>채움지도에서 배우는 순서</h2>
+        <p>{r.lessons.length}과로 나눠 한 과에 가까운 몇 곳씩 배워요. 마친 뒤 {r.items.length}곳을 섞어 찾는 전체 연습과 시험도 있어요.</p>
+        <div class="tbl"><table>
+          <thead><tr><th scope="col">과</th><th scope="col">시·군·구</th></tr></thead>
+          <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/#/kr/${key}/sgg/p${l.no}`)}>{l.no}과 {l.title}</a></td><td>{l.items.map(nm).join(' · ')}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+    )}
+
+    <section class="d-sec">
+      <h2>{r.items.length}곳 한눈에</h2>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">시·군·구</th><th scope="col">읍·면·동</th>{withGu.length > 0 && <th scope="col">일반구</th>}{hasLessons && <th scope="col">과 · 화면</th>}</tr></thead>
+        <tbody>{rows.map((it) => (
+          <tr>
+            <td>{regionIntroOf(it.id) ? <a href={href(`/${key}/${it.slug}/`)}>{it.ko}</a> : it.ko}</td>
+            <td>{kindsText(itemOf(it.id).dongs).replace('행정동 ', '')}</td>
+            {withGu.length > 0 && <td>{ilbanGuOf(it.id).map((g) => g.ko.replace(`${it.ko} `, '')).join(' · ') || '—'}</td>}
+            {hasLessons && <td>{lessonOf(it.id)?.no}과 · {screenOf(it.id)?.ko}</td>}
+          </tr>
+        ))}</tbody>
+      </table></div>
+    </section>
+  </div>
+</Base>

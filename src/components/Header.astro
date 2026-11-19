@@ -103,6 +103,8 @@ const all = [study, review, ...maps, ...more, other];
   .menu ul, .drop ul {
     position: absolute; z-index: 30; min-width: 220px; margin: 0; padding: var(--sp-2) 0;
     list-style: none; background: var(--surface); border: 1px solid var(--ink);
+    /* 지역 허브가 열여섯 곳으로 늘어(2026-11-19) 목록이 길어지면 화면 안에서 스크롤 */
+    max-height: calc(100vh - 88px); overflow-y: auto; overscroll-behavior: contain;
   }
   .menu ul { right: -8px; top: calc(100% + 4px); }
   .menu li a, .drop li a {
