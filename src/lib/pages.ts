@@ -10,7 +10,8 @@ import { SEOUL_GU } from '../data/seoul';
 import { INTROS, introOf } from '../data/seoul-intro';
 import { visibleGuides } from '../guides/registry';
 import { HUBS } from './regions';
-import { region } from './geo';
+import { region, UNITS } from './geo';
+import { regionIntroOf } from '../data/region-intro';
 
 export interface IndexPage { path: string; updated: string }
 
@@ -84,11 +85,20 @@ const PLACES: Record<string, () => IndexPage[]> = {
   },
 };
 
+/** 서울 밖 시·군·구 쪽(src/pages/[region]/[slug]) — 소개 글에 확인한 날(reviewed)이 있는 곳만. 허브가 없는 지역도 사이트맵에 넣는다(2026-11-19) */
+function regionPlaces(): IndexPage[] {
+  return UNITS.regions.filter((r) => r.key !== 'seoul').flatMap((r) => r.items.flatMap((it) => {
+    const x = regionIntroOf(it.id);
+    return x?.reviewed ? [at(`/${r.key}/${it.slug}/`, later(DEFAULT_UPDATED, x.reviewed))] : [];
+  }));
+}
+
 export function indexPages(): IndexPage[] {
   const guides = visibleGuides().filter((g) => g.reviewed);
   return [
     at('/'), at('/en/'),
     ...HUBS.flatMap((s) => [at(`/${s.key}/`), ...(s.hub?.en ? [at(`/en/${s.key}/`)] : []), ...(PLACES[s.key]?.() ?? [])]),
+    ...regionPlaces(),
     ...(guides.length ? [at('/guide/'), ...guides.map((g) => at(`/guide/${g.slug}/`, g.updated))] : []),
     at('/about/'), at('/contact/'), at('/sources/'),
     // 방침은 본문을 고쳐 내보낸 날 = 시행일(consts PRIVACY_EFFECTIVE)

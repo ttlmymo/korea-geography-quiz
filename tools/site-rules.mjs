@@ -10,7 +10,9 @@
 import crypto from 'node:crypto';
 
 /** 한 배포에 새로 내는 색인 쪽 상한(3절 7 · N25) */
+// 기본 5. 한 번에 많이 낼 때(사용자 결정)만 환경변수 KGQ_NEW_INDEX_MAX 로 올린다 — 2026-11-19 전국 시·군·구 쪽 204곳을 한 번에 냈다(WORKLOG)
 export const NEW_INDEX_MAX = 5;
+export const newIndexMax = () => Number(process.env.KGQ_NEW_INDEX_MAX) || NEW_INDEX_MAX;
 /** 새 쪽의 틀 문장 비율 상한 [제안] — 본문 글자의 절반 넘게 다른 쪽과 같은 틀이면 '자동으로 찍어 낸 쪽'으로 본다 */
 export const TEMPLATE_MAX = 0.5;
 
@@ -56,7 +58,7 @@ export const baseMap = (baseline) => new Map(baseline.pages.map((p) => [p.path, 
  * 새 색인 쪽 상한과 빠진 쪽. indexable: 이번 빌드의 색인 쪽 주소(기준 경로 없이).
  * langOf(path → html lang)를 주면 새 쪽이 한국어인지도 본다(주지 않아도 /en/ 주소는 잡는다)
  */
-export function checkNewIndex(indexable, baseline, { max = NEW_INDEX_MAX, langOf } = {}) {
+export function checkNewIndex(indexable, baseline, { max = newIndexMax(), langOf } = {}) {
   const base = baseMap(baseline);
   const now = new Set(indexable);
   const added = [...now].filter((p) => !base.has(p)).sort();

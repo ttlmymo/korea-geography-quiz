@@ -23,14 +23,14 @@ export const INTROS: Intro[] = [
     ],
     sources: [{ t: '종로구청, 역사와 연혁 · 종로구 역사(2026. 8. 7. 수정)', url: 'https://www.jongno.go.kr/Main.do?menuNo=1890' }],
     read: '2026-11-07',
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ['종로구 역사 쪽은 구제도 실시를 1943년 4월 1일로 적었고, 중구·용산·서대문 쪽은 6월 10일로 적어 글에는 해만 씀'],
   },
   {
     id: 'kr:sgg:11140',   // 중구
     paras: [
       '중구는 서울 4대문 안의 한가운데에 있어요. 북쪽은 청계천을 따라 종로구와 맞닿고, 남쪽에는 남산이 있어요.',
-      '1943년 서울(그때 이름은 경성부)에 구 제도를 처음 둘 때 일곱 사무소 가운데 하나인 중앙 사무소로 시작해, 그해 중구가 됐어요. 은행 본점과 큰 회사가 모인 업무 중심지이고, 백화점과 큰 시장이 모인 쇼핑 중심지이기도 해요.',
+      '1943년 서울(그때 이름은 경성부)에 구 제도를 처음 둘 때 일곱 사무소 가운데 하나인 중앙 사무소로 시작해, 그해 중구역소가 됐어요. 1946년에 서울시 중구로 올랐어요. 은행 본점과 큰 회사가 모인 업무 중심지이고, 백화점과 큰 시장이 모인 쇼핑 중심지이기도 해요.',
     ],
     sources: [
       { t: '중구청, 중구의 연혁', url: 'https://www.junggu.seoul.kr/content.do?cmsid=14345' },
@@ -38,8 +38,8 @@ export const INTROS: Intro[] = [
       { t: '중구청, 지역특성', url: 'https://www.junggu.seoul.kr/content.do?cmsid=14063' },
     ],
     read: '2026-11-07',
-    reviewed: null,
-    check: ["'일곱 사무소'는 연혁의 '경성부 전역에 7개 사무소가 설치' 문장에 기댐", "'4대문 안의 한가운데'는 일반현황(서울의 중심부)·지역특성(4대문 내 중심 업무지구)을 합친 표현"],
+    reviewed: '2026-11-19',
+    check: ["2026-11-19 원문 대조로 고침: 연혁은 1943. 6. 10. '중구역소 설치', 1946. 9. 28. '서울시 중구로 승격'(앞 글은 '그해 중구가 됐어요'로 틀리게 썼음)", "'일곱 사무소'는 연혁의 '경성부 전역에 7개 사무소가 설치' 문장에 기댐", "'4대문 안의 한가운데'는 일반현황(서울의 중심부)·지역특성(4대문 내 중심 업무지구)을 합친 표현"],
   },
   {
     id: 'kr:sgg:11170',   // 용산구
@@ -49,7 +49,7 @@ export const INTROS: Intro[] = [
     ],
     sources: [{ t: '용산구청, 용산역사 · 동명유래', url: 'https://www.yongsan.go.kr/portal/main/contents.do?menuNo=200218' }],
     read: '2026-11-07',
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'남산 남쪽 자락'은 동명유래의 '남산의 연맥이 후암동을 지나 남쪽으로 뻗어내려간 구릉지대'를 줄인 말", "'북쪽에서 내려온 사람들'은 원문의 '월남민'"],
   },
   {
@@ -60,7 +60,7 @@ export const INTROS: Intro[] = [
     ],
     sources: [{ t: '은평구청, 은평소개', url: 'https://www.ep.go.kr/www/contents.do?key=776' }],
     read: '2026-11-07',
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'연은방의 은 + 상평방의 평'처럼 한 글자씩 땄다고는 쓰지 않음(원문은 '이 두 지명에서 유래')", "서대문구청 행정기구 연혁은 같은 방을 '영은방'으로 적음 — 은평구청 표기 '연은방'을 따름"],
   },
   {
@@ -74,7 +74,7 @@ export const INTROS: Intro[] = [
       { t: '서대문구청, 동명 유래', url: 'https://www.sdm.go.kr/wesdm/history/origin.do' },
     ],
     read: '2026-11-07',
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ['서대문구 행정기구 연혁에서 1943. 4. 1. 서대문사무소, 1943. 6. 10. 서대문구역소, 1945. 10. 16. 구청'],
   },
   {
@@ -88,7 +88,7 @@ export const INTROS: Intro[] = [
       { t: '마포구청, 위치와 면적', url: 'https://www.mapo.go.kr/site/main/content/mapo04010105' },
     ],
     read: '2026-11-07',
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ['위치와 면적 쪽은 상암동을 마포구의 35%라고 적음(3분의 1이 넘음)', '이름 유래는 구청 쪽에서 찾지 못해 쓰지 않음'],
   },
   {
@@ -103,7 +103,7 @@ export const INTROS: Intro[] = [
       { t: "동작구청, 일반현황", url: "https://www.dongjak.go.kr/portal/main/contents.do?menuNo=200092" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'남쪽 지방'은 원문의 '삼남지역'을 쉽게 쓴 말"],
   },
   {
@@ -117,7 +117,7 @@ export const INTROS: Intro[] = [
       { t: "서초구청, 연혁", url: "https://www.seocho.go.kr/site/seocho/05/10502010000002015062601.jsp" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["연혁 쪽의 11개 법정동에는 도곡동이 들어 있고, 강남구청 강남역사관은 1989년 도곡동이 다시 강남구로 갔다고 적음"],
   },
   {
@@ -131,7 +131,7 @@ export const INTROS: Intro[] = [
       { t: "강남구청, 일반현황", url: "https://www.gangnam.go.kr/contents/hello/3/view.do?mid=ID06_040401" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'강남'이라는 이름의 뜻은 구청 쪽에서 찾지 못해 쓰지 않음"],
   },
   {
@@ -145,7 +145,7 @@ export const INTROS: Intro[] = [
       { t: "송파구청, 송파역사 · 동명유래", url: "https://www.songpa.go.kr/www/contents.do?key=2367" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["이름 유래는 원문이 세 가지 설을 드는데 그 가운데 하나만 소개함", "'서울 한강의 세 나루'는 원문의 '경강삼진(京江三津)'"],
   },
   {
@@ -159,7 +159,7 @@ export const INTROS: Intro[] = [
       { t: "강동구청, 역사속의 강동", url: "https://www.gangdong.go.kr/web/culture/contents/gdc020_020_010" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'처음에는 지금의 송파구 땅까지 함께'는 연혁의 1988. 1. 1. '송파구와 분구'와 송파구청 연혁에 기댐", "'강동'이라는 이름의 뜻은 구청 쪽에서 찾지 못해 쓰지 않음"],
   },
   {
@@ -173,13 +173,13 @@ export const INTROS: Intro[] = [
       { t: "강서구청, 우리구 소개 · 일반현황", url: "https://www.gangseo.seoul.kr/gs050002" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'동네 대부분'은 1963년 편입 마을 목록(가양·마곡·등촌·염창·화곡·발산·송정·과해·방화·개화 등)과 지금 법정동을 견준 말"],
   },
   {
     id: "kr:sgg:11470",   // 양천구
     paras: [
-      "양천이라는 이름은 고려 때인 1310년부터 쓰였어요. 양천구청은 이 이름을 '밝은 태양과 냇물이 흐르는 아름다운 고장'이라고 풀이해요. 조선 때는 양천현이라는 고을 이름으로 쓰였어요.",
+      "양천이라는 이름은 고려 때인 1310년부터 쓰였어요. 양천구청은 양천을 '밝은 태양과 냇물이 흐르는 아름다운 고장'이라고 소개해요. 조선 때는 양천현이라는 고을 이름으로 쓰였어요.",
       "지금 양천구 땅은 1963년 경기도 김포군에서 서울 영등포구로 들어왔어요. 1977년 강서구에 속했다가 1988년 1월 1일 강서구에서 나뉘어 양천구가 됐어요. 넓이는 약 17.4㎢예요.",
     ],
     sources: [
@@ -187,8 +187,8 @@ export const INTROS: Intro[] = [
       { t: "양천구청, 위치와 면적", url: "https://www.yangcheon.go.kr/site/yangcheon/04/10402030100002016081013.jsp" },
     ],
     read: "2026-11-07",
-    reviewed: null,
-    check: ["넓이는 위치와 면적 쪽 표의 합계 17,407,258.6㎡를 줄인 값", "'1963년 김포군에서'는 연혁 첫 줄(김포군 양동면·양서면 등 편입)과 강서구청 연혁(양동면 신정·목동리)에 기댐"],
+    reviewed: '2026-11-19',
+    check: ["2026-11-19 원문 대조로 고침: '밝은 태양과 냇물이 흐르는 아름다운 고장'은 연혁 쪽의 소개 문구이고 이름 풀이가 아님(앞 글은 '이름을 풀이'로 틀리게 썼음)", "넓이는 위치와 면적 쪽 표의 합계 17,407,258.6㎡를 줄인 값", "'1963년 김포군에서'는 연혁 첫 줄(김포군 양동면·양서면 등 편입)과 강서구청 연혁(양동면 신정·목동리)에 기댐"],
   },
   {
     id: "kr:sgg:11530",   // 구로구
@@ -201,7 +201,7 @@ export const INTROS: Intro[] = [
       { t: "구로구청, 동별역사", url: "https://www.guro.go.kr/www/contents.do?key=2126" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["전설은 동별역사의 구로동 항목('9명의 장수한 노인이 있었다는 전설')에서"],
   },
   {
@@ -216,7 +216,7 @@ export const INTROS: Intro[] = [
       { t: "구로구청, 연혁", url: "https://www.guro.go.kr/www/contents.do?key=2091" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'가리봉동 일부(지금의 가산동)'는 구로구청 연혁의 '가리봉(가산)동' 표기에 기댐"],
   },
   {
@@ -234,7 +234,7 @@ export const INTROS: Intro[] = [
       { t: "구로구청, 연혁", url: "https://www.guro.go.kr/www/contents.do?key=2091" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["영등포구청 조직변천사 쪽은 글로 읽히지 않아, 1943년 일곱 구는 성동구청, 나뉜 구는 관악·강서·구로 구청 연혁으로 씀"],
   },
   {
@@ -248,7 +248,7 @@ export const INTROS: Intro[] = [
       { t: "관악구청, 일반현황", url: "https://www.gwanak.go.kr/site/gwanak/11/11101030000002016051207.jsp" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: [],
   },
   {
@@ -262,7 +262,7 @@ export const INTROS: Intro[] = [
       { t: "성동구청, 일반현황", url: "https://www.sd.go.kr/main/contents.do?key=1380" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'지금의 강남 지역까지 맡았는데'는 1975. 10. 1. '성동구 영동출장소와 천호출장소를 합해 강남구 신설'에 기댐"],
   },
   {
@@ -277,7 +277,7 @@ export const INTROS: Intro[] = [
       { t: "광진구청, 일반현황", url: "https://www.gwangjin.go.kr/portal/main/contents.do?menuNo=200088" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: [],
   },
   {
@@ -292,7 +292,7 @@ export const INTROS: Intro[] = [
       { t: "동대문구청, 기본현황", url: "https://www.ddm.go.kr/www/contents.do?key=262" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: [],
   },
   {
@@ -303,7 +303,7 @@ export const INTROS: Intro[] = [
     ],
     sources: [{ t: "중랑구청, 연혁 · 중랑구 소개", url: "https://www.jungnang.go.kr/portal/main/contents.do?menuNo=200454" }],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'중랑'이라는 이름의 유래는 구청 쪽에서 찾지 못해 쓰지 않음", "연혁 쪽은 1949년 편입일을 8월 15일로 적음(다른 구청은 8월 13일) — 글에는 해만"],
   },
   {
@@ -318,7 +318,7 @@ export const INTROS: Intro[] = [
       { t: "강북구청, 강북역사(2025. 10. 3. 수정)", url: "https://www.gangbuk.go.kr/portal/main/contents.do?menuNo=200130" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: [],
   },
   {
@@ -329,7 +329,7 @@ export const INTROS: Intro[] = [
     ],
     sources: [{ t: "강북구청, 강북역사(2025. 10. 3. 수정)", url: "https://www.gangbuk.go.kr/portal/main/contents.do?menuNo=200130" }],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'강북'이라는 이름의 뜻은 구청 쪽에서 찾지 못해 쓰지 않음"],
   },
   {
@@ -344,7 +344,7 @@ export const INTROS: Intro[] = [
       { t: "도봉구청, 일반현황", url: "https://www.dobong.go.kr/Contents.asp?code=10009543" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["공원 비율은 유래 쪽의 '공원면적이 구면적의 52.5%'에서"],
   },
   {
@@ -360,7 +360,7 @@ export const INTROS: Intro[] = [
       { t: "중랑구청, 연혁", url: "https://www.jungnang.go.kr/portal/main/contents.do?menuNo=200454" },
     ],
     read: "2026-11-07",
-    reviewed: null,
+    reviewed: '2026-11-19',
     check: ["'노원역(驛)'은 지하철역이 아니라 원문 지명유래의 옛 역 — 헷갈리지 않는지", "강북구청 강북역사의 1988년 문장은 노원구에 도봉동·창동을 넣어 적어(다른 구청과 어긋남) 쓰지 않음"],
   },
 ];

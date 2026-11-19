@@ -7,6 +7,7 @@ import { href } from '../../lib/paths';
 import { region, svgOf, kindsText, countKinds } from '../../lib/geo';
 import reform from '../../data/incheon-reform.json';
 import { guideIf } from '../../guides/registry';
+import { regionIntroOf } from '../../data/region-intro';
 
 const r = region('incheon');
 const svg = svgOf('incheon');
@@ -83,7 +84,7 @@ const SRC = {
       <div class="tbl"><table>
         <thead><tr><th scope="col">군·구</th><th scope="col">읍·면·동</th><th scope="col">과</th></tr></thead>
         <tbody>{rows.map((it) => (
-          <tr><td>{it.ko}{NEW.has(it.ko) && <span class="doc-tag">2026.7</span>}</td><td>{kindsText(dongsOf(it.id)).replace('행정동 ', '')}</td><td>{lessonOf(it.id).no}과</td></tr>
+          <tr><td>{regionIntroOf(it.id) ? <a href={href(`/incheon/${it.slug}/`)}>{it.ko}</a> : it.ko}{NEW.has(it.ko) && <span class="doc-tag">2026.7</span>}</td><td>{kindsText(dongsOf(it.id)).replace('행정동 ', '')}</td><td>{lessonOf(it.id).no}과</td></tr>
         ))}</tbody>
       </table></div>
     </section>

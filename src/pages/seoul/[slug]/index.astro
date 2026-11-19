@@ -67,7 +67,7 @@ const intro = introOf(item.id);
         {!intro.reviewed && <div class="draft" role="note"><b>검수 전 초안</b> — 공개 전에 운영자가 출처와 대조합니다.{intro.check.length > 0 && <> 확인할 것: {intro.check.join(' / ')}</>}</div>}
         <h2>{g.ko}는 이런 곳이에요</h2>
         {intro.paras.map((t) => <p>{t}</p>)}
-        <p class="meta">출처: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)} ({intro.read.replace(/-0?/g, '. ')}. 읽음{intro.reviewed && <>, {intro.reviewed.replace(/-0?/g, '. ')}. 검수</>})</p>
+        <p class="meta">출처: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)} ({intro.read.replace(/-0?/g, '. ')}. 읽음{intro.reviewed && <>, {intro.reviewed.replace(/-0?/g, '. ')}. 원문 확인</>})</p>
       </section>
     )}
     <section class="d-sec">

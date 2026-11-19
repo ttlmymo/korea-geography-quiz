@@ -5,6 +5,7 @@ import Base from '../../layouts/Base.astro';
 import RegionMap from '../../components/RegionMap.astro';
 import { href } from '../../lib/paths';
 import { region, svgOf, countKinds, kindsText } from '../../lib/geo';
+import { regionIntroOf } from '../../data/region-intro';
 
 const r = region('gyeonggi');
 const svg = svgOf('gyeonggi');
@@ -50,7 +51,7 @@ const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
       <div class="tbl"><table>
         <thead><tr><th scope="col">시·군</th><th scope="col">읍·면·동</th><th scope="col">일반구</th><th scope="col">과 · 화면</th></tr></thead>
         <tbody>{rows.map((it) => (
-          <tr><td>{it.ko}</td><td>{kindsText(itemOf(it.id).dongs).replace('행정동 ', '')}</td><td>{itemOf(it.id).gu.join(' · ') || '—'}</td><td>{lessonOf(it.id).no}과 · {screenOf(it.id).ko}</td></tr>
+          <tr><td>{regionIntroOf(it.id) ? <a href={href(`/gyeonggi/${it.slug}/`)}>{it.ko}</a> : it.ko}</td><td>{kindsText(itemOf(it.id).dongs).replace('행정동 ', '')}</td><td>{itemOf(it.id).gu.join(' · ') || '—'}</td><td>{lessonOf(it.id).no}과 · {screenOf(it.id).ko}</td></tr>
         ))}</tbody>
       </table></div>
     </section>

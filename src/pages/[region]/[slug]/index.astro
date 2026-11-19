@@ -1,0 +1,87 @@
+---
+// 서울 밖 시·군·구 쪽(/{지역 키}/{slug}/, 2026-11-19 사용자 지시 '서울뿐 아니라 전국으로'). 서울 구 쪽(seoul/[slug])을 일반화했다.
+// 쪽마다 데이터로 확인되는 고유 요소: 위치도·위치 한 줄·읍·면·동 이름·맞닿은 곳·과. 서울의 법정동 대응표는 서울시 자료라 여기엔 없다.
+// 쪽은 검수한 소개 글이 있는 곳만 만든다(개발 서버에서는 초안도, 띠와 함께). 소개 글: src/data/intro-kr.json (src/data/region-intro.ts)
+import Base from '../../../layouts/Base.astro';
+import RegionMap from '../../../components/RegionMap.astro';
+import { href } from '../../../lib/paths';
+import { UNITS, region, svgOf, neighborsOf, kindsText } from '../../../lib/geo';
+import { enOfSlug, HUBS } from '../../../lib/regions';
+import { partOf, sidoOf } from '../../../app/sidos';
+import { regionIntroOf } from '../../../data/region-intro';
+
+export function getStaticPaths() {
+  return UNITS.regions
+    .filter((r) => r.key !== 'seoul')
+    .flatMap((r) => r.items.filter((it) => regionIntroOf(it.id)).map((it) => ({ params: { region: r.key, slug: it.slug }, props: { key: r.key, id: it.id } })));
+}
+const { key, id } = Astro.props as { key: string; id: string };
+const r = region(key);
+const item = r.items.find((it) => it.id === id)!;
+const svgItem = svgOf(key).items.find((it) => it.id === id)!;
+const intro = regionIntroOf(id)!;
+const lesson = r.lessons.find((l) => l.items.includes(id));
+const mates = lesson ? lesson.items.filter((x) => x !== id).map((x) => r.items.find((it) => it.id === x)!.ko) : [];
+const nbs = neighborsOf(r, id);
+const dongs = svgItem.dongs;
+const batchim = (w: string) => (w.charCodeAt(w.length - 1) - 0xac00) % 28 > 0;
+const josa = (w: string) => (batchim(w) ? '이' : '가');
+const wa = (w: string) => (batchim(w) ? '과' : '와');
+const eun = (w: string) => (batchim(w) ? '은' : '는');
+const kind = item.ko.endsWith('구') ? '자치구' : item.ko.endsWith('군') ? '군' : '시';
+// 이름 앞에 붙일 말: 같은 이름이 여러 시·도에 있으니(동구·서구·고성군…) 지역 이름과 함께 쓴다. 전남광주는 묶음 이름(광주특별시)이 있는 곳만 붙이고
+// 전남의 시·군은 이름만 쓴다('모든 명칭은 법이 정한 명칭으로' — 짧은 이름 '전남'을 새로 만들지 않는다). 세종시·제주시처럼 이름이 지역 이름으로 시작하면 그대로
+const pt = partOf(key, id);
+const row = sidoOf(key);
+const label = pt ? `${pt.ko} ${item.ko}` : item.ko.startsWith(r.ko) || row?.parts ? item.ko : `${r.ko} ${item.ko}`;
+const hub = HUBS.some((h) => h.key === key);
+const emdOnly = r.layer === 'emd';
+const gu = svgItem.gu;
+const startHref = emdOnly ? `/#/kr/${key}/emd` : `/#/kr/${key}/sgg/@${item.slug}`;
+const regionName = pt ? pt.ko : r.ko;
+// '행정동 9개'(동만 있는 곳) → '9개', '4읍 3면 19동' 은 그대로
+const cnt = kindsText(dongs).replace('행정동 ', '');
+---
+<Base title={`${label} 위치와 읍·면·동 – 채움지도`} description={`${label}${eun(label)} 어디에 있을까요? ${item.line ? `${item.line}. ` : ''}읍·면·동 ${cnt}, 맞닿은 곳 ${nbs.length}곳을 백지도로 익혀요.`}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › {hub ? <a href={href(`/${key}/`)}>{regionName}</a> : regionName} › {item.ko}</nav>
+    <div class="d-top split">
+      <div class="d-head">
+        <h1 class="d-title">{item.ko}</h1>
+        <p class="d-sub">{enOfSlug(item.slug)} · {r.full} {kind}</p>
+      </div>
+      <div class="d-map">
+        <RegionMap region={key} highlight={[id]} label={`${regionName} 지도에서 ${item.ko}의 위치`} />
+      </div>
+      <div class="d-body">
+        {item.line && <p class="lead">{item.line}</p>}
+        <dl class="facts">
+          <dt>읍·면·동</dt><dd>{cnt}</dd>
+          {gu.length > 0 && <><dt>일반구</dt><dd>{gu.join(' · ')}</dd></>}
+          <dt>맞닿은 곳</dt><dd class="links">{nbs.length ? nbs.map((n, i) => <>{i > 0 && ' · '}{n.inRegion && regionIntroOf(n.id) ? <a href={href(`/${key}/${r.items.find((it) => it.id === n.id)!.slug}/`)}>{n.name}</a> : n.name}</>) : '—'}</dd>
+          {lesson && <><dt>채움지도</dt><dd>{regionName} {lesson.no}과 '{lesson.title}'에서 {mates.length ? `${mates.join('·')}${wa(mates[mates.length - 1])} 함께 ` : ''}배워요</dd></>}
+        </dl>
+      </div>
+    </div>
+    <section class="d-sec intro">
+      {!intro.reviewed && <div class="draft" role="note"><b>검수 전 초안</b> — 공개 전에 운영자가 출처와 대조합니다.{intro.check.length > 0 && <> 확인할 것: {intro.check.join(' / ')}</>}</div>}
+      <h2>{item.ko}는 이런 곳이에요</h2>
+      {intro.paras.map((t) => <p>{t}</p>)}
+      <p class="meta">출처: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)} ({intro.read.replace(/-0?/g, '. ')}. 읽음{intro.reviewed && <>, {intro.reviewed.replace(/-0?/g, '. ')}. 원문 확인</>})</p>
+    </section>
+    <section class="d-sec">
+      <h2>읍·면·동 {cnt}</h2>
+      <p>2026년 10월 1일 경계로 센 {item.ko}의 읍·면·동이에요. 이름을 하나씩 읽어 두면 지도에서 찾기가 쉬워져요.</p>
+      <p class="dongs">{dongs.join(' · ')}</p>
+    </section>
+    <section class="cta">
+      <h2>지도에서 직접 찾아보기</h2>
+      <p>이름을 가린 백지도에서 {item.ko}{josa(item.ko)} 어디인지 찾아봐요.{lesson ? ` ${lesson.no}과의 ${lesson.items.length}곳을 하나씩 만나고 찾은 뒤, 다음 날 다시 풀어요.` : ''}</p>
+      <a class="btn" href={href(startHref)}>{lesson ? `${regionName} ${lesson.no}과 연습하기` : `${regionName} 연습하기`} <span aria-hidden="true">→</span></a>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .dongs { line-height: 1.9; }
+</style>
