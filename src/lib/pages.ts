@@ -52,7 +52,7 @@ const UPDATED: Record<string, string> = {
   '/seoul/': '2026-11-18',
   '/en/seoul/': '2026-11-18',
   '/gyeonggi/': '2026-11-18',
-  '/incheon/': '2026-11-18',
+  '/incheon/': '2026-11-19',   // 2026-11-19 학습 가이드(인천 개편) 링크가 들어감
   // 2026-11-18 소개 쪽을 줄임(지역·과 수 나열과 데이터 설명을 뺌 — 사용자 결정)
   '/about/': '2026-11-18',
   // 데이터 출처 '위치 한 줄' 항목에 지도로 확인하는 근거 '바닷가'를 더한 날(E11 — 새 근거 coast).
@@ -65,6 +65,14 @@ const UPDATED: Record<string, string> = {
   // 바닥글은 <main> 밖이라 쪽 내용 지문(tools/site-rules.mjs contentHash — 제목·설명·본문)에 들지 않아 어느 쪽 날짜도 바꾸지 않는다
   // 2026-11-18 출처 쪽을 줄임(판 이름·파일 해시·단순화 간격 등 만드는 사람용 정보를 뺌 — 사용자 결정)
   '/sources/': '2026-11-18',
+  // 2026-11-19 학습 가이드 6편과 목록 공개(사용자 '바로 적용') — 새 쪽은 만든 날을 적는다(점검 7)
+  '/guide/': '2026-11-19',
+  '/guide/korea-divisions-2026/': '2026-11-19',
+  '/guide/legal-vs-administrative-dong/': '2026-11-19',
+  '/guide/incheon-reform-2026/': '2026-11-19',
+  '/guide/autonomous-vs-general-gu/': '2026-11-19',
+  '/guide/seoul-25-gu/': '2026-11-19',
+  '/guide/recall-practice/': '2026-11-19',
 };
 
 const later = (a: string, b?: string | null) => (b && b > a ? b : a);
