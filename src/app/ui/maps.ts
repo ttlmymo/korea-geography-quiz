@@ -120,6 +120,8 @@ export interface MapSpec {
   labelMode?: LabelMode;
   /** 이름표를 그리는 가장 좁은 지도 칸 폭(px). fit 의 기본은 560(휴대폰 홈 지도에는 이름표 없음), must 의 기본은 0(늘 그린다) */
   labelMinWidth?: number;
+  /** fit 에서도 깨끗한 흰 판을 쓴다(영어 화면 — labelfit PlaceOpt.cleanPlates) */
+  labelClean?: boolean;
   /** 복습할 곳(먹색 점) */
   badges?: string[];
   /**
@@ -262,7 +264,7 @@ export async function mountMap(ctx: Ctx, host: HTMLElement, spec: MapSpec): Prom
   if (spec.question) map.setQuestion(spec.question);
   if (spec.highlight) map.setHighlight(spec.highlight);
   if (spec.bold?.length) map.setBold(spec.bold);
-  if (spec.labels) map.setLabels(spec.labels, { mode: spec.labelMode ?? 'must', minWidth: spec.labelMinWidth });
+  if (spec.labels) map.setLabels(spec.labels, { mode: spec.labelMode ?? 'must', minWidth: spec.labelMinWidth, ...(spec.labelClean ? { cleanPlates: true } : {}) });
   if (spec.badges?.length) map.setBadges(spec.badges);
   if (spec.marks) map.mark(spec.marks);
   // 확대 상자는 맨 끝에: 먼 섬 상자·축척 막대 자리(insetPad·scalePad)와 섬 상자·칠·이름표가 다 정해진 지도로 판정하고 자리를 고른다

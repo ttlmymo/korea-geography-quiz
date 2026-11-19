@@ -222,8 +222,9 @@ export const SEA_MIN_ROOM = 5;
 /** 격자로 고른 자리를 다각형으로 확인할 때 한 바다에서 써 보는 후보 수 */
 const SEA_TRIES = 24;
 
-export interface SeaAsk { key: SeaKey; w: number; h: number }
-export interface SeaSpot { key: SeaKey; x: number; y: number }
+/** alt = 두 줄로 나눈 글자 상자(영어 — 한 줄이 들 자리가 없으면 이쪽으로) */
+export interface SeaAsk { key: SeaKey; w: number; h: number; alt?: { w: number; h: number } }
+export interface SeaSpot { key: SeaKey; x: number; y: number; two?: boolean }
 export interface SeaOpt {
   mask: LandMask;
   /** 이름을 둘 수 있는 범위(지도 단위 [x0, y0, x1, y1] — 보이는 범위에서 가장자리를 뺀 곳) */
@@ -282,13 +283,15 @@ export function seaSpots(o: SeaOpt): SeaSpot[] {
   const out: SeaSpot[] = [];
   const dist = new Int16Array(N);
   const sum = new Int32Array((cols + 1) * (rows + 1));
-  for (const ask of o.asks) {
+  const tryAsk = (ask: SeaAsk, two: boolean, tight = false): SeaSpot | null => {
     const z = ZONE[ask.key];
     // 그 바다의 빈 칸 수와 가운데
     let n = 0, mx = 0, my = 0;
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (zone[r * cols + c] === z) { n++; mx += c; my += r; }
-    const hx = Math.ceil((ask.w / 2 + SEA_PAD_X) / SEA_GRID_PX), hy = Math.ceil((ask.h / 2 + SEA_PAD_Y) / SEA_GRID_PX);
-    if (n * SEA_GRID_PX * SEA_GRID_PX < ask.w * ask.h * SEA_MIN_ROOM || cols < 2 * hx + 1 || rows < 2 * hy + 1) continue;
+    // tight(영어만 — 한 줄·두 줄이 넉넉한 자리에 안 들 때 마지막으로): 둘레 비움과 필요한 바다 넓이를 줄여 좁은 바다 모퉁이에도 둔다
+    const padX = tight ? SEA_PAD_X / 2 : SEA_PAD_X, padY = tight ? SEA_PAD_Y / 2 : SEA_PAD_Y;
+    const hx = Math.ceil((ask.w / 2 + padX) / SEA_GRID_PX), hy = Math.ceil((ask.h / 2 + padY) / SEA_GRID_PX);
+    if (n * SEA_GRID_PX * SEA_GRID_PX < ask.w * ask.h * (tight ? SEA_MIN_ROOM / 2 : SEA_MIN_ROOM) || cols < 2 * hx + 1 || rows < 2 * hy + 1) return null;
     mx /= n; my /= n;
     // 막힌 곳(그 바다가 아닌 칸·격자 밖)까지 거리(칸 수, 여덟 방향)
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -315,7 +318,7 @@ export function seaSpots(o: SeaOpt): SeaSpot[] {
     const at = (c: number, r: number): [number, number] => [gx + (c + 0.5) * g, gy + (r + 0.5) * g];
     let got: [number, number] | null = null;
     // 전에 둔 자리가 아직 빈 바다면 그대로
-    const p = o.prev?.find((q) => q.key === ask.key);
+    const p = o.prev?.find((q) => q.key === ask.key && !!q.two === two);
     if (p) {
       const c = Math.floor((p.x - gx) / g), r = Math.floor((p.y - gy) / g);
       if (c >= 0 && r >= 0 && c < cols && r < rows && fits(c, r) && o.ok(p.x, p.y, W, H)) got = [p.x, p.y];
@@ -329,9 +332,16 @@ export function seaSpots(o: SeaOpt): SeaSpot[] {
         if (o.ok(x, y, W, H)) { got = [x, y]; break; }
       }
     }
-    if (!got) continue;
-    out.push({ key: ask.key, x: got[0], y: got[1] });
-    block([got[0] - (ask.w / 2) * u, got[1] - (ask.h / 2) * u, got[0] + (ask.w / 2) * u, got[1] + (ask.h / 2) * u]);
+    if (!got) return null;
+    return { key: ask.key, x: got[0], y: got[1], ...(two ? { two: true } : {}) };
+  };
+  for (const ask of o.asks) {
+    const two = ask.alt ? { ...ask, ...ask.alt } : null;
+    const spot = tryAsk(ask, false) ?? (two ? tryAsk(two, true) ?? tryAsk(ask, false, true) ?? tryAsk(two, true, true) : null);
+    if (!spot) continue;
+    out.push(spot);
+    const k = spot.two && ask.alt ? ask.alt : ask;
+    block([spot.x - (k.w / 2) * u, spot.y - (k.h / 2) * u, spot.x + (k.w / 2) * u, spot.y + (k.h / 2) * u]);
   }
   return out;
 }

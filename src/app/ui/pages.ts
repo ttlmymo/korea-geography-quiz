@@ -188,7 +188,7 @@ function homeMap(ctx: Ctx, r: Region, f: Record<string, number>, o: { focus: str
     // 이름표가 6곳 이하(처음 온 날의 첫 과 등)면 빠진 한 곳이 눈에 띄어 꼭 보이게(자리가 없으면 흰 판). 그보다 많으면 자리가 있을 때만.
     // 시·도 단원(korea, E10)은 16칸뿐이라 늘 꼭 보이게(fit 이면 다 익힌 서울·세종·대전·대구 같은 안쪽 작은 칸의 이름이 빠진다).
     // 어느 쪽이든 휴대폰 지도(칸 폭 560 미만)에는 이름표가 없다(계획서 3.1)
-    labelMode: named.length <= 6 || r.layer === 'sido' ? 'must' : 'fit', labelMinWidth: COMPACT_PX,
+    labelMode: named.length <= 6 || r.layer === 'sido' ? 'must' : 'fit', labelMinWidth: COMPACT_PX, ...(L.lang === 'en' ? { labelClean: true } : {}),
   };
 }
 
@@ -1007,7 +1007,7 @@ export function pickPage(ctx: Ctx, regionKey: string): Page {
         region: r.key, home: pv.fit, ...(pv.isles.length ? { isles: pv.isles } : {}), scaleBar: true, fills, badges, bold: lastCell ? [lastCell] : null,
         // 복습 점이 놓이는 칸에는 이름을 두지 않는다(홈 지도와 같은 규칙 — 같은 자리). 넓은 화면을 고르면 그 화면의 곳 이름을 폰에서도
         // 이름은 지역 곳 그대로(과 없는 지역의 칸 — 제주시·서귀포시 — 은 공부하는 곳이 아니라 레지스트리 곳이 없다)
-        labels: r.items.filter((it) => !badges.includes(it.id) && (!scr || scr.items.includes(it.id))).map((it) => ({ id: it.id, text: L.lang === 'en' ? L.short(it) : L.name(it) })), labelMode: 'fit', labelMinWidth: scr ? 0 : COMPACT_PX,
+        labels: r.items.filter((it) => !badges.includes(it.id) && (!scr || scr.items.includes(it.id))).map((it) => ({ id: it.id, text: L.lang === 'en' ? L.short(it) : L.name(it) })), labelMode: 'fit', labelMinWidth: scr ? 0 : COMPACT_PX, ...(L.lang === 'en' ? { labelClean: true } : {}),
         interaction: 'tap',
         onTap: (tp) => {
           if (tp.type !== 'cell') return;

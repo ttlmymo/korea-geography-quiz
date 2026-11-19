@@ -50,6 +50,19 @@ const boxAt = (x: number, y: number, w: number, h: number): Box => [x - w / 2, y
 const grow = (b: Box, m: number): Box => [b[0] - m, b[1] - m, b[2] + m, b[3] + m];
 
 /**
+ * 영어 이름표를 두 줄로 나눈 글('Yeongyang-gun' → 'Yeongyang-' / 'gun', 'Gaepo 1' → 'Gaepo' / '1'). 라틴 글자뿐인 이름만(한글은 null — 한국어 앱은 늘 한 줄).
+ * 하이픈이 있으면 마지막 하이픈 뒤에서, 없으면 가운데에 가까운 띄어쓰기에서. 나눌 데가 없으면 null
+ */
+export function splitTwo(text: string): string | null {
+  if (text.includes('\n') || !/^[ -~]+$/.test(text)) return null;
+  if (/-[^-]+$/.test(text)) return text.replace(/-([^-]+)$/, '-\n$1');
+  const sp = [...text].map((c, i) => (c === ' ' ? i : -1)).filter((i) => i > 0 && i < text.length - 1);
+  if (!sp.length) return null;
+  const mid = text.length / 2, at = sp.reduce((b, i) => (Math.abs(i - mid) < Math.abs(b - mid) ? i : b));
+  return `${text.slice(0, at)}\n${text.slice(at + 1)}`;
+}
+
+/**
  * 글자 상자(w×h, 지도 단위)가 칸 안에 온전히 드는 자리 가운데 at(이름표 점)에 가장 가까운 곳. 없으면 null.
  * box = 칸 범위, step = 훑는 간격(지도 단위, 화면 3px 쯤).
  * 이름표 점에서 상자 대각선(reach)보다 멀리는 옮기지 않는다 — 멀리 가면 다른 덩어리(딴 섬)에 이름이 붙는다.
@@ -202,13 +215,16 @@ export function outsideSpot(
 export type LabelMode = 'must' | 'fit' | 'inside';
 
 export interface LabelCell { rings: Float64Array[]; box: Box; label: readonly [number, number]; r: number }
-export interface LabelAsk { id: string; w: number; h: number }   // 글자 상자(px)
+/** 글자 상자(px). alt = 두 줄로 나눈 상자(영어만 — 한 줄이 칸에 안 들면 이쪽으로 다시 재 본다) */
+export interface LabelAsk { id: string; w: number; h: number; alt?: { w: number; h: number } }
 export interface Placed {
   id: string;
   /** 글자 가운데(지도 단위) */
   x: number; y: number;
   /** 칸 밖에 둔 이름표: 지시선이 닿는 이름표 쪽 끝점. plate = 흰 판에 얹는다(칸 위에 걸쳐서) */
   out?: { ax: number; ay: number; plate: boolean };
+  /** 두 줄 상자(LabelAsk.alt)로 놓았다 */
+  two?: boolean;
 }
 
 export interface PlaceOpt {
@@ -244,7 +260,7 @@ export interface PlaceOpt {
   isleOk?: number;
   /**
    * fit 에서도 흰 판을 쓰되 깨끗한 자리만: 남의 칸(이름표를 다는 칸)을 덮지 않고, 지시선이 다른 이름표·점·지시선·화면에 붙은 것을 지나지 않는 자리
-   * (칸 옆 네 쪽 → 점 둘레 REACH_PX). 그런 자리가 없으면 fit 처럼 뺀다. 영어 동·일반구 단원 둘러보기(ui/explore.ts) — 2026-11-16 점검: 섬 단원을 한 장 지도로 바꾸자
+   * (칸 옆 네 쪽 → 점 둘레 REACH_PX). 그런 자리가 없으면 fit 처럼 뺀다. [2026-11-20] 영어 이름표가 한국어 지도보다 많이 빠져, 남의 칸을 덮는 자리도 쓰고(다른 이름표·점·지시선과 겹치지 않는 것은 그대로) 한 줄 판이 안 되면 두 줄 판(alt)을 쓴다. 모든 영어 화면이 켠다. 영어 동·일반구 단원 둘러보기(ui/explore.ts) — 2026-11-16 점검: 섬 단원을 한 장 지도로 바꾸자
    * 영어 이름(한국어의 2배쯤 길다)이 칸에도 칸 밖 빈 바탕에도 들지 않아 낮은 폰 신안 둘러보기에 13곳 가운데 1곳만 이름이 보였다(한국어 12곳)
    */
   cleanPlates?: boolean;
@@ -263,11 +279,16 @@ export function placeInside(cellOf: (id: string) => LabelCell | undefined, asks:
   for (const a of asks) {
     const c = cellOf(a.id);
     if (!c) continue;
-    const w = a.w * u, h = a.h * u;
-    const spot = (apart: Box[]) => fitRoomy(c.rings, c.box, c.label, c.r, w, h, STEP_PX * u, ROOM_W * u, ROOM_H * u, apart);
-    const at = (around.length ? spot(around) : null) ?? spot([]);
+    // 한 줄 상자 → (영어만) 두 줄 상자 차례로. 한국어는 alt 가 없어 전과 같다
+    let at: [number, number] | null = null, two = false, w = a.w * u, h = a.h * u;
+    for (const k of a.alt ? [a, a.alt] : [a]) {
+      w = k.w * u; h = k.h * u; two = k !== a;
+      const spot = (apart: Box[]) => fitRoomy(c.rings, c.box, c.label, c.r, w, h, STEP_PX * u, ROOM_W * u, ROOM_H * u, apart);
+      at = (around.length ? spot(around) : null) ?? spot([]);
+      if (at) break;
+    }
     if (!at) { pending.push(a); continue; }
-    placed.push({ id: a.id, x: at[0], y: at[1] });
+    placed.push({ id: a.id, x: at[0], y: at[1], ...(two ? { two: true } : {}) });
     around.push(grow(boxAt(at[0], at[1], w, h), APART_PX * u));
   }
   return { placed, pending };
@@ -335,7 +356,7 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
   const ask = new Map(asks.map((a) => [a.id, a]));
   // 이름표 상자(칸 안 것 + 놓아 가는 칸 밖 것)와 맥락 이름: 간격을 두고 피한다
   const names: Box[] = [...(opt.avoid ?? [])];
-  for (const p of ins.placed) { const a = ask.get(p.id); if (a) names.push(boxAt(p.x, p.y, a.w * u, a.h * u)); }
+  for (const p of ins.placed) { const a = ask.get(p.id); if (a) { const k = p.two && a.alt ? a.alt : a; names.push(boxAt(p.x, p.y, k.w * u, k.h * u)); } }
   // 이름표를 다는 모든 칸(흰 판이 덮지 않게 먼저 피한다)
   const targets = asks.map((a) => ({ id: a.id, c: cellOf(a.id) })).filter((x): x is { id: string; c: LabelCell } => !!x.c);
   // 칸 밖 이름표는 칸 안의 점에서 지시선이 나간다: 다른 이름표가 그 점을 덮지 않게 점 자리도 잡아 둔다
@@ -345,20 +366,23 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
   // 남의 점 둘레(dotPx — 확대 상자만): 지시선이 이 거리 안으로 지나지 않게
   const dotR = opt.dotPx ? opt.dotPx * u : 0;
   todo.forEach(({ a, c }, i) => {
-    const w = a.w * u, h = a.h * u;
+    let w = a.w * u, h = a.h * u, two = false;
     const dx = c.label[0] - opt.center[0], dy = c.label[1] - opt.center[1], dl = Math.hypot(dx, dy) || 1;
     const g = GAP_PX * u;
     const others = dotR ? todo.filter((_, j) => j !== i).map((t) => t.c.label) : [];
-    const spot = outsideSpot(c.label, w, h, opt.obstacles, [...dots, ...lines], opt.within, STEP_PX * u, REACH_PX * u, [dx / dl, dy / dl], {
+    const find = () => outsideSpot(c.label, w, h, opt.obstacles, [...dots, ...lines], opt.within, STEP_PX * u, REACH_PX * u, [dx / dl, dy / dl], {
       apart: { boxes: names, gap: APART_PX * u }, line: [...names, ...dots.filter((_, j) => j !== i), ...lines], lineGap: g, screen: opt.screen, note,
     });
+    let spot = find();
+    // 영어: 한 줄이 칸 밖 빈 바탕에도 안 들면 두 줄 상자로 다시(없으면 아래 흰 판·뺌은 전과 같다)
+    if (!spot && a.alt) { w = a.alt.w * u; h = a.alt.h * u; spot = find(); if (spot) two = true; else { w = a.w * u; h = a.h * u; } }
     let x: number, y: number, plate = false;
     if (spot) [x, y] = spot;
     else if (opt.mode === 'must' || (opt.mode === 'fit' && opt.cleanPlates)) {
       // 빈 바탕이 없으면 칸 바로 옆에 흰 판으로: 위 → 아래 → 오른쪽 → 왼쪽 가운데 다른 이름표·점과 겹치지 않는 첫 자리.
       // 이름표를 다는 다른 칸(시험 결과의 다른 틀린 칸 등)도 덮지 않는 자리를 먼저 찾는다(plateHome 이면 그다음 판 가운데가 남의 칸 밖인 자리)
       const lift = LIFT_PX * u;
-      const sides: [number, number][] = [[0, -(lift + h / 2)], [0, lift + h / 2], [lift + w / 2, 0], [-(lift + w / 2), 0]];
+      const sidesOf = (): [number, number][] => [[0, -(lift + h / 2)], [0, lift + h / 2], [lift + w / 2, 0], [-(lift + w / 2), 0]];   // 판 크기(w·h)가 두 줄로 바뀌면 달라진다
       // 자기 점은 판이 피할 것(taken)에서 빼고 own 으로 따로 본다(cover 는 자기 점을 세지 않는다 — 네 쪽은 점에서 LIFT_PX 떨어져 늘 닿지 않는다)
       const taken = [...names, ...dots.filter((_, j) => j !== i), ...lines, ...(opt.screen ?? [])];
       const own = boxAt(c.label[0], c.label[1], 2 * g, 2 * g);
@@ -379,7 +403,7 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
       const isles = opt.plateHome ? islesOf(c) : [], isleOk = opt.isleOk ?? ISLE_OK;
       /** (x0, y0) 가운데 판이 닿는 자기 칸 섬 수 */
       const isleHits = (x0: number, y0: number) => { const b = boxAt(x0, y0, w, h); let n = 0; for (const r of isles) if (overlap(ringBox(r), b) && boxHits([r], x0, y0, w, h)) n++; return n; };
-      const free = (spare: boolean, lead: 'all' | 'names' = 'names') => sides.find(([sx, sy]) => {
+      const free = (spare: boolean, lead: 'all' | 'names' = 'names') => sidesOf().find(([sx, sy]) => {
         const x0 = c.label[0] + sx, y0 = c.label[1] + sy, b = boxAt(x0, y0, w, h);
         if (!inView(b)) { note.clipped = true; return false; }
         if (!clear(b) || !leadOk(b, lead)) return false;
@@ -443,9 +467,17 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
         }
         return best;
       };
-      // fit + cleanPlates(영어 동 단원 둘러보기): 남의 칸을 덮지 않고 지시선이 다른 이름표·점·지시선을 지나지 않는 판(네 쪽 → 점 둘레)만. 없으면 뺀다(fit)
+      // fit + cleanPlates(영어): 다른 이름표·점·지시선과 안 겹치고 지시선이 그것들을 지나지 않는 판 — 남의 칸을 덮지 않는 자리(네 쪽 → 점 둘레)를 먼저, 없으면 덮는 자리도(11-20). 한 줄 판이 안 되면 두 줄 판. 그래도 없으면 뺀다(fit)
       if (opt.mode !== 'must') {
-        const clean = free(true, 'all') ?? nearest(false, 'all', true);
+        // 영어는 한국어 지도처럼 이름이 빠지면 안 된다(2026-11-20 사용자): 남의 칸을 덮지 않는 자리 → 남의 칸을 덮어도 다른 이름표·점·지시선과 안 겹치는 자리
+        const pick = () => free(true, 'all') ?? nearest(false, 'all', true) ?? free(false, 'all') ?? nearest(false, 'all');
+        let clean = pick();
+        // 한 줄 판 자리가 없으면 두 줄 판(폭이 좁다)으로 다시
+        if (!clean && a.alt) {
+          w = a.alt.w * u; h = a.alt.h * u;
+          clean = pick();
+          if (clean) two = true; else { w = a.w * u; h = a.h * u; }
+        }
         if (!clean) return;
         x = c.label[0] + clean[0];
         y = c.label[1] + clean[1];
@@ -464,7 +496,7 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
         side = all ?? nameOnly;
         if (!side) {
           stuck.push(a.id);
-          side = any ?? sides.reduce((best, s) => (cover(s) < cover(best) ? s : best));
+          side = any ?? sidesOf().reduce((best, s) => (cover(s) < cover(best) ? s : best));
         }
       }
       x = c.label[0] + side[0];
@@ -475,7 +507,7 @@ function outsideRun(cellOf: (id: string) => LabelCell | undefined, asks: LabelAs
     const b = boxAt(x, y, w, h);
     // 지시선: 판 없는 이름표는 칸 안 점에서 글자 가운데 쪽으로 글자 바로 옆까지, 흰 판은 판에서 점에 가장 가까운 곳까지(leaderEnd)
     const [ax, ay] = leaderEnd(b, c.label, plate ? 0 : g);
-    out.push({ id: a.id, x, y, out: { ax, ay, plate } });
+    out.push({ id: a.id, x, y, out: { ax, ay, plate }, ...(two ? { two: true } : {}) });
     names.push(b);
     const n = Math.max(1, Math.ceil(Math.hypot(ax - c.label[0], ay - c.label[1]) / g));
     // 끝점(k = n)까지: 칸 밖 이름표는 지시선 끝과 글자 사이를 띄우므로(g) 그 틈에 남의 판이 걸치지 않게(점검 흉내: 폰 검단구 2과 '아라1동' 판이 '원당동' 지시선 끝에)

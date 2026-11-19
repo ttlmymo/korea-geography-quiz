@@ -5,7 +5,7 @@
 // 선은 칸마다 그리지 않는다: 칸 경계·외곽선·과 안 경계·묶음 둘레·굵은 테두리가 저마다 메쉬 path 하나다(동 단위 수백 칸에서도 가볍게)
 import { AMBIGUOUS_ZOOM, classifyTap, type Tap } from '../core/judge.ts';
 import { devLog } from '../devlog.ts';
-import { fitBox, labelBox, leadToCenter, placeInside, placeOutside, scaleStep, textWidth, type InsideResult, type LabelMode, type Obstacle, type Placed } from './labelfit.ts';
+import { fitBox, labelBox, leadToCenter, placeInside, placeOutside, scaleStep, splitTwo, textWidth, type InsideResult, type LabelMode, type Obstacle, type Placed } from './labelfit.ts';
 import { boxHits } from './poly.ts';
 import { unionBox, type Box } from './project.ts';
 import { cornerCover, farInset, fitK, insetScale, isleEast, isleView, layoutIsles, pickCorner, scaleChip, ISLE_NOTE_H, ISLE_W, OWN_W, type Corner, type IsleCell, type IsleLayout } from './isles.ts';
@@ -227,6 +227,14 @@ function setScaleChip(chip: HTMLElement, s: { px: number; text: string }) {
 /** 이름표 글자 크기(px): 지도 칸이 넓으면 조금 크게. 14px 아래로는 내려가지 않는다 */
 export const labelPx = (w: number) => (w >= 900 ? 16 : w >= 640 ? 15 : 14);
 /** 글자 가운데를 점에 맞추는 기준선 내림(px): 한글은 글자 상자를 꽉 채우고, 라틴 글자는 아래로 내려 쓰는 획(g·p)이 있어 덜 내린다 */
+/** 이름표 글자 상자(한 줄 → 두 줄이면 'a-\nb' 로 나눈 상자) · 두 줄 글을 줄마다 tspan 으로 쓴다(한 줄이면 그냥 글) */
+const twoOf = (t: string, two?: boolean) => (two ? splitTwo(t) ?? t : t);
+function putText(node: Element, text: string, base: number, px: number) {
+  const ls = text.split('\n');
+  if (ls.length < 2) { node.textContent = text; return; }
+  const lh = Math.ceil(px * 1.4), x = node.getAttribute('x') ?? '0', y0 = base - ((ls.length - 1) * lh) / 2;
+  ls.forEach((l, i) => { const ts = node.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'tspan'); ts.setAttribute('x', x); ts.setAttribute('y', String(+(y0 + i * lh).toFixed(1))); ts.textContent = l; node.appendChild(ts); });
+}
 const baseline = (text: string, px: number) => Math.round(px * ([...text].some((ch) => ch.codePointAt(0)! >= 0x1100) ? 0.36 : 0.28));
 
 export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
@@ -1136,8 +1144,10 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   /** 맥락 이름의 글(영어 화면은 바꿔서)과 글자 상자(px). 강 이름은 한글일 때만 자간이 넓다('한 강' — 영어 'Han River' 는 보통 자간) */
   const ctxText = (n: Shapes['names'][number]) => (opt.ctxName ? opt.ctxName(n) : n.text);
   const waterSp = (t: string) => (/[가-힣]/.test(t) ? WATER_SPACING : 0);
-  const ctxSize = (t: string, kind: 'out' | 'water') =>
-    ({ w: Math.ceil(textWidth(t, CTX_PX) + (kind === 'water' ? [...t].length * waterSp(t) * CTX_PX : 0)) + 4, h: CTX_PX + 4 });
+  const ctxSize = (t: string, kind: 'out' | 'water') => {
+    const ls = t.split('\n');   // 영어 바다 이름 두 줄('East' / 'Sea')
+    return { w: Math.ceil(Math.max(...ls.map((l) => textWidth(l, CTX_PX) + (kind === 'water' ? [...l].length * waterSp(l) * CTX_PX : 0)))) + 4, h: CTX_PX + 4 + (ls.length - 1) * Math.ceil(CTX_PX * 1.4) };
+  };
 
   /** 강이 지역을 벗어나 바탕 위로 흐르는 곳의 물가 점(칸 경계에서 SHORE_M 넘게 떨어진 강 띠 꼭짓점). 처음 쓸 때 한 번 잰다 */
   let shore: [number, number][] | null = null;
@@ -1398,7 +1408,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     const list = new Map(labels.map((l) => [l.id, l.text]));
     const fs = labelPx(size.w);
     for (const p of placed) {
-      const c = S.cells.get(p.id), b = labelBox(list.get(p.id) ?? '', fs);
+      const c = S.cells.get(p.id), b = labelBox(twoOf(list.get(p.id) ?? '', p.two), fs);
       const bx: Box = [p.x - (b.w / 2) * u, p.y - (b.h / 2) * u, p.x + (b.w / 2) * u, p.y + (b.h / 2) * u];
       if (!p.out) { inLab.push(bx); continue; }
       outLab.push(bx);
@@ -1585,7 +1595,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     if (hk !== seaHome) { seaHome = hk; seaPrev = []; }
     // 이 지도의 칸이 닿는 바다가 있으면 그 바다만(멀리 보이는 다른 바다에는 이름을 두지 않는다 — sea.ts coastSeas). 닿는 바다가 없는 내륙 지도는 보이는 바다를 그대로
     const coast = coastSeas(S);
-    const asks = grid ? [] : SEAS.filter((key) => !coast.length || coast.includes(key)).flatMap((key) => { const text = seaText(key); return text ? [{ key, text, ...ctxSize(text, 'water') }] : []; });
+    const asks = grid ? [] : SEAS.filter((key) => !coast.length || coast.includes(key)).flatMap((key) => { const text = seaText(key); const t2 = text ? splitTwo(text) : null; return text ? [{ key, text, ...ctxSize(text, 'water'), ...(t2 ? { alt: ctxSize(t2, 'water') } : {}) }] : []; });
     const blocked: Box[] = grid ? [] : [...screenBoxes(), ...ctxTaken, ...leadTaken];
     const lines: [number, number, number, number][] = grid ? [] : [...leadLines];
     if (!grid) {
@@ -1593,7 +1603,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       const fs = labelPx(size.w);
       for (const p of placed) {
         if (!p.out) continue;
-        const c = S.cells.get(p.id), b = labelBox(list.get(p.id) ?? '', fs);
+        const c = S.cells.get(p.id), b = labelBox(twoOf(list.get(p.id) ?? '', p.two), fs);
         blocked.push([p.x - (b.w / 2) * u, p.y - (b.h / 2) * u, p.x + (b.w / 2) * u, p.y + (b.h / 2) * u]);
         if (c) lines.push([c.label[0], c.label[1], p.out.ax, p.out.ay]);
       }
@@ -1624,7 +1634,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     });
     for (const s of seaPrev) {
       const text = asks.find((a) => a.key === s.key)!.text, sp = waterSp(text);
-      el('text', { x: (sp * CTX_PX) / 2, y: baseline(text, CTX_PX), 'text-anchor': 'middle' }, pxGroup(s.x, s.y, `cm-seaname ${s.key}${sp ? ' ko' : ''}`, gSea)).textContent = text;
+      putText(el('text', { x: (sp * CTX_PX) / 2, y: baseline(text, CTX_PX), 'text-anchor': 'middle' }, pxGroup(s.x, s.y, `cm-seaname ${s.key}${sp ? ' ko' : ''}`, gSea)), twoOf(text, s.two), baseline(text, CTX_PX), CTX_PX);
     }
   }
 
@@ -1645,7 +1655,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     if (size.w < labelMinW) return;
     const u = rendered.u, fs = labelPx(size.w);
     host.style.setProperty('--cm-label', `${fs}px`);
-    const asks = list.map((l) => ({ id: l.id, ...labelBox(l.text, fs) }));
+    const asks = list.map((l) => { const t2 = splitTwo(l.text); return { id: l.id, ...labelBox(l.text, fs), ...(t2 ? { alt: labelBox(t2, fs) } : {}) }; });
     // 칸 안 자리(가장 무거운 계산)는 배율과 목록에만 달려 있다: 끌어서 옮기기만 했으면 그대로 쓴다
     const kIn = `${fs}|${u.toPrecision(6)}|${list.map((l) => `${l.id}:${l.text}`).join(',')}`;
     if (kIn !== inKey) {
@@ -1670,7 +1680,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       const stillGood = () => !outRes.clipped && outRes.placed.every((p) => {
         const a = size0.get(p.id);
         if (!a) return false;
-        const w = a.w * u, h = a.h * u;
+        const k = p.two && a.alt ? a.alt : a, w = k.w * u, h = k.h * u;
         return boxIn(within, p.x, p.y, w, h) && !hitAny(screen, p.x, p.y, w, h) && !hitAny(avoid, p.x, p.y, w, h);
       });
       if (kOut !== outKey || (at !== outAt && !stillGood())) {
@@ -1684,10 +1694,11 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     for (const p of placed) {
       const it = byId.get(p.id), c = S.cells.get(p.id);
       if (!it || !c) continue;
+      const txt = twoOf(it.l.text, p.two), box = p.two && it.box.alt ? it.box.alt : it.box;
       const base = baseline(it.l.text, fs);
       if (!p.out) {
         const g = pxGroup(p.x, p.y, `cm-label${toneOf(it.l) === 'white' ? ' white' : ''}`, gLab);
-        el('text', { x: 0, y: base, 'text-anchor': 'middle' }, g).textContent = it.l.text;
+        putText(el('text', { x: 0, y: base, 'text-anchor': 'middle' }, g), txt, base, fs);
         continue;
       }
       // 칸 밖: 칸 안 이름표 점에 묶음을 두고(점), 이름표까지 지시선
@@ -1695,8 +1706,8 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
       const tx = (p.x - c.label[0]) / u, ty = (p.y - c.label[1]) / u;
       el('path', { d: `M0 0L${((p.out.ax - c.label[0]) / u).toFixed(1)} ${((p.out.ay - c.label[1]) / u).toFixed(1)}`, class: 'cm-leader' }, g);
       el('circle', { r: 3, class: 'cm-leader-dot' }, g);
-      if (p.out.plate) el('rect', { x: (tx - it.box.w / 2).toFixed(1), y: (ty - it.box.h / 2).toFixed(1), width: it.box.w, height: it.box.h, class: 'cm-plate' }, g);
-      el('text', { x: tx.toFixed(1), y: (ty + base).toFixed(1), 'text-anchor': 'middle' }, g).textContent = it.l.text;
+      if (p.out.plate) el('rect', { x: (tx - box.w / 2).toFixed(1), y: (ty - box.h / 2).toFixed(1), width: box.w, height: box.h, class: 'cm-plate' }, g);
+      putText(el('text', { x: tx.toFixed(1), y: (ty + base).toFixed(1), 'text-anchor': 'middle' }, g), txt, ty + base, fs);
     }
   }
 
@@ -1717,7 +1728,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     let x = c.label[0], y = c.label[1];
     const p = placed.find((q) => q.id === cid && !q.out), l = p && labels.find((q) => q.id === cid);
     if (p && l) {
-      const u = rendered.u, b = labelBox(l.text, labelPx(size.w));
+      const u = rendered.u, b = labelBox(twoOf(l.text, p.two), labelPx(size.w));
       if (Math.abs(x - p.x) < (b.w / 2 + SYM_R) * u && Math.abs(y - p.y) < (b.h / 2 + SYM_R) * u) {
         const d = (b.h / 2 + SYM_R + 2) * u;
         const room = (yy: number) => (inside(c.rings, p.x, yy) ? edgeDist(c.rings, p.x, yy) : -1);

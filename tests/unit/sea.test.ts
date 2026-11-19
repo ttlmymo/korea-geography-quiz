@@ -324,7 +324,7 @@ test('지도 그리기(svgmap 소스): 이웃 땅 밑에 먼 이웃 땅 · 바�
   assert.match(sea, /S\.outExt\.some\(hit\)/);
   // 글은 ctxName 으로(영어 화면) — 빈 글이면 묻지 않는다
   assert.match(sv, /const seaText = \(k: SeaKey\) => \{ const n: CtxCell = \{ sido: seaCode\(k\), text: SEA_KO\[k\] \}; return opt\.ctxName \? opt\.ctxName\(n\) : n\.text; \};/);
-  assert.match(sea, /return text \? \[\{ key, text, \.\.\.ctxSize\(text, 'water'\) \}\] : \[\];/);
+  assert.match(sea, /return text \? \[\{ key, text, \.\.\.ctxSize\(text, 'water'\)(, \.\.\.\(t2 \? \{ alt: ctxSize\(t2, 'water'\) \} : \{\}\))? \}\] : \[\];/);
   assert.match(sv, /seaOn = opt\.seaNames !== false/);
   // 먼 섬 상자·섬 상자 그림에 범위 안 이웃 땅(둘 다 outDIn — 먼 이웃 땅과 이웃 땅을 따로 path 로)
   assert.equal(sv.split("for (const d of outDIn(S, ").length - 1, 2);

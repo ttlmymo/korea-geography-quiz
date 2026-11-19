@@ -11,7 +11,7 @@ import { labelPx } from '../../src/app/map/svgmap.ts';
 import { boxOf, project, unproject } from '../../src/app/map/project.ts';
 import { clampView, contains, cssBetween, fitView, toMap, toScreen, viewBox, zoomAround, MAX_K } from '../../src/app/map/view.ts';
 import { boxHits, boxInside, edgeDist, edgeHitsBox, inside, ringsOfD, segHitsBox, setRingIndex } from '../../src/app/map/poly.ts';
-import { fitBox, labelBox, outsideSpot, placeInside, placeLabels, scaleStep, staticLabel, textWidth, type Obstacle } from '../../src/app/map/labelfit.ts';
+import { fitBox, labelBox, outsideSpot, placeInside, placeLabels, scaleStep, splitTwo, staticLabel, textWidth, type Obstacle } from '../../src/app/map/labelfit.ts';
 import { BAR_FRAC, BAR_MAX, ISLE_H, ISLE_W, OWN_W, cornerCover, farInset, insetScale, pickCorner, scaleChip, type IsleCell } from '../../src/app/map/isles.ts';
 import { UI_EN, UI_KO } from '../../src/app/text/ui.ts';
 import { geo, reg, idOf, nameOf } from './fixtures.ts';
@@ -209,6 +209,37 @@ test('글자 상자: 한글은 글자 크기만큼, 14px 세 글자면 50×20', 
   // 라틴 글자는 좁다(영어 이름은 길어서 폭을 따로 어림한다)
   assert.ok(textWidth('Jongno-gu', 14) < 14 * 9 * 0.75);
   assert.ok(textWidth('Jongno-gu', 14) > 14 * 9 * 0.45);
+});
+
+test('영어 이름표 두 줄 나누기: 하이픈 뒤 · 띄어쓰기 · 한글은 나누지 않는다', () => {
+  assert.equal(splitTwo('Yeongyang-gun'), 'Yeongyang-\ngun');
+  assert.equal(splitTwo('Gyeongsangbuk-do'), 'Gyeongsangbuk-\ndo');
+  assert.equal(splitTwo('Gaepo 1'), 'Gaepo\n1');
+  assert.equal(splitTwo('East Sea'), 'East\nSea');
+  assert.equal(splitTwo('Jung'), null);
+  assert.equal(splitTwo('영양군'), null, '한국어는 늘 한 줄');
+  assert.equal(splitTwo('Yeongyang-\ngun'), null, '이미 두 줄');
+  const a = labelBox('Yeongyang-gun', 14), b = labelBox(splitTwo('Yeongyang-gun')!, 14);
+  assert.ok(b.w < a.w && b.h > a.h, '두 줄은 좁고 높다');
+});
+
+test('칸 안 자리: 한 줄이 안 들면 두 줄 상자로(영어), alt 가 없으면(한국어) 전과 같다', () => {
+  const one = labelBox('Yeongyang-gun', 14), two = labelBox(splitTwo('Yeongyang-gun')!, 14);
+  const S = Math.ceil((one.w + two.w) / 2) + 4;   // 한 줄 폭보다 좁고 두 줄 폭보다 넓은 정사각 칸
+  const cell = sq(0, 0, S, S);
+  const c = { rings: [cell], box: [0, 0, S, S] as [number, number, number, number], label: [S / 2, S / 2] as [number, number], r: S / 2 };
+  assert.ok(one.w > S && two.w <= S && two.h <= S, `한 줄은 칸보다 넓고 두 줄은 든다 (${one.w} ${two.w}x${two.h} 칸 ${S})`);
+  const plain = placeInside(() => c, [{ id: 'a', ...one }], 1);
+  assert.equal(plain.placed.length, 0);
+  assert.equal(plain.pending.length, 1, 'alt 가 없으면 칸 밖으로 넘어간다(한국어와 같은 경로)');
+  const en = placeInside(() => c, [{ id: 'a', ...one, alt: two }], 1);
+  assert.equal(en.pending.length, 0);
+  assert.equal(en.placed[0].two, true);
+  assert.ok(boxInside(c.rings, en.placed[0].x, en.placed[0].y, two.w, two.h));
+  // 한 줄이 드는 칸은 한 줄 그대로
+  const big = { ...c, rings: [sq(0, 0, 200, 80)], box: [0, 0, 200, 80] as [number, number, number, number], label: [100, 40] as [number, number], r: 40 };
+  const ok = placeInside(() => big, [{ id: 'a', ...one, alt: two }], 1);
+  assert.equal(ok.placed[0].two, undefined);
 });
 
 test('칸 안 자리: 이름표 점에 안 들어가면 가장 가까운 들어가는 곳, 없으면 null', () => {
@@ -726,9 +757,15 @@ test('영어 둘러보기 깨끗한 흰 판(labelfit cleanPlates — 2026-11-16 
   const opt = { mode: 'fit' as const, u: 1, obstacles: Object.values(cells).map((c) => ({ rings: c.rings, box: c.box })), within: [0, 0, 200, 216] as [number, number, number, number], center: [100, 108] as const };
   const of = (id: string) => cells[id];
   assert.deepEqual(placeLabels(of, asks, opt), [], 'fit — 칸에도 빈 바탕에도 안 들어 뺀다');
-  // A·C 도 이름표를 다는 칸이면 B 판은 위·아래로 가면 남의 칸을 덮어 둘 곳이 없다 → 뺀다
+  // A·C 도 이름표를 다는 칸이면 B 판은 남의 칸을 덮을 수밖에 없다 — 2026-11-20: 영어 이름이 빠지지 않게 덮는 자리도 쓴다(다른 이름표·점과는 겹치지 않는다)
   const all = [{ id: 'A', w: 40, h: 20 }, ...asks, { id: 'C', w: 40, h: 20 }];
-  assert.ok(!placeLabels(of, all, { ...opt, cleanPlates: true }).some((p) => p.id === 'B'), '남의 칸을 덮는 판은 쓰지 않는다');
+  const got = placeLabels(of, all, { ...opt, cleanPlates: true });
+  const pb = got.find((p) => p.id === 'B');
+  assert.ok(pb?.out?.plate, '남의 칸을 덮어도 판을 둔다');
+  const pa = got.find((p) => p.id === 'A')!, pc = got.find((p) => p.id === 'C')!;
+  const hit = (p: { x: number; y: number }, q: { x: number; y: number }, w: number, h: number) => Math.abs(p.x - q.x) < w && Math.abs(p.y - q.y) < h;
+  assert.ok(!hit(pb!, pa, 80, 20) && !hit(pb!, pc, 80, 20), '다른 이름표와 겹치지 않는다');
+  assert.equal(placeLabels(of, all, opt).some((p) => p.id === 'B'), false, '켜지 않으면 fit 그대로 — 뺀다');
   // 이름표를 다는 칸이 B 뿐이면(A·C 는 다른 과) 판을 둔다 — 자기 점 위 22px(LIFT_PX) 위 판
   const one = placeLabels(of, asks, { ...opt, cleanPlates: true });
   assert.equal(one.length, 1);
