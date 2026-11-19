@@ -33,6 +33,10 @@ const withGu = r.items.filter((it) => ilbanGuOf(it.id).length);
 const [title, sub] = row.hub!.ko;
 const startHref = emdOnly ? `/#/kr/${key}/emd` : `/#/kr/${key}/sgg/p1`;
 const regionName = row.parts ? row.full : row.ko;
+// 받침에 따른 조사: 부산은·제주는
+const batchim = (w: string) => (w.charCodeAt(w.length - 1) - 0xac00) % 28 > 0;
+const eun = (w: string) => (batchim(w) ? '은' : '는');
+const ieyo = (w: string) => (batchim(w) ? '이에요' : '예요');
 const intro = hubIntroOf(key);
 ---
 <Base alternate={{ ko: `/${key}/`, en: `/en/${key}/` }} title={`${title} 지도로 익히기 – 채움지도`} description={`${r.full}의 ${kinds}를 지도로 봐요. 시·군·구마다 읍·면·동 수${hasLessons ? '와 채움지도의 공부 순서' : ''}를 정리했어요.`}>
@@ -43,7 +47,7 @@ const intro = hubIntroOf(key);
         <h1 class="d-title">{title}</h1>
       </div>
       <div class="d-body">
-        <p class="lead">{r.full}은 {kinds}, 모두 {r.items.length}곳{r.items.length === 1 ? '' : '의 시·군·구'}으로 이뤄져요.{withGu.length > 0 && <> 이 가운데 {withGu.map((it) => it.ko).join('·')}에는 일반구가 {withGu.reduce((s, it) => s + ilbanGuOf(it.id).length, 0)}개 있어요.</>} 읍·면·동은 모두 {all.length}개(읍 {k.읍}·면 {k.면}·동 {k.동})예요(2026년 10월 1일 경계 기준).</p>
+        <p class="lead">{r.full}{eun(r.full)} {r.items.length === 1 ? kinds : `${kinds}, 모두 ${r.items.length}곳`}{ieyo(r.items.length === 1 ? kinds : '곳')}.{withGu.length > 0 && <> 이 가운데 {withGu.map((it) => it.ko).join('·')}에는 일반구가 {withGu.reduce((s, it) => s + ilbanGuOf(it.id).length, 0)}개 있어요.</>} 읍·면·동은 모두 {all.length}개(읍 {k.읍}·면 {k.면}·동 {k.동})예요(2026년 10월 1일 경계 기준).</p>
         <div class="d-acts"><a class="btn" href={href(startHref)}>{hasLessons ? `${row.parts ? row.full : row.ko} 1과부터 공부하기` : `${row.ko} 공부하기`} <span aria-hidden="true">→</span></a></div>
       </div>
       <figure class="d-map">
@@ -54,7 +58,7 @@ const intro = hubIntroOf(key);
     {intro && (
       <section class="d-sec intro">
         {!intro.reviewed && <div class="draft" role="note"><b>검수 전 초안</b> — 공개 전에 운영자가 출처와 대조합니다.{intro.check.length > 0 && <> 확인할 것: {intro.check.join(' / ')}</>}</div>}
-        <h2>{regionName}는 이런 곳이에요</h2>
+        <h2>{regionName}{eun(regionName)} 이런 곳이에요</h2>
         {intro.paras.map((t) => <p>{t}</p>)}
         <p class="meta">출처: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)} ({intro.reviewed ? <>{intro.reviewed.replace(/-0?/g, '. ')}. 원문 확인</> : <>{intro.read.replace(/-0?/g, '. ')}. 읽음</>})</p>
       </section>
