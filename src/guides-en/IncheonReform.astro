@@ -14,7 +14,7 @@ const NEW = reform.reform.map((x) => x.new);
 const all = svg.items.flatMap((it) => it.dongs);
 const k = countKinds(all);
 const total = (row: (typeof reform.reform)[number]) => Object.values(row.from).flat().length;
-// Areas are the figures Incheon publishes (administrative reform page, updated June 17, 2026). Areas measured from the boundary data (row.area_km2) are larger because they include sea, tidal flats and unregistered reclaimed land (Geomdan-gu +12.7 km²)
+// Areas are the figures Incheon publishes (administrative reform page, updated June 17, 2026). Areas measured from the boundary data (row.area_km2) are larger, probably because they include sea, tidal flats and unregistered reclaimed land, but the cause is unconfirmed (Geomdan-gu +12.7 km²)
 const OFFICIAL_AREA: Record<string, number> = { 제물포구: 21.8, 영종구: 125.88, 서해구: 71.36, 검단구: 47.7 };
 const areaOf = (row: (typeof reform.reform)[number]) => OFFICIAL_AREA[row.new] ?? row.area_km2;
 const boundaryOf = (name: string) => reform.reform.find((x) => x.new === name)!.area_km2;
@@ -63,7 +63,7 @@ const SRC = {
     <tr><td>{newEn(row.new)}</td><td>{Object.entries(row.from).map(([o, list]) => `${oldEn(o)} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{areaOf(row)}</td></tr>
   ))}</tbody>
 </table></div>
-<p class="meta">The areas are the figures published by Incheon. They seem to count only registered land (the city's figures for the old Jung-gu, Dong-gu and Seo-gu match their registered land areas). If you measure from the neighborhood boundary data instead, the boundaries also include sea, tidal flats and reclaimed land that is not yet registered, so all four districts come out larger, and Geomdan-gu especially so, at {boundaryOf('검단구')} ㎢. Most of that gap comes from Oryuwanggil-dong.</p>
+<p class="meta">The areas are the figures published on Incheon's website. They seem to use the same basis as the registered land areas in the city's cadastral statistics (the city's figures for the old Jung-gu, Dong-gu and Seo-gu add up to those totals). If this site measures from the neighborhood boundary data instead, all four districts come out larger, and Geomdan-gu especially so, at {boundaryOf('검단구')} ㎢, which is 12.7 ㎢ more than the city's figure. This is probably because the boundaries also include sea, tidal flats and reclaimed land that is not yet registered, but we could not confirm the exact cause. Most of that gap comes from Oryuwanggil-dong.</p>
 <h3>Find a neighborhood by name</h3>
 <div class="tbl"><table>
   <thead><tr><th scope="col">Current district</th><th scope="col">Neighborhoods that came from the old districts</th></tr></thead>
@@ -76,9 +76,9 @@ const SRC = {
 <div class="tbl"><table>
   <thead><tr><th scope="col">Date</th><th scope="col">Event</th></tr></thead>
   <tbody>
-    <tr><td>Jan. 30, 2024</td><td>The Act is promulgated (Act No. 20161). It takes effect on July 1, 2026</td></tr>
-    <tr><td>Sept. 12, 2024</td><td>Incheon starts a research project to design the organization and staffing of the new districts</td></tr>
-    <tr><td>Dec. 30, 2025</td><td>The Act is amended (Act No. 21247): it adds special provisions, such as support from the state and Incheon for the cost of setting up the new districts</td></tr>
+    <tr><td>January 30, 2024</td><td>The Act is promulgated (Act No. 20161). It takes effect on July 1, 2026</td></tr>
+    <tr><td>September 12, 2024</td><td>Incheon starts a research project to design the organization and staffing of the new districts</td></tr>
+    <tr><td>December 30, 2025</td><td>The Act is amended (Act No. 21247): it adds special provisions, such as support from the state and Incheon for the cost of setting up the new districts</td></tr>
     <tr><td>May 2026</td><td>The National Assembly passes the Bill on Changing the Name of Seo-gu, Incheon Metropolitan City: Seo-gu becomes Seohae-gu</td></tr>
     <tr><td>July 1, 2026</td><td>The Act takes effect. Jemulpo-gu, Yeongjong-gu and Geomdan-gu are set up, and Seo-gu becomes Seohae-gu</td></tr>
   </tbody>
@@ -92,7 +92,7 @@ const SRC = {
 <ul>
   <li><b>Yeongjong-gu</b> is Yeongjong Island, where Incheon International Airport is, and the Yongyu area to its west. It is easy to remember as one island that is one district.</li>
   <li><b>Jemulpo-gu</b> is the area around Incheon Station and Dongincheon Station. It combines the whole old Dong-gu with the part of the old Jung-gu that is not on Yeongjong Island.</li>
-  <li><b>Geomdan-gu</b> is the northern end of the old Seo-gu, next to Gimpo. <b>Seohae-gu</b> is the area to its south, around Cheongna, Gajeong and Seongnam.</li>
+  <li><b>Geomdan-gu</b> is the northern end of the old Seo-gu, next to Gimpo. <b>Seohae-gu</b> is the area to its south, around Cheongna, Gajeong and Seongnam-dong.</li>
   <li>On Fill the Map, you meet the new districts in {lessons.map((l) => `lesson ${l.no} (${l.items.filter((id) => NEW.map(idOf).includes(id)).map(nm).join(', ')})`).join(', ')}.</li>
 </ul>
 <div class="cta"><b>Try it on the map</b><a class="btn" href={href(`/en/#/kr/incheon/sgg/p${lessons[0].no}`)}>Start Incheon lesson {lessons[0].no}</a></div>

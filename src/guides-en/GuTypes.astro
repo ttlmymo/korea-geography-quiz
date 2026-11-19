@@ -43,20 +43,21 @@ const SRC = {
   launch: 'https://www.korea.kr/news/policyNewsView.do?newsId=148898045',
   name: 'https://korea.kr/news/actuallyView.do?newsId=148855276',
   hs: 'https://www.hscity.go.kr/office/intro.jsp',
+  mois: 'https://www.mois.go.kr/frt/bbs/type001/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000052&nttId=122595',
 };
 ---
 <div class="summary">
   <b>Key points</b>
-  <span>1. An autonomous district (<i>jachi-gu</i>) is a local government whose residents vote for the district head and the district council. A general district (<i>ilban-gu</i>) is only an administrative division inside a large city. Its head is appointed by the mayor.</span>
-  <span>2. There are {T.gu} autonomous districts, and {T.ilban} general districts in {T.ilbanSi} cities.</span>
+  <span>1. An autonomous gu (district; <i>jachi-gu</i>) is a local government whose residents vote for the district head and the district council. A general gu (district; <i>ilban-gu</i>) is only an administrative division inside a large city. Its head is appointed by the mayor.</span>
+  <span>2. There are {T.gu} autonomous gu, and {T.ilban} general gu in {T.ilbanSi} cities.</span>
   <span>3. "Special-case city" is a name for cities with a population of one million or more. It is not a new kind of local government. It is a system that gives the city more powers.</span>
 </div>
 
-<h2>Autonomous districts and general districts</h2>
-<p>Both are called "gu," but they are very different. Under Article 2 of the Local Autonomy Act, the only gu that are local governments are those inside a special city, an integrated special city or a metropolitan city. Jongno-gu in Seoul and Haeundae-gu in Busan are autonomous districts. An autonomous district has a district head and a district council elected by residents (Articles 37, 106 and 107).</p>
-<p>A general district is a gu that a city with a population of 500,000 or more can set up inside itself (Article 3 (3)). Examples are Jangan-gu in Suwon and Bundang-gu in Seongnam. A general district is not a local government, so it has no council. Its head is a general civil servant appointed by the mayor (Article 132 (1)).</p>
+<h2>Autonomous gu and general gu</h2>
+<p>Both are called "gu," but they are very different. Under Article 2 of the Local Autonomy Act, the only gu that are local governments are those inside a special city, an integrated special city or a metropolitan city. Jongno-gu in Seoul and Haeundae-gu in Busan are autonomous gu. An autonomous gu has a district head and a district council elected by residents (Articles 37, 106 and 107).</p>
+<p>A general gu is a gu that a city with a population of 500,000 or more can set up inside itself (Article 3 (3)). Examples are Jangan-gu in Suwon and Bundang-gu in Seongnam. A general gu is not a local government, so it has no council. Its head is a general civil servant appointed by the mayor (Article 132 (1)).</p>
 <div class="tbl"><table>
-  <thead><tr><th scope="col"></th><th scope="col">Autonomous district</th><th scope="col">General district</th></tr></thead>
+  <thead><tr><th scope="col"></th><th scope="col">Autonomous gu</th><th scope="col">General gu</th></tr></thead>
   <tbody>
     <tr><td>Where</td><td>Special city, integrated special city, metropolitan city</td><td>City with 500,000 or more people</td></tr>
     <tr><td>A local government?</td><td>Yes</td><td>No (an administrative division of the city)</td></tr>
@@ -66,28 +67,28 @@ const SRC = {
   </tbody>
 </table></div>
 
-<h2>The {cities.length} cities with general districts</h2>
-<p>Counted from the October 1, 2026 boundary data, these are the cities that have general districts. {cities.filter((c) => c.sido === '경기').length} of them are in Gyeonggi Province.</p>
+<h2>The {cities.length} cities with general gu</h2>
+<p>Counted from the October 1, 2026 boundary data, these are the cities that have general gu. {cities.filter((c) => c.sido === '경기').length} of them are in Gyeonggi Province.</p>
 <div class="tbl"><table>
-  <thead><tr><th scope="col">Province</th><th scope="col">City</th><th scope="col">General districts</th></tr></thead>
+  <thead><tr><th scope="col">Province</th><th scope="col">City</th><th scope="col">General gu</th></tr></thead>
   <tbody>{cities.map((c) => <tr><td>{SHORT_EN[c.sido] ?? c.sido}</td><td>{en(c.si)}{SPECIAL.includes(c.si) && <span class="doc-tag">Special-case city</span>}</td><td>{c.gu.map(en).join(' · ')} <span class="meta">({c.gu.length})</span></td></tr>)}</tbody>
 </table></div>
 
 <h2>What is a special-case city?</h2>
 <p>Article 198 of the Local Autonomy Act allows special administrative and financial arrangements for large cities with a population of 500,000 or more. Among them, large cities with a population of one million or more are called "special-case cities" (<i>teukrye-si</i>). Seoul Special City, integrated special cities, metropolitan cities and special self-governing cities are excluded. When the revised Local Autonomy Act took effect on January 13, 2022, Suwon, Yongin, Goyang and Changwon became special-case cities. Hwaseong was added as the fifth.</p>
-<p>A special-case city is not a new kind of local government like a province. The Policy Briefing described it as a city that keeps its status as a basic local government while receiving powers close to those of a metropolitan city. In 2018 the Ministry of the Interior and Safety said that the name does not move the city up to the upper tier of local governments, and that official records, addresses and signs stay the same as before. That is why addresses are still written like "Suwon-si, Gyeonggi-do."{specialAll && ' All five special-case cities have general districts.'}</p>
+<p>A special-case city is not a new kind of local government like a province. The Policy Briefing described it as a city that keeps its status as a basic local government while receiving powers close to those of a metropolitan city. In 2018 the Ministry of the Interior and Safety said that the name does not move the city up to the upper tier of local governments, and that official records, addresses and signs stay the same as before. That is why addresses are still written like "Suwon-si, Gyeonggi-do."{specialAll && ' All five special-case cities have general gu.'}</p>
 
-<h2>General districts in Gyeonggi Province</h2>
-<p>Gyeonggi Province has {ggSido.ilban} general districts in {ggSido.ilbanSi.length} cities ({ggSido.ilbanSi.map(en).join(', ')}). Two places changed recently.</p>
+<h2>General gu in Gyeonggi Province</h2>
+<p>Gyeonggi Province has {ggSido.ilban} general gu in {ggSido.ilbanSi.length} cities ({ggSido.ilbanSi.map(en).join(', ')}). Two places changed recently.</p>
 <ul>
   <li><b>Bucheon-si</b> abolished Wonmi-gu, Sosa-gu and Ojeong-gu in 2016, then set up the three districts again on January 1, 2024. In between, the city worked with neighborhoods (dong) at the center and no district offices.</li>
-  <li><b>Hwaseong-si</b> received approval from the Ministry of the Interior and Safety in August 2025 to set up general districts. It now has four district offices: Manse-gu, Hyohaeng-gu, Byeongjeom-gu and Dongtan-gu (<a href={SRC.hs}>Hwaseong Special-case City: district office guide</a>, in Korean).</li>
+  <li><b>Hwaseong-si</b> received approval from the Ministry of the Interior and Safety in August 2025 to set up general gu. It now has four district offices: Manse-gu, Hyohaeng-gu, Byeongjeom-gu and Dongtan-gu (<a href={SRC.hs}>Hwaseong Special-case City: district office guide</a>, in Korean).</li>
 </ul>
 
 <h2>How Fill the Map handles them</h2>
 <ul>
-  <li>For Gyeonggi Province, you practice with the {gg.items.length} cities and counties, not the general districts. A general district is not a local government, and it is easier to see the shapes on a map if you learn one city, such as Suwon or Seongnam, first. The general districts inside each city are listed in the table on the <a href={href('/en/gyeonggi/')}>Gyeonggi map</a>.</li>
-  <li>A general district name starts with its city, as in "Suwon-si Jangan-gu." This is because some general districts share a name with an autonomous district. For example, Pohang has a Nam-gu and a Buk-gu, just like Busan's Nam-gu and Daegu's Buk-gu.</li>
+  <li>For Gyeonggi Province, you practice with the {gg.items.length} cities and counties, not the general gu. A general gu is not a local government, and it is easier to see the shapes on a map if you learn one city, such as Suwon or Seongnam, first. The general gu inside each city are listed in the table on the <a href={href('/en/gyeonggi/')}>Gyeonggi map</a>.</li>
+  <li>A general gu name starts with its city, as in "Suwon-si Jangan-gu." This is because some general gu share a name with an autonomous gu. For example, Pohang has a Nam-gu and a Buk-gu, just like Busan's Nam-gu and Daegu's Buk-gu.</li>
   <li>We do not put "special-case city" in the name. We write "Suwon-si," because addresses and official records did not change.</li>
 </ul>
 {g1 && <p>The total numbers of provinces and cities, counties and districts are summarized in <a href={href(`/en/guide/${g1.slug}/`)}>{g1.title}</a>.</p>}
@@ -99,5 +100,6 @@ const SRC = {
   <li>Policy Briefing, <a href={SRC.launch}>Suwon, Yongin, Goyang and Changwon special-case cities launch: what changes?</a> (January 13, 2022)</li>
   <li>Policy Briefing, <a href={SRC.name}>The "special-case city" name is not a new kind of local government</a> (Ministry of the Interior and Safety, November 2, 2018)</li>
   <li>Hwaseong Special-case City, <a href={SRC.hs}>District office guide</a></li>
-  <li>Number and names of general districts, and districts with the same name: counted from the administrative neighborhood boundaries as of October 1, 2026.</li>
+  <li>Ministry of the Interior and Safety, <a href={SRC.mois}>Notice of changes to administrative bodies (haengjeong-dong) and jurisdictions (beopjeong-dong), in effect February 1, 2026</a> (December 22, 2025; in Korean)</li>
+  <li>Number and names of general gu, and districts with the same name: counted from the administrative neighborhood boundaries as of October 1, 2026.</li>
 </ul>

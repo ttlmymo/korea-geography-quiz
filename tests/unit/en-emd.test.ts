@@ -20,7 +20,7 @@ import type { EmdUnitFile, GeoData, Region } from '../../src/app/types.ts';
 import type { Ctx } from '../../src/app/ui/ctx.ts';
 import { homePage, pickPage, regionsPage, resultPage, startPage, summaryPage, unitPage, type Page } from '../../src/app/ui/pages.ts';
 import { enOfSlug as enOfSlugLib } from '../../src/lib/regions.ts';
-import { emdShort } from '../../tools/roma.mjs';
+import { emdShort, romaEmd } from '../../tools/roma.mjs';
 import { EN_OFF, EN_ON, geo, geoEn } from './fixtures.ts';
 
 const T = 20000;
@@ -306,7 +306,7 @@ test('관문(10.2-7): enNames 없는 판이면 영어 앱은 끈 창과 같은 �
   });
 });
 
-test('옛 캐시 단원 파일(10.2-7 · 5.4): en 이 없는 단원 파일을 받아도 곳은 한글 이름, 과·화면은 한글 이름 — 숫자 slug·undefined·빈 이름 없음, 이웃 땅 이름은 그리지 않음', () => {
+test('옛 캐시 단원 파일(10.2-7 · 5.4): en 이 없는 단원 파일을 받아도 곳은 로마자 대체 이름, 과는 Lesson N, 화면은 방위 낱말 — 한글·숫자 slug·undefined·빈 이름 없음, 이웃 땅 이름은 그리지 않음', () => {
   const strip = (f: EmdUnitFile): EmdUnitFile => ({ ...f, items: f.items.map(({ en: _x, ...it }) => it), lessons: f.lessons.map(({ en: _x, ...l }) => l), screens: f.screens.map((s) => ({ ...s, en: '' })) });
   const r = createRegistry(geoEn, EN_ON);
   for (const code of ['11110', '41111', '47940']) {
@@ -314,12 +314,13 @@ test('옛 캐시 단원 파일(10.2-7 · 5.4): en 이 없는 단원 파일을 �
     const u = r.addUnit(f);
     for (const it of u.items) {
       assert.equal(it.en, undefined);
-      assert.deepEqual([UI_EN.name(it), UI_EN.short(it)], [it.ko, it.ko], `${code} 한글 대체`);
+      assert.deepEqual([UI_EN.name(it), UI_EN.short(it)], [romaEmd(it.ko), emdShort(romaEmd(it.ko))], `${code} 로마자 대체`);
+      assert.doesNotMatch(`${UI_EN.name(it)} ${UI_EN.short(it)} ${UI_EN.line(r, it.id)}`, HANGUL, `${code} ${it.ko} 한글 샘`);
       const t = [UI_EN.fullName(r, it.id), ...MODES.map((m) => UI_EN.prompt(r, m, it.id, (s) => s))];
       for (const x of t) { assert.doesNotMatch(x, SLUG5, x); assert.doesNotMatch(x, BAD, x); }
     }
-    for (const l of u.lessons) assert.equal(UI_EN.lesson(l), l.title);
-    for (const s of u.screens) assert.equal(UI_EN.screenName(UI_EN.region(u), s), `${u.en}, ${s.ko}`);
+    for (const l of u.lessons) assert.equal(UI_EN.lesson(l), `Lesson ${l.no}`);
+    for (const s of u.screens) { assert.doesNotMatch(UI_EN.screenName(UI_EN.region(u), s), HANGUL); assert.doesNotMatch(UI_EN.screenTab(s), HANGUL); }
     inEn(() => {
       for (const p of [unitPage(ctxOf(r), u.key), startPage(ctxOf(r), u.key, 1), summaryPage(ctxOf(r), { region: u.key, no: 1, newly: [], firstTry: 0, total: 1, confused: u.lessons[0].items.slice(0, 1) })]) {
         assert.doesNotMatch(visible(p), SLUG5, `${code} 숫자 slug`);
@@ -511,4 +512,16 @@ test('영어 폰 화면 탭(결정표 D42 — 넓은 화면 영어 이름 \'Cent
   const two = new Set<string>();
   for (const r of en.regions) for (const s of r.screens ?? []) if (s.en && / /.test(s.en)) two.add(s.en);
   assert.deepEqual([...two], ['central Gwangju']);
+});
+
+test('영어 위치 한 줄 전수(2026-11-20): 일반구 33곳·시·도 16곳을 포함해 한국어에 한 줄이 있는 곳은 영어에도 있고 한글이 없다', () => {
+  let n = 0;
+  for (const r of [...en.regions, ...en.units]) for (const it of r.items) {
+    if (!en.place(it.id)) continue;
+    const k = UI_KO.line(en, it.id), e = UI_EN.line(en, it.id);
+    if (k) { n++; assert.ok(e.trim(), `${r.key} ${it.id} 영어 한 줄이 빔`); }
+    assert.doesNotMatch(e, HANGUL, `${it.id} ${e}`);
+    assert.doesNotMatch(e, BAD, `${it.id} ${e}`);
+  }
+  assert.ok(n > 3800, `한 줄 ${n}곳`);
 });

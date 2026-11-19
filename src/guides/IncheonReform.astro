@@ -14,7 +14,7 @@ const NEW = reform.reform.map((x) => x.new);
 const all = svg.items.flatMap((it) => it.dongs);
 const k = countKinds(all);
 const total = (row: (typeof reform.reform)[number]) => Object.values(row.from).flat().length;
-// 넓이는 인천시 누리집 행정체제 개편 쪽의 새 구 면적(2026. 6. 17. 갱신). 경계 데이터로 잰 값(row.area_km2)은 바다·갯벌·미등록 매립지를 품어 더 크다(검단구 +12.7㎢)
+// 넓이는 인천시 누리집 행정체제 개편 쪽의 새 구 면적(2026. 6. 17. 갱신). 경계 데이터로 잰 값(row.area_km2)이 더 큰 것은 바다·갯벌·미등록 매립지를 품기 때문일 가능성이 크지만 원인은 확인하지 못함(검단구 +12.7㎢)
 const OFFICIAL_AREA: Record<string, number> = { 제물포구: 21.8, 영종구: 125.88, 서해구: 71.36, 검단구: 47.7 };
 const areaOf = (row: (typeof reform.reform)[number]) => OFFICIAL_AREA[row.new] ?? row.area_km2;
 const boundaryOf = (name: string) => reform.reform.find((x) => x.new === name)!.area_km2;
@@ -56,7 +56,7 @@ const SRC = {
     <tr><td>{row.new}</td><td>{Object.entries(row.from).map(([o, list]) => `${o} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{areaOf(row)}</td></tr>
   ))}</tbody>
 </table></div>
-<p class="meta">넓이는 인천시가 밝힌 면적이에요. 땅으로 등록된 곳만 센 면적으로 보여요(옛 중구·동구·서구의 시 값이 등록된 땅 넓이와 같아요). 행정동 경계 데이터로 직접 재면 바다·갯벌과 아직 등록되지 않은 매립지까지 품어서 네 구 모두 더 크게 나오고, 특히 검단구는 {boundaryOf('검단구')}㎢로 크게 어긋나요. 그 차이의 대부분은 오류왕길동에서 나와요.</p>
+<p class="meta">넓이는 인천시 누리집이 밝힌 면적이에요. 인천시가 지적통계에 쓰는 '등록된 땅' 넓이와 같은 기준으로 보여요(옛 중구·동구·서구의 시 값이 그 합계와 맞아요). 이 사이트가 행정동 경계 데이터로 직접 재면 네 구 모두 더 크게 나오고, 특히 검단구는 {boundaryOf('검단구')}㎢로 시 값보다 12.7㎢ 커요. 경계 데이터가 바닷가의 바다·갯벌이나 아직 땅으로 등록되지 않은 매립지까지 품기 때문일 가능성이 크지만, 정확한 원인은 확인하지 못했어요. 그 차이의 대부분은 오류왕길동에서 나와요.</p>
 <h3>동 이름으로 찾기</h3>
 <div class="tbl"><table>
   <thead><tr><th scope="col">지금 구</th><th scope="col">옛 구에서 온 행정동</th></tr></thead>

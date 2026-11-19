@@ -5,6 +5,7 @@ import type { Tap, Wrong } from '../core/judge.ts';
 import type { CtxCell, Item, Lesson, Region, Screen } from '../types.ts';
 import { DIR_KO, TAP_KO, dontKnowKo, eulReul, eunNeun, guFirst, ieyo, koCount, meetKo, rightKo, unitKo, unitWordKo, wrongKo } from './ko.ts';
 import { SIDOS, partOf, sidoByCode } from '../sidos.ts';
+import { romaEmd } from '../../../tools/roma.mjs';
 import LINES_EN from '../../data/place-lines-en.json' with { type: 'json' };
 
 type TapMsg = Exclude<Tap['type'], 'cell'>;
@@ -357,8 +358,15 @@ export const emdShortEn = (en: string) => { const s = en.replace(/-dong$/, ''); 
  * 영어 곳 이름(설계안 EN_EMD 5.2): 동은 판의 en(옛 캐시라 없으면 한글 — 숫자 slug 는 어떤 경우에도 쓰지 않는다, 5.4), 시·도 단원의 곳은 지역 표 en('Jeonnam-Gwangju'),
  * 일반구 단원의 곳은 주소 이름의 구('Jangan-gu' — 시는 fullName·fullPre 가 붙인다), 그 밖(시·군·구)은 주소 이름('Gangnam-gu')
  */
+/** 영어 이름이 없는 동(옛 캐시 단원 파일)의 대체: 한글을 영어 화면에 두지 않으려고 국어의 로마자 표기법 소리 규칙(tools/roma.mjs romaEmd)으로 읽어 쓴다. 손 표의 고친 이름과 다를 수 있어 임시 글이다 */
+const emdFallback = (ko: string): string => romaEmd(ko);
+/** 영어 과 이름이 없으면(옛 캐시) 'Lesson N' — 한글 과 이름을 쓰지 않는다 */
+const lessonFallback = (l: Lesson): string => `Lesson ${l.no}`;
+/** 영어 화면 이름이 없으면(옛 캐시) 키로 만든 방위 낱말, 그 밖은 'area' */
+const SCREEN_EN: Record<string, string> = { nw: 'northwest', ne: 'northeast', sw: 'southwest', se: 'southeast', north: 'north', south: 'south', east: 'east', west: 'west', all: 'whole area', land: 'inland', sea: 'sea and islands', gwangju: 'Gwangju' };
+const screenFallback = (s: Screen): string => SCREEN_EN[s.key] ?? 'area';
 const enName = (it: Item): string => {
-  if (it.id.startsWith('kr:emd:')) return it.en || it.ko;
+  if (it.id.startsWith('kr:emd:')) return it.en || emdFallback(it.ko);
   if (it.id.startsWith('kr:sido:')) return sidoByCode(it.id.slice(8))?.en ?? cap(it.slug);
   const g = it.si ? GU_SLUG.exec(it.slug) : null;
   return g ? cap(g[2]) : cap(it.slug);
@@ -430,8 +438,8 @@ export const UI_EN: UI = {
   path: (p: string) => `en/${p}`,
   name: enName,
   region: (r: Region) => r.en,
-  // 영어 과 이름이 없으면(옛 캐시 단원 파일 — 동·일반구 과) 한글 과 이름(EN_EMD 5.4)
-  lesson: (l: Lesson) => l.en || l.title,
+  // 영어 과 이름이 없으면(옛 캐시 단원 파일 — 동·일반구 과) 'Lesson N'(한글 과 이름을 쓰지 않는다)
+  lesson: (l: Lesson) => l.en || lessonFallback(l),
   lessonNo: (no: number) => `lesson ${no}`,
   count(r: Region): string {
     if (r.layer === 'sido') return plural(r.items.length, 'province or city', 'provinces and cities');
@@ -618,7 +626,7 @@ export const UI_EN: UI = {
   },
   // 짧은 이름: 동은 '-dong' 만 뗀다(emdShortEn — 'Gaepo 1' · 'Bon-dong' · 'Byeollae-myeon', 영어 이름이 없는 옛 캐시는 한글 그대로),
   // 시·도 단원의 곳은 줄이지 않는다('Jeonnam-Gwangju'), 시·군·구·일반구는 '-gu'·'-si'·'-gun' 을 뗀다('Jongno' · 'Jangan')
-  short: (it: Item) => (it.id.startsWith('kr:emd:') ? (it.en ? emdShortEn(it.en) : it.ko) : it.id.startsWith('kr:sido:') ? enName(it) : enName(it).replace(/-(gu|si|gun)$/, '')),
+  short: (it: Item) => (it.id.startsWith('kr:emd:') ? emdShortEn(it.en || emdFallback(it.ko)) : it.id.startsWith('kr:sido:') ? enName(it) : enName(it).replace(/-(gu|si|gun)$/, '')),
   filledNone: 'Nothing filled yet. The places you study get colored on the map',
   filledZero: (n: number) => `0 of ${n} filled`,
   hubs: fromTable((s) => s.hub?.en),
@@ -672,7 +680,7 @@ export const UI_EN: UI = {
   pickAll: 'All',
   pickScreens: 'Map area',
   // 화면 영어 이름은 토스트 꼴('Gyeonggi, northwest' — 첫 글자 소문자)이라 단추에서는 첫 글자를 대문자로('All · Northwest · Northeast')
-  screenTab: (s: Screen) => cap(s.en || s.ko),
+  screenTab: (s: Screen) => cap(s.en || screenFallback(s)),
   siGu: (n: number) => plural(n, 'district', 'districts'),
   loading: 'Loading the map',
   more: 'Read more',
@@ -723,8 +731,8 @@ export const UI_EN: UI = {
   inset: 'Far islands',
   isles: 'Islands',
   zoom: 'Zoomed in',
-  // 영어 화면 이름이 없으면(옛 캐시 단원 파일 — en '') 한글 화면 이름(EN_EMD 5.4)
-  screenName: (r: string, s: Screen) => `${r}, ${s.en || s.ko}`,
+  // 영어 화면 이름이 없으면(옛 캐시 단원 파일 — en '') 키로 만든 방위 낱말(한글 화면 이름을 쓰지 않는다)
+  screenName: (r: string, s: Screen) => `${r}, ${s.en || screenFallback(s)}`,
 };
 
 /** 지금 화면 글. main.ts 가 문서의 lang 을 보고 한 번 정한다 */

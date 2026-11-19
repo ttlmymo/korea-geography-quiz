@@ -52,23 +52,23 @@ const SRC = {
 <div class="summary">
   <b>Key points</b>
   <span>1. A legal dong (beopjeong-dong) is the original dong. Land lot numbers are given by dong and ri, so a lot-number address shows the legal dong name.</span>
-  <span>2. An administrative dong (haengjeong-dong) is a dong that is run for convenience, with a community service center (jumin-senteo). It may combine legal dongs or split one.</span>
-  <span>3. Seoul has {legalSum} legal dongs and {admSum} administrative dongs. Fill the Map uses administrative dongs.</span>
+  <span>2. An administrative dong (haengjeong-dong) is a dong that is run for convenience, with a community service center (jumin-senteo). It may combine legal dong or split one.</span>
+  <span>3. Seoul has {legalSum} legal dong and {admSum} administrative dong. Fill the Map uses administrative dong.</span>
 </div>
 
 <h2>How the law separates the two</h2>
-<p>Article 7 of the Local Autonomy Act says that the names and areas of eup, myeon and dong stay as they were, and that changes are set by ordinance. The dong that has continued this way is the legal dong. Paragraph 4 of the same article says that, for administrative efficiency and the convenience of residents, one dong may be run as two or more, or two or more dongs may be run as one. These are called "administrative dong" (haengjeong-dong). Article 9 then says that the dong meant when deciding where to place a dong office (community service center) is the administrative dong.</p>
-<p>For land, the legal dong is used. Article 2 of the Act on the Establishment and Management of Spatial Data (called the Spatial Data Act here) defines the number given to one parcel of land as the lot number (jibeon), and the area unit where lot numbers are given as dong and ri. So a lot-number address shows the legal dong, and the name of a community service center shows the administrative dong. For example, in Seoul's data, the administrative dong Cheongunhyoja-dong in Jongno District covers {cheongun.length} legal dongs, including Cheongun-dong and Hyoja-dong. Jongno 1·2·3·4-ga-dong covers {jongro14.length} legal dongs, including Jongno 1-ga to 4-ga. Only some of those names appear in the name of the administrative dong.</p>
+<p>Article 7 of the Local Autonomy Act says that the names and areas of eup, myeon and dong stay as they were, and that changes are set by ordinance. The dong that has continued this way is the legal dong. Paragraph 4 of the same article says that, for administrative efficiency and the convenience of residents, one dong may be run as two or more, or two or more dong may be run as one. These are called "administrative dong" (haengjeong-dong). Article 9 then says that the dong meant when deciding where to place a dong office (community service center) is the administrative dong.</p>
+<p>For land, the legal dong is used. Article 2 of the Act on the Establishment and Management of Spatial Data (called the Spatial Data Act here) defines the number given to one parcel of land as the lot number (jibeon), and the area unit where lot numbers are given as dong and ri. So a lot-number address shows the legal dong, and the name of a community service center shows the administrative dong. For example, in Seoul's data, the administrative dong Cheongunhyoja-dong in Jongno-gu covers {cheongun.length} legal dong, including Cheongun-dong and Hyoja-dong. Jongno 1·2·3·4-ga-dong covers {jongro14.length} legal dong, including Jongno 1-ga to 4-ga. Only some of those names appear in the name of the administrative dong.</p>
 
 <h2>Districts that combine, districts that split</h2>
-<p>Of Seoul's 25 districts, {more} have more administrative dongs than legal dongs. This is because some legal dongs are run as several administrative dongs. On the other hand, Jongno District and Jung District have many legal dongs ({jongno.legal} and {junggu.legal}), and they combine them into a few administrative dongs.{same.length ? ` ${same.join(', ')} ${same.length > 1 ? 'have' : 'has'} the same number of both, but the same number does not mean the same boundaries.` : ''}</p>
+<p>Of Seoul's 25 districts, {more} have more administrative dong than legal dong. This is because some legal dong are run as several administrative dong. On the other hand, Jongno-gu and Jung-gu have many legal dong ({jongno.legal} and {junggu.legal}), and they combine them into a few administrative dong.{same.length ? ` ${same.join(', ')} ${same.length > 1 ? 'have' : 'has'} the same number of both, but the same number does not mean the same boundaries.` : ''}</p>
 <ul>
-  <li><b>Jongno District</b>: {jongno.legal} legal dongs → {jongno.adm} administrative dongs</li>
-  <li><b>Jung District</b>: {junggu.legal} legal dongs → {junggu.adm} administrative dongs</li>
-  <li><b>Gwanak District</b>: {gwanak.legal} legal dongs ({gwanakLegalEn.join(', ')}) → {gwanak.adm} administrative dongs</li>
+  <li><b>Jongno-gu</b>: {jongno.legal} legal dong → {jongno.adm} administrative dong</li>
+  <li><b>Jung-gu</b>: {junggu.legal} legal dong → {junggu.adm} administrative dong</li>
+  <li><b>Gwanak-gu</b>: {gwanak.legal} legal dong ({gwanakLegalEn.join(', ')}) → {gwanak.adm} administrative dong</li>
 </ul>
 <div class="tbl"><table class="pair">
-  <thead><tr><th scope="col">District</th><th scope="col">Legal dongs · Administrative dongs</th></tr></thead>
+  <thead><tr><th scope="col">District</th><th scope="col">Legal dong · Administrative dong</th></tr></thead>
   <tbody>{rows.map((x) => (
     <tr><td>{enNameOf(x.id)}</td><td>
       <div class="bar"><i class="b-legal" style={`width:${(x.legal / max) * 85}%`}></i><span class="num">{x.legal}</span></div>
@@ -76,27 +76,27 @@ const SRC = {
     </td></tr>
   ))}</tbody>
 </table></div>
-<p class="meta"><i class="key b-legal"></i>Legal dongs <i class="key b-adm"></i>Administrative dongs · Districts are listed starting with those that have the most legal dongs compared with administrative dongs.</p>
+<p class="meta"><i class="key b-legal"></i>Legal dong <i class="key b-adm"></i>Administrative dong · Districts are listed starting with those that have the most legal dong compared with administrative dong.</p>
 
 <h2>So the names can differ</h2>
-<p>Gwanak District has only three legal dongs: {gwanakLegalEn.join(', ')}. So by lot-number address, every piece of land in Gwanak District is in one of these three dongs. But there are {gwanak.adm} community service centers, and many of their names, such as {gwanakOtherEn.join(', ')}, are not on the legal dong list. In Seoul's data, the legal dong Bongcheon-dong is shared by {bongcheon.length} administrative dongs, and Sillim-dong by {sillim.length}. If the dong name of your home looks different on a lot-number address and on a community service center, it is because one is the legal dong and the other is the administrative dong.</p>
+<p>Gwanak-gu has only three legal dong: {gwanakLegalEn.join(', ')}. So by lot-number address, every piece of land in Gwanak-gu is in one of these three dong. But there are {gwanak.adm} community service centers, and many of their names, such as {gwanakOtherEn.join(', ')}, are not on the legal dong list. In Seoul's data, the legal dong Bongcheon-dong is shared by {bongcheon.length} administrative dong, and Sillim-dong by {sillim.length}. If the dong name of your home looks different on a lot-number address and on a community service center, it is because one is the legal dong and the other is the administrative dong.</p>
 
-<h2>Why Fill the Map uses administrative dongs</h2>
+<h2>Why Fill the Map uses administrative dong</h2>
 <ul>
   <li><b>The dong residents visit</b>: There is a community service center in every administrative dong. The dong in the name of a community service center is the administrative dong.</li>
-  <li><b>Even units for practice</b>: Each Seoul district has a similar number of administrative dongs, {admRange[0]} to {admRange[1]}, but the number of legal dongs varies a lot, from {legalRange[0]} to {legalRange[1]}. If we used legal dongs, Jongno District alone would have {jongno.legal} cells.</li>
-  <li><b>Boundary data</b>: There is public data that organizes administrative dong boundaries edition by edition, so changed dongs can be added quickly. The current edition is the one of October 1, 2026.</li>
+  <li><b>Even units for practice</b>: Each Seoul district has a similar number of administrative dong, {admRange[0]} to {admRange[1]}, but the number of legal dong varies a lot, from {legalRange[0]} to {legalRange[1]}. If we used legal dong, Jongno-gu alone would have {jongno.legal} cells.</li>
+  <li><b>Boundary data</b>: There is public data that organizes administrative dong boundaries edition by edition, so changed dong can be added quickly. The current edition is the one of October 1, 2026.</li>
 </ul>
-<p>So every dong on the Fill the Map maps is an administrative dong. It may differ from the dong name in a lot-number address, so each <a href={href('/en/seoul/')}>Seoul district page</a> also has a table of the legal dongs that each administrative dong covers.</p>
+<p>So every dong on the Fill the Map maps is an administrative dong. It may differ from the dong name in a lot-number address, so each <a href={href('/en/seoul/')}>Seoul district page</a> also has a table of the legal dong that each administrative dong covers.</p>
 <div class="cta"><b>Try it on the map</b><a class="btn" href={href('/en/#/kr/seoul/sgg/p1')}>Start Seoul lesson 1</a></div>
 
 <h2>Sources</h2>
 <ul class="src">
   <li>National Law Information Center, <a href={SRC.law}>Local Autonomy Act</a> (Act No. 21544, in force October 15, 2026), arts. 7 and 9</li>
   <li>National Law Information Center, <a href={SRC.land}>Act on the Establishment and Management of Spatial Data</a> (Act No. 21447, in force July 1, 2026), art. 2, items 22 and 23</li>
-  <li>Number of legal dongs: Public Data Portal, <a href={SRC.bjd}>Ministry of Land, Infrastructure and Transport, Legal Dongs of Korea</a> (revised July 29, 2026; no limit on terms of use). We counted the dong lines for Seoul, leaving out ri.</li>
-  <li>Number of administrative dongs: counted from the administrative dong boundaries as of October 1, 2026.</li>
-  <li>Legal dongs covered by each administrative dong: Seoul Metropolitan Government, <a href={DONGMAP.source.url}>List of dongs by district (Hangul and Hanja)</a> (revised August 18, 2025)</li>
+  <li>Number of legal dong: Public Data Portal, <a href={SRC.bjd}>Ministry of Land, Infrastructure and Transport, Legal Dongs of Korea</a> (revised July 29, 2026; no limit on terms of use). We counted the dong lines for Seoul, leaving out ri.</li>
+  <li>Number of administrative dong: counted from the administrative dong boundaries as of October 1, 2026.</li>
+  <li>Legal dong covered by each administrative dong: Seoul Metropolitan Government, <a href={DONGMAP.source.url}>List of dong by district (Hangul and Hanja)</a> (revised August 18, 2025)</li>
 </ul>
 
 
