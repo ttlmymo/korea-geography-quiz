@@ -73,6 +73,13 @@ export function neighborsEn(r: Region, id: string) {
   return neighborsOf(r, id).map((n) => (n.inRegion ? enNameOf(n.id) : `${enNameOf(n.id)} (${SIDO_EN[regionKeyOf(n.id)] ?? ''})`));
 }
 export { listEn };
+import EMD_EN_BY_PLACE from '../data/emd-en-by-place.json';
+/** 곳 id → 그 곳의 읍·면·동 영어 이름(국어의 로마자 표기법, pipeline/data/emd-en.json 손 표). 경계 데이터 svg 의 dongs 와 같은 차례 */
+export const enDongs = (placeId: string): string[] => ((EMD_EN_BY_PLACE as unknown as Record<string, string[][]>)[placeId] ?? []).map((p) => p[1]);
+/** 영어 지도의 이름표: 시·군·구 영어 이름('Suwon-si Jangan-gu' 는 일반구만 'Jangan-gu'). 옛 인천 구(old:)는 'Jung-gu' 꼴로 */
+const OLD_INCHEON_EN: Record<string, string> = { '중구': 'Jung-gu', '동구': 'Dong-gu', '미추홀구': 'Michuhol-gu', '연수구': 'Yeonsu-gu', '남동구': 'Namdong-gu', '부평구': 'Bupyeong-gu', '계양구': 'Gyeyang-gu', '서구': 'Seo-gu', '강화군': 'Ganghwa-gun', '옹진군': 'Ongjin-gun' };
+export const enShortOf = (id: string): string => (id.startsWith('old:') ? (OLD_INCHEON_EN[id.slice(4)] ?? id.slice(4)) : enNameOf(id).replace(/^[^ ]+-si /, ''));
+
 
 /** 서울 한강 북쪽 14개 구(파이프라인 NORTH 와 같은 목록, 한강 띠를 만들 때 쓴 것) */
 /** 정적 지도 묶음 칠(RegionMap 의 t-a~t-e 와 같은 색 — 표의 색 견본용) */

@@ -5,9 +5,10 @@
 import Base from '../../../../layouts/Base.astro';
 import RegionMap from '../../../../components/RegionMap.astro';
 import { href } from '../../../../lib/paths';
-import { UNITS, region, svgOf, neighborsOf, neighborsEn, countKinds, enNameOf, listEn, ilbanGuOf } from '../../../../lib/geo';
+import { UNITS, region, svgOf, neighborsOf, neighborsEn, countKinds, enNameOf, enDongs, listEn, ilbanGuOf } from '../../../../lib/geo';
 import { enOfSlug, HUBS } from '../../../../lib/regions';
 import { introEnOf, regionIntroOf } from '../../../../data/region-intro';
+import LINES_EN from '../../../../data/place-lines-en.json';
 
 export function getStaticPaths() {
   return UNITS.regions
@@ -52,12 +53,13 @@ const gus = ilbanGuOf(id).flatMap((g) => {
     <div class="d-top split">
       <div class="d-head">
         <h1 class="d-title">{enName}</h1>
-        <p class="d-sub"><span lang="ko">{item.ko}</span> · {kind} in {r.en}</p>
+        <p class="d-sub">{kind.charAt(0).toUpperCase() + kind.slice(1)} in {r.en}</p>
       </div>
       <div class="d-map">
-        <RegionMap region={key} highlight={[id]} label={`Map of ${r.en} showing where ${enName} is`} />
+        <RegionMap en region={key} highlight={[id]} label={`Map of ${r.en} showing where ${enName} is`} />
       </div>
       <div class="d-body">
+        {(LINES_EN as Record<string, string>)[id] && <p class="lead">{(LINES_EN as Record<string, string>)[id]}</p>}
         <div class="prose">
           <p>{nbs.length ? <>It borders {nbLinks.map((n, i) => <>{i > 0 && (i === nbLinks.length - 1 ? ' and ' : ', ')}{n.slug ? <a href={href(`/en/${key}/${n.slug}/`)}>{n.name}</a> : n.name}</>)}. </> : ''}It has {kindsEn}.</p>
           {lesson && <p>{r.en} lesson {lesson.no}, "{lesson.en}"{mates.length ? <>: with {listEn(mates)}</> : ''}.</p>}
@@ -84,7 +86,8 @@ const gus = ilbanGuOf(id).flatMap((g) => {
     )}
     <section class="d-sec">
       <h2>{dongs.length} neighborhoods</h2>
-      <ul class="donglist" lang="ko">{dongs.map((d) => <li>{d}</li>)}</ul>
+      <ul class="donglist">{enDongs(id).map((d) => <li>{d}</li>)}</ul>
+      <p class="meta">Names follow the Revised Romanization of Korean.</p>
     </section>
     <section class="cta">
       <h2>Find it on the blank map</h2>

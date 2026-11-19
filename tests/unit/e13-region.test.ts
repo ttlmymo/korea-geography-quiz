@@ -128,7 +128,7 @@ test('위치 한 줄(N27): 강원 18·충북 11·전북 14곳 — 원고 그대�
   for (const k of ['gangwon', 'chungbuk', 'jeonbuk']) for (const [n2, e] of Object.entries(LINES[k] as Record<string, { line: string }>)) if (n2 !== '_note') assert.doesNotMatch(e.line, /휴전선|북한/, n2);
   assert.deepEqual(LINES.jeonbuk['순창군'].touch, ['전남광주통합특별시']);
   assert.deepEqual(LINES.chungbuk['청주시'].touch, ['세종특별자치시', '대전광역시']);
-  assert.equal(UI_EN.line(reg, idOf('춘천시')), '', '위치 한 줄은 한국어만');
+  assert.doesNotMatch(UI_EN.line(reg, idOf('춘천시')), /[가-힣]/, '영어 위치 한 줄에는 한글이 없다(place-lines-en.json 이 비어 있으면 빈 줄)');
 });
 
 // 휴전선 쪽 꼭짓점은 북위 38.585 북쪽(고성 북쪽 해안 틈 — E13 이 메운 곳)만 본다. 고성군의 서쪽 휴전선 쪽 선(동경 128.28~128.32, 북위 38.43~38.58)에는

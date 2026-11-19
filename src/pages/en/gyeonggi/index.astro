@@ -4,7 +4,7 @@
 import Base from '../../../layouts/Base.astro';
 import RegionMap from '../../../components/RegionMap.astro';
 import { href } from '../../../lib/paths';
-import { region, svgOf, countKinds, enNameOf } from '../../../lib/geo';
+import { region, svgOf, countKinds, enNameOf, enShortOf, ilbanGuOf } from '../../../lib/geo';
 import { listEn } from '../../../lib/regions';
 import { regionIntroOf } from '../../../data/region-intro';
 
@@ -36,7 +36,7 @@ const kindsEn = (dongs: string[]) => {
         <div class="d-acts"><a class="btn" href={href('/en/#/kr/gyeonggi/sgg/p1')}>Start with Gyeonggi lesson 1 <span aria-hidden="true">→</span></a></div>
       </div>
       <figure class="d-map">
-        <RegionMap region="gyeonggi" labels label="Map of Gyeonggi's 31 cities and counties" />
+        <RegionMap en region="gyeonggi" labels label="Map of Gyeonggi's 31 cities and counties" />
         <figcaption class="d-key">The empty space in the middle is Seoul. Incheon is to the west.</figcaption>
       </figure>
     </div>
@@ -55,7 +55,7 @@ const kindsEn = (dongs: string[]) => {
       <div class="tbl"><table>
         <thead><tr><th scope="col">City or county</th><th scope="col">Towns, townships and neighborhoods</th><th scope="col">General districts</th><th scope="col">Lesson · Screen</th></tr></thead>
         <tbody>{rows.map((it) => (
-          <tr><td>{regionIntroOf(it.id) ? <a href={href(`/en/gyeonggi/${it.slug}/`)}>{enNameOf(it.id)}</a> : enNameOf(it.id)}</td><td>{kindsEn(itemOf(it.id).dongs)}</td><td>{itemOf(it.id).gu.length ? <span lang="ko">{itemOf(it.id).gu.join(' · ')}</span> : '—'}</td><td>{lessonOf(it.id).no} · {screenOf(it.id).en}</td></tr>
+          <tr><td>{regionIntroOf(it.id) ? <a href={href(`/en/gyeonggi/${it.slug}/`)}>{enNameOf(it.id)}</a> : enNameOf(it.id)}</td><td>{kindsEn(itemOf(it.id).dongs)}</td><td>{itemOf(it.id).gu.length ? ilbanGuOf(it.id).map((g) => enShortOf(g.id)).join(' · ') : '—'}</td><td>{lessonOf(it.id).no} · {screenOf(it.id).en}</td></tr>
         ))}</tbody>
       </table></div>
       <p>eup = town, myeon = township, dong = neighborhood.</p>

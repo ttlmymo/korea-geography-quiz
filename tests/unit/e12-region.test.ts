@@ -117,7 +117,7 @@ test('위치 한 줄(N27): 대구 9·대전 5·울산 5곳 — 원고 그대로,
   }
   assert.equal(n, 19);
   assert.equal(LINES.sejong, undefined);
-  assert.equal(UI_EN.line(reg, idOf('군위군')), '', '위치 한 줄은 한국어만');
+  assert.doesNotMatch(UI_EN.line(reg, idOf('군위군')), /[가-힣]/, '영어 위치 한 줄에는 한글이 없다(place-lines-en.json 이 비어 있으면 빈 줄)');
   // 다른 시·도와 맞닿은 근거는 시·도 이름으로(세종과 맞닿은 대전 유성구 — 세종도 이번에 연 공개 지역)
   assert.deepEqual(LINES.daejeon['유성구'].touch, ['세종특별자치시']);
   assert.deepEqual(LINES.ulsan['울주군'].touch, ['부산광역시']);

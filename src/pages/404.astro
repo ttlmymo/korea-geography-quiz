@@ -28,7 +28,10 @@ const GO = [
       {GO.map((g) => <li><a href={href(g.h)}><b>{g.t}</b><span class="gd">{g.d}</span><span class="ar" aria-hidden="true">→</span></a></li>)}
     </ul>
     <p class="note">링크를 눌러 이 쪽이 나왔다면 <a href={href('/contact/')}>문의</a>로 그 링크가 있던 곳을 알려 주세요.</p>
-    <p class="note" lang="en">This page doesn't exist. <a href={href('/en/')}>Go to the English home</a>.</p>
+    <section class="en" lang="en" aria-labelledby="nf-en">
+      <h2 id="nf-en">Page not found</h2>
+      <p class="note">This page doesn't exist, or its address has changed. Start again from the <a href={href('/en/')}>English home</a>, browse the <a href={href('/en/guide/')}>study guides</a>, or tell us where you found the link on the <a href={href('/en/contact/')}>contact page</a>.</p>
+    </section>
   </div>
 </Base>
 
@@ -36,6 +39,8 @@ const GO = [
   .d-head { gap: var(--sp-3); }
   .d-head .lead { max-width: var(--content-w); }
   .note { max-width: var(--content-w); font-size: var(--fs-16); line-height: 1.6; }
+  .en { margin-top: var(--sp-4); }
+  .en h2 { font-size: var(--fs-18); margin: 0 0 var(--sp-2); }
   .go { list-style: none; margin: var(--sp-2) 0 0; padding: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
   .go li + li { border-top: 1px solid var(--line); }
   .go a {

@@ -5,6 +5,7 @@ import type { Tap, Wrong } from '../core/judge.ts';
 import type { CtxCell, Item, Lesson, Region, Screen } from '../types.ts';
 import { DIR_KO, TAP_KO, dontKnowKo, eulReul, eunNeun, guFirst, ieyo, koCount, meetKo, rightKo, unitKo, unitWordKo, wrongKo } from './ko.ts';
 import { SIDOS, partOf, sidoByCode } from '../sidos.ts';
+import LINES_EN from '../../data/place-lines-en.json' with { type: 'json' };
 
 type TapMsg = Exclude<Tap['type'], 'cell'>;
 type Pair = [string, string];
@@ -364,6 +365,32 @@ const enName = (it: Item): string => {
 };
 const enPlace = (reg: Registry, id: string) => { const p = reg.place(id); return p ? enName(p.item) : id; };
 const DIR_EN: Record<Dir8, string> = { E: 'east', NE: 'northeast', N: 'north', NW: 'northwest', W: 'west', SW: 'southwest', S: 'south', SE: 'southeast' };
+/** 시·군·구 영어 위치 한 줄(src/data/place-lines-en.json — {곳 id: 영어 한 줄}). 없으면 '' (줄을 감춘다) */
+const PLACE_LINES_EN = LINES_EN as unknown as Record<string, string>;
+const EDGE_EN: Record<string, string> = { N: 'northern', E: 'eastern', S: 'southern', W: 'western' };
+/**
+ * 동 만나기 한 줄(영어, ko.ts meetKo 와 같은 논리): 'The northern end of Nowon-gu, bordering Dobong-gu and Uijeongbu-si (Gyeonggi)'.
+ * 끝(edge)이면 'the {방위}ern end of', 가운데 'the center of', 그 밖 'the {방위} part of'. 이웃은 둘까지 + 셋 이상이면 'and others'.
+ * 다른 시·도 이웃은 영어 시·도 이름 괄호. 영어 이름을 알 수 없는 이웃은 한글을 섞지 않으려고 뺀다. 동 단원 곳이 아니면 ''
+ */
+const meetEn = (reg: Registry, id: string): string => {
+  const p = reg.place(id);
+  const u = p?.region.unit;
+  const m = u?.meet[id];
+  if (!p || !u || !m) return '';
+  const unit = p.region.en;
+  const where = m.edge ? `the ${EDGE_EN[m.edge]} end of ${unit}` : m.dir === 'C' ? `the center of ${unit}` : `the ${DIR_EN[m.dir as Dir8]} part of ${unit}`;
+  const names = (m.touch ?? []).map((t) => {
+    const o = u.outside[t];
+    const q = reg.place(t);
+    if (!o || !q) return '';
+    const sido = o.sido !== p.region.sido ? sidoByCode(o.sido)?.en : '';
+    return sido ? `${enName(q.item)} (${sido})` : enName(q.item);
+  }).filter(Boolean);
+  const first = names.slice(0, 2).join(' and ') + (names.length > 2 ? ' and others' : '');
+  const text = names.length ? `${where}, bordering ${names.length > 2 ? names.slice(0, 2).join(', ') + ' and others' : first}` : where;
+  return cap(text);
+};
 /** 'a' · 'a or b' · 'a, b or c'(listAnd 는 'and') */
 const listOr = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} or ${xs[xs.length - 1]}`);
 const listAnd = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
@@ -470,7 +497,8 @@ export const UI_EN: UI = {
     if (mode === 'choose') return `Which ${unitEn(p.region)} is outlined?`;
     return `Find and tap ${b(enName(p.item))}`;
   },
-  line: () => '',
+  /** 위치 한 줄(영어): 동 단원은 만나기 한 줄(meetEn), 그 밖은 src/data/place-lines-en.json. 없으면 '' — 화면은 빈 줄을 그리지 않는다 */
+  line: (reg: Registry, id: string) => { const p = reg.place(id); return p?.region.layer === 'emd' && p.region.unit ? meetEn(reg, id) : PLACE_LINES_EN[id] ?? ''; },
   // 단원이 섞이는 화면의 곳 이름(N12): 동은 '곳, 단원'('Cheongunhyoja-dong, Jongno-gu' · 'Jungang-dong, Jung-gu, Busan' — 단원 이름은 unitName),
   // 일반구는 'Suwon-si Jangan-gu'(한국어 '수원시 장안구'와 같은 꼴), 같은 이름이 여러 지역에 있는 시·군·구(레지스트리가 full 을 붙임)는 'Jung-gu, Busan'(E11).
   // 지역 안 묶음(지역 표 parts — 전남광주의 자치구 5곳, E16)에 든 곳은 묶음 이름('Dong-gu, Jeonnam-Gwangju' — 2026-11-15 법정 약칭으로 바꾸며 지역 영어 이름과 맞춤, 전에는 'Dong-gu, Gwangju')
@@ -622,7 +650,7 @@ export const UI_EN: UI = {
   mixSub: (n: number) => `Find all ${n}, mixed`,
   checkName: (r: string) => `${r} test`,
   checkSub: (n: number) => `${n} questions · timed`,
-  dong: ['Down to neighborhoods', 'Pick a district and learn its dong'],
+  dong: ['Down to neighborhoods', 'Pick a district and learn its neighborhoods'],
   // 동 단원(설계안 EN_EMD — 2026-11-16 전에는 영어 앱에 열지 않아 'Which district?' 하나였다). 낱말은 unitWord: 'Which city or county?' · 'Seoul: 25 districts'
   pickTitle: (w: UnitWord) => `Which ${w.one}?`,
   pickSub: (w: UnitWord) => `Pick a ${w.one} to learn its neighborhoods`,
@@ -634,7 +662,7 @@ export const UI_EN: UI = {
   pickLast: (name: string) => `Continue ${name}`,
   pickLastTag: 'Recent',
   emdLabel: (r: string) => `${r} · neighborhoods`,
-  emdDesc: (n: number) => `${plural(n, 'lesson', 'lessons')} of neighbors`,
+  emdDesc: (n: number) => `Neighboring places grouped into ${plural(n, 'lesson', 'lessons')}`,
   otherUnits: (w: UnitWord) => `Pick another ${w.one}`,
   toRegion: (r: string) => `Back to ${r}`,
   // 일반구 단원(EN_EMD — 2026-11-16 부터 영어 앱에도 열림)

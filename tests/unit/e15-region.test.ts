@@ -114,7 +114,7 @@ test('위치 한 줄(N27): 경남 18곳 — 원고 그대로, 30자 이하·금�
   // 다른 시·도와의 맞닿음은 시·도 이름(아직 열지 않은 전남광주도 시·도 이름으로 잰다)
   assert.deepEqual(LINES['하동군'].touch, ['전남광주통합특별시']);
   assert.deepEqual(LINES['거창군'].touch, ['경상북도', '전북특별자치도']);
-  assert.equal(UI_EN.line(reg, idOf('창원시')), '', '위치 한 줄은 한국어만');
+  { const line = UI_EN.line(reg, idOf('창원시')); assert.ok(line.length > 0 && !/[가-힣]/.test(line), '영어 위치 한 줄: 영어로 있고 한글이 없다'); }
 });
 
 test('거제·남해(땅으로 맞닿은 시·군·구가 없는 섬, 계획서 N8): 다리로 이어진 바다 건너 이웃(pipeline/data/sea-links.json) — 판 neighbors.sea, 땅 이웃은 0', () => {

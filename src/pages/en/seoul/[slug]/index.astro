@@ -6,8 +6,9 @@ import Base from '../../../../layouts/Base.astro';
 import RegionMap from '../../../../components/RegionMap.astro';
 import { href } from '../../../../lib/paths';
 import { SEOUL_GU, type Gu } from '../../../../data/seoul';
-import { region, svgOf, neighborsEn, listEn, enNameOf, SEOUL_NORTH } from '../../../../lib/geo';
+import { region, svgOf, neighborsEn, listEn, enNameOf, enDongs, SEOUL_NORTH } from '../../../../lib/geo';
 import { introEnOf } from '../../../../data/region-intro';
+import LINES_EN from '../../../../data/place-lines-en.json';
 import { introOf } from '../../../../data/seoul-intro';
 
 export function getStaticPaths() {
@@ -31,12 +32,13 @@ const dateEn = (d: string) => { const [y, m, dd] = d.split('-').map(Number); ret
     <div class="d-top split">
       <div class="d-head">
         <h1 class="d-title">{g.en}</h1>
-        <p class="d-sub"><span lang="ko">{g.ko}</span> · an autonomous district of Seoul</p>
+        <p class="d-sub">An autonomous district of Seoul</p>
       </div>
       <div class="d-map">
-        <RegionMap region="seoul" highlight={[item.id]} label={`Map of Seoul showing where ${g.en} is`} />
+        <RegionMap en region="seoul" highlight={[item.id]} label={`Map of Seoul showing where ${g.en} is`} />
       </div>
       <div class="d-body">
+        {(LINES_EN as Record<string, string>)[item.id] && <p class="lead">{(LINES_EN as Record<string, string>)[item.id]}</p>}
         <div class="prose">
           <p>{g.en} is one of Seoul's 25 autonomous districts (gu). It lies on the {north ? 'north' : 'south'} side of the Han River, one of the {north ? '14 districts north' : '11 districts south'} of the river.</p>
           <p>It borders {listEn(nbs)}. In the October 1, 2026 boundary data it is made up of {dongs.length} administrative neighborhoods (haengjeong-dong).</p>
@@ -54,8 +56,8 @@ const dateEn = (d: string) => { const [y, m, dd] = d.split('-').map(Number); ret
     )}
     <section class="d-sec">
       <h2>{dongs.length} neighborhoods</h2>
-      <ul class="donglist" lang="ko">{dongs.map((d) => <li>{d}</li>)}</ul>
-      <p class="meta">Neighborhood names are shown in Korean.</p>
+      <ul class="donglist">{enDongs(item.id).map((d) => <li>{d}</li>)}</ul>
+      <p class="meta">Names follow the Revised Romanization of Korean.</p>
     </section>
     <section class="cta">
       <h2>Find it on the blank map</h2>

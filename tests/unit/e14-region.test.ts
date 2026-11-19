@@ -139,7 +139,7 @@ test('위치 한 줄(N27): 충남 15·경북 22곳 — 원고 그대로, 30자 �
   // 다른 시·도와의 맞닿음은 시·도 이름으로 잰다(대구는 지금 원자료에서 대구에 든 군위군 경계까지 — 의성군)
   assert.deepEqual(LINES.gyeongbuk['의성군'].touch, ['대구광역시']);
   assert.deepEqual(LINES.chungnam['금산군'].touch, ['대전광역시', '충청북도', '전북특별자치도']);
-  assert.equal(UI_EN.line(reg, idOf('천안시')), '', '위치 한 줄은 한국어만');
+  { const line = UI_EN.line(reg, idOf('천안시')); assert.ok(line.length > 0 && !/[가-힣]/.test(line), '영어 위치 한 줄: 영어로 있고 한글이 없다'); }
 });
 
 test('울릉군 섬 상자(N8 · E14): 경북 3과·넓은 화면의 insets — 지역·과·화면 범위(fit)에서 빠지고, 홈·지역 쪽·둘러보기·시험(viewSpec·wholeView·lessonView)이 섬 상자로 그린다 · 맞닿은 곳 없음', () => {

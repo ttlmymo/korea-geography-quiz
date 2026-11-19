@@ -91,7 +91,7 @@ test('위치 한 줄(N27): 16곳 모두 원고 그대로, 30자 이하·금지 �
     assert.ok(['touch', 'dir', 'side', 'size', 'coast'].some((k) => k in e), `${it.ko} 근거`);
     assert.equal(UI_KO.line(reg, it.id), e.line);
   }
-  assert.equal(UI_EN.line(reg, b.items[0].id), '', '위치 한 줄은 한국어만');
+  assert.doesNotMatch(UI_EN.line(reg, b.items[0].id), /[가-힣]/, '영어 위치 한 줄에는 한글이 없다(place-lines-en.json 이 비어 있으면 빈 줄)');
 });
 
 test('같은 이름(N12 · E11): 지역이 섞이는 화면(오늘 복습·복습 목록)에서 \'부산 중구\'·\'서울 중구\', 한 지역 화면은 이름만', () => {

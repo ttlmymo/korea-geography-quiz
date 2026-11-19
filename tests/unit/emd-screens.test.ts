@@ -9,7 +9,7 @@ import { createRegistry, unitOptions, type Registry } from '../../src/app/regist
 import { parseRoute, toHash, type Known, type Route } from '../../src/app/router.ts';
 import { gaArgs, lessonCompleteParams } from '../../src/app/core/units.ts';
 import { meetKo } from '../../src/app/text/ko.ts';
-import { L } from '../../src/app/text/ui.ts';
+import { L, UI_EN } from '../../src/app/text/ui.ts';
 import { buildShapes, specOf, type Topology } from '../../src/app/map/shapes.ts';
 import { ISLE_H, ISLE_W, OWN_W, STRIP_MAX, cornerCover, fitK, insetScale, isleView, layoutIsles, pickCorner, scaleChip } from '../../src/app/map/isles.ts';
 import { DATA_VER } from '../../src/consts.ts';
@@ -137,6 +137,12 @@ test('만나기 근거 한 줄(N13): 단원 안 자리 + 맞닿은 단원 밖 �
   assert.equal(meetKo(reg, id('상계10동')), '노원구 서쪽, 도봉구와 맞닿은 곳');
   assert.equal(L.line(reg, id('상계2동')), '노원구 가운데', '화면 글(L.line)도 동은 근거 한 줄');
   assert.equal(meetKo(reg, 'kr:sgg:11110'), '', '시·군·구는 원고 한 줄을 쓴다');
+  // 영어 한 줄(meetEn): 한글이 섞이지 않는다
+  const EN = (ko: string) => UI_EN.line(reg, id(ko));
+  assert.match(EN('상계1동'), /^The northern end of Nowon-gu, bordering Dobong-gu/);
+  assert.equal(EN('상계2동'), 'The center of Nowon-gu');
+  assert.match(EN('상계10동'), /^The west part of Nowon-gu, bordering Dobong-gu$/);
+  for (const ko of ['상계1동', '상계2동', '상계10동']) assert.doesNotMatch(EN(ko), /[가-힣]/, ko);
   // 단원이 섞이는 화면의 이름(N12)
   assert.equal(L.fullName(reg, id('상계1동')), '노원구 상계1동');
   assert.equal(L.fullName(reg, 'kr:sgg:11110'), '종로구');

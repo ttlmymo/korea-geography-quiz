@@ -158,7 +158,7 @@ test('위치 한 줄(N27): 전남광주 27곳 — 원고 그대로, 30자 이하
   // 자치구 이름은 같은 지역 먼저 — 문장에도 지역 이름을 붙이지 않는다(서구 '광주특별시에서 가장 작은 구' — 2026-11-15 법정 약칭, 전에는 '전남광주에서')
   assert.equal(LINES['서구'].line, '광주특별시에서 가장 작은 구, 광산구와 맞닿은 곳');
   assert.equal(LINES['서구'].size, 'smallest');
-  assert.equal(UI_EN.line(reg, idOf('목포시')), '', '위치 한 줄은 한국어만');
+  { const line = UI_EN.line(reg, idOf('목포시')); assert.ok(line.length > 0 && !/[가-힣]/.test(line), '영어 위치 한 줄: 영어로 있고 한글이 없다'); }
 });
 
 test('진도·완도(땅으로 맞닿은 시·군·구가 없는 섬, 계획서 N8): 다리로 이어진 바다 건너 이웃(pipeline/data/sea-links.json) — 판 neighbors.sea, 땅 이웃은 0 · 신안은 무안과 땅으로 맞닿음', () => {

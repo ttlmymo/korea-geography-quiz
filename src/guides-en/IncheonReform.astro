@@ -4,7 +4,7 @@
 // Old dong -> new gu table, areas and the before-reform map come from the pipeline (src/data/incheon-reform.json, src/data/svg/incheon-before.json)
 import RegionMap from '../components/RegionMap.astro';
 import { href } from '../lib/paths';
-import { region, svgOf, countKinds, enNameOf } from '../lib/geo';
+import { region, svgOf, countKinds, enNameOf, enDongs, enShortOf } from '../lib/geo';
 import reform from '../data/incheon-reform.json';
 
 const r = region('incheon');
@@ -19,8 +19,11 @@ const lessons = r.lessons.filter((l) => l.items.some((id) => NEW.map(idOf).inclu
 const nm = (id: string) => enNameOf(id);
 const newEn = (ko: string) => enNameOf(idOf(ko));
 // old districts (before July 2026), keyed by the Korean name used in the data
-const OLD_EN: Record<string, string> = { 중구: 'Jung-gu', 동구: 'Dong-gu', 서구: 'Seo-gu' };
-const oldEn = (ko: string) => OLD_EN[ko] ?? ko;
+const oldEn = (ko: string) => enShortOf(`old:${ko}`);
+// Korean neighborhood name -> English name (same order as the boundary data)
+const DONG_EN = new Map<string, string>();
+svg.items.forEach((it) => { const en = enDongs(it.id); it.dongs.forEach((d, i) => { if (en[i]) DONG_EN.set(d, en[i]); }); });
+const dongEn = (ko: string) => DONG_EN.get(ko) ?? ko;
 const SRC = {
   law: 'https://www.law.go.kr/법령/인천광역시제물포구ㆍ영종구및검단구설치등에관한법률',
   city: 'https://www.incheon.go.kr/IC01070105/3012613',
@@ -35,14 +38,14 @@ const SRC = {
 </div>
 
 <h2>Before and after</h2>
-<p>The Act on the Establishment of Jemulpo-gu, Yeongjong-gu and Geomdan-gu, Incheon Metropolitan City (<span lang="ko">인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률</span>), called "the Act" below, abolishes Jung-gu and Dong-gu, sets up Jemulpo-gu, Yeongjong-gu and Geomdan-gu, and separates the area that becomes Geomdan-gu from Seo-gu. Article 1 says its purpose is to make life more convenient for residents and to promote balanced regional development. On the same day, Seo-gu changed its name to Seohae-gu. So three old districts (Jung-gu, Dong-gu, Seo-gu) changed, and there are now four districts (Jemulpo-gu, Yeongjong-gu, Seohae-gu, Geomdan-gu).</p>
+<p>The Act on the Establishment of Jemulpo-gu, Yeongjong-gu and Geomdan-gu, Incheon Metropolitan City, called "the Act" below, abolishes Jung-gu and Dong-gu, sets up Jemulpo-gu, Yeongjong-gu and Geomdan-gu, and separates the area that becomes Geomdan-gu from Seo-gu. Article 1 says its purpose is to make life more convenient for residents and to promote balanced regional development. On the same day, Seo-gu changed its name to Seohae-gu. So three old districts (Jung-gu, Dong-gu, Seo-gu) changed, and there are now four districts (Jemulpo-gu, Yeongjong-gu, Seohae-gu, Geomdan-gu).</p>
 <figure class="pair">
   <div>
-    <RegionMap region="incheon-before" labels alwaysLabel={['old:동구']} highlight={['old:중구', 'old:동구', 'old:서구']} fit={['old:중구', 'old:동구', 'old:서구']} label="Map of Incheon before the reform, with 2 counties and 8 districts: the old Jung-gu, Dong-gu and Seo-gu, which changed, are shaded yellow" />
+    <RegionMap en region="incheon-before" labels alwaysLabel={['old:동구']} highlight={['old:중구', 'old:동구', 'old:서구']} fit={['old:중구', 'old:동구', 'old:서구']} label="Map of Incheon before the reform, with 2 counties and 8 districts: the old Jung-gu, Dong-gu and Seo-gu, which changed, are shaded yellow" />
     <p class="meta">Before the reform (until June 2026) · 2 counties, 8 districts</p>
   </div>
   <div>
-    <RegionMap region="incheon" labels alwaysLabel={[idOf('제물포구')]} highlight={NEW.map(idOf)} fit={NEW.map(idOf)} label="Map of Incheon after the reform, with 2 counties and 9 districts: the new or renamed Jemulpo-gu, Yeongjong-gu, Seohae-gu and Geomdan-gu are shaded yellow" />
+    <RegionMap en region="incheon" labels alwaysLabel={[idOf('제물포구')]} highlight={NEW.map(idOf)} fit={NEW.map(idOf)} label="Map of Incheon after the reform, with 2 counties and 9 districts: the new or renamed Jemulpo-gu, Yeongjong-gu, Seohae-gu and Geomdan-gu are shaded yellow" />
     <p class="meta">After the reform (from July 2026) · 2 counties, 9 districts</p>
   </div>
 </figure>
@@ -56,15 +59,14 @@ const SRC = {
     <tr><td>{newEn(row.new)}</td><td>{Object.entries(row.from).map(([o, list]) => `${oldEn(o)} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{row.area_km2}</td></tr>
   ))}</tbody>
 </table></div>
-<p class="meta">The areas are measured from the neighborhood boundary data. Incheon gives these areas: 21.8 (Jemulpo-gu), 125.88 (Yeongjong-gu), 71.36 (Seohae-gu) and 47.7 ㎢ (Geomdan-gu). The city's figures seem to count only registered land (its figures for the old Jung-gu, Dong-gu and Seo-gu match their registered land areas), while neighborhood boundaries can also include sea, tidal flats and reclaimed land that is not yet registered. So this table is larger for all four districts, and the gap is especially big for Geomdan-gu. Most of the Geomdan-gu gap comes from Ogyuwanggil-dong (<span lang="ko">오류왕길동</span>).</p>
+<p class="meta">The areas are measured from the neighborhood boundary data. Incheon gives these areas: 21.8 (Jemulpo-gu), 125.88 (Yeongjong-gu), 71.36 (Seohae-gu) and 47.7 ㎢ (Geomdan-gu). The city's figures seem to count only registered land (its figures for the old Jung-gu, Dong-gu and Seo-gu match their registered land areas), while neighborhood boundaries can also include sea, tidal flats and reclaimed land that is not yet registered. So this table is larger for all four districts, and the gap is especially big for Geomdan-gu. Most of the Geomdan-gu gap comes from Oryuwanggil-dong.</p>
 <h3>Find a neighborhood by name</h3>
 <div class="tbl"><table>
   <thead><tr><th scope="col">Current district</th><th scope="col">Neighborhoods that came from the old districts</th></tr></thead>
   <tbody>{reform.reform.map((row) => (
-    <tr><td>{newEn(row.new)}</td><td>{Object.entries(row.from).map(([o, list]) => <p class="from"><b>Old {oldEn(o)}</b> <span lang="ko">{(list as string[]).join(' · ')}</span></p>)}</td></tr>
+    <tr><td>{newEn(row.new)}</td><td>{Object.entries(row.from).map(([o, list]) => <p class="from"><b>Old {oldEn(o)}</b> {(list as string[]).map(dongEn).join(' · ')}</p>)}</td></tr>
   ))}</tbody>
 </table></div>
-<p class="meta">Neighborhood names are shown in Korean.</p>
 
 <h2>When, and under which law</h2>
 <div class="tbl"><table>
@@ -73,7 +75,7 @@ const SRC = {
     <tr><td>Jan. 30, 2024</td><td>The Act is promulgated (Act No. 20161). It takes effect on July 1, 2026</td></tr>
     <tr><td>Sept. 12, 2024</td><td>Incheon starts a research project to design the organization and staffing of the new districts</td></tr>
     <tr><td>Dec. 30, 2025</td><td>The Act is amended (Act No. 21247): it adds special provisions, such as support from the state and Incheon for the cost of setting up the new districts</td></tr>
-    <tr><td>May 2026</td><td>The National Assembly passes the Bill on Changing the Name of Seo-gu, Incheon Metropolitan City (<span lang="ko">인천광역시 서구 명칭 변경에 관한 법률안</span>): Seo-gu becomes Seohae-gu</td></tr>
+    <tr><td>May 2026</td><td>The National Assembly passes the Bill on Changing the Name of Seo-gu, Incheon Metropolitan City: Seo-gu becomes Seohae-gu</td></tr>
     <tr><td>July 1, 2026</td><td>The Act takes effect. Jemulpo-gu, Yeongjong-gu and Geomdan-gu are set up, and Seo-gu becomes Seohae-gu</td></tr>
   </tbody>
 </table></div>
@@ -86,7 +88,7 @@ const SRC = {
 <ul>
   <li><b>Yeongjong-gu</b> is Yeongjong Island, where Incheon International Airport is, and the Yongyu area to its west. It is easy to remember as one island that is one district.</li>
   <li><b>Jemulpo-gu</b> is the area around Incheon Station and Dongincheon Station. It combines the whole old Dong-gu with the part of the old Jung-gu that is not on Yeongjong Island.</li>
-  <li><b>Geomdan-gu</b> is the northern end of the old Seo-gu, next to Gimpo. <b>Seohae-gu</b> is the area to its south, around Cheongna, Gajeong and Seoknam (<span lang="ko">석남</span>).</li>
+  <li><b>Geomdan-gu</b> is the northern end of the old Seo-gu, next to Gimpo. <b>Seohae-gu</b> is the area to its south, around Cheongna, Gajeong and Seongnam.</li>
   <li>On Fill the Map, you meet the new districts in {lessons.map((l) => `lesson ${l.no} (${l.items.filter((id) => NEW.map(idOf).includes(id)).map(nm).join(', ')})`).join(', ')}.</li>
 </ul>
 <div class="cta"><b>Try it on the map</b><a class="btn" href={href(`/en/#/kr/incheon/sgg/p${lessons[0].no}`)}>Start Incheon lesson {lessons[0].no}</a></div>

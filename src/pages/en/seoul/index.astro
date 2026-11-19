@@ -26,7 +26,7 @@ const rows = [...r.items].sort((a, b) => Number(SEOUL_NORTH.has(b.id)) - Number(
         <div class="d-acts"><a class="btn" href={href('/en/#/kr/seoul/sgg/p1')}>Start with Seoul lesson 1 <span aria-hidden="true">→</span></a></div>
       </div>
       <figure class="d-map">
-        <RegionMap region="seoul" tone={tone} label="Map of Seoul's 25 districts: the 14 north of the Han River are shaded" />
+        <RegionMap en region="seoul" tone={tone} label="Map of Seoul's 25 districts: the 14 north of the Han River are shaded" />
         <figcaption class="d-key"><span><i class="sw" style={`background:${TONE_FILL.a}`}></i>Shaded: north of the Han River (14).</span><span><i class="sw" style={`background:${TONE_FILL.b}`}></i>Light: south of it (11).</span></figcaption>
       </figure>
     </div>

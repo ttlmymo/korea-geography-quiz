@@ -13,11 +13,11 @@ const south = r.items.filter((it) => !SEOUL_NORTH.has(it.id)).map((it) => enName
 const tone = Object.fromEntries(r.items.map((it) => [it.id, SEOUL_NORTH.has(it.id) ? 'a' : 'b'])) as Record<string, Tone>;
 // Regional living areas of the Seoul Living Area Plan (number of local living areas per zone: Seoul Urban Planning Portal)
 const ZONES: { name: string; areas: number; gu: string[]; tone: Tone }[] = [
-  { name: 'Dosimgwon', areas: 11, gu: ['종로구', '중구', '용산구'], tone: 'a' },
-  { name: 'Dongbukgwon', areas: 36, gu: ['성동구', '광진구', '동대문구', '중랑구', '성북구', '강북구', '도봉구', '노원구'], tone: 'c' },
-  { name: 'Seobukgwon', areas: 14, gu: ['은평구', '서대문구', '마포구'], tone: 'd' },
-  { name: 'Seonamgwon', areas: 33, gu: ['강서구', '양천구', '구로구', '금천구', '영등포구', '동작구', '관악구'], tone: 'e' },
-  { name: 'Dongnamgwon', areas: 22, gu: ['서초구', '강남구', '송파구', '강동구'], tone: 'b' },
+  { name: 'Dosimgwon (central area)', areas: 11, gu: ['종로구', '중구', '용산구'], tone: 'a' },
+  { name: 'Dongbukgwon (northeast area)', areas: 36, gu: ['성동구', '광진구', '동대문구', '중랑구', '성북구', '강북구', '도봉구', '노원구'], tone: 'c' },
+  { name: 'Seobukgwon (northwest area)', areas: 14, gu: ['은평구', '서대문구', '마포구'], tone: 'd' },
+  { name: 'Seonamgwon (southwest area)', areas: 33, gu: ['강서구', '양천구', '구로구', '금천구', '영등포구', '동작구', '관악구'], tone: 'e' },
+  { name: 'Dongnamgwon (southeast area)', areas: 22, gu: ['서초구', '강남구', '송파구', '강동구'], tone: 'b' },
 ];
 const zoneTone = Object.fromEntries(ZONES.flatMap((z) => z.gu.map((g) => [id(g), z.tone]))) as Record<string, Tone>;
 const nm = (i: string) => enNameOf(i);
@@ -33,7 +33,7 @@ const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('�
 
 <h2>{north.length} districts north of the Han River, {south.length} south</h2>
 <p>When you first learn Seoul, start with the Han River. It runs east to west through the city. Of the 25 districts, {north.length} are north of the river and {south.length} are south of it. Yeouido, the island in the middle of the river, belongs to Yeongdeungpo-gu on the south side. In many places a northern district and a southern district face each other across the river, like Mapo-gu and Yeongdeungpo-gu. If you learn these pairs across the river together, it is easier to place each district.</p>
-<RegionMap region="seoul" tone={tone} labels label={`Map of Seoul with the ${north.length} districts north of the Han River in light sand and the ${south.length} districts south of it in white`} />
+<RegionMap en region="seoul" tone={tone} labels label={`Map of Seoul with the ${north.length} districts north of the Han River in light sand and the ${south.length} districts south of it in white`} />
 <div class="tbl"><table>
   <thead><tr><th scope="col">Han River</th><th scope="col">Districts</th></tr></thead>
   <tbody>
@@ -43,8 +43,8 @@ const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('�
 </table></div>
 
 <h2>The five regional living areas set by Seoul</h2>
-<p>In the Seoul Living Area Plan (<span lang="ko">서울생활권계획</span>), the city divides Seoul into five regional living areas: Dosimgwon, Dongbukgwon, Seobukgwon, Seonamgwon and Dongnamgwon. These are split again into 116 local living areas. The number of local living areas in each zone is 11 in Dosimgwon, 36 in Dongbukgwon, 14 in Seobukgwon, 33 in Seonamgwon and 22 in Dongnamgwon. Districts that are close to each other are in the same zone, so it also helps to learn them as five blocks.</p>
-<RegionMap region="seoul" tone={zoneTone} labels label="Map of Seoul's five regional living areas: Dosimgwon, Dongbukgwon, Seobukgwon, Seonamgwon and Dongnamgwon in different colors" />
+<p>In the Seoul Living Area Plan, the city divides Seoul into five regional living areas: Dosimgwon (central area), Dongbukgwon (northeast area), Seobukgwon (northwest area), Seonamgwon (southwest area) and Dongnamgwon (southeast area). These are split again into 116 local living areas. The number of local living areas in each zone is 11 in Dosimgwon, 36 in Dongbukgwon, 14 in Seobukgwon, 33 in Seonamgwon and 22 in Dongnamgwon. Districts that are close to each other are in the same zone, so it also helps to learn them as five blocks.</p>
+<RegionMap en region="seoul" tone={zoneTone} labels label="Map of Seoul's five regional living areas: Dosimgwon, Dongbukgwon, Seobukgwon, Seonamgwon and Dongnamgwon in different colors" />
 <div class="tbl"><table>
   <thead><tr><th scope="col">Zone</th><th scope="col">Districts</th><th scope="col">Local living areas</th></tr></thead>
   <tbody>{ZONES.map((z) => <tr><td><i class="sw" style={`background:${TONE_FILL[z.tone]}`} aria-hidden="true"></i>{z.name}</td><td>{z.gu.map((g) => enNameOf(id(g))).join(' · ')}</td><td class="num">{z.areas}</td></tr>)}</tbody>

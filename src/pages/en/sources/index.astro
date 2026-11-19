@@ -22,7 +22,7 @@ const dm = DONGMAP.source;
 
       <h2>Administrative neighborhood boundaries</h2>
       <ul>
-        <li>Original data: Statistics Korea SGIS administrative boundaries (<span lang="ko">공공누리 제1유형</span>, Korea Open Government License Type 1)</li>
+        <li>Original data: Statistics Korea SGIS administrative boundaries (Korea Open Government License (KOGL) Type 1)</li>
         <li>Cleaned-up version: <a href={`https://github.com/${src.repo}`}>{src.repo}</a> (CC BY 4.0). These are the administrative neighborhoods (haengjeong-dong) as of October 1, 2026.</li>
         <li>Fill the Map does not use these boundaries as they are. It changes them as described below in "How the maps were made".</li>
       </ul>
@@ -34,8 +34,8 @@ const dm = DONGMAP.source;
 
       <h2>Seoul's legal and administrative neighborhoods</h2>
       <ul>
-        <li>The list of legal neighborhoods (beopjeong-dong) from the <a href="https://www.data.go.kr/data/15063424/fileData.do">National Geospatial Information Center of the Ministry of Land, Infrastructure and Transport (<span lang="ko">국토교통부 국가공간정보센터</span>)</a> (Public Data Portal, <span lang="ko">{bjd.license}</span>). Used to compare legal and administrative neighborhoods on the Seoul district pages. The maps are drawn with administrative neighborhoods.</li>
-        <li><span lang="ko">{dm.title}</span> on the website of <span lang="ko">{dm.provider}</span>: <a href={dm.url}>link</a>. A table of which legal neighborhoods each Seoul administrative neighborhood covers. Used for the "Administrative and legal neighborhoods" table on the Seoul district pages.</li>
+        <li>The list of legal neighborhoods (beopjeong-dong) from the <a href="https://www.data.go.kr/data/15063424/fileData.do">National Geospatial Information Center of the Ministry of Land, Infrastructure and Transport</a> (Public Data Portal, no restrictions on use). Used to compare legal and administrative neighborhoods on the Seoul district pages. The maps are drawn with administrative neighborhoods.</li>
+        <li>"List of neighborhoods by district (Hangul and Hanja)" on the website of the Seoul Metropolitan Government: <a href={dm.url}>link</a>. A table of which legal neighborhoods each Seoul administrative neighborhood covers. Used for the "Administrative and legal neighborhoods" table on the Seoul district pages.</li>
       </ul>
 
       <h2>How the maps were made</h2>
@@ -48,7 +48,7 @@ const dm = DONGMAP.source;
 
       <h2>Sources used to check facts</h2>
       <ul>
-        <li>Incheon administrative reorganization of July 2026: <a href="https://www.incheon.go.kr/IC01070105/3012613">Incheon Metropolitan City press release</a> (<span lang="ko">「인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률」</span>, the act on setting up Jemulpo-gu, Yeongjong-gu and Geomdan-gu in Incheon Metropolitan City), <a href="https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833">Ministry of the Interior and Safety press release <span lang="ko">'인천광역시 서구, 주민 뜻 모아 서해구로 새출발'</span> (May 7, 2026)</a> (Incheon's Seo-gu makes a new start as Seohae-gu, gathering the residents' will)</li>
+        <li>Incheon administrative reorganization of July 2026: <a href="https://www.incheon.go.kr/IC01070105/3012613">Incheon Metropolitan City press release</a> (Act on the Establishment of Jemulpo-gu, Yeongjong-gu and Geomdan-gu in Incheon Metropolitan City), <a href="https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833">Ministry of the Interior and Safety press release "Incheon's Seo-gu makes a new start as Seohae-gu, gathering the residents' will" (May 7, 2026)</a></li>
       </ul>
 
       <p>If you find a mistake, please tell us through <a href={href('/en/contact/')}>Contact</a>.</p>
