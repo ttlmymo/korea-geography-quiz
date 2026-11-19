@@ -10,7 +10,7 @@ import { SEOUL_GU } from '../data/seoul';
 import { INTROS, introOf } from '../data/seoul-intro';
 import { visibleGuides } from '../guides/registry';
 import { HUBS } from './regions';
-import { region, UNITS } from './geo';
+import { region, UNITS, ilbanGuOf } from './geo';
 import { regionIntroOf } from '../data/region-intro';
 
 export interface IndexPage { path: string; updated: string }
@@ -89,7 +89,9 @@ const PLACES: Record<string, () => IndexPage[]> = {
 function regionPlaces(): IndexPage[] {
   return UNITS.regions.filter((r) => r.key !== 'seoul').flatMap((r) => r.items.flatMap((it) => {
     const x = regionIntroOf(it.id);
-    return x?.reviewed ? [at(`/${r.key}/${it.slug}/`, later(DEFAULT_UPDATED, x.reviewed))] : [];
+    // 시 쪽은 그 안에 싣는 일반구 소개 글이 확인된 날에도 내용이 바뀐다
+    const day = ilbanGuOf(it.id).reduce((d, g) => later(d, regionIntroOf(g.id)?.reviewed), x?.reviewed ?? '');
+    return x?.reviewed ? [at(`/${r.key}/${it.slug}/`, later(DEFAULT_UPDATED, day))] : [];
   }));
 }
 

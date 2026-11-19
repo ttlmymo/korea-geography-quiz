@@ -25,6 +25,9 @@ export const region = (key: string): Region => UNITS.regions.find((r) => r.key =
 export const emdUnitFile = (code: string): EmdUnitFile => read('public/data/geo', DATA_VER, 'emd', `${code}.json`);
 const names = new Map(SEARCH.filter((s) => s.kind !== 'emd').map((s) => [s.id, s.ko]));
 const regionOfId = new Map(SEARCH.filter((s) => s.kind !== 'emd').map((s) => [s.id, s.region]));
+/** 시 id → 그 시의 일반구들(검색 자료의 si 가 시 id 인 곳). 일반구를 시로 합친 층의 시 쪽이 일반구 소개를 절로 싣는다 */
+export const ilbanGuOf = (cityId: string): { id: string; ko: string }[] =>
+  (SEARCH as (Named & { si?: string })[]).filter((s) => s.kind !== 'emd' && s.si === cityId && s.id !== cityId).map((s) => ({ id: s.id, ko: s.ko }));
 /** 시군구·시 id → 이름('고양시 덕양구'처럼 일반구는 시 이름과 함께) */
 export const nameOf = (id: string) => names.get(id) ?? id;
 export const regionKeyOf = (id: string) => regionOfId.get(id) ?? '';

@@ -5,7 +5,7 @@
 import Base from '../../../layouts/Base.astro';
 import RegionMap from '../../../components/RegionMap.astro';
 import { href } from '../../../lib/paths';
-import { UNITS, region, svgOf, neighborsOf, kindsText } from '../../../lib/geo';
+import { UNITS, region, svgOf, neighborsOf, kindsText, ilbanGuOf } from '../../../lib/geo';
 import { enOfSlug, HUBS } from '../../../lib/regions';
 import { partOf, sidoOf } from '../../../app/sidos';
 import { regionIntroOf } from '../../../data/region-intro';
@@ -37,6 +37,11 @@ const label = pt ? `${pt.ko} ${item.ko}` : item.ko.startsWith(r.ko) || row?.part
 const hub = HUBS.some((h) => h.key === key);
 const emdOnly = r.layer === 'emd';
 const gu = svgItem.gu;
+// 일반구 소개: 일반구는 시 쪽 안의 절로 싣는다(계획서 — 일반구마다 따로 쪽을 만들면 읍·면·동이 5~7개뿐인 얇은 쪽이 생긴다)
+const gus = ilbanGuOf(id).flatMap((g) => {
+  const x = regionIntroOf(g.id);
+  return x ? [{ short: g.ko.replace(`${item.ko} `, ''), intro: x }] : [];
+});
 const startHref = emdOnly ? `/#/kr/${key}/emd` : `/#/kr/${key}/sgg/@${item.slug}`;
 const regionName = pt ? pt.ko : r.ko;
 // '행정동 9개'(동만 있는 곳) → '9개', '4읍 3면 19동' 은 그대로
@@ -69,6 +74,18 @@ const cnt = kindsText(dongs).replace('행정동 ', '');
       {intro.paras.map((t) => <p>{t}</p>)}
       <p class="meta">출처: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)} ({intro.reviewed ? <>{intro.reviewed.replace(/-0?/g, '. ')}. 원문 확인</> : <>{intro.read.replace(/-0?/g, '. ')}. 읽음</>})</p>
     </section>
+    {gus.length > 0 && (
+      <section class="d-sec intro gus">
+        <h2>{item.ko}의 일반구 {gus.length}곳</h2>
+        {gus.map((g) => (
+          <>
+            <h3>{g.short}</h3>
+            {g.intro.paras.map((t) => <p>{t}</p>)}
+            <p class="meta">출처: {g.intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)} ({g.intro.reviewed ? <>{g.intro.reviewed.replace(/-0?/g, '. ')}. 원문 확인</> : <>{g.intro.read.replace(/-0?/g, '. ')}. 읽음</>})</p>
+          </>
+        ))}
+      </section>
+    )}
     <section class="d-sec">
       <h2>읍·면·동 {cnt}</h2>
       <p>2026년 10월 1일 경계로 센 {item.ko}의 읍·면·동이에요. 이름을 하나씩 읽어 두면 지도에서 찾기가 쉬워져요.</p>
