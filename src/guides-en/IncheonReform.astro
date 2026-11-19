@@ -1,0 +1,108 @@
+---
+// English version of G3 (src/guides/IncheonReform.astro, slug incheon-reform-2026). Data and counting code are the same as the Korean file.
+// Laws and dates: National Law Information Center text, Incheon and Ministry of the Interior and Safety press releases.
+// Old dong -> new gu table, areas and the before-reform map come from the pipeline (src/data/incheon-reform.json, src/data/svg/incheon-before.json)
+import RegionMap from '../components/RegionMap.astro';
+import { href } from '../lib/paths';
+import { region, svgOf, countKinds, enNameOf } from '../lib/geo';
+import reform from '../data/incheon-reform.json';
+
+const r = region('incheon');
+const svg = svgOf('incheon');
+const idOf = (ko: string) => r.items.find((it) => it.ko === ko)!.id;
+const NEW = reform.reform.map((x) => x.new);
+const all = svg.items.flatMap((it) => it.dongs);
+const k = countKinds(all);
+const total = (row: (typeof reform.reform)[number]) => Object.values(row.from).flat().length;
+const biggest = [...reform.reform].sort((a, b) => b.area_km2 - a.area_km2)[0];
+const lessons = r.lessons.filter((l) => l.items.some((id) => NEW.map(idOf).includes(id)));
+const nm = (id: string) => enNameOf(id);
+const newEn = (ko: string) => enNameOf(idOf(ko));
+// old districts (before July 2026), keyed by the Korean name used in the data
+const OLD_EN: Record<string, string> = { 중구: 'Jung-gu', 동구: 'Dong-gu', 서구: 'Seo-gu' };
+const oldEn = (ko: string) => OLD_EN[ko] ?? ko;
+const SRC = {
+  law: 'https://www.law.go.kr/법령/인천광역시제물포구ㆍ영종구및검단구설치등에관한법률',
+  city: 'https://www.incheon.go.kr/IC01070105/3012613',
+  rename: 'https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833',
+};
+---
+<div class="summary">
+  <b>Key points</b>
+  <span>1. On July 1, 2026, Incheon's Jung-gu and Dong-gu became Jemulpo-gu and Yeongjong-gu, and Seo-gu became Seohae-gu and Geomdan-gu.</span>
+  <span>2. Incheon went from 2 counties and 8 districts to 2 counties and 9 districts. The Yeongjong Island area is Yeongjong-gu. The old Dong-gu and the rest of the old Jung-gu form Jemulpo-gu.</span>
+  <span>3. The tables below show which new district each old neighborhood (dong) moved to. You can look up a neighborhood by its name.</span>
+</div>
+
+<h2>Before and after</h2>
+<p>The Act on the Establishment of Jemulpo-gu, Yeongjong-gu and Geomdan-gu, Incheon Metropolitan City (<span lang="ko">인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률</span>), called "the Act" below, abolishes Jung-gu and Dong-gu, sets up Jemulpo-gu, Yeongjong-gu and Geomdan-gu, and separates the area that becomes Geomdan-gu from Seo-gu. Article 1 says its purpose is to make life more convenient for residents and to promote balanced regional development. On the same day, Seo-gu changed its name to Seohae-gu. So three old districts (Jung-gu, Dong-gu, Seo-gu) changed, and there are now four districts (Jemulpo-gu, Yeongjong-gu, Seohae-gu, Geomdan-gu).</p>
+<figure class="pair">
+  <div>
+    <RegionMap region="incheon-before" labels alwaysLabel={['old:동구']} highlight={['old:중구', 'old:동구', 'old:서구']} fit={['old:중구', 'old:동구', 'old:서구']} label="Map of Incheon before the reform, with 2 counties and 8 districts: the old Jung-gu, Dong-gu and Seo-gu, which changed, are shaded yellow" />
+    <p class="meta">Before the reform (until June 2026) · 2 counties, 8 districts</p>
+  </div>
+  <div>
+    <RegionMap region="incheon" labels alwaysLabel={[idOf('제물포구')]} highlight={NEW.map(idOf)} fit={NEW.map(idOf)} label="Map of Incheon after the reform, with 2 counties and 9 districts: the new or renamed Jemulpo-gu, Yeongjong-gu, Seohae-gu and Geomdan-gu are shaded yellow" />
+    <p class="meta">After the reform (from July 2026) · 2 counties, 9 districts</p>
+  </div>
+</figure>
+<p class="meta">Both maps are drawn with the October 1, 2026 administrative neighborhood boundaries. The map before the reform groups today's neighborhoods by their old district, so the coastline is the same on both maps.</p>
+
+<h2>From old districts to new districts</h2>
+<p>When we match the neighborhood boundaries before the reform (April 1, 2026 version) and after it (October 1, 2026 version) by neighborhood name, every old neighborhood moved into exactly one new district. No neighborhood was split in two or lies across two districts. By area, {newEn(biggest.new)} is the largest.</p>
+<div class="tbl"><table class="nums">
+  <thead><tr><th scope="col">Current district</th><th scope="col">Old district</th><th scope="col" class="num">Neighborhoods</th><th scope="col" class="num">Area (approx., ㎢)</th></tr></thead>
+  <tbody>{reform.reform.map((row) => (
+    <tr><td>{newEn(row.new)}</td><td>{Object.entries(row.from).map(([o, list]) => `${oldEn(o)} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{row.area_km2}</td></tr>
+  ))}</tbody>
+</table></div>
+<p class="meta">The areas are measured from the neighborhood boundary data. Incheon gives these areas: 21.8 (Jemulpo-gu), 125.88 (Yeongjong-gu), 71.36 (Seohae-gu) and 47.7 ㎢ (Geomdan-gu). The city's figures seem to count only registered land (its figures for the old Jung-gu, Dong-gu and Seo-gu match their registered land areas), while neighborhood boundaries can also include sea, tidal flats and reclaimed land that is not yet registered. So this table is larger for all four districts, and the gap is especially big for Geomdan-gu. Most of the Geomdan-gu gap comes from Ogyuwanggil-dong (<span lang="ko">오류왕길동</span>).</p>
+<h3>Find a neighborhood by name</h3>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">Current district</th><th scope="col">Neighborhoods that came from the old districts</th></tr></thead>
+  <tbody>{reform.reform.map((row) => (
+    <tr><td>{newEn(row.new)}</td><td>{Object.entries(row.from).map(([o, list]) => <p class="from"><b>Old {oldEn(o)}</b> <span lang="ko">{(list as string[]).join(' · ')}</span></p>)}</td></tr>
+  ))}</tbody>
+</table></div>
+<p class="meta">Neighborhood names are shown in Korean.</p>
+
+<h2>When, and under which law</h2>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">Date</th><th scope="col">Event</th></tr></thead>
+  <tbody>
+    <tr><td>Jan. 30, 2024</td><td>The Act is promulgated (Act No. 20161). It takes effect on July 1, 2026</td></tr>
+    <tr><td>Sept. 12, 2024</td><td>Incheon starts a research project to design the organization and staffing of the new districts</td></tr>
+    <tr><td>Dec. 30, 2025</td><td>The Act is amended (Act No. 21247): it adds special provisions, such as support from the state and Incheon for the cost of setting up the new districts</td></tr>
+    <tr><td>May 2026</td><td>The National Assembly passes the Bill on Changing the Name of Seo-gu, Incheon Metropolitan City (<span lang="ko">인천광역시 서구 명칭 변경에 관한 법률안</span>): Seo-gu becomes Seohae-gu</td></tr>
+    <tr><td>July 1, 2026</td><td>The Act takes effect. Jemulpo-gu, Yeongjong-gu and Geomdan-gu are set up, and Seo-gu becomes Seohae-gu</td></tr>
+  </tbody>
+</table></div>
+<p>The addenda to the Act say that the heads and council members of the new districts are elected on the local election day before July 1, and that Jung-gu and Dong-gu, which are being abolished, hold no election for district head. Incheon described the reform as growing the city's administrative system from 2 counties and 8 districts to 2 counties and 9 districts for the first time since 1995, after 31 years.</p>
+
+<h2>Incheon today</h2>
+<p>Incheon Metropolitan City is made up of Ganghwa-gun, Ongjin-gun and 9 districts. It has {k.읍} eup (towns), {k.면} myeon (townships) and {k.동} dong (neighborhoods), {all.length} in total (October 1, 2026 version). The four changed districts consist only of dong. The eup and myeon are in Ganghwa-gun and Ongjin-gun.</p>
+
+<h2>Tips for learning them on the map</h2>
+<ul>
+  <li><b>Yeongjong-gu</b> is Yeongjong Island, where Incheon International Airport is, and the Yongyu area to its west. It is easy to remember as one island that is one district.</li>
+  <li><b>Jemulpo-gu</b> is the area around Incheon Station and Dongincheon Station. It combines the whole old Dong-gu with the part of the old Jung-gu that is not on Yeongjong Island.</li>
+  <li><b>Geomdan-gu</b> is the northern end of the old Seo-gu, next to Gimpo. <b>Seohae-gu</b> is the area to its south, around Cheongna, Gajeong and Seoknam (<span lang="ko">석남</span>).</li>
+  <li>On Fill the Map, you meet the new districts in {lessons.map((l) => `lesson ${l.no} (${l.items.filter((id) => NEW.map(idOf).includes(id)).map(nm).join(', ')})`).join(', ')}.</li>
+</ul>
+<div class="cta"><b>Try it on the map</b><a class="btn" href={href(`/en/#/kr/incheon/sgg/p${lessons[0].no}`)}>Start Incheon lesson {lessons[0].no}</a></div>
+
+<h2>Sources</h2>
+<ul class="src">
+  <li>National Law Information Center, <a href={SRC.law}>Act on the Establishment of Jemulpo-gu, Yeongjong-gu and Geomdan-gu, Incheon Metropolitan City</a> (enacted as Act No. 20161 on Jan. 30, 2024; amended as Act No. 21247 on Dec. 30, 2025; effective July 1, 2026), Articles 1 and 2 and the addenda</li>
+  <li>Incheon Metropolitan City, <a href={SRC.city}>Incheon designs the organization and staffing of the four districts launching in 2026</a> (press release, Sept. 12, 2024)</li>
+  <li>Ministry of the Interior and Safety, <a href={SRC.rename}>Incheon Seo-gu makes a fresh start as Seohae-gu, with residents' consent</a> (May 7, 2026)</li>
+  <li>Incheon Metropolitan City, <a href="https://www.incheon.go.kr/IC01070101">Incheon website page on the administrative reform</a> (areas of the new districts, updated June 17, 2026)</li>
+  <li>Neighborhood boundaries: as of April 1, 2026 (before the reform) and October 1, 2026 (after the reform). The correspondence table, the areas and the map before the reform were made from these boundaries.</li>
+</ul>
+
+
+<style>
+  /* before/after map pair: side by side inside the 760px article box, stacked when narrow. Spacing of neighborhood lists comes from the shared .tbl */
+  .pair { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-5); }
+  .pair > div { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+</style>

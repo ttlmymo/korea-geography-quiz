@@ -1,0 +1,35 @@
+---
+// English Contact page (/en/contact/): pair of the Korean /contact/. No ads. The address is shown as selectable text as well as a mail link
+import Base from '../../../layouts/Base.astro';
+import { href } from '../../../lib/paths';
+import { CONTACT_EMAIL } from '../../../consts';
+---
+<Base lang="en" title="Contact – Fill the Map" description="How to reach Fill the Map to report a wrong place name, boundary or count, suggest a feature, or send a privacy request." alternate={{ ko: '/contact/', en: '/en/contact/' }}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › Contact</nav>
+    <article class="prose">
+      <h1>Contact</h1>
+      <p>Please send your comments or requests about Fill the Map by email.</p>
+      <p class="mailbox"><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+
+      <h2>What we accept</h2>
+      <ul>
+        <li><b>A wrong place name, boundary or count</b>: Please write the page address or the lesson number, what is wrong and how, and the source that shows it (such as the website of the district or city office). Then we can check it quickly.</li>
+        <li><b>Things that are hard to use, or feature ideas</b>: Please also tell us your device (phone, tablet or computer) and your browser.</li>
+        <li><b>Privacy requests</b>: For details, see the <a href={href('/privacy-en.html')}>Privacy Policy</a>.</li>
+      </ul>
+
+      <h2>Good to know</h2>
+      <ul>
+        <li>Your study record is only in your own browser, so the operator cannot look it up or move it for you.</li>
+        <li>The site is run by one person, so replies can be slow.</li>
+      </ul>
+    </article>
+  </div>
+</Base>
+
+<style>
+  /* Mail address: the main item of this page, 24px 600, set off by lines above and below (no color). Tap height 44px or more */
+  .mailbox { padding: var(--sp-3) 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); font-size: var(--fs-24); line-height: 1.4; font-weight: 600; user-select: all; }
+  .mailbox a { display: inline-flex; align-items: center; min-height: var(--tap-min); text-underline-offset: 6px; text-decoration-thickness: 1.5px; }
+</style>

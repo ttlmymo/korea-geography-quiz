@@ -66,9 +66,12 @@ export function checkNewIndex(indexable, baseline, { max = newIndexMax(), langOf
   const errors = [];
   if (added.length > max) errors.push(`새 색인 쪽 ${added.length}개 — 한 배포에 ${max}개까지(정적 쪽은 사람이 검수한 고유 본문이 있을 때만, 묶음으로 나눠 낸다): ${added.join(' ')}`);
   for (const p of removed) errors.push(`운영 기준 목록의 색인 쪽이 빠짐 ${p} (주소가 사라지거나 noindex 가 됨)`);
+  // 2026-11-19 사용자 결정 '한국어가 있는 쪽은 영어도 전부'로 새 영어 쪽을 허용한다(N26 폐지). 말은 주소와 맞아야 한다:
+  // /en/ 주소의 새 쪽은 쪽 말이 en, 그 밖의 새 쪽은 ko
   for (const p of added) {
     const lang = langOf?.get(p);
-    if (/^\/en(\/|$)/.test(p) || (lang !== undefined && lang !== 'ko')) errors.push(`${p}: 새 색인 쪽이 한국어가 아님(쪽 말 ${lang || '?'}) — 새 정적 쪽은 한국어로만 낸다(N26 · 3절 7, 지역 표 hub.en 을 넣지 않는다)`);
+    const isEn = /^\/en(\/|$)/.test(p);
+    if (lang !== undefined && lang !== (isEn ? 'en' : 'ko')) errors.push(`${p}: 새 색인 쪽의 말(lang ${lang || '?'})이 주소와 맞지 않음 — /en/ 주소는 en, 그 밖은 ko`);
   }
   return { added, removed, errors };
 }

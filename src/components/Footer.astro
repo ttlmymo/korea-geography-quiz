@@ -11,7 +11,7 @@ const { lang = 'ko' } = Astro.props;
 const en = lang === 'en';
 // 다른 언어 링크에는 lang·hreflang 을 단다(그 말의 읽기 음성으로 읽히게). 글은 이 쪽 말이고 가는 곳만 다른 말이면 hreflang 만(to)
 const links = en
-  ? [{ t: 'Privacy policy', h: href('/privacy-en.html') }, { t: 'Data sources (Korean)', h: href('/sources/'), to: 'ko' }, { t: '한국어', h: href('/'), lang: 'ko' }]
+  ? [{ t: 'About', h: href('/en/about/') }, { t: 'Contact', h: href('/en/contact/') }, { t: 'Privacy policy', h: href('/privacy-en.html') }, { t: 'Data sources', h: href('/en/sources/') }, { t: '한국어', h: href('/'), lang: 'ko' }]
   : [
       { t: '소개', h: href('/about/') },
       { t: '문의', h: href('/contact/') },

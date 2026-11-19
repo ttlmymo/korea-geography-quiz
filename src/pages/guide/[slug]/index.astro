@@ -20,7 +20,7 @@ const { g } = Astro.props as { g: Guide };
 const Body = BODY[g.slug] as typeof SeoulGu;
 const [y, m, d] = g.updated.split('-').map(Number);
 ---
-<Base title={`${g.title} – 채움지도`} description={g.description} ads={!!g.reviewed} noindex={!g.reviewed}>
+<Base alternate={{ ko: `/guide/${g.slug}/`, en: `/en/guide/${g.slug}/` }} title={`${g.title} – 채움지도`} description={g.description} ads={!!g.reviewed} noindex={!g.reviewed}>
   <div class="wrap page">
     <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › <a href={href('/guide/')}>학습 가이드</a></nav>
     {!g.reviewed && (

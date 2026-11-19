@@ -124,23 +124,19 @@ test('나쁜 예 ③: 상한을 넘는 새 쪽(6개) → 실패, 5개는 통과,
   assert.match(gone.errors.join('\n'), /운영 기준 목록의 색인 쪽이 빠짐 \//);
 });
 
-test('나쁜 예 ④: 새 영어 색인 쪽 → 실패(N26 · 3절 7 한국어로만), 이미 있는 영어 쪽은 그대로 통과', () => {
+test('나쁜 예 ④: 새 영어 색인 쪽은 허용(2026-11-19 N26 폐지), 말과 주소가 어긋나면 실패', () => {
   const old = factsMap({ '/': page({ body: UNIQUE[0] }), '/en/': page({ lang: 'en', body: ['An English home page that has its own sentence.'] }) });
   const base = baselineOf(old);
   const withNew = (extra: Record<string, string>) => new Map([...old, ...factsMap(extra)]);
   const langOf = (fm: Map<string, ReturnType<typeof factsOf>>) => new Map([...fm].map(([p, f]) => [p, f.lang]));
-  // 지역 표에 hub.en 을 넣어 /en/busan/ 이 생긴 경우(고유 본문이고 상한 안이어도 실패)
+  // 한·영 짝이 함께 새로 생기면 통과
   const en = withNew({ '/busan/': page({ body: UNIQUE[1] }), '/en/busan/': page({ lang: 'en', body: ['Busan is a port city on the south-east coast of Korea.'] }) });
-  const r = checkNewIndex([...en.keys()], base, { langOf: langOf(en) });
-  assert.equal(r.errors.length, 1, r.errors.join('\n'));
-  assert.match(r.errors[0], /^\/en\/busan\/: 새 색인 쪽이 한국어가 아님\(쪽 말 en\).*N26/);
-  // 말을 주지 않아도 /en/ 주소는 잡는다. 주소가 /en/ 이 아니어도 쪽 말이 en 이면 잡는다
-  assert.match(checkNewIndex([...en.keys()], base).errors.join('\n'), /\/en\/busan\/: 새 색인 쪽이 한국어가 아님/);
+  assert.deepEqual(checkNewIndex([...en.keys()], base, { langOf: langOf(en) }).errors, []);
+  // 주소는 /en/ 이 아닌데 쪽 말이 en 이면, /en/ 주소인데 쪽 말이 ko 이면 실패
   const odd = withNew({ '/busan-en/': page({ lang: 'en', body: ['Busan is a port city on the south-east coast of Korea.'] }) });
-  assert.match(checkNewIndex([...odd.keys()], base, { langOf: langOf(odd) }).errors.join('\n'), /\/busan-en\/: 새 색인 쪽이 한국어가 아님/);
-  // 한국어 새 쪽과 기준 목록에 있는 영어 쪽(/en/)은 통과
-  const ko = withNew({ '/busan/': page({ body: UNIQUE[1] }) });
-  assert.deepEqual(checkNewIndex([...ko.keys()], base, { langOf: langOf(ko) }).errors, []);
+  assert.match(checkNewIndex([...odd.keys()], base, { langOf: langOf(odd) }).errors.join(' '), /\/busan-en\/: 새 색인 쪽의 말/);
+  const odd2 = withNew({ '/en/busan/': page({ lang: 'ko', body: UNIQUE[1] }) });
+  assert.match(checkNewIndex([...odd2.keys()], base, { langOf: langOf(odd2) }).errors.join(' '), /\/en\/busan\/: 새 색인 쪽의 말/);
 });
 
 test('나쁜 예 ⑤: 새 쪽의 lastmod 가 기본값(DEFAULT_UPDATED) 그대로 → 실패, 만든 날을 적으면 통과', () => {

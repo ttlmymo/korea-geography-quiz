@@ -1,0 +1,81 @@
+---
+// G6 English edition of src/guides/Recall.astro (slug: recall-practice).
+// Study facts are the same as the Korean article. Fill the Map's rules (review gaps, retry, daily cap)
+// come straight from the app's constants so this article and the app never disagree.
+import { href } from '../lib/paths';
+import { INTERVAL, MAX_BOX, GRAD_STREAK } from '../app/core/mastery';
+import { RETRY_GAP, MAX_RETRY } from '../app/core/deck';
+import { DAILY_CAP, ROUND } from '../app/core/next';
+
+const ORD = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'];
+const days = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
+// Review dates when every answer is right the first time (same math as mastery.ts afterLesson/afterReview)
+const rows: { what: string; day: number; next: string }[] = [];
+let box = 1, day = 0, streak = 0;
+rows.push({ what: 'Finishing the lesson', day, next: `After ${days(INTERVAL[box])}` });
+for (let n = 1; ; n++) {
+  day += INTERVAL[box];
+  if (box < MAX_BOX) box += 1; else streak += 1;
+  const grad = streak >= GRAD_STREAK;
+  rows.push({ what: ORD[n - 1] ? `${ORD[n - 1]} review` : `Review ${n}`, day, next: grad ? 'Regular reviews end' : `After ${days(INTERVAL[box])}` });
+  if (grad) break;
+}
+const gaps = [...new Set(INTERVAL.slice(1))].join(', ');
+const doi = (d: string) => `https://doi.org/${d}`;
+---
+<div class="summary">
+  <b>Key points</b>
+  <span>1. Trying to recall something with the answer hidden leaves you with more, a few days later, than reading it again. A study that used maps found the same.</span>
+  <span>2. It matters to see the right answer right after a mistake.</span>
+  <span>3. Studying on separate days is better than doing it all at once. But studies disagree on whether the gaps should "keep growing."</span>
+</div>
+
+<h2>Recalling beats rereading</h2>
+<p>If you open a map and read the district names again and again, you soon feel that you know them all. But that feeling may not match how well you will remember later. Roediger and Karpicke (2006) had college students read two short passages. They reread one passage. For the other, they took a test where they wrote down what they could remember without looking. On a test five minutes later, the rereading group did better. But on tests two days and one week later, the group that took the recall test remembered far more. In another experiment in the same paper, students who reread the passage many times were more confident about the one-week test, yet they remembered less.</p>
+<p>Karpicke and Roediger (2008) showed that what you do after getting a foreign word right once is important. Studying a word again after getting it right did nothing for later memory. Keeping on recalling it had a large effect. The scores that students predicted for themselves had no link to their real scores. A review by Dunlosky and others (2013) looked at ten study methods. It rated practice testing (recalling for yourself) and spreading out study as "high utility," and rereading and underlining as "low utility."</p>
+
+<h2>Does it work on maps too?</h2>
+<p>The studies above used text and words. Carpenter and Pashler (2007) tested whether the same effect appears with maps. Fifty people learned two maps. They studied one map in the usual way, by looking at it. For the other, they saw a map with one thing erased, such as a road or a river, and they thought about what was missing and where it went. They spent the same amount of time. When asked to draw the maps 30 minutes later, they drew the map they had learned by recalling better. Clicking the place on a map with no names works on the same idea. Instead of looking at a map and reading names, you see a name and recall its place on the map.</p>
+
+<h2>If you get it wrong, see the answer right away</h2>
+<p>Recalling can fail. Pashler and others (2005) taught 258 people pairs of unfamiliar foreign words and had them answer questions. When the right answer was shown after a wrong answer, memory one week later was 494% higher than when it was not shown. Showing the right answer again after a correct answer made almost no difference. So it is good to spend your time checking the answer on questions you got wrong.</p>
+
+<h2>Spread it over days, but what gap?</h2>
+<p>Studying on separate days, instead of all at once, was also rated "high utility" in the review above. Cepeda and others (2006) combined 317 experiments from 184 papers. They found that the best review gap gets longer when the time you need to remember is longer. Cepeda and others (2008) taught facts to more than 1,350 people, had them review with gaps of up to 3.5 months, and tested them up to one year later. The best gap grew as the test got further away. Compared with the time until the test, it was about 20 to 40% of that time for a test one week away, and about 5 to 10% for a test one year away.</p>
+<p>Then is it better to make the gaps keep growing, like one day, two days, four days, than to keep them equal? That has not been settled. In the experiment of Karpicke and Roediger (2007), growing gaps helped on a test 10 minutes later, but equal gaps were better on a test two days later. That study concluded that, for long-term memory, what matters is not how the gaps grow but that you delay the first recall a little so that it is harder.</p>
+
+<h2>How Fill the Map does it</h2>
+<p>The study order in Fill the Map is based on the studies above. But the numbers below (when a place comes back, the review gaps, the daily cap) are not values calculated from the studies. They are values that Fill the Map chose so that a day of study does not get too long.</p>
+<ol>
+  <li><b>Meet two places at a time</b>: You tap two places while looking at their name labels. Then you pick the name of the place you just met from four choices.</li>
+  <li><b>Find places with the names hidden</b>: You find the places you met on the map, without names. The place you just met is not asked as the very next question, and places from earlier are mixed in. At the end of a lesson, all the places in that lesson are mixed together and you find them once more.</li>
+  <li><b>If you get it wrong</b>: The app tells you which direction the right answer is from the place you tapped, and has you tap the right answer once. That place is asked again about {RETRY_GAP} questions later (up to {MAX_RETRY} times). If you still get it wrong, it comes at the front of the next day's review.</li>
+  <li><b>Reviews from the next day</b>: A place you finished in a lesson comes back the next day. If you get it right the first time without a hint, the gap to the next review grows to {gaps} days. If you get it wrong, or use a hint or "I don't know," the gap gets shorter and the place comes back the next day. Reviews and newly learned places together do not go over {DAILY_CAP} places a day, and reviews come {ROUND} places at a time.</li>
+</ol>
+<p>If you never get anything wrong, the reviews go like this.</p>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">When</th><th scope="col">Time since the lesson</th><th scope="col">Next review</th></tr></thead>
+  <tbody>{rows.map((r) => <tr><td>{r.what}</td><td class="num">{r.day ? `After ${days(r.day)}` : 'Same day'}</td><td>{r.next}</td></tr>)}</tbody>
+</table></div>
+<p>The gaps grow because it is a practical choice: you see places you know well less often, and spend more time on the places that confuse you. As seen above, it has not been proven that growing gaps are better than equal gaps. Instead, within a lesson too, the app does not ask a place you just met right away. It puts other questions in between, which delays the first recall a little.</p>
+
+<h2>What to remember when you study alone</h2>
+<ul>
+  <li>Spend more time recalling with the names hidden than looking at the map and reading names. With a paper map, you can cover the names with sticky notes.</li>
+  <li>For places you got wrong, check where the right answer is, and look at it again together with its neighbors.</li>
+  <li>Even if you feel you know it all, try to recall it once more the next day. The feeling of knowing it right now does not tell you well what you will remember a few days later.</li>
+</ul>
+<div class="cta"><b>Try it on the map</b><a class="btn" href={href('/#/kr/seoul/sgg/p1')}>Start Seoul Lesson 1</a></div>
+
+<h2>Sources</h2>
+<ul class="src">
+  <li>Roediger, H. L., &amp; Karpicke, J. D. (2006). Test-enhanced learning: Taking memory tests improves long-term retention. <i>Psychological Science</i>, 17(3), 249–255. <a href={doi('10.1111/j.1467-9280.2006.01693.x')}>doi:10.1111/j.1467-9280.2006.01693.x</a></li>
+  <li>Karpicke, J. D., &amp; Roediger, H. L. (2008). The critical importance of retrieval for learning. <i>Science</i>, 319(5865), 966–968. <a href={doi('10.1126/science.1152408')}>doi:10.1126/science.1152408</a></li>
+  <li>Dunlosky, J., Rawson, K. A., Marsh, E. J., Nathan, M. J., &amp; Willingham, D. T. (2013). Improving students' learning with effective learning techniques. <i>Psychological Science in the Public Interest</i>, 14(1), 4–58. <a href={doi('10.1177/1529100612453266')}>doi:10.1177/1529100612453266</a></li>
+  <li>Carpenter, S. K., &amp; Pashler, H. (2007). Testing beyond words: Using tests to enhance visuospatial map learning. <i>Psychonomic Bulletin &amp; Review</i>, 14(3), 474–478. <a href={doi('10.3758/BF03194092')}>doi:10.3758/BF03194092</a></li>
+  <li>Pashler, H., Cepeda, N. J., Wixted, J. T., &amp; Rohrer, D. (2005). When does feedback facilitate learning of words? <i>Journal of Experimental Psychology: Learning, Memory, and Cognition</i>, 31(1), 3–8. <a href={doi('10.1037/0278-7393.31.1.3')}>doi:10.1037/0278-7393.31.1.3</a></li>
+  <li>Cepeda, N. J., Pashler, H., Vul, E., Wixted, J. T., &amp; Rohrer, D. (2006). Distributed practice in verbal recall tasks: A review and quantitative synthesis. <i>Psychological Bulletin</i>, 132(3), 354–380. <a href={doi('10.1037/0033-2909.132.3.354')}>doi:10.1037/0033-2909.132.3.354</a></li>
+  <li>Cepeda, N. J., Vul, E., Rohrer, D., Wixted, J. T., &amp; Pashler, H. (2008). Spacing effects in learning: A temporal ridgeline of optimal retention. <i>Psychological Science</i>, 19(11), 1095–1102. <a href={doi('10.1111/j.1467-9280.2008.02209.x')}>doi:10.1111/j.1467-9280.2008.02209.x</a></li>
+  <li>Karpicke, J. D., &amp; Roediger, H. L. (2007). Expanding retrieval practice promotes short-term retention, but equally spaced retrieval enhances long-term retention. <i>Journal of Experimental Psychology: Learning, Memory, and Cognition</i>, 33(4), 704–719. <a href={doi('10.1037/0278-7393.33.4.704')}>doi:10.1037/0278-7393.33.4.704</a></li>
+  <li>The rules of Fill the Map (review gaps, retry, daily cap) were taken straight from this site's app code to make the table.</li>
+</ul>

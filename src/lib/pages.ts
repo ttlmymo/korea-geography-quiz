@@ -67,6 +67,13 @@ const UPDATED: Record<string, string> = {
   '/sources/': '2026-11-18',
   // 2026-11-19 학습 가이드 6편과 목록 공개(사용자 '바로 적용') — 새 쪽은 만든 날을 적는다(점검 7)
   '/guide/': '2026-11-19',
+  // 2026-11-19 한국어 쪽마다 영어 쪽(사용자 지시) — 새 영어 쪽은 만든 날
+  '/en/incheon/': '2026-11-19',
+  '/en/gyeonggi/': '2026-11-19',
+  '/en/about/': '2026-11-19',
+  '/en/contact/': '2026-11-19',
+  '/en/sources/': '2026-11-19',
+  '/en/guide/': '2026-11-19',
   '/guide/korea-divisions-2026/': '2026-11-19',
   '/guide/legal-vs-administrative-dong/': '2026-11-19',
   '/guide/incheon-reform-2026/': '2026-11-19',
@@ -77,7 +84,7 @@ const UPDATED: Record<string, string> = {
 
 const later = (a: string, b?: string | null) => (b && b > a ? b : a);
 /** 구 쪽 25 × 한·영을 함께 고친 날: 2026-11-17 서울 과 이름을 방위로(과 줄 '서울 1과 '북서쪽'에서 …'), 2026-11-18 쪽 아래 출처 표기 줄을 뺌 */
-const GU_PAGES_UPDATED = '2026-11-18';
+const GU_PAGES_UPDATED = '2026-11-19';   // 2026-11-19 영어 구 쪽에 영어 소개 글이 들어감
 const at = (path: string, base = DEFAULT_UPDATED): IndexPage => ({ path, updated: later(base, UPDATED[path]) });
 
 /** 허브 아래 곳 쪽(한·영 짝). 지금은 서울 25개 구뿐 — 새 지역의 곳 쪽(W3)은 애드센스 승인 뒤, 한 배포에 5쪽 이하로 */
@@ -99,7 +106,7 @@ function regionPlaces(): IndexPage[] {
     const x = regionIntroOf(it.id);
     // 시 쪽은 그 안에 싣는 일반구 소개 글이 확인된 날에도 내용이 바뀐다
     const day = ilbanGuOf(it.id).reduce((d, g) => later(d, regionIntroOf(g.id)?.reviewed), x?.reviewed ?? '');
-    return x?.reviewed ? [at(`/${r.key}/${it.slug}/`, later(DEFAULT_UPDATED, day))] : [];
+    return x?.reviewed ? [at(`/${r.key}/${it.slug}/`, later(DEFAULT_UPDATED, day)), at(`/en/${r.key}/${it.slug}/`, later(DEFAULT_UPDATED, day))] : [];
   }));
 }
 
@@ -110,7 +117,8 @@ export function indexPages(): IndexPage[] {
     ...HUBS.flatMap((s) => [at(`/${s.key}/`), ...(s.hub?.en ? [at(`/en/${s.key}/`)] : []), ...(PLACES[s.key]?.() ?? [])]),
     ...regionPlaces(),
     ...(guides.length ? [at('/guide/'), ...guides.map((g) => at(`/guide/${g.slug}/`, g.updated))] : []),
-    at('/about/'), at('/contact/'), at('/sources/'),
+    ...(guides.length ? [at('/en/guide/'), ...guides.map((g) => at(`/en/guide/${g.slug}/`, later(g.updated, '2026-11-19')))] : []),
+    at('/about/'), at('/en/about/'), at('/contact/'), at('/en/contact/'), at('/sources/'), at('/en/sources/'),
     // 방침은 본문을 고쳐 내보낸 날 = 시행일(consts PRIVACY_EFFECTIVE)
     at('/privacy.html', PRIVACY_EFFECTIVE), at('/privacy-en.html', PRIVACY_EFFECTIVE),
   ];

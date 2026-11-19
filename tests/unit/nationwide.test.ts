@@ -79,7 +79,7 @@ test('지역 표(E8): 앱이 지역 표를 읽는다 — 16 시·도, 시·도 �
   assert.deepEqual(SIDOS.filter((s) => s.river).map((s) => s.key), ['seoul', 'gyeonggi']);
   // 전에 코드에 박혀 있던 글(ui.ts regionDesc·hubs·seoulHub)과 같은 값
   assert.deepEqual(UI_KO.hubs, { seoul: ['서울 25개 구', '구마다 위치와 행정동 →'], incheon: ['인천 2군 9구', '2026년 7월 개편과 군·구마다 위치 →'], gyeonggi: ['경기 31개 시·군', '시·군마다 위치와 읍·면·동 수 →'] });
-  assert.deepEqual(UI_EN.hubs, { seoul: ["Seoul's 25 districts", 'Where each one is →'] });
+  assert.deepEqual(UI_EN.hubs, { seoul: ["Seoul's 25 districts", 'Where each one is →'], incheon: ['Incheon: 2 counties and 9 districts', 'The July 2026 reform and where each one is →'], gyeonggi: ['Gyeonggi: 31 cities and counties', 'Where each one is and how many neighborhoods →'] });
   // E11: 부산 한 줄(바닷가 근거 — 파이프라인 바닷가 길이로 10곳이 1km 이상, 6곳이 0)
   // E12: 대구(중구의 이웃은 여섯 구뿐이고 바닷가 0)·대전(맞닿은 시·도 셋)·울산(바닷가 근거)·세종(읍·면·동 수) 한 줄
   // E13: 충북(시·도 단원 onlyDo 검사)·제주(읍·면·동 수)·강원·전북(바닷가 근거 — 파이프라인 바닷가 길이로 6곳·4곳이 2km 이상, 나머지 0) 한 줄

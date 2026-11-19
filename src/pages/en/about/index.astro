@@ -1,0 +1,45 @@
+---
+// English About page (/en/about/): pair of the Korean /about/. What the site is, how you study, where study records are kept, contact.
+// Same structure as the Korean page. No ads on English pages. The study scope comes from the region table (lib/regions.ts scopeEn),
+// like the English home page; when the province-level unit (korea) is open, it is added like the Korean studyKo does.
+import Base from '../../../layouts/Base.astro';
+import { href } from '../../../lib/paths';
+import { scopeEn } from '../../../lib/regions';
+import { UNITS } from '../../../lib/geo';
+import { SITE_NAME_EN, CONTACT_EMAIL } from '../../../consts';
+const korea = !!UNITS.korea;
+const base = scopeEn();
+const all = base.startsWith('all ');
+// 'the districts of Seoul, Incheon and Gyeonggi' · '... and all 16 provinces and cities of Korea' · when everything is open: 'all 16 provinces and cities of Korea and their districts'
+const scope = all ? `${base} and their districts` : korea ? `the districts of ${base} and all provinces and cities of Korea` : `the districts of ${base}`;
+const title = `About ${SITE_NAME_EN} – Learn Korea's administrative areas on a blank map`;
+const description = `${SITE_NAME_EN} is a free website where you learn ${scope} by finding them on a blank map with the names hidden. It explains how you study and how your study record is saved.`;
+---
+<Base lang="en" title={title} description={description} alternate={{ ko: '/about/', en: '/en/about/' }}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › About</nav>
+    <article class="prose">
+      <h1>About {SITE_NAME_EN}</h1>
+      <p>{SITE_NAME_EN} is a free website where you learn Korea's administrative areas by finding them on a blank map with the names hidden. Right now you can study {scope}, and the neighborhoods (eup, myeon and dong) inside them. You can use it right away without logging in, and the places you have studied are colored in on the map.</p>
+
+      <h2>How you study</h2>
+      <ul>
+        <li><b>A few places per lesson</b>: Places that are close to each other are grouped, so each lesson is a size that is easy to memorize at one time.</li>
+        <li><b>Meet, choose, find</b>: You meet the places one by one with their name tags. Then you choose the name of the outlined place. Then you find each place on the map with the names hidden.</li>
+        <li><b>Wrong answers get a hint right away</b>: A short line tells you in which direction the right answer lies from the place you tapped, and you tap the right place once yourself. A place you got wrong comes back a few questions later.</li>
+        <li><b>Again the next day</b>: Places you have learned come back in "Today's review" after gaps of one day, two days, four days and so on. The more often you get a place right, the darker its color on the map becomes.</li>
+        <li><b>Full practice and test</b>: When you finish the lessons, you find places from the whole region mixed together. Then a test shows your number of correct answers and the time it took.</li>
+      </ul>
+
+      <h2>Your study record</h2>
+      <p>Your study record is saved only in your own browser and is not sent to a server. So the record does not carry over to another browser or device. For details, see the <a href={href('/privacy-en.html')}>Privacy Policy</a>.</p>
+
+      <h2>Contact</h2>
+      <p>Email: <span class="mail">{CONTACT_EMAIL}</span></p>
+    </article>
+  </div>
+</Base>
+
+<style>
+  .mail { user-select: all; }
+</style>

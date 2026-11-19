@@ -17,7 +17,7 @@ const batchim = (w: string) => (w.charCodeAt(w.length - 1) - 0xac00) % 28 !== 0;
 const title = `${SITE_NAME} 소개 – 백지도로 행정구역 익히기`;
 const description = `${SITE_NAME}는 이름을 가린 백지도에서 ${scope}를 직접 찾으며 익히는 무료 웹사이트예요. 공부 방법과 공부 기록이 어떻게 저장되는지 소개해요.`;
 ---
-<Base title={title} description={description} ads>
+<Base alternate={{ ko: '/about/', en: '/en/about/' }} title={title} description={description} ads>
   <div class="wrap page">
     <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › 소개</nav>
     <article class="prose">

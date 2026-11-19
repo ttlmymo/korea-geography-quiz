@@ -1,0 +1,64 @@
+---
+// English Gyeonggi hub (Korean twin: /gyeonggi/): map and tables of the 31 cities and counties (towns, townships, neighborhoods, general districts, lessons). All counts come from the boundary data.
+// Same layout as the Korean hub: text | map in two columns on wide screens, title -> map -> text on narrow screens (tokens.css .d-top.hub)
+import Base from '../../../layouts/Base.astro';
+import RegionMap from '../../../components/RegionMap.astro';
+import { href } from '../../../lib/paths';
+import { region, svgOf, countKinds, enNameOf } from '../../../lib/geo';
+import { listEn } from '../../../lib/regions';
+import { regionIntroOf } from '../../../data/region-intro';
+
+const r = region('gyeonggi');
+const svg = svgOf('gyeonggi');
+const itemOf = (id: string) => svg.items.find((it) => it.id === id)!;
+const all = r.items.flatMap((it) => itemOf(it.id).dongs);
+const k = countKinds(all);
+const si = r.items.filter((it) => it.ko.endsWith('시')).length, gun = r.items.filter((it) => it.ko.endsWith('군')).length;
+const withGu = r.items.filter((it) => itemOf(it.id).gu.length);
+const guTotal = withGu.reduce((s, it) => s + itemOf(it.id).gu.length, 0);
+const lessonOf = (id: string) => r.lessons.find((l) => l.items.includes(id))!;
+const screenOf = (id: string) => r.screens.find((s) => s.items.includes(id))!;
+const rows = [...r.items].sort((a, b) => lessonOf(a.id).no - lessonOf(b.id).no || a.ko.localeCompare(b.ko, 'ko'));
+const kindsEn = (dongs: string[]) => {
+  const c = countKinds(dongs);
+  return [c.읍 && `${c.읍} eup`, c.면 && `${c.면} myeon`, c.동 && `${c.동} dong`].filter(Boolean).join(', ');
+};
+---
+<Base lang="en" title="Gyeonggi's 31 cities and counties on the map – Fill the Map" description={`See the 31 cities and counties of Gyeonggi-do (${si} cities and ${gun} counties) on a map. ${withGu.length} cities have general districts. The page lists the number of towns, townships and neighborhoods in each place, and the study order in Fill the Map.`} alternate={{ ko: '/gyeonggi/', en: '/en/gyeonggi/' }}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › Gyeonggi</nav>
+    <div class="d-top hub">
+      <div class="d-head">
+        <h1 class="d-title">Gyeonggi's 31 cities and counties</h1>
+      </div>
+      <div class="d-body">
+        <p class="lead">Gyeonggi-do surrounds Seoul. It has {si} cities (si) and {gun} counties (gun), 31 places in all. {withGu.length} of the cities, {listEn(withGu.map((it) => enNameOf(it.id)))}, have {guTotal} general districts (gu) in total. There are {all.length} towns (eup), townships (myeon) and neighborhoods (dong) in all: {k.읍} eup, {k.면} myeon and {k.동} dong (October 1, 2026 boundary data).</p>
+        <div class="d-acts"><a class="btn" href={href('/en/#/kr/gyeonggi/sgg/p1')}>Start with Gyeonggi lesson 1 <span aria-hidden="true">→</span></a></div>
+      </div>
+      <figure class="d-map">
+        <RegionMap region="gyeonggi" labels label="Map of Gyeonggi's 31 cities and counties" />
+        <figcaption class="d-key">The empty space in the middle is Seoul. Incheon is to the west.</figcaption>
+      </figure>
+    </div>
+
+    <section class="d-sec">
+      <h2>How Fill the Map teaches Gyeonggi</h2>
+      <p>The 31 places are split into seven lessons. General districts are learned as part of one city (a separate lesson on general districts will come later). After the lessons there is a full practice with all 31 mixed together and a timed test. In those, the map is split into four screens: northwest, northeast, southwest and southeast. If all 31 places were on one screen, small ones such as Guri-si and Osan-si would be too small to tap with a finger.</p>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">Lesson</th><th scope="col">Cities and counties</th></tr></thead>
+        <tbody>{r.lessons.map((l) => <tr><td><a href={href(`/en/#/kr/gyeonggi/sgg/p${l.no}`)}>{l.no}. {l.en}</a></td><td>{l.items.map(enNameOf).join(', ')}</td></tr>)}</tbody>
+      </table></div>
+    </section>
+
+    <section class="d-sec">
+      <h2>All 31 cities and counties</h2>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">City or county</th><th scope="col">Towns, townships and neighborhoods</th><th scope="col">General districts</th><th scope="col">Lesson · Screen</th></tr></thead>
+        <tbody>{rows.map((it) => (
+          <tr><td>{regionIntroOf(it.id) ? <a href={href(`/en/gyeonggi/${it.slug}/`)}>{enNameOf(it.id)}</a> : enNameOf(it.id)}</td><td>{kindsEn(itemOf(it.id).dongs)}</td><td>{itemOf(it.id).gu.length ? <span lang="ko">{itemOf(it.id).gu.join(' · ')}</span> : '—'}</td><td>{lessonOf(it.id).no} · {screenOf(it.id).en}</td></tr>
+        ))}</tbody>
+      </table></div>
+      <p>eup = town, myeon = township, dong = neighborhood.</p>
+    </section>
+  </div>
+</Base>

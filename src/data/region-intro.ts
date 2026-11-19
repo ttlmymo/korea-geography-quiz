@@ -4,7 +4,8 @@
 // intro-kr.json 은 docs/tools/merge_intros.py 가 docs/intro-drafts/*.json 을 합쳐 쓴다(손으로 고칠 때는 이 파일을 직접 고쳐도 된다).
 import RAW from './intro-kr.json';
 import HARD from './hard-words.json';
-import type { Intro } from './seoul-intro';
+import EN_RAW from './intro-en.json';
+import { introOf as seoulIntroOf, type Intro } from './seoul-intro';
 
 export const INTROS_KR: Intro[] = RAW as Intro[];
 
@@ -18,5 +19,16 @@ for (const x of INTROS_KR) {
   if (x.paras.length < 1 || !x.sources.length) throw new Error(`시·군·구 소개 글(${x.id})에 글 또는 출처가 없음`);
 }
 
+// 영어판(2026-11-19 사용자 지시 '한국어가 있는 쪽은 영어도 전부'): 한국어 글을 영어로 옮긴 것(docs/intro-en-drafts → src/data/intro-en.json).
+// 한국어 글이 이 빌드에 보일 때만 영어 글도 보인다(서울 구 소개 글 포함)
+export interface IntroEn { id: string; paras: string[]; sources: { t: string; url: string }[] }
+export const INTROS_EN: IntroEn[] = EN_RAW as IntroEn[];
+
 /** 이 빌드에 보일 소개 글(검수한 글, 개발 서버에서는 초안도). 곳 id 로 찾는다 */
 export const regionIntroOf = (id: string): Intro | null => INTROS_KR.find((x) => x.id === id && (x.reviewed || import.meta.env.DEV)) ?? null;
+
+/** 영어 소개 글: 한국어 글이 이 빌드에 보이는 곳만(서울 구는 seoul-intro 의 글이 보일 때). 곳 id 로 찾는다 */
+export const introEnOf = (id: string): IntroEn | null => {
+  if (!(regionIntroOf(id) ?? seoulIntroOf(id))) return null;
+  return INTROS_EN.find((x) => x.id === id) ?? null;
+};

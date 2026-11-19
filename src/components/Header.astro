@@ -33,7 +33,10 @@ const review = en ? { t: "Today's review", h: href('/en/#/review') } : { t: '오
 const hubs = SIDOS.filter((s) => (en ? s.hub?.en : s.hub?.ko)).map((s) => ({ t: (en ? s.hub!.en! : s.hub!.ko)[0], h: href(`${en ? '/en' : ''}/${s.key}/`) }));
 const openCount = UNITS.regions.length + (UNITS.korea ? 1 : 0);
 const maps = openCount > hubs.length && !en ? [...hubs, { t: '전국 지역 고르기', h: href('/#/kr') }] : hubs;
-const more = en ? [] : [
+const more = en ? [
+  ...(guides ? [{ k: 'guide', t: 'Guides', h: href('/en/guide/') }] : []),
+  { k: 'about', t: 'About', h: href('/en/about/') },
+] : [
   ...(guides ? [{ k: 'guide', t: '학습 가이드', h: href('/guide/') }] : []),
   { k: 'about', t: '채움지도 소개', h: href('/about/') },
 ];
@@ -58,7 +61,7 @@ const all = [study, review, ...maps, ...more, other];
         ) : (
           <a href={maps[0].h} aria-current={on('map')}>{maps[0].t}</a>
         )}
-        {more.map((i) => <a href={i.h} aria-current={on(i.k)}>{i.k === 'about' ? '소개' : '가이드'}</a>)}
+        {more.map((i) => <a href={i.h} aria-current={on(i.k)}>{en ? (i.k === 'about' ? 'About' : 'Guides') : (i.k === 'about' ? '소개' : '가이드')}</a>)}
       </div>
       <a class="nav-lang" href={other.h} lang={other.lang} hreflang={other.lang}>{other.t}</a>
       <details class="menu">

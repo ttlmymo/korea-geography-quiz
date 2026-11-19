@@ -1,0 +1,74 @@
+---
+// G5 English edition: "Learning Seoul's 25 districts". Same data and counting code as the Korean guide (src/guides/SeoulGu.astro).
+// Facts: north/south of the Han River and shared borders come from the boundary data; local living area counts from the Seoul Urban Planning Portal.
+import RegionMap from '../components/RegionMap.astro';
+import { href } from '../lib/paths';
+import { guideIfEn } from './registry';
+import { region, SEOUL_NORTH, neighborsOf, enNameOf, TONE_FILL, type Tone } from '../lib/geo';
+
+const r = region('seoul');
+const id = (ko: string) => r.items.find((it) => it.ko === ko)!.id;
+const north = r.items.filter((it) => SEOUL_NORTH.has(it.id)).map((it) => enNameOf(it.id));
+const south = r.items.filter((it) => !SEOUL_NORTH.has(it.id)).map((it) => enNameOf(it.id));
+const tone = Object.fromEntries(r.items.map((it) => [it.id, SEOUL_NORTH.has(it.id) ? 'a' : 'b'])) as Record<string, Tone>;
+// Regional living areas of the Seoul Living Area Plan (number of local living areas per zone: Seoul Urban Planning Portal)
+const ZONES: { name: string; areas: number; gu: string[]; tone: Tone }[] = [
+  { name: 'Dosimgwon', areas: 11, gu: ['종로구', '중구', '용산구'], tone: 'a' },
+  { name: 'Dongbukgwon', areas: 36, gu: ['성동구', '광진구', '동대문구', '중랑구', '성북구', '강북구', '도봉구', '노원구'], tone: 'c' },
+  { name: 'Seobukgwon', areas: 14, gu: ['은평구', '서대문구', '마포구'], tone: 'd' },
+  { name: 'Seonamgwon', areas: 33, gu: ['강서구', '양천구', '구로구', '금천구', '영등포구', '동작구', '관악구'], tone: 'e' },
+  { name: 'Dongnamgwon', areas: 22, gu: ['서초구', '강남구', '송파구', '강동구'], tone: 'b' },
+];
+const zoneTone = Object.fromEntries(ZONES.flatMap((z) => z.gu.map((g) => [id(g), z.tone]))) as Record<string, Tone>;
+const nm = (i: string) => enNameOf(i);
+const recall = guideIfEn('recall-practice');
+const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('서초구'));
+---
+<div class="summary">
+  <b>Key points</b>
+  <span>1. First split Seoul by the Han River: {north.length} districts on the north side and {south.length} on the south side.</span>
+  <span>2. The city of Seoul groups its 25 districts into five regional living areas for city planning. Grouping them this way helps you remember where they are, in blocks.</span>
+  <span>3. Find four to six places at a time on a map with the names hidden, then try again the next day. This makes the memory last.</span>
+</div>
+
+<h2>{north.length} districts north of the Han River, {south.length} south</h2>
+<p>When you first learn Seoul, start with the Han River. It runs east to west through the city. Of the 25 districts, {north.length} are north of the river and {south.length} are south of it. Yeouido, the island in the middle of the river, belongs to Yeongdeungpo-gu on the south side. In many places a northern district and a southern district face each other across the river, like Mapo-gu and Yeongdeungpo-gu. If you learn these pairs across the river together, it is easier to place each district.</p>
+<RegionMap region="seoul" tone={tone} labels label={`Map of Seoul with the ${north.length} districts north of the Han River in light sand and the ${south.length} districts south of it in white`} />
+<div class="tbl"><table>
+  <thead><tr><th scope="col">Han River</th><th scope="col">Districts</th></tr></thead>
+  <tbody>
+    <tr><td><i class="sw" style={`background:${TONE_FILL.a}`} aria-hidden="true"></i>North {north.length}</td><td>{north.join(' · ')}</td></tr>
+    <tr><td><i class="sw" style={`background:${TONE_FILL.b}`} aria-hidden="true"></i>South {south.length}</td><td>{south.join(' · ')}</td></tr>
+  </tbody>
+</table></div>
+
+<h2>The five regional living areas set by Seoul</h2>
+<p>In the Seoul Living Area Plan (<span lang="ko">서울생활권계획</span>), the city divides Seoul into five regional living areas: Dosimgwon, Dongbukgwon, Seobukgwon, Seonamgwon and Dongnamgwon. These are split again into 116 local living areas. The number of local living areas in each zone is 11 in Dosimgwon, 36 in Dongbukgwon, 14 in Seobukgwon, 33 in Seonamgwon and 22 in Dongnamgwon. Districts that are close to each other are in the same zone, so it also helps to learn them as five blocks.</p>
+<RegionMap region="seoul" tone={zoneTone} labels label="Map of Seoul's five regional living areas: Dosimgwon, Dongbukgwon, Seobukgwon, Seonamgwon and Dongnamgwon in different colors" />
+<div class="tbl"><table>
+  <thead><tr><th scope="col">Zone</th><th scope="col">Districts</th><th scope="col">Local living areas</th></tr></thead>
+  <tbody>{ZONES.map((z) => <tr><td><i class="sw" style={`background:${TONE_FILL[z.tone]}`} aria-hidden="true"></i>{z.name}</td><td>{z.gu.map((g) => enNameOf(id(g))).join(' · ')}</td><td class="num">{z.areas}</td></tr>)}</tbody>
+</table></div>
+
+<h2>How Fill the Map groups them into five lessons</h2>
+<p>Fill the Map groups the districts into five lessons of four to six places each, which is a good amount to learn at one time. The city's zones are uneven: Dongbukgwon has 8 districts, while Dosimgwon and Seobukgwon have 3 each. If we used the zones as they are, the lessons would not have an even number of places. So we put Dosimgwon and Seobukgwon together in one lesson and split Dongbukgwon into two lessons. Instead of zone names, the lessons are named by direction inside Seoul (northwest, southeast, southwest, east and north). Dongjak-gu is in Seonamgwon, but{dongjakSeocho ? ' because it shares a border with Seocho-gu,' : ''} you learn it together with the southeast lesson.</p>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">Lesson</th><th scope="col">Districts</th></tr></thead>
+  <tbody>{r.lessons.map((l) => <tr><td>Lesson {l.no}: {l.en}</td><td>{l.items.map(nm).join(' · ')}</td></tr>)}</tbody>
+</table></div>
+
+<h2>Practice in this order</h2>
+<ol>
+  <li><b>Big picture first</b>: Split Seoul by the Han River first. Then look at blocks of four to six places, such as a zone or a lesson.</li>
+  <li><b>Meet them one by one</b>: With the name labels on, tap each place one at a time. Look at where it is and which districts are next to it.</li>
+  <li><b>Hide the names and find them</b>: Trying to recall a place and find it on the map stays in your memory better than reading again{recall && <>(<a href={href(`/en/guide/${recall.slug}/`)}>why this works</a>)</>}. If you get one wrong, check which side the right answer is on and tap it once.</li>
+  <li><b>Again the next day</b>: Try again after a gap, such as one day or two days later. When you finish all five lessons, move on to the full practice that mixes all 25 places.</li>
+</ol>
+<div class="cta"><b>Try it on the map now</b><a class="btn" href={href('/en/#/kr/seoul/sgg/p1')}>Start Seoul lesson 1</a></div>
+
+<h2>Sources</h2>
+<ul class="src">
+  <li>Seoul Urban Planning Portal, <a href="https://urban.seoul.go.kr/view/html/PMNU3040000001">Urban planning system › Seoul Living Area Plan</a> (5 regional living areas, 116 local living areas and the number in each zone)</li>
+  <li>Seoul Metropolitan Government, <a href="https://urban.seoul.go.kr/UpisArchive/DATA/PWEB/STATIC/2040_seoul_plan.pdf">2040 Seoul Urban Master Plan</a> (published in February 2023), Chapter 5, Section 2 (it keeps the same division into 5 regional living areas)</li>
+  <li>Neighborhood (haengjeong-dong) and district boundaries: as of October 1, 2026. North and south of the Han River and shared borders were counted from these boundaries.</li>
+</ul>

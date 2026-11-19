@@ -1,0 +1,99 @@
+---
+// English page for a city, county or district outside Seoul (/en/{region key}/{slug}/). Pair of src/pages/[region]/[slug] (2026-11-19: every Korean page has an English page).
+// Facts come from the boundary data; the introduction is the English translation of the Korean one (src/data/intro-en.json).
+// Pages exist only for places whose Korean introduction is verified (shown in dev builds too, with a draft note). No ads on English pages.
+import Base from '../../../../layouts/Base.astro';
+import RegionMap from '../../../../components/RegionMap.astro';
+import { href } from '../../../../lib/paths';
+import { UNITS, region, svgOf, neighborsOf, neighborsEn, countKinds, enNameOf, listEn, ilbanGuOf } from '../../../../lib/geo';
+import { enOfSlug, HUBS } from '../../../../lib/regions';
+import { introEnOf, regionIntroOf } from '../../../../data/region-intro';
+
+export function getStaticPaths() {
+  return UNITS.regions
+    .filter((r) => r.key !== 'seoul')
+    .flatMap((r) => r.items.filter((it) => introEnOf(it.id)).map((it) => ({ params: { region: r.key, slug: it.slug }, props: { key: r.key, id: it.id } })));
+}
+const { key, id } = Astro.props as { key: string; id: string };
+const r = region(key);
+const item = r.items.find((it) => it.id === id)!;
+const svgItem = svgOf(key).items.find((it) => it.id === id)!;
+const intro = introEnOf(id)!;
+const lesson = r.lessons.find((l) => l.items.includes(id));
+const mates = lesson ? lesson.items.filter((x) => x !== id).map(enNameOf) : [];
+const enName = enNameOf(id);
+const nbs = neighborsOf(r, id);
+const dongs = svgItem.dongs;
+const k = countKinds(dongs);
+const kindsEn = (() => {
+  const parts = [k.읍 && `${k.읍} town${k.읍 > 1 ? 's' : ''} (eup)`, k.면 && `${k.면} township${k.면 > 1 ? 's' : ''} (myeon)`, k.동 && `${k.동} neighborhood${k.동 > 1 ? 's' : ''} (dong)`].filter(Boolean) as string[];
+  return listEn(parts);
+})();
+const kind = item.ko.endsWith('구') ? 'an autonomous district (gu)' : item.ko.endsWith('군') ? 'a county (gun)' : 'a city (si)';
+const hub = HUBS.some((h) => h.key === key && h.hub?.en);
+const emdOnly = r.layer === 'emd';
+const startHref = emdOnly ? `/en/#/kr/${key}/emd` : `/en/#/kr/${key}/sgg/@${item.slug}`;
+const dateEn = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${dd}, ${y}`; };
+const reviewed = regionIntroOf(id)?.reviewed ?? null;
+// 같은 지역의 이웃은 영어 쪽이 있으면 링크
+const nbNames = neighborsEn(r, id);
+const nbLinks = nbs.map((n, i) => {
+  const slug = n.inRegion ? r.items.find((it) => it.id === n.id)?.slug : undefined;
+  return { name: nbNames[i], slug: slug && introEnOf(n.id) ? slug : undefined };
+});
+const gus = ilbanGuOf(id).flatMap((g) => {
+  const x = introEnOf(g.id);
+  return x ? [{ short: enNameOf(g.id).replace(`${enName} `, ''), intro: x }] : [];
+});
+---
+<Base lang="en" alternate={{ ko: `/${key}/${item.slug}/`, en: `/en/${key}/${item.slug}/` }} title={`${enName}, ${r.en} on the map – Fill the Map`} description={`Where is ${enName} in ${r.en}? It is ${kind} with ${kindsEn}, and borders ${nbs.length} other place${nbs.length === 1 ? '' : 's'}. Learn it on a blank map.`}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › {hub ? <a href={href(`/en/${key}/`)}>{r.en}</a> : r.en} › {enName}</nav>
+    <div class="d-top split">
+      <div class="d-head">
+        <h1 class="d-title">{enName}</h1>
+        <p class="d-sub"><span lang="ko">{item.ko}</span> · {kind} in {r.en}</p>
+      </div>
+      <div class="d-map">
+        <RegionMap region={key} highlight={[id]} label={`Map of ${r.en} showing where ${enName} is`} />
+      </div>
+      <div class="d-body">
+        <div class="prose">
+          <p>{nbs.length ? <>It borders {nbLinks.map((n, i) => <>{i > 0 && (i === nbLinks.length - 1 ? ' and ' : ', ')}{n.slug ? <a href={href(`/en/${key}/${n.slug}/`)}>{n.name}</a> : n.name}</>)}. </> : ''}It has {kindsEn}.</p>
+          {lesson && <p>{r.en} lesson {lesson.no}, "{lesson.en}"{mates.length ? <>: with {listEn(mates)}</> : ''}.</p>}
+        </div>
+      </div>
+    </div>
+    <section class="d-sec intro">
+      {!reviewed && <div class="draft" role="note"><b>Draft</b> — the Korean text has not been verified yet, so this page is not published.</div>}
+      <h2>About {enName}</h2>
+      {intro.paras.map((t) => <p>{t}</p>)}
+      <p class="meta">Sources: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)}{reviewed && <> (checked against the sources on {dateEn(reviewed)})</>}</p>
+    </section>
+    {gus.length > 0 && (
+      <section class="d-sec intro gus">
+        <h2>{enName}'s {gus.length} general districts (ilban-gu)</h2>
+        {gus.map((g) => (
+          <>
+            <h3>{g.short}</h3>
+            {g.intro.paras.map((t) => <p>{t}</p>)}
+            <p class="meta">Sources: {g.intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)}</p>
+          </>
+        ))}
+      </section>
+    )}
+    <section class="d-sec">
+      <h2>{dongs.length} neighborhoods</h2>
+      <ul class="donglist" lang="ko">{dongs.map((d) => <li>{d}</li>)}</ul>
+    </section>
+    <section class="cta">
+      <h2>Find it on the blank map</h2>
+      <a class="btn" href={href(startHref)}>{lesson ? `Practice ${r.en} lesson ${lesson.no}` : `Practice ${r.en}`} <span aria-hidden="true">→</span></a>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .donglist { list-style: none; margin: 0; padding: 0; max-width: 760px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0; overflow: hidden; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .donglist li { padding: 10px var(--sp-6) 10px 0; margin-bottom: -1px; border-bottom: 1px solid var(--line); }
+</style>

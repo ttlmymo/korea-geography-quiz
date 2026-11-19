@@ -8,7 +8,7 @@ import { visibleGuides } from '../../guides/registry';
 const list = visibleGuides();
 const anyReviewed = list.some((g) => g.reviewed);
 ---
-<Base title="학습 가이드 – 채움지도" description="행정구역을 지도로 외우는 방법과 2026년에 바뀐 행정구역을 공공 자료로 정리한 글 모음이에요." ads={anyReviewed} noindex={!anyReviewed}>
+<Base alternate={{ ko: '/guide/', en: '/en/guide/' }} title="학습 가이드 – 채움지도" description="행정구역을 지도로 외우는 방법과 2026년에 바뀐 행정구역을 공공 자료로 정리한 글 모음이에요." ads={anyReviewed} noindex={!anyReviewed}>
   <div class="wrap page">
     <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › 학습 가이드</nav>
     <div class="d-head">

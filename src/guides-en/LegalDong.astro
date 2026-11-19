@@ -1,0 +1,102 @@
+---
+// G2 English edition: "How do legal dong and administrative dong differ?" (Korean original: src/guides/LegalDong.astro)
+// Definitions: Local Autonomy Act arts. 7 and 9, Spatial Data Act art. 2. Counts: MOLIT legal-dong list (src/data/legal-dong-seoul.json)
+// and Fill the Map's administrative-dong boundaries (svg). Which admin dong covers which legal dong: Seoul table (src/data/seoul-dong-map.json). All built by pipeline/build-geo.mjs
+import { href } from '../lib/paths';
+import { region, svgOf, enNameOf } from '../lib/geo';
+import LEGAL from '../data/legal-dong-seoul.json';
+import DONGMAP from '../data/seoul-dong-map.json';
+
+const r = region('seoul');
+const svg = svgOf('seoul');
+const legalOf = (ko: string) => (LEGAL.byGu as Record<string, string[]>)[ko] ?? [];
+const MAP = DONGMAP.byGu as Record<string, { adm: string; legal: string[] }[]>;
+const covers = (gu: string, adm: string) => MAP[gu].find((r) => r.adm === adm)?.legal ?? [];
+const sharedBy = (gu: string, legal: string) => MAP[gu].filter((r) => r.legal.includes(legal)).map((r) => r.adm);
+const rows = r.items.map((it) => ({ id: it.id, ko: it.ko, legal: legalOf(it.ko).length, adm: svg.items.find((s) => s.id === it.id)!.dongs.length, dongs: svg.items.find((s) => s.id === it.id)!.dongs }))
+  .sort((a, b) => b.legal - b.adm - (a.legal - a.adm));
+const legalSum = rows.reduce((t, x) => t + x.legal, 0);
+const admSum = rows.reduce((t, x) => t + x.adm, 0);
+const max = Math.max(...rows.flatMap((x) => [x.legal, x.adm]));
+const more = rows.filter((x) => x.adm > x.legal).length;
+const same = rows.filter((x) => x.adm === x.legal).map((x) => enNameOf(x.id));
+const row = (ko: string) => rows.find((x) => x.ko === ko)!;
+const jongno = row('종로구'), junggu = row('중구'), gwanak = row('관악구');
+const admRange = [Math.min(...rows.map((x) => x.adm)), Math.max(...rows.map((x) => x.adm))];
+const legalRange = [Math.min(...rows.map((x) => x.legal)), Math.max(...rows.map((x) => x.legal))];
+// Sentence checks (the build stops if the data changes)
+if (!jongno.dongs.includes('청운효자동') || !legalOf('종로구').includes('청운동') || !legalOf('종로구').includes('효자동')) throw new Error('G2 청운효자동 예시가 데이터와 다름');
+if (!['종로1가', '종로2가', '종로3가', '종로4가'].every((d) => legalOf('종로구').includes(d)) || !jongno.dongs.includes('종로1·2·3·4가동')) throw new Error('G2 종로1·2·3·4가동 예시가 데이터와 다름');
+const cheongun = covers('종로구', '청운효자동'), jongro14 = covers('종로구', '종로1·2·3·4가동');
+if (!['청운동', '효자동'].every((d) => cheongun.includes(d)) || !['종로1가', '종로2가', '종로3가', '종로4가'].every((d) => jongro14.includes(d))) throw new Error('G2 예시가 서울시 대응표와 다름');
+const bongcheon = sharedBy('관악구', '봉천동'), sillim = sharedBy('관악구', '신림동');
+const gwanakLegal = legalOf('관악구');
+const gwanakOther = gwanak.dongs.filter((d) => !gwanakLegal.includes(d)).slice(0, 3);
+const SRC = {
+  law: 'https://www.law.go.kr/법령/지방자치법',
+  land: 'https://www.law.go.kr/법령/공간정보의구축및관리등에관한법률',
+  bjd: 'https://www.data.go.kr/data/15063424/fileData.do',
+};
+---
+<div class="summary">
+  <b>Key points</b>
+  <span>1. A legal dong (beopjeong-dong) is the original dong. Land lot numbers are given by dong and ri, so a lot-number address shows the legal dong name.</span>
+  <span>2. An administrative dong (haengjeong-dong) is a dong that is run for convenience, with a community service center (jumin-senteo). It may combine legal dongs or split one.</span>
+  <span>3. Seoul has {legalSum} legal dongs and {admSum} administrative dongs. Fill the Map uses administrative dongs.</span>
+</div>
+
+<h2>How the law separates the two</h2>
+<p>Article 7 of the Local Autonomy Act (<span lang="ko">지방자치법</span>) says that the names and areas of eup, myeon and dong stay as they were, and that changes are set by ordinance. The dong that has continued this way is the legal dong. Paragraph 4 of the same article says that, for administrative efficiency and the convenience of residents, one dong may be run as two or more, or two or more dongs may be run as one. These are called "administrative dong" (haengjeong-dong). Article 9 then says that the dong meant when deciding where to place a dong office (community service center) is the administrative dong.</p>
+<p>For land, the legal dong is used. Article 2 of the Act on the Establishment and Management of Spatial Data (<span lang="ko">공간정보의 구축 및 관리 등에 관한 법률</span>, called the Spatial Data Act here) defines the number given to one parcel of land as the lot number (jibeon), and the area unit where lot numbers are given as dong and ri. So a lot-number address shows the legal dong, and the name of a community service center shows the administrative dong. For example, in Seoul's data, the administrative dong <span lang="ko">청운효자동</span> (Cheongunhyoja-dong) in Jongno District covers {cheongun.length} legal dongs, including <span lang="ko">청운동</span> and <span lang="ko">효자동</span>. <span lang="ko">종로1·2·3·4가동</span> (Jongno 1·2·3·4(sa)-ga-dong) covers {jongro14.length} legal dongs, including Jongno 1-ga to 4-ga. Only some of those names appear in the name of the administrative dong.</p>
+
+<h2>Districts that combine, districts that split</h2>
+<p>Of Seoul's 25 districts, {more} have more administrative dongs than legal dongs. This is because some legal dongs are run as several administrative dongs. On the other hand, Jongno District and Jung District have many legal dongs ({jongno.legal} and {junggu.legal}), and they combine them into a few administrative dongs.{same.length ? ` ${same.join(', ')} ${same.length > 1 ? 'have' : 'has'} the same number of both, but the same number does not mean the same boundaries.` : ''}</p>
+<ul>
+  <li><b>Jongno District</b>: {jongno.legal} legal dongs → {jongno.adm} administrative dongs</li>
+  <li><b>Jung District</b>: {junggu.legal} legal dongs → {junggu.adm} administrative dongs</li>
+  <li><b>Gwanak District</b>: {gwanak.legal} legal dongs ({gwanakLegal.map((d, i) => <>{i ? ', ' : ''}<span lang="ko">{d}</span></>)}) → {gwanak.adm} administrative dongs</li>
+</ul>
+<div class="tbl"><table class="pair">
+  <thead><tr><th scope="col">District</th><th scope="col">Legal dongs · Administrative dongs</th></tr></thead>
+  <tbody>{rows.map((x) => (
+    <tr><td>{enNameOf(x.id)}</td><td>
+      <div class="bar"><i class="b-legal" style={`width:${(x.legal / max) * 85}%`}></i><span class="num">{x.legal}</span></div>
+      <div class="bar"><i class="b-adm" style={`width:${(x.adm / max) * 85}%`}></i><span class="num">{x.adm}</span></div>
+    </td></tr>
+  ))}</tbody>
+</table></div>
+<p class="meta"><i class="key b-legal"></i>Legal dongs <i class="key b-adm"></i>Administrative dongs · Districts are listed starting with those that have the most legal dongs compared with administrative dongs.</p>
+
+<h2>So the names can differ</h2>
+<p>Gwanak District has only three legal dongs: {gwanakLegal.map((d, i) => <>{i ? ', ' : ''}<span lang="ko">{d}</span></>)}. So by lot-number address, every piece of land in Gwanak District is in one of these three dongs. But there are {gwanak.adm} community service centers, and many of their names, such as {gwanakOther.map((d, i) => <>{i ? ', ' : ''}<span lang="ko">{d}</span></>)}, are not on the legal dong list. In Seoul's data, the legal dong <span lang="ko">봉천동</span> (Bongcheon-dong) is shared by {bongcheon.length} administrative dongs, and <span lang="ko">신림동</span> (Sillim-dong) by {sillim.length}. If the dong name of your home looks different on a lot-number address and on a community service center, it is because one is the legal dong and the other is the administrative dong.</p>
+
+<h2>Why Fill the Map uses administrative dongs</h2>
+<ul>
+  <li><b>The dong residents visit</b>: There is a community service center in every administrative dong. The dong in the name of a community service center is the administrative dong.</li>
+  <li><b>Even units for practice</b>: Each Seoul district has a similar number of administrative dongs, {admRange[0]} to {admRange[1]}, but the number of legal dongs varies a lot, from {legalRange[0]} to {legalRange[1]}. If we used legal dongs, Jongno District alone would have {jongno.legal} cells.</li>
+  <li><b>Boundary data</b>: There is public data that organizes administrative dong boundaries edition by edition, so changed dongs can be added quickly. The current edition is the one of October 1, 2026.</li>
+</ul>
+<p>So every dong on the Fill the Map maps is an administrative dong. It may differ from the dong name in a lot-number address, so each <a href={href('/en/seoul/')}>Seoul district page</a> also has a table of the legal dongs that each administrative dong covers.</p>
+<div class="cta"><b>Try it on the map</b><a class="btn" href={href('/en/#/kr/seoul/sgg/p1')}>Start Seoul lesson 1</a></div>
+
+<h2>Sources</h2>
+<ul class="src">
+  <li>National Law Information Center, <a href={SRC.law}>Local Autonomy Act</a> (<span lang="ko">지방자치법</span>; Act No. 21544, in force October 15, 2026), arts. 7 and 9</li>
+  <li>National Law Information Center, <a href={SRC.land}>Act on the Establishment and Management of Spatial Data</a> (<span lang="ko">공간정보의 구축 및 관리 등에 관한 법률</span>; Act No. 21447, in force July 1, 2026), art. 2, items 22 and 23</li>
+  <li>Number of legal dongs: Public Data Portal, <a href={SRC.bjd}>Ministry of Land, Infrastructure and Transport, Legal Dongs of Korea</a> (<span lang="ko">국토교통부_전국 법정동</span>; revised July 29, 2026; no limit on terms of use). We counted the dong lines for Seoul, leaving out ri.</li>
+  <li>Number of administrative dongs: counted from the administrative dong boundaries as of October 1, 2026.</li>
+  <li>Legal dongs covered by each administrative dong: Seoul Metropolitan Government, <a href={DONGMAP.source.url}>{DONGMAP.source.title}</a> (revised August 18, 2025)</li>
+</ul>
+
+
+<style>
+  /* Bars: ink fill = legal dong, surface color + ink border = administrative dong, square corners. Numbers 14px */
+  .bar { display: flex; align-items: center; gap: 8px; height: 18px; margin: 3px 0; }
+  .bar i { display: block; flex: none; height: 12px; min-width: 2px; box-sizing: border-box; }
+  .bar .num { font-size: var(--fs-14); line-height: 18px; color: var(--ink-2); white-space: nowrap; }
+  .b-legal { background: var(--ink); }
+  .b-adm { background: var(--sunk); border: 1px solid var(--ink); }
+  .key { display: inline-block; width: 16px; height: 16px; box-sizing: border-box; margin: 0 6px 0 14px; vertical-align: -3px; border-radius: var(--r-sw); }
+  .key:first-child { margin-left: 0; }
+  table.pair td:last-child { width: 70%; }
+</style>

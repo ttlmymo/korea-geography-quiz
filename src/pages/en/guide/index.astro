@@ -1,0 +1,41 @@
+---
+// English study guide list (/en/guide/). Same line-list look as the Korean list. With no reviewed guide, a production build marks it noindex.
+import Base from '../../../layouts/Base.astro';
+import { href } from '../../../lib/paths';
+import { visibleGuidesEn } from '../../../guides-en/registry';
+
+const list = visibleGuidesEn();
+const anyReviewed = list.some((g) => g.reviewed);
+---
+<Base lang="en" title="Study Guides – Fill the Map" description="Guides on how to memorize administrative areas with maps, and on the areas that changed in 2026, written from public sources." alternate={{ ko: '/guide/', en: '/en/guide/' }} noindex={!anyReviewed}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › Study Guides</nav>
+    <div class="d-head">
+      <h1>Study Guides</h1>
+      <p class="lead">How to memorize administrative areas with maps, and the background you need for map study, written from public sources.</p>
+    </div>
+    <p class="intro">Each guide lists primary sources, such as government announcements, public data and research papers, and shows the date it was last updated. Numbers that can be counted on a map, such as the number of districts or neighborhoods and which areas touch, were counted again from the boundary data Fill the Map uses. We publish only guides the site operator has checked against the originals. If you find a mistake, please tell us through the <a href={href('/en/contact/')}>contact page</a> and we will fix it.</p>
+    {list.length ? (
+      <ul class="glist">{list.map((g) => (
+        <li><a href={href(`/en/guide/${g.slug}/`)}><b>{g.title}{!g.reviewed && <span class="doc-tag">Draft</span>}</b><span class="gd">{g.description}</span><span class="ar" aria-hidden="true">→</span></a></li>
+      ))}</ul>
+    ) : <p class="intro">The first guide is coming soon.</p>}
+  </div>
+</Base>
+
+<style>
+  .d-head { gap: var(--sp-3); }
+  .d-head .lead { max-width: var(--content-w); }
+  .intro { max-width: var(--content-w); font-size: var(--fs-18); line-height: 1.7; }
+  .glist { list-style: none; margin: var(--sp-4) 0 0; padding: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .glist li + li { border-top: 1px solid var(--line); }
+  .glist a {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t ar" "d ar"; align-items: center; gap: 6px var(--sp-5);
+    padding: 18px 0; color: var(--ink); text-decoration: none;
+  }
+  .glist b { grid-area: t; font-size: var(--fs-18); line-height: 1.45; font-weight: 700; }
+  .glist .gd { grid-area: d; max-width: 44em; font-size: var(--fs-16); line-height: 1.6; color: var(--ink-2); }
+  .glist .ar { grid-area: ar; font-size: var(--fs-18); }
+  .glist a:hover b { text-decoration: underline; text-underline-offset: 4px; }
+  .glist a:hover { background: var(--sunk); }
+</style>

@@ -1,0 +1,58 @@
+---
+// English study guide article (/en/guide/{slug}/). Unreviewed drafts are built only by the dev server and get a draft note and noindex.
+// Look: article column 34em (18px) wide, tables/maps up to 760px. No ads on English pages.
+import Base from '../../../../layouts/Base.astro';
+import { href } from '../../../../lib/paths';
+import { visibleGuidesEn, dateEn, type GuideEn } from '../../../../guides-en/registry';
+import SeoulGu from '../../../../guides-en/SeoulGu.astro';
+import Recall from '../../../../guides-en/Recall.astro';
+import KrDivisions from '../../../../guides-en/KrDivisions.astro';
+import IncheonReform from '../../../../guides-en/IncheonReform.astro';
+import GuTypes from '../../../../guides-en/GuTypes.astro';
+import LegalDong from '../../../../guides-en/LegalDong.astro';
+
+const BODY: Record<string, unknown> = { 'seoul-25-gu': SeoulGu, 'recall-practice': Recall, 'korea-divisions-2026': KrDivisions, 'incheon-reform-2026': IncheonReform, 'autonomous-vs-general-gu': GuTypes, 'legal-vs-administrative-dong': LegalDong };
+
+export function getStaticPaths() {
+  return visibleGuidesEn().map((g) => ({ params: { slug: g.slug }, props: { g } }));
+}
+const { g } = Astro.props as { g: GuideEn };
+const Body = BODY[g.slug] as typeof SeoulGu;
+---
+<Base lang="en" title={`${g.title} – Fill the Map`} description={g.description} alternate={{ ko: `/guide/${g.slug}/`, en: `/en/guide/${g.slug}/` }} noindex={!g.reviewed}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › <a href={href('/en/guide/')}>Study Guides</a></nav>
+    {!g.reviewed && (
+      <div class="draft" role="note"><b>Draft, not yet reviewed</b> — the operator checks it against primary sources before it goes public.</div>
+    )}
+    <article class="article">
+      <h1>{g.title}</h1>
+      <p class="meta">Last updated: {dateEn(g.updated)} · Fill the Map</p>
+      <Body />
+    </article>
+  </div>
+</Base>
+
+<style>
+  .draft { max-width: 760px; }
+  /* article box is 760px (tables, maps); text blocks inside stay 34em */
+  .article { max-width: 760px; display: flex; flex-direction: column; gap: var(--sp-4); font-size: var(--fs-18); line-height: 1.75; }
+  /* text blocks share the same right edge whatever their font size (34em of the 18px body = 612px) */
+  .article > :global(:is(h1, h2, h3, p, ul, ol, .summary, .cta)) { max-width: calc(34 * var(--fs-18)); }
+  .article :global(h1) { font-size: var(--fs-title); line-height: 1.25; }
+  .article :global(h2) { font-size: var(--fs-24); line-height: 1.4; margin-top: var(--sp-6); }
+  .article :global(h3) { font-size: var(--fs-18); line-height: 1.45; margin-top: var(--sp-2); }
+  .article :global(p) { margin: 0; }
+  .article > :global(p.meta) { font-size: var(--fs-14); line-height: 1.6; }
+  /* key point of the article: 2px ink line on top, 1px light line below, no filled box */
+  .article :global(.summary) { display: flex; flex-direction: column; gap: 6px; padding: 14px 0 16px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); font-size: var(--fs-16); line-height: 1.6; }
+  .article :global(.summary b) { font-size: var(--fs-16); }
+  /* the 4px above and below tables comes from the shared .tbl padding (focus ring space) */
+  .article :global(.tbl) { margin-block: 0; }
+  /* only number cells (.num) are right-aligned; text cells stay left */
+  .article :global(table.nums :is(th, td).num) { text-align: right; }
+  .article :global(ol), .article :global(ul) { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: var(--sp-2); }
+  .article :global(.cta) { margin-top: var(--sp-4); }
+  .article :global(.sw) { vertical-align: -3px; margin-right: 7px; }
+  .article :global(.src) { font-size: var(--fs-16); line-height: 1.6; color: var(--ink-2); }
+</style>

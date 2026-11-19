@@ -1,0 +1,57 @@
+---
+// English Data sources page (/en/sources/): pair of the Korean /sources/. Same sections and the same data-driven values (repo, license, provider, title).
+// Source and license names are kept in their original names. No ads on English pages.
+import Base from '../../../layouts/Base.astro';
+import { href } from '../../../lib/paths';
+import { DATA_VER } from '../../../consts';
+import fs from 'node:fs';
+import path from 'node:path';
+import LEGAL from '../../../data/legal-dong-seoul.json';
+import DONGMAP from '../../../data/seoul-dong-map.json';
+const manifest = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data/geo', DATA_VER, 'manifest.json'), 'utf8'));
+const src = manifest.source;
+const bjd = LEGAL.source;
+const dm = DONGMAP.source;
+---
+<Base lang="en" title="Data sources – Fill the Map" description="The administrative-neighborhood boundary data used for the Fill the Map blank maps and its terms of use, how the maps were made, and the public sources used to check facts such as the Incheon reorganization." alternate={{ ko: '/sources/', en: '/en/sources/' }}>
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › Data sources</nav>
+    <article class="prose">
+      <h1>Data sources</h1>
+      <p>Every map on Fill the Map is drawn directly from the data below.</p>
+
+      <h2>Administrative neighborhood boundaries</h2>
+      <ul>
+        <li>Original data: Statistics Korea SGIS administrative boundaries (<span lang="ko">공공누리 제1유형</span>, Korea Open Government License Type 1)</li>
+        <li>Cleaned-up version: <a href={`https://github.com/${src.repo}`}>{src.repo}</a> (CC BY 4.0). These are the administrative neighborhoods (haengjeong-dong) as of October 1, 2026.</li>
+        <li>Fill the Map does not use these boundaries as they are. It changes them as described below in "How the maps were made".</li>
+      </ul>
+
+      <h2>Neighboring countries</h2>
+      <ul>
+        <li><a href="https://www.naturalearthdata.com/">Natural Earth</a> (public domain). Used to draw the neighboring land seen at the edge of the maps, such as North Korea and Japan.</li>
+      </ul>
+
+      <h2>Seoul's legal and administrative neighborhoods</h2>
+      <ul>
+        <li>The list of legal neighborhoods (beopjeong-dong) from the <a href="https://www.data.go.kr/data/15063424/fileData.do">National Geospatial Information Center of the Ministry of Land, Infrastructure and Transport (<span lang="ko">국토교통부 국가공간정보센터</span>)</a> (Public Data Portal, <span lang="ko">{bjd.license}</span>). Used to compare legal and administrative neighborhoods on the Seoul district pages. The maps are drawn with administrative neighborhoods.</li>
+        <li><span lang="ko">{dm.title}</span> on the website of <span lang="ko">{dm.provider}</span>: <a href={dm.url}>link</a>. A table of which legal neighborhoods each Seoul administrative neighborhood covers. Used for the "Administrative and legal neighborhoods" table on the Seoul district pages.</li>
+      </ul>
+
+      <h2>How the maps were made</h2>
+      <ul>
+        <li>Made lighter: We reduced the points in the boundaries so the maps open quickly on a phone. So the boundaries are a little simpler than the real ones.</li>
+        <li>Merged: We merged administrative neighborhoods to make the maps of cities, counties, districts and provinces.</li>
+        <li>Drew the Han River separately: The neighborhood boundaries run through the middle of the river, so without drawing it separately, the north and south sides of the river would look joined.</li>
+        <li>The one-line location: Sentences like "West of ○○-gu, where ○○ is" are written by Fill the Map. The directions and neighboring places are checked with the map data.</li>
+      </ul>
+
+      <h2>Sources used to check facts</h2>
+      <ul>
+        <li>Incheon administrative reorganization of July 2026: <a href="https://www.incheon.go.kr/IC01070105/3012613">Incheon Metropolitan City press release</a> (<span lang="ko">「인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률」</span>, the act on setting up Jemulpo-gu, Yeongjong-gu and Geomdan-gu in Incheon Metropolitan City), <a href="https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833">Ministry of the Interior and Safety press release <span lang="ko">'인천광역시 서구, 주민 뜻 모아 서해구로 새출발'</span> (May 7, 2026)</a> (Incheon's Seo-gu makes a new start as Seohae-gu, gathering the residents' will)</li>
+      </ul>
+
+      <p>If you find a mistake, please tell us through <a href={href('/en/contact/')}>Contact</a>.</p>
+    </article>
+  </div>
+</Base>

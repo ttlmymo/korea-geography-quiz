@@ -47,7 +47,7 @@ const regionName = pt ? pt.ko : r.ko;
 // '행정동 9개'(동만 있는 곳) → '9개', '4읍 3면 19동' 은 그대로
 const cnt = kindsText(dongs).replace('행정동 ', '');
 ---
-<Base title={`${label} 위치와 읍·면·동 – 채움지도`} description={`${label}${eun(label)} 어디에 있을까요? ${item.line ? `${item.line}. ` : ''}읍·면·동 ${cnt}, 맞닿은 곳 ${nbs.length}곳을 백지도로 익혀요.`}>
+<Base alternate={{ ko: `/${key}/${item.slug}/`, en: `/en/${key}/${item.slug}/` }} title={`${label} 위치와 읍·면·동 – 채움지도`} description={`${label}${eun(label)} 어디에 있을까요? ${item.line ? `${item.line}. ` : ''}읍·면·동 ${cnt}, 맞닿은 곳 ${nbs.length}곳을 백지도로 익혀요.`}>
   <div class="wrap page">
     <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › {hub ? <a href={href(`/${key}/`)}>{regionName}</a> : regionName} › {item.ko}</nav>
     <div class="d-top split">

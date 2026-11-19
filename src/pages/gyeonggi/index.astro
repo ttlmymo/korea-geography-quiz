@@ -20,7 +20,7 @@ const screenOf = (id: string) => r.screens.find((s) => s.items.includes(id))!;
 const rows = [...r.items].sort((a, b) => lessonOf(a.id).no - lessonOf(b.id).no || a.ko.localeCompare(b.ko, 'ko'));
 const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
 ---
-<Base title="경기 31개 시·군 지도로 익히기 – 채움지도" description={`경기도 31개 시·군(${si}개 시, ${gun}개 군)을 지도로 봐요. 일반구가 있는 ${withGu.length}개 시와 시·군마다 읍·면·동 수, 채움지도의 공부 순서를 정리했어요.`} ads>
+<Base alternate={{ ko: '/gyeonggi/', en: '/en/gyeonggi/' }} title="경기 31개 시·군 지도로 익히기 – 채움지도" description={`경기도 31개 시·군(${si}개 시, ${gun}개 군)을 지도로 봐요. 일반구가 있는 ${withGu.length}개 시와 시·군마다 읍·면·동 수, 채움지도의 공부 순서를 정리했어요.`} ads>
   <div class="wrap page">
     <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › 경기</nav>
     <div class="d-top hub">

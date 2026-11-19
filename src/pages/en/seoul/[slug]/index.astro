@@ -7,6 +7,8 @@ import RegionMap from '../../../../components/RegionMap.astro';
 import { href } from '../../../../lib/paths';
 import { SEOUL_GU, type Gu } from '../../../../data/seoul';
 import { region, svgOf, neighborsEn, listEn, enNameOf, SEOUL_NORTH } from '../../../../lib/geo';
+import { introEnOf } from '../../../../data/region-intro';
+import { introOf } from '../../../../data/seoul-intro';
 
 export function getStaticPaths() {
   return SEOUL_GU.map((g) => ({ params: { slug: g.slug }, props: { g } }));
@@ -19,6 +21,9 @@ const lesson = r.lessons.find((l) => l.items.includes(item.id))!;
 const mates = lesson.items.filter((id) => id !== item.id).map(enNameOf);
 const nbs = neighborsEn(r, item.id);
 const north = SEOUL_NORTH.has(item.id);
+const intro = introEnOf(item.id);
+const reviewed = introOf(item.id)?.reviewed ?? null;
+const dateEn = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${dd}, ${y}`; };
 ---
 <Base lang="en" title={`${g.en} on the map – Seoul · Fill the Map`} description={`Where is ${g.en} in Seoul? It lies ${north ? 'north' : 'south'} of the Han River, has ${dongs.length} administrative neighborhoods and borders ${nbs.length} areas. Learn it on a blank map.`} alternate={{ ko: `/seoul/${g.slug}/`, en: `/en/seoul/${g.slug}/` }}>
   <div class="wrap page">
@@ -39,6 +44,14 @@ const north = SEOUL_NORTH.has(item.id);
         </div>
       </div>
     </div>
+    {intro && (
+      <section class="d-sec intro">
+        {!reviewed && <div class="draft" role="note"><b>Draft</b> — the Korean text has not been verified yet, so this page is not published.</div>}
+        <h2>About {g.en}</h2>
+        {intro.paras.map((t) => <p>{t}</p>)}
+        <p class="meta">Sources: {intro.sources.map((x, i) => <>{i > 0 && ' · '}<a href={x.url}>{x.t}</a></>)}{reviewed && <> (checked against the sources on {dateEn(reviewed)})</>}</p>
+      </section>
+    )}
     <section class="d-sec">
       <h2>{dongs.length} neighborhoods</h2>
       <ul class="donglist" lang="ko">{dongs.map((d) => <li>{d}</li>)}</ul>

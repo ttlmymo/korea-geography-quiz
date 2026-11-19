@@ -1,0 +1,127 @@
+---
+// English version of G1 (korea-divisions-2026). Data and counting code are the same as the Korean file src/guides/KrDivisions.astro.
+// Only the text, table heads and English names differ. Layers and kinds come from the Local Autonomy Act and the Jeju special act;
+// counts come from the Fill the Map boundary data (src/data/kr-summary.json, counted by pipeline/build-geo.mjs).
+import { href } from '../lib/paths';
+import { guideIfEn } from './registry';
+import { UNITS, emdUnitFile, listEn } from '../lib/geo';
+import { sidoOf } from '../app/sidos';
+import KR from '../data/kr-summary.json';
+
+const T = KR.total;
+const n = (x: number) => x.toLocaleString('en-US');
+const basic = T.si + T.gun + T.gu;
+const emd = T.eup + T.myeon + T.dong;
+const KIND_ORDER = ['특별시', '통합특별시', '광역시', '특별자치시', '도', '특별자치도'];
+// English names of the six kinds of si/do (Korean key -> [singular, plural])
+const KIND_EN: Record<string, [string, string]> = {
+  '특별시': ['Special City', 'special cities'],
+  '통합특별시': ['Integrated Special City', 'integrated special cities'],
+  '광역시': ['Metropolitan City', 'metropolitan cities'],
+  '특별자치시': ['Special Self-Governing City', 'special self-governing cities'],
+  '도': ['Province', 'provinces'],
+  '특별자치도': ['Special Self-Governing Province', 'special self-governing provinces'],
+};
+const byKind = KIND_ORDER.map((k) => ({ kind: k, list: KR.sidos.filter((s) => s.kind === k).map((s) => s.name) }));
+type Sido = (typeof KR.sidos)[number];
+// Short English name from the region table (Seoul, Busan, Gyeonggi ...) and the full name with its kind (Seoul Special City ...)
+const enShort = (s: Sido) => sidoOf(s.code)?.en ?? s.name;
+const enFull = (s: Sido) => `${enShort(s)} ${KIND_EN[s.kind][0]}`;
+const sggCell = (s: Sido) => {
+  const parts = [s.si && `si ${s.si}`, s.gun && `gun ${s.gun}`, s.gu && `gu ${s.gu}`, s.adminSi && `administrative si ${s.adminSi}`].filter(Boolean);
+  return parts.length ? parts.join(' · ') + (s.ilban ? ` (general gu ${s.ilban})` : '') : 'none';
+};
+// English names of the cities that have general gu
+const CITY_EN: Record<string, string> = { '수원시': 'Suwon', '성남시': 'Seongnam', '안양시': 'Anyang', '안산시': 'Ansan', '고양시': 'Goyang', '용인시': 'Yongin', '화성시': 'Hwaseong', '부천시': 'Bucheon', '청주시': 'Cheongju', '천안시': 'Cheonan', '포항시': 'Pohang', '창원시': 'Changwon', '전주시': 'Jeonju' };
+const ilbanSi = KR.sidos.flatMap((s) => s.ilbanSi).map((nm) => {
+  if (!CITY_EN[nm]) throw new Error(`G1 en: no English name for ${nm}`);
+  return CITY_EN[nm];
+});
+// Facts behind sentences (if the data changes, the sentence follows or the build stops)
+const onlyGu = KR.sidos.filter((s) => s.gu && !s.si && !s.gun && !s.adminSi);
+const manyGun = KR.sidos.filter((s) => s.gun >= 7);
+const manyGunOk = manyGun.every((s) => s.myeon > s.dong);
+if (!manyGunOk || onlyGu.some((s) => s.eup + s.myeon > 0)) throw new Error('G1 en: eup/myeon sentence does not match the data');
+const jg = KR.sidos.find((s) => s.kind === '통합특별시')!;
+const ic = KR.sidos.find((s) => s.name === '인천광역시')!;
+// Places you can practice now (public regions in units.json). Regions with a gu/si/gun layer count their places; regions with no
+// such layer (Sejong, layer emd) have a single "Sejong" tile, so they are left out of the first group and counted by neighborhoods
+// from the emd unit files instead (same rule as the Korean file). A region with no places stops the build.
+const enOf = (key: string) => sidoOf(key)?.en ?? key;
+const sggRegions = UNITS.regions.filter((r) => r.layer !== 'emd');
+for (const r of sggRegions) if (!r.items.length) throw new Error(`G1 en: public region ${r.key} has no places`);
+const covered = sggRegions.map((r) => `${enOf(r.key)} ${r.items.length}`).join(' · ');
+const emdOnly = UNITS.regions.filter((r) => r.layer === 'emd').map((r) => {
+  const files = (UNITS.emdUnits?.[r.key] ?? []).map((u) => emdUnitFile(u.code));
+  if (!files.length) throw new Error(`G1 en: region ${r.key} without a si/gun/gu layer has no neighborhood units`);
+  return `${enOf(r.key)} ${files.reduce((t, f) => t + f.items.length, 0)}`;
+}).join(' · ');
+const g2 = guideIfEn('legal-vs-administrative-dong');
+const g3 = guideIfEn('incheon-reform-2026');
+const g4 = guideIfEn('autonomous-vs-general-gu');
+const SRC = {
+  law: 'https://www.law.go.kr/법령/지방자치법',
+  jeju: 'https://www.law.go.kr/법령/제주특별자치도설치및국제자유도시조성을위한특별법',
+  mois: 'https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=126845',
+  gonggam: 'https://gonggam.korea.kr/newsContentView.es?mid=a12501000000&section_id=NCCD_POLICY_TOTAL&content=NC002&code_cd=&news_id=8b9422d1-e993-4b00-9c75-fa1da37638c2',
+  incheon: 'https://www.incheon.go.kr/IC01070105/3012613',
+  rename: 'https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=125833',
+  // First page of the law on the National Law Information Center (lsId opens the current version).
+  jg:'https://www.law.go.kr/LSW/lsInfoP.do?lsId=015064',
+};
+---
+<div class="summary">
+  <b>Key points</b>
+  <span>1. Korea has {T.sido} top-level regions (si/do). On July 1, 2026, South Jeolla Province and Gwangju Metropolitan City merged into the Jeonnam-Gwangju Integrated Special City.</span>
+  <span>2. Below them are {n(basic)} local governments (si, gun and gu): {T.si} si, {T.gun} gun and {T.gu} autonomous gu.</span>
+  <span>3. At the bottom are {n(emd)} neighborhoods (eup, myeon and dong): {T.eup} eup, {n(T.myeon)} myeon and {n(T.dong)} dong, counted as administrative dong.</span>
+</div>
+
+<h2>Three layers</h2>
+<p>Article 2 of the Local Autonomy Act sorts local governments into two kinds. One kind is the top level (si/do): special cities, integrated special cities, metropolitan cities, special self-governing cities, provinces and special self-governing provinces. The other kind is the si, gun and gu. Of these, a gu is a local government (an autonomous gu) only when it lies inside a special city, an integrated special city or a metropolitan city. Below the si, gun and gu are the eup, myeon and dong. Under Article 3 of the same act, a gun has eup and myeon, a si or gu has dong, and an eup or myeon has ri. The eup, myeon and dong are not local governments. They are administrative areas inside a si, gun or gu.</p>
+<p>Three places do not fit this pattern.</p>
+<ul>
+  <li><b>Sejong Special Self-Governing City</b> has no si, gun or gu below it. It has eup, myeon and dong directly.</li>
+  <li><b>Jeju Special Self-Governing Province</b> has no si or gun that are local governments, under Article 10 of the Jeju special act. Jeju-si and Seogwipo-si are "administrative si", not local governments.</li>
+  <li><b>General gu</b>: a si with a population of 500,000 or more may have gu that are not autonomous gu (Local Autonomy Act, Article 3 (3)). Today {T.ilban} general gu exist in {ilbanSi.length} cities ({ilbanSi.join(', ')}).{g4 && <> The differences are explained in the <a href={href(`/en/guide/${g4.slug}/`)}>guide on autonomous gu and general gu</a>.</>}</li>
+</ul>
+
+<h2>The {T.sido} top-level regions</h2>
+<p>By kind, there are {byKind.filter((k) => k.list.length).map((k) => `${k.list.length} ${k.list.length === 1 ? KIND_EN[k.kind][0].toLowerCase() : KIND_EN[k.kind][1]}`).join(', ')}. The counts in the table below come from the October 1, 2026 administrative dong boundary data that Fill the Map uses.</p>
+<div class="tbl"><table>
+  <thead><tr><th scope="col">Region</th><th scope="col">Si, gun and gu</th></tr></thead>
+  <tbody>
+    {KR.sidos.map((s) => <tr><td>{enFull(s)}<br /><span class="meta">{KIND_EN[s.kind][0]} · <span lang="ko">{s.name}</span></span></td><td>{sggCell(s)}</td></tr>)}
+    <tr><td><b>All {T.sido} regions</b></td><td>si {T.si} · gun {T.gun} · gu {T.gu} · administrative si {T.adminSi} (general gu {T.ilban})</td></tr>
+  </tbody>
+</table></div>
+
+<h2>What changed in 2026</h2>
+<p><b>Jeonnam-Gwangju Integrated Special City (July 1)</b>: When the Special Act on the Establishment of the Jeonnam-Gwangju Integrated Special City (<span lang="ko">전남광주통합특별시 설치를 위한 특별법</span>) took effect, South Jeolla Province and Gwangju Metropolitan City became one top-level region. The short name set by Article 7 (1) of the same act is "Gwangju Special City" (<span lang="ko">광주특별시</span>). The number of top-level regions went from 17 to {T.sido}, and "integrated special city" was added to the kinds of top-level regions in the Local Autonomy Act. The 5 autonomous gu of the old Gwangju Metropolitan City and the 22 si and gun of the old South Jeolla Province keep their names and areas. So this integrated special city has {jg.si} si, {jg.gun} gun and {jg.gu} autonomous gu together.</p>
+<p><b>Incheon administrative reform (July 1)</b>: Jung-gu and Dong-gu became Jemulpo-gu and Yeongjong-gu, and Seo-gu became Seohae-gu and Geomdan-gu. Incheon went from 2 gun and 8 gu to {ic.gun} gun and {ic.gu} gu, so the number of autonomous gu in Korea also rose by one. The neighborhoods that moved from the old gu to the new gu are listed in a table on the <a href={href('/en/incheon/')}>Incheon map page</a>{g3 && <> and in the <a href={href(`/en/guide/${g3.slug}/`)}>Incheon reform guide</a></>}.</p>
+
+<h2>How eup, myeon and dong differ</h2>
+<p>An eup must have most of its area built up like a city and a population of 20,000 or more (Local Autonomy Act, Article 10 (3)). To become a si, a place needs an urban form and a population of 50,000 or more (Article 10 (1)). The basic rule is that a gun is divided into eup and myeon, and a si or gu is divided into dong. But a si that mixes city and countryside (a "urban-rural complex si") has dong in its urban area and eup and myeon in the rest (Article 3 (4)). This is why Hwaseong and Namyangju in Gyeonggi Province have both dong and eup/myeon.</p>
+<div class="tbl"><table class="nums">
+  <thead><tr><th scope="col">Region</th><th scope="col" class="num">Eup</th><th scope="col" class="num">Myeon</th><th scope="col" class="num">Dong</th><th scope="col" class="num">Total</th></tr></thead>
+  <tbody>
+    {KR.sidos.map((s) => <tr><td>{enShort(s)}</td><td class="num">{s.eup}</td><td class="num">{n(s.myeon)}</td><td class="num">{n(s.dong)}</td><td class="num">{n(s.eup + s.myeon + s.dong)}</td></tr>)}
+    <tr><td><b>Nationwide</b></td><td class="num">{T.eup}</td><td class="num">{n(T.myeon)}</td><td class="num">{n(T.dong)}</td><td class="num"><b>{n(emd)}</b></td></tr>
+  </tbody>
+</table></div>
+<p>{listEn(onlyGu.map(enShort))} {onlyGu.length === 1 ? 'is' : 'are'} made up only of autonomous gu, so {onlyGu.length === 1 ? 'it has' : 'they have'} no eup or myeon at all. On the other hand, in every region with 7 or more gun, myeon outnumber dong. The dong counted here are administrative dong, which the community centers (<span lang="ko">주민센터</span>) manage. The legal dong used in addresses are counted differently.{g2 && <> The difference is explained in the <a href={href(`/en/guide/${g2.slug}/`)}>guide on legal dong and administrative dong</a>.</>}</p>
+
+<h2>Learning it on the map</h2>
+<p>It is easier to start with the big layer. First learn where the {T.sido} top-level regions are. Then go down to the si, gun and gu of the region where you live or often visit. Fill the Map now lets you practice on the map the si, gun and gu of these regions (number of places): {covered}.{emdOnly ? <> It also lets you practice the eup, myeon and dong of these regions: {emdOnly}.</> : ''}</p>
+<div class="cta"><b>Try it on the map</b><a class="btn" href={href('/en/#/kr')}>Choose a region and start</a></div>
+
+<h2>Sources</h2>
+<ul class="src">
+  <li>National Law Information Center, <a href={SRC.law}>Local Autonomy Act</a> (Act No. 21544, in force October 15, 2026), Articles 2, 3 and 10</li>
+  <li>National Law Information Center, <a href={SRC.jeju}>Special Act on the Establishment of Jeju Special Self-Governing Province and the Development of Free International City</a> (Act No. 21640, in force November 13, 2026), Article 10</li>
+  <li>National Law Information Center, <a href={SRC.jg}>Special Act on the Establishment of the Jeonnam-Gwangju Integrated Special City</a> (<span lang="ko">전남광주통합특별시 설치를 위한 특별법</span>; Act No. 21446, promulgated March 5, 2026, in force July 1, 2026; current version Act No. 21620, in force November 13, 2026), Article 7 (1)</li>
+  <li>Ministry of the Interior and Safety, <a href={SRC.mois}>Systems merging for the launch of the Jeonnam-Gwangju Integrated Special City: get the civil documents you need in advance</a> (June 15, 2026)</li>
+  <li>Policy weekly K-Gonggam, <a href={SRC.gonggam}>Korea's first wide-area administrative merger: the Jeonnam-Gwangju Integrated Special City is launched</a> (July 2, 2026)</li>
+  <li>Incheon Metropolitan City, <a href={SRC.incheon}>press release (Act on the Establishment of Jemulpo-gu, Yeongjong-gu and Geomdan-gu in Incheon Metropolitan City, etc.; <span lang="ko">인천광역시 제물포구·영종구 및 검단구 설치 등에 관한 법률</span>)</a> · Ministry of the Interior and Safety, <a href={SRC.rename}>Incheon Seo-gu makes a new start as Seohae-gu, with the will of its residents</a> (May 7, 2026)</li>
+  <li>Counts: counted from the administrative dong boundaries as of October 1, 2026. They can differ from the official status of the Ministry of the Interior and Safety (as of December 31, 2025), because the base date and the way of counting are different. The gap is larger for myeon in particular. Some myeon are missing from the boundary data because nobody lives there or there is no myeon office (3 in Paju, Gyeonggi; 4 in Cheorwon, Gangwon; 1 in Goseong, Gangwon). Also, some places changed from myeon to eup in 2026 (Yangji in Yongin, Gyeonggi; Daeso in Eumseong, Chungbuk; Guji in Dalseong, Daegu).</li>
+</ul>
