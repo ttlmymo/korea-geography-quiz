@@ -1,5 +1,5 @@
 ---
-// English district page (old URL /en/seoul/<slug>/). Facts come from the boundary data (map, Han River side, neighborhoods, borders, lesson).
+// English district page (old URL /en/seoul/<slug>/). Facts come from the boundary data (map, Hangang River side, neighborhoods, borders, lesson).
 // No ads on English pages (design 7.2). The one-line location hints and guides are Korean-only
 // 배치(합본 D5): 위치도는 이름표 없이 한 칸만 칠하므로 넓은 화면에서 2단(글 | 위치도). 동 이름 알약은 선으로 나눈 목록으로
 import Base from '../../../../layouts/Base.astro';
@@ -26,7 +26,7 @@ const intro = introEnOf(item.id);
 const reviewed = introOf(item.id)?.reviewed ?? null;
 const dateEn = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]} ${dd}, ${y}`; };
 ---
-<Base lang="en" title={`${g.en} on the map – Seoul · Fill the Map`} description={`Where is ${g.en} in Seoul? It lies ${north ? 'north' : 'south'} of the Han River, has ${dongs.length} administrative neighborhoods and borders ${nbs.length} areas. Learn it on a blank map.`} alternate={{ ko: `/seoul/${g.slug}/`, en: `/en/seoul/${g.slug}/` }}>
+<Base lang="en" title={`${g.en} on the map – Seoul · Fill the Map`} description={`Where is ${g.en} in Seoul? It lies ${north ? 'north' : 'south'} of the Hangang River, has ${dongs.length} administrative neighborhoods and borders ${nbs.length} areas. Learn it on a blank map.`} alternate={{ ko: `/seoul/${g.slug}/`, en: `/en/seoul/${g.slug}/` }}>
   <div class="wrap page">
     <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › <a href={href('/en/seoul/')}>Seoul</a> › {g.en}</nav>
     <div class="d-top split">
@@ -40,7 +40,7 @@ const dateEn = (d: string) => { const [y, m, dd] = d.split('-').map(Number); ret
       <div class="d-body">
         {(LINES_EN as Record<string, string>)[item.id] && <p class="lead">{(LINES_EN as Record<string, string>)[item.id]}</p>}
         <div class="prose">
-          <p>{g.en} is one of Seoul's 25 autonomous districts (gu). It lies on the {north ? 'north' : 'south'} side of the Han River, one of the {north ? '14 districts north' : '11 districts south'} of the river.</p>
+          <p>{g.en} is one of Seoul's 25 autonomous districts (gu). It lies on the {north ? 'north' : 'south'} side of the Hangang River, one of the {north ? '14 districts north' : '11 districts south'} of the river.</p>
           <p>It borders {listEn(nbs)}. In the October 1, 2026 boundary data it is made up of {dongs.length} administrative neighborhoods (haengjeong-dong).</p>
           <p>On Fill the Map you learn {g.en} in Seoul lesson {lesson.no}, "{lesson.en}", together with {listEn(mates)}.</p>
         </div>

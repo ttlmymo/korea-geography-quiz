@@ -22,7 +22,10 @@ export function textWidth(text: string, px: number): number {
 }
 
 /** 이름표 글자 상자(px): 글자 폭 + 좌우 여유 8, 높이 = 글자 크기 + 6 (14px 글자면 세 글자에 50×20) */
-export const labelBox = (text: string, px: number): { w: number; h: number } => ({ w: Math.ceil(textWidth(text, px)) + 8, h: px + 6 });
+export const labelBox = (text: string, px: number): { w: number; h: number } => {
+  const ls = text.split('\n');   // 두 줄 이름표(영어 'Yeongyang-' / 'gun'): 폭은 긴 줄, 높이는 줄 수만큼
+  return { w: Math.ceil(Math.max(...ls.map((l) => textWidth(l, px)))) + 8, h: px + 6 + (ls.length - 1) * Math.ceil(px * 1.4) };
+};
 
 /**
  * 칸 안 자리를 찾을 때 먼저 써 보는 넉넉한 상자: 글자 상자보다 좌우 3px·위아래 2px 씩 크다(글자와 칸 경계 사이가 좌우 7px·위아래 5px).

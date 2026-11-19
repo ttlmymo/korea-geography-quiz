@@ -46,7 +46,7 @@ const short = (it: (typeof svg.items)[number]) => (en ? enShortOf(it.id) : (it.n
 // 세로로 긴 지역(인천·경기)이 한 화면을 넘지 않게: 높이가 MAX_H 를 넘지 않는 폭까지만.
 // 쪽이 지도 높이를 화면 높이에 맞출 수 있게 가로세로 비(--rmap-ar)도 넘긴다(지역 허브의 PC 2단, tokens.css .d-top.hub)
 // 이름표 글자는 14px, 지도가 BIG_AT 보다 넓게 그려지면(PC 의 서울 지도) 16px
-const MAX_H = 880, LABEL_PX = 14, BIG_PX = 16, BIG_AT = 880;
+const MAX_H = 880, LABEL_PX = 14, BIG_PX = 16, BIG_AT = 880, EN_SHOW_AT = 520;
 const maxW = Math.min(1100, Math.round((MAX_H * vb[2]) / vb[3]));
 
 // 이름표: 곳마다 '이 지도 폭부터 보인다'(--min)와 자리(%)를 잰다. 보이는 범위 밖의 곳은 뺀다
@@ -63,23 +63,65 @@ const names = !labels ? [] : svg.items.flatMap((it) => {
   const rings = ringsOfD(it.d);
   let b: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
   for (const r of rings) for (let i = 0; i < r.length; i += 2) b = [Math.min(b[0], r[i]), Math.min(b[1], r[i + 1]), Math.max(b[2], r[i]), Math.max(b[3], r[i + 1])];
-  const text = short(it);
-  const s = staticLabel(rings, b, [it.lx, it.ly], text, LABEL_PX, vb[2], 240, maxW);
   const pct = (x: number, y: number) => [`${(((x - vb[0]) / vb[2]) * 100).toFixed(2)}%`, `${(((y - vb[1]) / vb[3]) * 100).toFixed(2)}%`];
-  if (alwaysLabel.includes(it.id)) {
+  const forced = (text: string) => {
     // 꼭 보일 곳: 가장 넓은 지도에서 드는 자리(없으면 이름표 점)에 늘 보이게, 흰 판에 얹어서
     const k = vb[2] / maxW, bx = labelBox(text, LABEL_PX);
     const at = fitBox(rings, b, [it.lx, it.ly], bx.w * k, bx.h * k, 3 * k) ?? [it.lx, it.ly];
-    return [{ text, min: 0, force: !s || s.minWidth > 320, at: pct(at[0], at[1]), big: null as null | { min: number; at: string[] } }];
+    return [{ text, min: 0, force: true, at: pct(at[0], at[1]), big: null as null | { min: number; at: string[] } }];
+  };
+  const text = short(it);
+  if (alwaysLabel.includes(it.id)) {
+    const s = staticLabel(rings, b, [it.lx, it.ly], text, LABEL_PX, vb[2], 240, maxW);
+    return [{ ...forced(text)[0], force: !s || s.minWidth > 320 }];
   }
-  if (!s) return [];
-  const min = Math.max(s.minWidth, edgeMin(text, LABEL_PX, s.x, s.y));
-  if (min > maxW) return [];
-  // 넓은 지도(BIG_AT 이상)에서는 큰 글자로 다시 잰다: 그 폭부터 큰 글자가 드는 자리. 안 들어가는 이름은 넓은 지도에서 빠진다
-  const l = maxW >= BIG_AT ? staticLabel(rings, b, [it.lx, it.ly], text, BIG_PX, vb[2], BIG_AT, maxW) : null;
-  const lmin = l ? Math.max(l.minWidth, edgeMin(text, BIG_PX, l.x, l.y)) : Infinity;
-  return [{ text, min, force: false, at: pct(s.x, s.y), big: l && lmin <= maxW ? { min: lmin, at: pct(l.x, l.y) } : null }];
+  // 영어 이름은 한글보다 길어 칸에 안 드는 일이 많다: 한 줄로 안 들면 하이픈에서 두 줄('Yeongyang-' / 'gun')로 다시 재고,
+  // 그래도 안 들면 흰 판에 얹어서라도 보인다(한글 지도는 이름이 빠지지 않으므로 영어도 빠지지 않게)
+  const variants = en && /-[^-]+$/.test(text) ? [text, text.replace(/-([^-]+)$/, '-\n$1')] : [text];
+  // 가장 좁은 지도 폭에서 드는 모양을 고른다(한 줄과 두 줄 가운데). 한글 지도는 PC 의 보통 폭(약 640px)에서 이름이 다 보이므로
+  // 영어도 그 폭에서 안 드는 이름은 흰 판으로 늘 보이게 한다
+  type Pick = { text: string; min: number; force: boolean; at: string[]; big: null | { min: number; at: string[] } };
+  const picks: Pick[] = [];
+  for (const t of variants) {
+    const s = staticLabel(rings, b, [it.lx, it.ly], t, LABEL_PX, vb[2], 240, maxW);
+    if (!s) continue;
+    const min = Math.max(s.minWidth, edgeMin(t, LABEL_PX, s.x, s.y));
+    if (min > maxW) continue;
+    // 넓은 지도(BIG_AT 이상)에서는 큰 글자로 다시 잰다: 그 폭부터 큰 글자가 드는 자리. 안 들어가는 이름은 넓은 지도에서 빠진다
+    const l = maxW >= BIG_AT ? staticLabel(rings, b, [it.lx, it.ly], t, BIG_PX, vb[2], BIG_AT, maxW) : null;
+    const lmin = l ? Math.max(l.minWidth, edgeMin(t, BIG_PX, l.x, l.y)) : Infinity;
+    if (en && maxW >= BIG_AT && !(l && lmin <= maxW)) continue;   // 영어: 큰 글자로도 들어가야 한다(아니면 다음 모양)
+    picks.push({ text: t, min, force: false, at: pct(s.x, s.y), big: l && lmin <= maxW ? { min: lmin, at: pct(l.x, l.y) } : null });
+  }
+  // 한 줄이 그 폭에서 들면 한 줄, 아니면 더 좁은 폭에서 드는 모양
+  const lim = en ? EN_SHOW_AT : Infinity;
+  const oneLine = picks.find((x) => !x.text.includes('\n') && x.min <= lim);
+  picks.sort((x, y) => x.min - y.min);
+  if (oneLine || (picks.length && picks[0].min <= lim)) return [oneLine ?? picks[0]];
+  return en ? forced(variants[variants.length - 1]) : [];
 });
+// 흰 판으로 얹은 이름(영어)은 휴대폰 폭에서는 감추고(한글 지도도 좁으면 이름을 감춘다), 기준 폭(480px)에서 다른 이름과 겹치면
+// 위아래·좌우로 밀어 떼어 놓는다. 글자는 px 고정이라 지도가 좁을수록 겹치기 쉬우므로 가장 좁은 기준에서 잰다
+if (en) {
+  const REF = 480, hPx = (REF * vb[3]) / vb[2];
+  const px = (n: (typeof names)[number]) => { const b = labelBox(n.text, LABEL_PX); return { x: (parseFloat(n.at[0]) / 100) * REF, y: (parseFloat(n.at[1]) / 100) * hPx, w: b.w + (n.force ? 8 : 0), h: b.h }; };
+  const hit = (a: ReturnType<typeof px>, b: ReturnType<typeof px>) => Math.abs(a.x - b.x) < (a.w + b.w) / 2 + 1 && Math.abs(a.y - b.y) < (a.h + b.h) / 2 + 1;
+  const placed = names.filter((x) => !x.force).map(px);
+  for (const n of names.filter((x) => x.force)) {
+    n.min = 400;
+    const r = px(n);
+    let best = r;
+    search: for (const k of [0, 1, 2, 3, 4, 5, 6, 7, 8]) {
+      for (const [dx, dy] of k === 0 ? [[0, 0]] : [[0, -k], [0, k], [-k, 0], [k, 0], [-k, -k], [k, -k], [-k, k], [k, k]]) {
+        const t = { ...r, x: r.x + dx * (r.w / 4 + 2), y: r.y + dy * (r.h / 2 + 2) };
+        if (t.x - t.w / 2 < 0 || t.x + t.w / 2 > REF || t.y - t.h / 2 < 0 || t.y + t.h / 2 > hPx) continue;
+        if (!placed.some((o) => hit(t, o))) { best = t; break search; }
+      }
+    }
+    n.at = [`${((best.x / REF) * 100).toFixed(2)}%`, `${((best.y / hPx) * 100).toFixed(2)}%`];
+    placed.push(best);
+  }
+}
 // 이름이 한두 개만 덩그러니 보이는 폭(휴대폰의 서울 지도 등)에서는 아예 감춘다: 네 개(곳이 적으면 셋 중 하나)가 들어가는 폭부터
 const mins = names.filter((n) => !n.force && n.min > 0).map((n) => n.min).sort((a, b) => a - b);
 const floor = mins.length ? mins[Math.min(mins.length, Math.min(4, Math.ceil(mins.length / 3))) - 1] : 0;
@@ -142,7 +184,7 @@ const thinBank = peri > 0 && ((2 * area) / peri) * (maxW / vb[2]) < 8;
   /* 이름표: 늘 14px, 후광 없음. 지도 폭이 --min 보다 좁으면 폭 0 으로 접혀 안 보인다(컨테이너 단위를 모르는 브라우저에서는 숨은 채) */
   .lb {
     position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -50%);
-    font: 600 14px/1.4 var(--font-ui); color: var(--ink); white-space: nowrap; overflow: hidden; pointer-events: none;
+    font: 600 14px/1.4 var(--font-ui); color: var(--ink); white-space: pre; text-align: center; overflow: hidden; pointer-events: none;
     max-width: 0;
     max-width: clamp(0px, calc((100cqw - var(--min)) * 9999), 30em);
   }

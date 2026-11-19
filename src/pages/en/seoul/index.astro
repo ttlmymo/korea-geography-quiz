@@ -1,5 +1,5 @@
 ---
-// English Seoul hub (old URL /en/seoul/): map split by the Han River, 25 districts with neighborhood counts and lessons.
+// English Seoul hub (old URL /en/seoul/): map split by the Hangang River, 25 districts with neighborhood counts and lessons.
 // 배치(합본 D5): 한국어 서울 허브와 같은 틀 — 넓은 화면은 홈 시안처럼 글 | 지도 2단, 지도는 범례 줄까지 첫 화면에 드는 높이(tokens.css .d-top.hub)
 import Base from '../../../layouts/Base.astro';
 import RegionMap from '../../../components/RegionMap.astro';
@@ -14,7 +14,7 @@ const tone = Object.fromEntries(r.items.map((it) => [it.id, SEOUL_NORTH.has(it.i
 const lessonOf = (id: string) => r.lessons.find((l) => l.items.includes(id))!;
 const rows = [...r.items].sort((a, b) => Number(SEOUL_NORTH.has(b.id)) - Number(SEOUL_NORTH.has(a.id)) || enNameOf(a.id).localeCompare(enNameOf(b.id)));
 ---
-<Base lang="en" title="Seoul's 25 districts on the map – Fill the Map" description={`Seoul has 25 autonomous districts: 14 north of the Han River and 11 south of it, with ${total} administrative neighborhoods. See them on a map and learn them lesson by lesson.`} alternate={{ ko: '/seoul/', en: '/en/seoul/' }}>
+<Base lang="en" title="Seoul's 25 districts on the map – Fill the Map" description={`Seoul has 25 autonomous districts: 14 north of the Hangang River and 11 south of it, with ${total} administrative neighborhoods. See them on a map and learn them lesson by lesson.`} alternate={{ ko: '/seoul/', en: '/en/seoul/' }}>
   <div class="wrap page">
     <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › Seoul</nav>
     <div class="d-top hub">
@@ -22,12 +22,12 @@ const rows = [...r.items].sort((a, b) => Number(SEOUL_NORTH.has(b.id)) - Number(
         <h1 class="d-title">Seoul's 25 districts</h1>
       </div>
       <div class="d-body">
-        <p class="lead">Seoul is divided into 25 autonomous districts (gu). The Han River runs through the city: 14 districts lie on its north side and 11 on its south side. Together they have {total} administrative neighborhoods (haengjeong-dong) in the October 1, 2026 boundary data.</p>
+        <p class="lead">Seoul is divided into 25 autonomous districts (gu). The Hangang River runs through the city: 14 districts lie on its north side and 11 on its south side. Together they have {total} administrative neighborhoods (haengjeong-dong) in the October 1, 2026 boundary data.</p>
         <div class="d-acts"><a class="btn" href={href('/en/#/kr/seoul/sgg/p1')}>Start with Seoul lesson 1 <span aria-hidden="true">→</span></a></div>
       </div>
       <figure class="d-map">
-        <RegionMap en region="seoul" tone={tone} label="Map of Seoul's 25 districts: the 14 north of the Han River are shaded" />
-        <figcaption class="d-key"><span><i class="sw" style={`background:${TONE_FILL.a}`}></i>Shaded: north of the Han River (14).</span><span><i class="sw" style={`background:${TONE_FILL.b}`}></i>Light: south of it (11).</span></figcaption>
+        <RegionMap en region="seoul" tone={tone} label="Map of Seoul's 25 districts: the 14 north of the Hangang River are shaded" />
+        <figcaption class="d-key"><span><i class="sw" style={`background:${TONE_FILL.a}`}></i>Shaded: north of the Hangang River (14).</span><span><i class="sw" style={`background:${TONE_FILL.b}`}></i>Light: south of it (11).</span></figcaption>
       </figure>
     </div>
     <section class="d-sec">
@@ -41,7 +41,7 @@ const rows = [...r.items].sort((a, b) => Number(SEOUL_NORTH.has(b.id)) - Number(
     <section class="d-sec">
       <h2>All 25 districts</h2>
       <div class="tbl"><table>
-        <thead><tr><th scope="col">District</th><th scope="col">Han River</th><th scope="col">Neighborhoods</th><th scope="col">Lesson</th></tr></thead>
+        <thead><tr><th scope="col">District</th><th scope="col">Hangang River</th><th scope="col">Neighborhoods</th><th scope="col">Lesson</th></tr></thead>
         <tbody>{rows.map((it) => (
           <tr><td><a href={href(`/en/seoul/${it.slug}/`)}>{enNameOf(it.id)}</a></td><td>{SEOUL_NORTH.has(it.id) ? 'north' : 'south'}</td><td class="num">{dongs(it.id)}</td><td>{lessonOf(it.id).no}</td></tr>
         ))}</tbody>

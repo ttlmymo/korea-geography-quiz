@@ -98,7 +98,7 @@ test('영문 표기(SIDO_EN 16, Q5): 확인한 시·도만 영어 지도 맥락 
   assert.equal(UI_EN.ctxName({ sido: '51', text: '강원특별자치도' }), 'Gangwon');
   assert.equal(UI_EN.ctxName({ sido: '26', text: '부산광역시' }), 'Busan');
   assert.equal(UI_EN.ctxName({ sido: 'kp', text: '북한' }), 'North Korea');
-  assert.equal(UI_EN.ctxName({ sido: 'water', text: '한강' }), 'Han River');
+  assert.equal(UI_EN.ctxName({ sido: 'water', text: '한강' }), 'Hangang River');
   // 전남광주: 사용자 지시(11-15)로 짧은 이름 'Jeonnam-Gwangju' 를 켬(정식 영문은 docs/review/sido-en.md — 화면에는 다른 시·도처럼 짧은 이름)
   assert.equal(sidoByCode('12')?.enChecked, true);
   assert.equal(UI_EN.ctxName({ sido: '12', text: '전남광주통합특별시' }), 'Jeonnam-Gwangju');

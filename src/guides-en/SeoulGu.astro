@@ -1,6 +1,6 @@
 ---
 // G5 English edition: "Learning Seoul's 25 districts". Same data and counting code as the Korean guide (src/guides/SeoulGu.astro).
-// Facts: north/south of the Han River and shared borders come from the boundary data; local living area counts from the Seoul Urban Planning Portal.
+// Facts: north/south of the Hangang River and shared borders come from the boundary data; local living area counts from the Seoul Urban Planning Portal.
 import RegionMap from '../components/RegionMap.astro';
 import { href } from '../lib/paths';
 import { guideIfEn } from './registry';
@@ -26,16 +26,16 @@ const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('�
 ---
 <div class="summary">
   <b>Key points</b>
-  <span>1. First split Seoul by the Han River: {north.length} districts on the north side and {south.length} on the south side.</span>
+  <span>1. First split Seoul by the Hangang River: {north.length} districts on the north side and {south.length} on the south side.</span>
   <span>2. The city of Seoul groups its 25 districts into five regional living areas for city planning. Grouping them this way helps you remember where they are, in blocks.</span>
   <span>3. Find four to six places at a time on a map with the names hidden, then try again the next day. This makes the memory last.</span>
 </div>
 
-<h2>{north.length} districts north of the Han River, {south.length} south</h2>
-<p>When you first learn Seoul, start with the Han River. It runs east to west through the city. Of the 25 districts, {north.length} are north of the river and {south.length} are south of it. Yeouido, the island in the middle of the river, belongs to Yeongdeungpo-gu on the south side. In many places a northern district and a southern district face each other across the river, like Mapo-gu and Yeongdeungpo-gu. If you learn these pairs across the river together, it is easier to place each district.</p>
-<RegionMap en region="seoul" tone={tone} labels label={`Map of Seoul with the ${north.length} districts north of the Han River in light sand and the ${south.length} districts south of it in white`} />
+<h2>{north.length} districts north of the Hangang River, {south.length} south</h2>
+<p>When you first learn Seoul, start with the Hangang River. It runs east to west through the city. Of the 25 districts, {north.length} are north of the river and {south.length} are south of it. Yeouido, the island in the middle of the river, belongs to Yeongdeungpo-gu on the south side. In many places a northern district and a southern district face each other across the river, like Mapo-gu and Yeongdeungpo-gu. If you learn these pairs across the river together, it is easier to place each district.</p>
+<RegionMap en region="seoul" tone={tone} labels label={`Map of Seoul with the ${north.length} districts north of the Hangang River in light sand and the ${south.length} districts south of it in white`} />
 <div class="tbl"><table>
-  <thead><tr><th scope="col">Han River</th><th scope="col">Districts</th></tr></thead>
+  <thead><tr><th scope="col">Hangang River</th><th scope="col">Districts</th></tr></thead>
   <tbody>
     <tr><td><i class="sw" style={`background:${TONE_FILL.a}`} aria-hidden="true"></i>North {north.length}</td><td>{north.join(' · ')}</td></tr>
     <tr><td><i class="sw" style={`background:${TONE_FILL.b}`} aria-hidden="true"></i>South {south.length}</td><td>{south.join(' · ')}</td></tr>
@@ -59,7 +59,7 @@ const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('�
 
 <h2>Practice in this order</h2>
 <ol>
-  <li><b>Big picture first</b>: Split Seoul by the Han River first. Then look at blocks of four to six places, such as a zone or a lesson.</li>
+  <li><b>Big picture first</b>: Split Seoul by the Hangang River first. Then look at blocks of four to six places, such as a zone or a lesson.</li>
   <li><b>Meet them one by one</b>: With the name labels on, tap each place one at a time. Look at where it is and which districts are next to it.</li>
   <li><b>Hide the names and find them</b>: Trying to recall a place and find it on the map stays in your memory better than reading again{recall && <> (<a href={href(`/en/guide/${recall.slug}/`)}>why this works</a>)</>}. If you get one wrong, check which side the right answer is on and tap it once.</li>
   <li><b>Again the next day</b>: Try again after a gap, such as one day or two days later. When you finish all five lessons, move on to the full practice that mixes all 25 places.</li>
@@ -70,5 +70,5 @@ const dongjakSeocho = neighborsOf(r, id('동작구')).some((n) => n.id === id('�
 <ul class="src">
   <li>Seoul Urban Planning Portal, <a href="https://urban.seoul.go.kr/view/html/PMNU3040000001">Urban planning system › Seoul Living Area Plan</a> (5 regional living areas, 116 local living areas and the number in each zone)</li>
   <li>Seoul Metropolitan Government, <a href="https://urban.seoul.go.kr/UpisArchive/DATA/PWEB/STATIC/2040_seoul_plan.pdf">2040 Seoul Urban Master Plan</a> (published in February 2023), Chapter 5, Section 2 (it keeps the same division into 5 regional living areas)</li>
-  <li>Neighborhood (haengjeong-dong) and district boundaries: as of October 1, 2026. North and south of the Han River and shared borders were counted from these boundaries.</li>
+  <li>Neighborhood (haengjeong-dong) and district boundaries: as of October 1, 2026. North and south of the Hangang River and shared borders were counted from these boundaries.</li>
 </ul>

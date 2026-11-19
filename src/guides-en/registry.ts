@@ -30,8 +30,8 @@ const TEXT: Record<string, { title: string; description: string }> = {
     description: 'Two districts can both be called gu and still differ, starting with how the head of the district is chosen. This guide compares autonomous gu, general gu and special cities using the Local Autonomy Act and the October 2026 boundary data, with a table of the 13 cities that have general gu.',
   },
   'seoul-25-gu': {
-    title: "How to Memorize Seoul's 25 Districts: North and South of the Han River, and Five Regions",
-    description: "Split Seoul's 25 districts first into 14 north and 11 south of the Han River, then group them by the city's five regional living areas and Fill the Map's five lessons. This guide shows the method with maps and tables.",
+    title: "How to Memorize Seoul's 25 Districts: North and South of the Hangang River, and Five Regions",
+    description: "Split Seoul's 25 districts first into 14 north and 11 south of the Hangang River, then group them by the city's five regional living areas and Fill the Map's five lessons. This guide shows the method with maps and tables.",
   },
   'recall-practice': {
     title: 'Memorizing Administrative Areas with Map Quizzes: Recall Beats Rereading',

@@ -79,5 +79,5 @@ test('영어 화면 글: 한국어와 같은 항목을 모두 갖추고, 판정 
   assert.equal(UI_KO.prompt(reg, 'find', idOf('연천군'), (s) => s), '연천군을 찾아 누르세요');
   { const line = UI_EN.line(reg, idOf('마포구')); assert.ok(line.length > 0 && !/[가-힣]/.test(line), '영어 위치 한 줄: 영어로 있고 한글이 없다'); }
   assert.equal(UI_EN.ctxName({ sido: '41', text: '경기도' }), 'Gyeonggi');
-  assert.equal(UI_EN.ctxName({ sido: 'water', text: '한강' }), 'Han River');
+  assert.equal(UI_EN.ctxName({ sido: 'water', text: '한강' }), 'Hangang River');
 });

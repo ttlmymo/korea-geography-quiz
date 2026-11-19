@@ -467,7 +467,7 @@ export const UI_EN: UI = {
   // 'Cheonan-si Dongnam-gu')이고 en 이 없으면(옛 캐시) '' — 한글을 영어 지도에 두지 않는다(EN_EMD 5.4). 일반구 단원의 나머지 칸은 ctxNamer 가 레지스트리 이름을 en 으로 넘긴다.
   // 그 밖(지역 지도의 이웃 시·도)은 지역 표 영어 이름(확인하지 않은 시·도는 '' — 지도에 두지 않음), 표에 없으면 원래 글.
   // 바다 이름(map/sea.ts — sido 'sea:w'·'sea:s'·'sea:e', 2026-11-17)은 SEA_EN
-  ctxName: (n: CtxCell) => (n.sido === 'water' ? 'Han River' : n.sido === 'kp' ? 'North Korea' : n.sido === 'jp' ? 'Japan'
+  ctxName: (n: CtxCell) => (n.sido === 'water' ? 'Hangang River' : n.sido === 'kp' ? 'North Korea' : n.sido === 'jp' ? 'Japan'
     : n.sido in SEA_EN ? SEA_EN[n.sido]
     : n.en !== undefined ? n.en : n.id ? '' : sidoEn(n.sido) ?? n.text),
   /**
@@ -534,7 +534,7 @@ export const UI_EN: UI = {
       act: chose ? `The outlined area is ${t}` : `Tap the marked ${t} once`,
     };
   },
-  isleWhere: (reg: Registry, id: string, inIsle: boolean) => (inIsle ? `${enPlace(reg, id)} is in its own island box` : `${enPlace(reg, id)} is on the main map`),
+  isleWhere: (reg: Registry, id: string, inIsle: boolean) => (inIsle ? `${enPlace(reg, id)} is shown in a separate island box` : `${enPlace(reg, id)} is on the main map`),
   dontKnow: (reg: Registry, id: string) => ({ title: `This is ${enPlace(reg, id)}`, act: 'Tap it once' }),
   fixed: (reg: Registry, id: string) => `This is ${enPlace(reg, id)}`,
   meetAct: 'Tap the outlined area',
@@ -562,7 +562,7 @@ export const UI_EN: UI = {
     return { pre: 'Find and tap', big: enName(p.item), post: '' };
   },
   modeLabel: { meet: 'Meet', choose: 'Choose', find: 'Find it on the map with names hidden' },
-  findNote: "It's fine to miss. You'll see which way the answer is",
+  findNote: "It's okay to get it wrong. We'll show you which way the answer lies",
   qUnit: 'questions',
   stNow: 'Now',
   mapCap: (mode: string) => (mode === 'meet' ? 'Meet it by its label' : 'Map with names hidden'),
@@ -598,7 +598,7 @@ export const UI_EN: UI = {
   tabDue: 'review today',
   firstLesson: 'First lesson',
   legendNext: 'Next lesson',
-  legendRiver: 'Han River',
+  legendRiver: 'Hangang River',
   legendAria: 'Map key',
   lessonHead: (lesson: string, count: string) => `${lesson}\nFill in ${count}`,
   places: (n: number) => plural(n, 'place', 'places'),
@@ -609,7 +609,7 @@ export const UI_EN: UI = {
   regionFull: (r: Region) => r.en,
   asOf: (y: number, m: number) => `Boundaries as of ${MONTHS_EN[m - 1] ?? m} ${y}`,
   masteredNote: 'Mastered places keep their names on the map',
-  progAria: (r: string, n: number) => `How much of ${r}'s ${n} places is filled`,
+  progAria: (r: string, n: number) => `How many of ${r}'s ${n} places are filled`,
   noLogin: 'No sign-in needed',
   lessonsHead: (r: string, n: number) => `${r} in ${plural(n, 'lesson', 'lessons')}`,   // 과가 하나인 대전·울산 'Daejeon in 1 lesson'(E12 검수)
   lessonsHelp: 'Pick a lesson to start from there',
@@ -643,11 +643,11 @@ export const UI_EN: UI = {
   pickerMap: 'Map of Korea. Tap an open region to go there',
   // 모두 열렸으면(2026-11-16 영어 동 공부부터 세종·제주도 열림) 한국어 '전국 시·도 16곳'처럼 수만
   pickerCap: (open: number, all: number) => (open === all ? `All ${all} provinces and cities` : `${open} of ${all} regions open`),
-  koreaHead: 'Provinces at a glance',
+  koreaHead: 'Provinces and cities at a glance',
   regionsCount: (n: number) => plural(n, 'region', 'regions'),
   pickerSub: 'Pick a region on the map or in the list. Regions not open yet are grayed out',
   pickerSubAll: 'Pick a region on the map or in the list',
-  groupName: (g: string) => ({ 수도권: 'Capital area', 강원: 'Gangwon', 충청: 'Chungcheong', 호남: 'Honam', 영남: 'Yeongnam', 제주: 'Jeju' })[g] ?? g,
+  groupName: (g: string) => ({ 수도권: 'Capital Area', 강원: 'Gangwon', 충청: 'Chungcheong', 호남: 'Honam', 영남: 'Yeongnam', 제주: 'Jeju' })[g] ?? g,
   mainMeta: (n: number, lessons: number) => `${plural(n, 'place', 'places')} · ${plural(lessons, 'lesson', 'lessons')}`,
   unitMapLabel: (r: string) => `Filled map of ${r}. Tap a place to read about it`,
   reviewChip: (n: number) => `Today's review ${n} →`,
@@ -714,7 +714,7 @@ export const UI_EN: UI = {
   bestTag: (s: number, t: number, time: string) => `best ${s}/${t} · ${time}`,
   noReview: 'Nothing to review today',
   noReviewSub: (t: number) => (t ? `${plural(t, 'place', 'places')} tomorrow` : 'Finish a lesson and reviews start the next day'),
-  rank: 'Ranking', rankTitle: 'The ranking is coming soon', rankSub: 'You can study without signing in',
+  rank: 'Leaderboard', rankTitle: 'Leaderboards are coming soon', rankSub: 'You can study without signing in',
   exploreTitle: (r: string) => `Map of ${r}`,
   hideNames: 'Hide names', fillColor: 'Filled colors',
   exploreAria: (r: string) => `Map of ${r} with names`,
