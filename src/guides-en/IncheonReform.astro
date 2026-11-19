@@ -14,7 +14,11 @@ const NEW = reform.reform.map((x) => x.new);
 const all = svg.items.flatMap((it) => it.dongs);
 const k = countKinds(all);
 const total = (row: (typeof reform.reform)[number]) => Object.values(row.from).flat().length;
-const biggest = [...reform.reform].sort((a, b) => b.area_km2 - a.area_km2)[0];
+// Areas are the figures Incheon publishes (administrative reform page, updated June 17, 2026). Areas measured from the boundary data (row.area_km2) are larger because they include sea, tidal flats and unregistered reclaimed land (Geomdan-gu +12.7 km²)
+const OFFICIAL_AREA: Record<string, number> = { 제물포구: 21.8, 영종구: 125.88, 서해구: 71.36, 검단구: 47.7 };
+const areaOf = (row: (typeof reform.reform)[number]) => OFFICIAL_AREA[row.new] ?? row.area_km2;
+const boundaryOf = (name: string) => reform.reform.find((x) => x.new === name)!.area_km2;
+const biggest = [...reform.reform].sort((a, b) => areaOf(b) - areaOf(a))[0];
 const lessons = r.lessons.filter((l) => l.items.some((id) => NEW.map(idOf).includes(id)));
 const nm = (id: string) => enNameOf(id);
 const newEn = (ko: string) => enNameOf(idOf(ko));
@@ -56,10 +60,10 @@ const SRC = {
 <div class="tbl"><table class="nums">
   <thead><tr><th scope="col">Current district</th><th scope="col">Old district</th><th scope="col" class="num">Neighborhoods</th><th scope="col" class="num">Area (approx., ㎢)</th></tr></thead>
   <tbody>{reform.reform.map((row) => (
-    <tr><td>{newEn(row.new)}</td><td>{Object.entries(row.from).map(([o, list]) => `${oldEn(o)} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{row.area_km2}</td></tr>
+    <tr><td>{newEn(row.new)}</td><td>{Object.entries(row.from).map(([o, list]) => `${oldEn(o)} ${(list as string[]).length}`).join(' · ')}</td><td class="num">{total(row)}</td><td class="num">{areaOf(row)}</td></tr>
   ))}</tbody>
 </table></div>
-<p class="meta">The areas are measured from the neighborhood boundary data. Incheon gives these areas: 21.8 (Jemulpo-gu), 125.88 (Yeongjong-gu), 71.36 (Seohae-gu) and 47.7 ㎢ (Geomdan-gu). The city's figures seem to count only registered land (its figures for the old Jung-gu, Dong-gu and Seo-gu match their registered land areas), while neighborhood boundaries can also include sea, tidal flats and reclaimed land that is not yet registered. So this table is larger for all four districts, and the gap is especially big for Geomdan-gu. Most of the Geomdan-gu gap comes from Oryuwanggil-dong.</p>
+<p class="meta">The areas are the figures published by Incheon. They seem to count only registered land (the city's figures for the old Jung-gu, Dong-gu and Seo-gu match their registered land areas). If you measure from the neighborhood boundary data instead, the boundaries also include sea, tidal flats and reclaimed land that is not yet registered, so all four districts come out larger, and Geomdan-gu especially so, at {boundaryOf('검단구')} ㎢. Most of that gap comes from Oryuwanggil-dong.</p>
 <h3>Find a neighborhood by name</h3>
 <div class="tbl"><table>
   <thead><tr><th scope="col">Current district</th><th scope="col">Neighborhoods that came from the old districts</th></tr></thead>
@@ -99,7 +103,7 @@ const SRC = {
   <li>Incheon Metropolitan City, <a href={SRC.city}>Incheon designs the organization and staffing of the four districts launching in 2026</a> (press release, Sept. 12, 2024)</li>
   <li>Ministry of the Interior and Safety, <a href={SRC.rename}>Incheon Seo-gu makes a fresh start as Seohae-gu, with residents' consent</a> (May 7, 2026)</li>
   <li>Incheon Metropolitan City, <a href="https://www.incheon.go.kr/IC01070101">Incheon website page on the administrative reform</a> (areas of the new districts, updated June 17, 2026)</li>
-  <li>Neighborhood boundaries: as of April 1, 2026 (before the reform) and October 1, 2026 (after the reform). The correspondence table, the areas and the map before the reform were made from these boundaries.</li>
+  <li>Neighborhood boundaries: as of April 1, 2026 (before the reform) and October 1, 2026 (after the reform). The correspondence table and the map before the reform were made from these boundaries.</li>
 </ul>
 
 
