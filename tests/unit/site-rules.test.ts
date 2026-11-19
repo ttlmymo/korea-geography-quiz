@@ -252,10 +252,12 @@ test('지역 표 → 이름 묶음: 지역이 넷까지는 이름을 다 쓰고(
 });
 
 test('지역 표 → 허브: 서울·인천·경기, 머리글 지금 쪽 판정', () => {
-  assert.deepEqual(HUBS.map((s) => s.key), ['seoul', 'incheon', 'gyeonggi']);
+  assert.equal(HUBS.length, 16, '2026-11-19: 열여섯 시·도 모두 허브가 있다');
+  for (const k of ['seoul', 'incheon', 'gyeonggi']) assert.ok(HUBS.some((s) => s.key === k), k);
   const re = hubPathRe();
   for (const p of ['/seoul/', '/seoul/jongno-gu/', '/incheon/', '/gyeonggi', '/seoul']) assert.ok(re.test(p), p);
-  for (const p of ['/', '/seoulx/', '/busan/', '/guide/', '/about/']) assert.ok(!re.test(p), p);
+  for (const p of ['/', '/seoulx/', '/guide/', '/about/']) assert.ok(!re.test(p), p);
+  assert.ok(re.test('/busan/'), '/busan/ 도 허브');
   assert.ok(!hubPathRe([]).test('/'), '허브가 없으면 아무 주소도 아님');
 });
 

@@ -66,7 +66,7 @@ const polys = (g: { type: string; coordinates: unknown } | null) => (!g ? [] : g
 test('지역 표·판: 네 지역 공개(status·emd live, 충북 gu live), 판 units.json 은 원고와 같은 곳·과·넓은 화면 — 강원 18곳 5과 화면 2 · 충북 11곳 3과 · 전북 14곳 4과 · 제주는 과 없는 지역', () => {
   for (const [k, order] of [['gangwon', 9], ['chungbuk', 10], ['jeonbuk', 11], ['jeju', 12]] as const) {
     const s = SIDO(k);
-    assert.deepEqual([s.status, s.emd, s.gu, s.enChecked, s.hub, s.openOrder, s.gunFirst], ['live', 'live', k === 'chungbuk' ? 'live' : 'off', true, null, order, false], k);
+    assert.deepEqual([s.status, s.emd, s.gu, s.enChecked, Boolean(s.hub), s.openOrder, s.gunFirst], ['live', 'live', k === 'chungbuk' ? 'live' : 'off', true, true, order, false], k);
     assert.equal(s.lineRequired, k !== 'jeju', `${k} 위치 한 줄 필수(제주는 시·군·구 과가 없어 쓰지 않음)`);
   }
   assert.deepEqual(E13_KEYS.map((k) => SIDO(k).en), ['Gangwon', 'Chungbuk', 'Jeonbuk', 'Jeju']);

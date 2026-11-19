@@ -66,8 +66,8 @@ const polys = (g: G) => (!g ? [] : g.type === 'Polygon' ? [g.coordinates as numb
 
 test('지역 표·판: 경남 공개(status·emd·gu live, 공개 차례 15, 단순화 40m), 판 units.json 은 원고와 같은 곳·과·넓은 화면 — 18곳(시 층) 4과 · 넓은 화면 동쪽·서쪽', () => {
   assert.deepEqual(E15_KEYS, ['gyeongnam']);
-  assert.deepEqual([SIDO.status, SIDO.emd, SIDO.gu, SIDO.layer, SIDO.enChecked, SIDO.hub, SIDO.openOrder, SIDO.gunFirst, SIDO.simplifySggM, SIDO.lineRequired],
-    ['live', 'live', 'live', 'si', true, null, 15, false, 40, true]);
+  assert.deepEqual([SIDO.status, SIDO.emd, SIDO.gu, SIDO.layer, SIDO.enChecked, Boolean(SIDO.hub), SIDO.openOrder, SIDO.gunFirst, SIDO.simplifySggM, SIDO.lineRequired],
+    ['live', 'live', 'live', 'si', true, true, 15, false, 40, true]);
   assert.deepEqual(SIDO.desc, { ko: ['바다에 닿은 곳 7, 닿지 않은 곳 11', ''], en: ['7 on the sea, 11 inland', ''] });
   assert.deepEqual(UI_KO.regionDesc.gyeongnam, ['바다에 닿은 곳 7, 닿지 않은 곳 11', '']);
   const r = reg.region('gyeongnam')!;

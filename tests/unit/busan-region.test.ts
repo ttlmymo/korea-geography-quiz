@@ -52,7 +52,7 @@ const knownOf = (r: Registry): Known => {
 
 test('지역 표·판: 부산은 공개(status live)·동 단원 live·일반구 없음, 판 units.json 은 원고와 같은 16곳·4과·넓은 화면 2개', () => {
   assert.deepEqual([SIDO.status, SIDO.emd, SIDO.gu, SIDO.layer, SIDO.lineRequired, SIDO.enChecked, SIDO.en], ['live', 'live', 'off', 'sgg', true, true, 'Busan']);
-  assert.equal(SIDO.hub, null, '검수한 정적 허브 쪽이 없다(계획서 6절 — 새 색인 쪽은 검수 뒤)');
+  assert.ok(SIDO.hub, '정적 허브 쪽이 있다(2026-11-19 시·도 허브 13곳)');
   const b = reg.region('busan')!;
   assert.deepEqual([b.items.length, b.lessons.length, b.screens.length, b.layer], [16, 4, 2, 'sgg']);
   // 원고와 같은 과 구성·이름·곳 차례(만나기 차례)
@@ -140,7 +140,7 @@ test('홈·지역 쪽·지역 고르기·구 고르기: 부산 탭과 쪽에 코
   assert.match(h, /<span>첫 과 · 부산 1과<\/span><\/p><h1 class="h-title">부산항 둘레<br><span class="h-hl hl">4개 구<\/span>/);
   assert.match(h, /부산항 둘레/);
   assert.match(h, /href="#\/kr\/busan\/emd"><span>동까지 공부하기<\/span>/);
-  assert.match(h, /<a class="h-xl" href="#\/kr"><span class="h-xt">전국 지역 고르기<\/span>/, '허브 쪽이 없으면 지역 고르기로');
+  assert.match(h, /<a class="h-xl" href="[^"]*busan\/"><span class="h-xt">부산 16개 구·군<\/span>/, '허브 쪽이 있으면 그 허브로');
   assert.doesNotMatch(h, BAD);
   // 탭: E11 은 네 지역 모두(N22 — 지역 4곳 이하)였다. E12 부터 지역이 여덟이라 접힌다 — 처음 온 사람의 탭은 공개 차례(서울·인천·경기, 지역 표 openOrder)이고,
   // 부산을 고르면(지역 고르기·'다른 지역') 셋째 자리에 들어간다(앞 두 탭은 그대로 — 누른 자리 밑에서 탭이 바뀌지 않게, E11)

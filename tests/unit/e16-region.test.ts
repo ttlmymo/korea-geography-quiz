@@ -100,8 +100,8 @@ function spec(sel: string): number[] {
 
 test('지역 표·판: 전남광주 공개(status·emd live, 일반구 없음, 공개 차례 16, 단순화 60m, 먼 섬 경도 125.7, 자치구 묶음), 판 units.json 은 원고와 같은 곳·과·넓은 화면 — 27곳 6과 · 넓은 화면 광주·북서쪽·남서쪽·동쪽', () => {
   assert.deepEqual(E16_KEYS, [KEY]);
-  assert.deepEqual([SIDO.status, SIDO.emd, SIDO.gu, SIDO.layer, SIDO.enChecked, SIDO.hub, SIDO.openOrder, SIDO.gunFirst, SIDO.simplifySggM, SIDO.lineRequired, SIDO.far, SIDO.lonelyOk],
-    ['live', 'live', 'off', 'sgg', true, null, 16, false, 60, true, { lonLt: 125.7 }, []]);
+  assert.deepEqual([SIDO.status, SIDO.emd, SIDO.gu, SIDO.layer, SIDO.enChecked, Boolean(SIDO.hub), SIDO.openOrder, SIDO.gunFirst, SIDO.simplifySggM, SIDO.lineRequired, SIDO.far, SIDO.lonelyOk],
+    ['live', 'live', 'off', 'sgg', true, true, 16, false, 60, true, { lonLt: 125.7 }, []]);
   // 영어 이름: 다른 시·도처럼 짧은 이름(정식 영문 'Jeonnam-Gwangju Special Metropolitan City' 는 docs/review/sido-en.md — 화면에는 쓰지 않음)
   assert.equal(SIDO.en, 'Jeonnam-Gwangju');
   // 지역 한 줄은 법적 구분(자치구·시·군 — 2026-11-15, 전에는 '광주 5개 구와 전남 22개 시·군'). 수가 판과 맞는지는 legal-names 시험이 센다

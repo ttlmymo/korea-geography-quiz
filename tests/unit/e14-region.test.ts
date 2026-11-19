@@ -71,7 +71,7 @@ test('지역 표·판: 충남·경북 공개(status·emd live, 일반구 단원 
   assert.deepEqual(E14_KEYS, ['chungnam', 'gyeongbuk']);
   for (const [k, order] of [['chungnam', 13], ['gyeongbuk', 14]] as const) {
     const s = SIDO(k);
-    assert.deepEqual([s.status, s.emd, s.gu, s.enChecked, s.hub, s.openOrder, s.gunFirst, s.lineRequired, s.layer], ['live', 'live', 'off', true, null, order, false, true, 'si'], k);
+    assert.deepEqual([s.status, s.emd, s.gu, s.enChecked, Boolean(s.hub), s.openOrder, s.gunFirst, s.lineRequired, s.layer], ['live', 'live', 'off', true, true, order, false, true, 'si'], k);
   }
   assert.deepEqual(E14_KEYS.map((k) => SIDO(k).en), ['Chungnam', 'Gyeongbuk']);
   // 충남 먼 섬은 경도 125.9 서쪽 덩어리(태안 근흥면 격렬비열도 쪽 — 앱 먼 섬 상자 FAR_LON 과 같은 규칙), 경북은 기본 규칙(울릉군 통째로 먼 섬)

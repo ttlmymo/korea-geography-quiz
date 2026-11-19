@@ -63,7 +63,7 @@ const CODE: Record<string, string> = { daegu: '27', daejeon: '30', ulsan: '31', 
 test('지역 표·판: 네 지역 공개(status·emd live), 판 units.json 은 원고와 같은 곳·과·넓은 화면 — 대구 9곳 3과 화면 2 · 대전·울산 5곳 1과 · 세종은 과 없는 지역', () => {
   for (const [k, order] of [['daegu', 5], ['daejeon', 6], ['ulsan', 7], ['sejong', 8]] as const) {
     const s = SIDO(k);
-    assert.deepEqual([s.status, s.emd, s.gu, s.enChecked, s.hub, s.openOrder, s.gunFirst], ['live', 'live', 'off', true, null, order, false], k);
+    assert.deepEqual([s.status, s.emd, s.gu, s.enChecked, Boolean(s.hub), s.openOrder, s.gunFirst], ['live', 'live', 'off', true, true, order, false], k);
     assert.equal(s.lineRequired, k !== 'sejong', `${k} 위치 한 줄 필수(세종은 시·군·구 과가 없어 쓰지 않음)`);
   }
   assert.deepEqual(['daegu', 'daejeon', 'ulsan', 'sejong'].map((k) => SIDO(k).en), ['Daegu', 'Daejeon', 'Ulsan', 'Sejong']);
