@@ -203,7 +203,7 @@ const thinBank = peri > 0 && ((2 * area) / peri) * (maxW / vb[2]) < 8;
     max-width: clamp(0px, calc((100cqw - var(--min)) * 9999), 30em);
   }
   /* 흰 판 이름: 지도가 좁아 접히면 판도 테두리도 함께 사라진다(안쪽 그림자라 폭 0 이면 안 보임) */
-  .lb.force { padding: 0 clamp(0px, calc((100cqw - var(--min)) * 9999), 4px); background: var(--white); box-shadow: inset 0 0 0 1px var(--ink); }
+  .lb.force { text-shadow: 0 0 2px var(--white), 0 0 2px var(--white), 0 0 3px var(--white); }
   /* 넓은 지도(PC 의 서울): 16px. 큰 글자가 드는 자리(--xl·--yl)와 문턱(--minl)을 따로 쓴다 — 큰 글자가 안 드는 이름(--minl 없음)은 빠진다 */
   @container (min-width: 880px) {
     .lb:not(.force) { font-size: 16px; left: var(--xl, var(--x)); top: var(--yl, var(--y)); max-width: clamp(0px, calc((100cqw - var(--minl, 99999px)) * 9999), 30em); }
