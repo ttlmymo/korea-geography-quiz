@@ -823,3 +823,7 @@ html[lang="en"] .rg-later b { min-width: 7.5em; }
 /* 힌트 견본(문제 화면 범례, play.ts hintKey): 기준 칸 = 굵은 점선 네모, 힌트로 뺀 칸 = 짙은 회색(지도 .cm-ref · .cm-cell.dim 과 같게) */
 .sw.s-hintref { background: var(--m0); border: 2px dashed var(--ink); }
 .sw.s-hintoff { background: var(--map-hint-dim); border-color: var(--line-mid); }
+
+/* 이름 이야기 한 줄(app/story.ts): 공부 카드(.fb-story)·둘러보기(.x-story). 위치 한 줄보다 작은 보조 글, 앞에 '역사' 꼬리표 */
+.fb-story, .x-story { margin: 0; font-size: var(--fs-14); line-height: 1.55; color: var(--ink-2); max-width: 40em; }
+.st-tag { display: inline-block; margin-right: 6px; padding: 0 5px; border: 1px solid var(--line-mid); border-radius: 4px; font-size: 13px; font-weight: 600; line-height: 1.5; color: var(--ink); vertical-align: 1px; }

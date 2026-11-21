@@ -10,6 +10,7 @@ import type { Question } from '../core/questions.ts';
 import { step } from '../core/session.ts';
 import { wrongInfo, type Tap } from '../core/judge.ts';
 import { narrowCandidates, pickHintRef, seenInRound } from '../core/hint.ts';
+import { loadStories, storyOf } from '../story.ts';
 import { boxOf, type Box } from '../map/project.ts';
 import type { Shapes } from '../map/shapes.ts';
 import { createSvgMap, type SvgMap } from '../map/svgmap.ts';
@@ -196,15 +197,19 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     const id = q.id, name = esc(nm(id));
     // 위치 한 줄(영어 화면에는 없음)
     const lineText = L.line(ctx.reg, id);
+    // 이름 이야기 한 줄(app/story.ts — 원문 확인한 소개 글의 한 문장): 만나기·고르기 맞음·모르겠어요·고침·손으로 넘기는 맞음 카드에만.
+    // 틀린 뒤·자동으로 넘어가는 맞음·시험에는 싣지 않는다(판정 글에 눈이 가게)
+    const storyText = storyOf(id, L.lang);
+    const story = storyText ? `<p class="fb-story"><span class="st-tag">${esc(L.storyTag)}</span>${esc(storyText)}</p>` : '';
     const line = lineText ? `<p class="fb-line">${esc(lineText)}</p>` : '';
     if (q.mode === 'meet') {
-      if (phase === 'ask') return `${line}${hintP(L.meetAct)}`;
-      return `${title(`○ ${name}`)}${line}`;
+      if (phase === 'ask') return `${line}${story}${hintP(L.meetAct)}`;
+      return `${title(`○ ${name}`)}${line}${story}`;
     }
     if (q.mode === 'choose') {
       // 보기는 읽기 자리(aria-live) 밖의 .pl-opts 에 있다(paintOpts·markOpts). 여기에는 판정 글과 [다음]만
       if (phase === 'ask') return '';
-      if (phase === 'cok') return `${title(`○ ${esc(L.right(ctx.reg, id, true))}`)}${line}${nextBtn()}`;
+      if (phase === 'cok') return `${title(`○ ${esc(L.right(ctx.reg, id, true))}`)}${line}${story}${nextBtn()}`;
       const t = L.wrong(ctx.reg, wrongInfo(ctx.reg, id, picked!), true);
       return `${title(`✕ ${esc(t.title)}`)}<p class="fb-line">${esc(whereOf(t.where, id))}</p>${hintP(t.act)}${nextBtn()}`;
     }
@@ -221,15 +226,15 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     if (phase === 'tok') return title(`○ ${name}`);
     if (phase === 'tno') return title('✕');
     if (phase === 'ok') {
-      if (manualNext(d, id)) return `${title(`○ ${esc(L.right(ctx.reg, id, true))}`)}${line}${nextBtn()}`;
+      if (manualNext(d, id)) return `${title(`○ ${esc(L.right(ctx.reg, id, true))}`)}${line}${d.kind === 'check' ? '' : story}${nextBtn()}`;
       return `${title(`○ ${name}`)}${ctx.settings.autoNext ? `<p class="fb-note">${esc(L.autoNote)}</p>` : nextBtn()}`;
     }
     if (phase === 'wrong') {
       const t = L.wrong(ctx.reg, wrongInfo(ctx.reg, id, picked!), false);
       return `${title(`✕ ${esc(t.title)}`)}<p class="fb-line">${esc(whereOf(t.where, id))}</p>${hintP(`○ ${t.act}`)}`;
     }
-    if (phase === 'dk') { const t = L.dontKnow(ctx.reg, id); return `${title(esc(t.title))}${line}${hintP(t.act)}`; }
-    if (phase === 'fixed') return `${title(`○ ${esc(L.fixed(ctx.reg, id))}`)}${line}${nextBtn()}`;
+    if (phase === 'dk') { const t = L.dontKnow(ctx.reg, id); return `${title(esc(t.title))}${line}${story}${hintP(t.act)}`; }
+    if (phase === 'fixed') return `${title(`○ ${esc(L.fixed(ctx.reg, id))}`)}${line}${story}${nextBtn()}`;
     return '';
   }
 
@@ -630,6 +635,8 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
   hostRo?.observe(ui.mapHost);
 
   show();
+  // 이름 이야기는 받는 대로 지금 카드에 더한다(받기 전에는 카드가 전과 같다). 묻는 중·판정 뒤 모두 actHtml 이 그린다
+  loadStories(ctx.base, () => { if (alive && q) setAct(actHtml()); });
 
   return {
     /** 키보드(설계서 4.4): Enter·Space 다음, 1~4 보기, H 힌트, Esc 그만하기 */

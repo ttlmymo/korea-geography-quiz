@@ -12,6 +12,7 @@ import { ICON, esc } from './dom.ts';
 import { L, placeName } from '../text/ui.ts';
 import { boxOf } from '../map/project.ts';
 import { STAGE_SCALE_MIN, insetPad, mountMap, shapesOf, viewSpec, wholeView } from './maps.ts';
+import { loadStories, storyOf, storyPage } from '../story.ts';
 
 /** 넓은 화면 배치가 시작되는 폭(app.css·play.ts 와 같다) */
 const WIDE_MQ = '(min-width: 1024px)';
@@ -77,11 +78,14 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
     const p = reg.place(st.sel)!;
     const nb = reg.neighborsOf(st.sel).filter((id) => reg.place(id)?.region.key === r.key);
     const line = L.line(reg, st.sel);
+    const story = storyOf(st.sel, L.lang);
+    // 자세히 읽기: 소개 쪽이 있는 곳(story.json page — 원문 확인한 글이 있는 곳). 전에는 서울 구만 링크했다
+    const page = storyPage(st.sel) ?? (r.key === 'seoul' ? `seoul/${p.item.slug}/` : null);
     cardEl.innerHTML = `<p class="x-eye">${esc(`${rn} ${L.lessonNo(p.lesson.no)} · ${L.lesson(p.lesson)}`)}</p>
-      <h2 class="x-name">${esc(L.name(p.item))}</h2>${line ? `<p class="x-line">${esc(line)}</p>` : ''}
+      <h2 class="x-name">${esc(L.name(p.item))}</h2>${line ? `<p class="x-line">${esc(line)}</p>` : ''}${story ? `<p class="x-story"><span class="st-tag">${esc(L.storyTag)}</span>${esc(story)}</p>` : ''}
       ${nb.length ? `<p class="x-nb"><span class="x-nh">${esc(L.touching)}</span>${nb.map((id) => `<button class="btn-text" type="button" data-xact="sel" data-arg="${id}">${esc(nm(id))}</button>`).join('')}</p>` : ''}
       <div class="x-acts"><a class="btn" href="${toHash({ name: 'lesson', region: r.key, no: p.lesson.no })}">${esc(L.practice(L.lessonNo(p.lesson.no)))}</a>
-        ${r.key === 'seoul' ? `<a class="x-more" href="${ctx.base}${L.path(`seoul/${p.item.slug}/`)}">${esc(L.readMore)} <span aria-hidden="true">→</span></a>` : ''}</div>`;
+        ${page ? `<a class="x-more" href="${ctx.base}${L.path(page)}">${esc(L.readMore)} <span aria-hidden="true">→</span></a>` : ''}</div>`;
   }
 
   /** 범례: 채움 색을 켰을 때 아직 / 익히는 중 / 다 익힘, 지도에 강이 있으면 한강. 좁은 화면은 채움 색일 때만 그 줄을 보인다 */
@@ -147,6 +151,8 @@ export function mountExplore(root: HTMLElement, ctx: Ctx, regionKey: string, slu
   root.addEventListener('click', onClick);
 
   card();
+  // 이름 이야기·자세히 읽기 주소는 받는 대로 카드에 더한다(받기 전에는 위치 한 줄만)
+  loadStories(ctx.base, () => { if (alive) card(); });
   paint();
   mountMap(ctx, host, { region: r.key, interaction: 'full', contextNames: true, scaleBar: true, scaleMinWidth: STAGE_SCALE_MIN, pad: pad(), onTap, onZoomed: (z) => { resetBtn.hidden = !z; }, ...viewSpec(r, view) })
     .then(async (m) => {
