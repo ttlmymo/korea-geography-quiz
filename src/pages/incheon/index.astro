@@ -35,7 +35,7 @@ const SRC = {
       </div>
       <div class="d-body">
         <p class="lead">인천광역시는 강화군·옹진군 2개 군과 9개 구로 나뉘어요. 2026년 7월 1일 행정체제 개편으로 옛 중구와 동구는 제물포구와 영종구로, 옛 서구는 서해구와 검단구로 바뀌었어요. 읍·면·동은 {k.읍}읍 {k.면}면 {k.동}동, 모두 {all.length}개예요(2026년 10월 1일 경계 기준).</p>
-        <div class="d-acts"><a class="btn" href={href('/#/kr/incheon/sgg/p1')}>인천 1과부터 공부하기 <span aria-hidden="true">→</span></a></div>
+        <div class="d-acts"><a class="btn" href={href('/#/kr/incheon/sgg/p1')}>인천 1과부터 공부하기 <span aria-hidden="true">→</span></a><a class="btn2" href={href('/blank-map/incheon/')}>백지도 인쇄</a></div>
       </div>
       <figure class="d-map">
         <RegionMap region="incheon" labels alwaysLabel={rows.filter((it) => it.ko === '제물포구').map((it) => it.id)} highlight={rows.filter((it) => NEW.has(it.ko)).map((it) => it.id)} label="인천 2군 9구 지도: 2026년 7월에 새로 생기거나 이름이 바뀐 4개 구를 노랗게 표시" />

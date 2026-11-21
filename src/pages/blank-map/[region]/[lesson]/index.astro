@@ -1,0 +1,40 @@
+---
+// 과 백지도(/blank-map/{지역}/{과 번호}/, 11-21 보완): 앱의 과와 같은 묶음을 종이로. 그 과 칸만 번호, 둘레의 다른 칸은 회색.
+// 곳이 8곳 이하라 문제지 아래 같은 쪽에 답 쓰는 칸이 있다. 지역 백지도처럼 noindex(사이트맵·색인 제외)
+import Base from '../../../../layouts/Base.astro';
+import PrintDoc from '../../../../components/PrintDoc.astro';
+import { href } from '../../../../lib/paths';
+import { region } from '../../../../lib/geo';
+import { sidoOf } from '../../../../app/sidos';
+import { KOREA_KEY, printKeys, printLessons, printMapOf } from '../../../../lib/print';
+
+export function getStaticPaths() {
+  return printKeys().filter((k) => k !== KOREA_KEY).flatMap((key) => printLessons(key).map((l) => ({ params: { region: key, lesson: String(l.no) }, props: { key, no: l.no } })));
+}
+const { key, no } = Astro.props as { key: string; no: number };
+const r = region(key);
+const row = sidoOf(key)!;
+const l = printLessons(key).find((x) => x.no === no)!;
+const map = printMapOf(key, no);
+const nameShort = row.parts ? row.full : row.ko;
+const h1 = `${nameShort} ${no}과 ${l.title} 백지도`;
+const sheetTitle = `${r.full} ${no}과 · ${l.title} (${l.items.length}곳)`;
+const lessons = printLessons(key);
+---
+<Base noindex alternate={{ ko: `/blank-map/${key}/${no}/`, en: `/en/blank-map/${key}/${no}/` }} title={`${h1} 인쇄 – 채움지도`} description={`채움지도 ${nameShort} ${no}과(${l.title}) ${l.items.length}곳의 백지도예요. 번호 문제지와 답 쓰는 칸, 정답표를 A4 세로로 인쇄할 수 있어요.`}>
+  <div class="wrap page pdoc-page">
+    <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › <a href={href('/blank-map/')}>백지도</a> › <a href={href(`/blank-map/${key}/`)}>{nameShort}</a> › {no}과</nav>
+    <div class="d-head">
+      <h1 class="d-title">{h1}</h1>
+    </div>
+    <p class="lead">채움지도 {nameShort} {no}과에서 배우는 {l.items.length}곳만 번호를 붙였어요. 둘레의 회색 칸은 이번 과가 아닌 곳이에요. 앱에서 이 과를 공부한 뒤 종이로 다시 떠올려 보세요.</p>
+
+    <PrintDoc lang="ko" map={map} sheetTitle={sheetTitle} label={`${r.full} ${no}과 ${l.title} 번호 지도`} />
+
+    <section class="d-sec pextra">
+      <h2>다른 과 백지도</h2>
+      <ul>{lessons.map((x) => <li>{x.no === no ? <b>{x.no}과 {x.title} ({x.items.length}곳)</b> : <a href={href(`/blank-map/${key}/${x.no}/`)}>{x.no}과 {x.title} ({x.items.length}곳)</a>}</li>)}</ul>
+      <p><a href={href(`/blank-map/${key}/`)}>{nameShort} 전체 백지도</a> · <a href={href(`/#/kr/${key}/sgg/p${no}`)}>이 과 공부하기</a></p>
+    </section>
+  </div>
+</Base>

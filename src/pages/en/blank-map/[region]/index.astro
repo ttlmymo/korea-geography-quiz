@@ -5,7 +5,7 @@ import PrintDoc from '../../../../components/PrintDoc.astro';
 import { href } from '../../../../lib/paths';
 import { region, listEn } from '../../../../lib/geo';
 import { sidoOf } from '../../../../app/sidos';
-import { KOREA_KEY, printKeys, printMapOf } from '../../../../lib/print';
+import { KOREA_KEY, printKeys, printLessons, printMapOf } from '../../../../lib/print';
 
 export function getStaticPaths() {
   return printKeys().map((key) => ({ params: { region: key }, props: { key } }));
@@ -24,6 +24,7 @@ const name = korea ? 'Korea' : row!.en;
 const h1 = korea ? 'Korea blank map: provinces and metropolitan cities' : `${name} blank map`;
 const sheetTitle = `${name}: ${kinds} – blank map`;
 const hub = !korea && row!.hub?.en ? `/en/${key}/` : null;
+const lessons = printLessons(key);
 const appHref = korea ? '/#/kr/korea' : r!.layer === 'emd' ? `/#/kr/${key}/emd` : `/#/kr/${key}/sgg/p1`;
 ---
 <Base lang="en" noindex alternate={{ ko: `/blank-map/${key}/`, en: `/en/blank-map/${key}/` }} title={`${h1} – Fill the Map`} description={`A printable blank map of ${korea ? 'Korea' : name} with ${kinds}. Print a numbered worksheet and its answer key on A4 paper.`}>
@@ -36,11 +37,19 @@ const appHref = korea ? '/#/kr/korea' : r!.layer === 'emd' ? `/#/kr/${key}/emd` 
 
     <PrintDoc lang="en" map={map} sheetTitle={sheetTitle} label={`Numbered map of ${korea ? 'Korea' : name}: ${kinds}`} />
 
+    {lessons.length > 0 && (
+      <section class="d-sec pextra">
+        <h2>Blank maps by lesson</h2>
+        <p>The same groups as the lessons in the app. Each map shows one lesson larger, with numbers and answer lines below the map.</p>
+        <ul>{lessons.map((l) => <li><a href={href(`/en/blank-map/${key}/${l.no}/`)}>Lesson {l.no}: {l.en}</a> — {l.items.length} areas</li>)}</ul>
+      </section>
+    )}
+
     <section class="d-sec pextra">
       <h2>How to print</h2>
       <ul>
-        <li>Press Print above, then choose A4 portrait paper at 100% scale. You get one worksheet page and one answer key page.</li>
-        <li>Turn off Show numbers for a plain blank map. Turn off Include answer key to print only the worksheet.</li>
+        <li>Press Print above, then choose A4 portrait paper at 100% scale. You get a worksheet page, an answer lines page and an answer key page.</li>
+        <li>Turn off Show numbers for a plain blank map. Turn off Include answer lines or Include answer key to leave that page out.</li>
         <li>Boundaries are as of October 1, 2026, and simplified to fit on paper. This map is for learning, not for exact boundaries.</li>
       </ul>
       <p>To learn by tapping the map, <a href={href(appHref)}>study in Fill the Map</a>{hub && <>, or read <a href={href(hub)}>about this region</a></>}.</p>

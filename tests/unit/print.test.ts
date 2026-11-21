@@ -155,3 +155,30 @@ test('먼 섬(경북 울릉군)은 점선 상자로 옮겨 그리고, 다른 지
     }
   }
 });
+
+test('과 백지도(11-21): 모든 지역의 모든 과 — 그 과 곳만 번호, 보이는 범위는 그 과 둘레, 번호가 칸에 들고 겹치지 않음', () => {
+  const lessonsOf = (k: string) => (read(`public/data/geo/${VER}/units.json`).regions.find((x: { key: string }) => x.key === k)?.lessons ?? []) as { no: number; items: string[] }[];
+  let n = 0;
+  const problems: string[] = [];
+  for (const k of svgKeys) {
+    const svg = read(`src/data/svg/${k}.json`);
+    const r = units.regions.find((x) => x.key === k)!;
+    for (const l of lessonsOf(k)) {
+      n++;
+      const m = buildPrintMap(`${k}/${l.no}`, svg, svg.items, r.items.map((it) => ({ id: it.id, ko: it.ko, en: it.id })), svg.out, svg.water, { focus: l.items, maxH: 150 });
+      assert.deepEqual(m.cells.map((c) => c.id).sort(), [...l.items].sort(), `${k} ${l.no}과`);
+      assert.ok(m.ctx.every((c) => !l.items.includes(c.id)), `${k} ${l.no}과: 맥락 칸에 과 곳이 섞임`);
+      assert.ok(m.w * m.mm <= 180 + 1e-6 && m.h * m.mm <= 150 + 1e-6, `${k} ${l.no}과: 종이 크기 넘음`);
+      if (m.tight.length) problems.push(`${k} ${l.no}과 번호 안 듦 ${m.tight.join(',')}`);
+      const [vx, vy, vw, vh] = m.vb;
+      for (const c of m.cells) if (!(c.lx >= vx && c.lx <= vx + vw && c.ly >= vy && c.ly <= vy + vh)) problems.push(`${k} ${l.no}과 ${c.id} 번호 점이 범위 밖`);
+      const box = m.cells.map((c) => { const fs = (c.pt ?? 5) * (25.4 / 72); return { id: c.id, x: c.lx * m.mm, y: c.ly * m.mm, w: 0.58 * fs * String(c.no).length, h: 0.72 * fs }; });
+      for (let i = 0; i < box.length; i++) for (let j = i + 1; j < box.length; j++) {
+        const a = box[i], b = box[j];
+        if (Math.abs(a.x - b.x) < (a.w + b.w) / 2 && Math.abs(a.y - b.y) < (a.h + b.h) / 2) problems.push(`${k} ${l.no}과 번호 겹침 ${a.id}·${b.id}`);
+      }
+    }
+  }
+  assert.ok(n >= 50, `과 ${n}개`);
+  assert.deepEqual(problems, []);
+});

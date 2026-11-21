@@ -6,6 +6,7 @@ import RegionMap from '../../../components/RegionMap.astro';
 import { href } from '../../../lib/paths';
 import { UNITS, region, svgOf, countKinds, enNameOf, enShortOf, listEn, ilbanGuOf } from '../../../lib/geo';
 import { sidoOf } from '../../../app/sidos';
+import { printKeys } from '../../../lib/print';
 import { introEnOf, hubIntroOf } from '../../../data/region-intro';
 
 export function getStaticPaths() {
@@ -48,7 +49,7 @@ const neighborhoods = (dongs: string[]) => {
       </div>
       <div class="d-body">
         <p class="lead">{regionEn} has {kinds}, {r.items.length} {r.items.length === 1 ? 'place' : 'places'} in all.{withGu.length > 0 && <> {listEn(withGu.map((it) => enNameOf(it.id)))} also {withGu.length === 1 ? 'has' : 'have'} {withGu.reduce((s, it) => s + ilbanGuOf(it.id).length, 0)} general districts (ilban-gu).</>} It has {all.length} towns, townships and neighborhoods in all: {k.읍} eup, {k.면} myeon and {k.동} dong (October 1, 2026 boundaries).</p>
-        <div class="d-acts"><a class="btn" href={href(startHref)}>{hasLessons ? `Start with ${regionEn} lesson 1` : `Practice ${regionEn}`} <span aria-hidden="true">→</span></a></div>
+        <div class="d-acts"><a class="btn" href={href(startHref)}>{hasLessons ? `Start with ${regionEn} lesson 1` : `Practice ${regionEn}`} <span aria-hidden="true">→</span></a>{printKeys().includes(key) && <a class="btn2" href={href(`/en/blank-map/${key}/`)}>Print a blank map</a>}</div>
       </div>
       <figure class="d-map">
         <RegionMap en region={key} labels label={`Map of ${regionEn}'s ${r.items.length} places`} />

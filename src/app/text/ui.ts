@@ -333,6 +333,10 @@ export const UI_KO = {
   readMore: '자세히 읽기',
   /** 공부 카드·둘러보기의 이야기 한 줄 앞 꼬리표(app/story.ts) */
   storyTag: '역사',
+  /** 인쇄용 백지도 링크(정적 쪽 /blank-map/) */
+  blankMap: (r: string) => `${r} 백지도 인쇄`,
+  blankLesson: '이 과 백지도 인쇄',
+  blankAfter: '종이로 다시 떠올리기 · 이 과 백지도 인쇄',
   /** 공부 화면 지도의 키보드 안내(aria-label)와 커서 칸 안내(읽기 자리) */
   mapKeys: '지도 — 화살표 키로 칸을 옮기고 Enter 로 누르세요. H 는 힌트',
   cursorAt: (k: number, n: number) => `고를 칸 ${n}곳 가운데 ${k}번째 칸`,
@@ -744,6 +748,9 @@ export const UI_EN: UI = {
   practice: (no: string) => `Practice ${no}, which has this place`,
   readMore: 'Read more',
   storyTag: 'History',
+  blankMap: (r: string) => `Print a blank map of ${r}`,
+  blankLesson: 'Print this lesson as a blank map',
+  blankAfter: 'Recall it on paper · print this lesson as a blank map',
   mapKeys: 'Map — move between areas with the arrow keys and press Enter to tap. H for a hint',
   cursorAt: (k: number, n: number) => `Area ${k} of ${n}`,
   mapFail: "Couldn't load the map. Check your connection and reload",

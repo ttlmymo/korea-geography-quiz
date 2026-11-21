@@ -24,7 +24,7 @@ const nm = (id: string) => r.items.find((it) => it.id === id)!.ko;
       </div>
       <div class="d-body">
         <p class="lead">서울특별시는 25개 자치구로 나뉘어요. 한강을 사이에 두고 북쪽에 14개, 남쪽에 11개 구가 있어요. 행정동은 모두 {total}개예요(2026년 10월 1일 경계 기준).</p>
-        <div class="d-acts"><a class="btn" href={href('/#/kr/seoul/sgg/p1')}>서울 1과부터 공부하기 <span aria-hidden="true">→</span></a></div>
+        <div class="d-acts"><a class="btn" href={href('/#/kr/seoul/sgg/p1')}>서울 1과부터 공부하기 <span aria-hidden="true">→</span></a><a class="btn2" href={href('/blank-map/seoul/')}>백지도 인쇄</a></div>
       </div>
       <figure class="d-map">
         <RegionMap region="seoul" tone={tone} labels label="서울 25개 구 지도: 한강 북쪽 14개 구는 짙게, 남쪽 11개 구는 옅게" />

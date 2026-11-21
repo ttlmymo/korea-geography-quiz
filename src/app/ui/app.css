@@ -832,3 +832,6 @@ html[lang="en"] .rg-later b { min-width: 7.5em; }
 /* 지도 칸 위의 상자·이름 층이 테두리를 덮으므로 테두리는 무대의 ::after(맨 위 층)에 그린다 */
 .play-map:focus { outline: none; }
 .play-stage:has(> .play-map:focus-visible)::after { border: 3px solid var(--focus-map); }
+
+/* 과 시작·과 끝 화면의 백지도 인쇄 링크(pages.ts blankOk) */
+.h-print { margin: 0; }

@@ -33,7 +33,7 @@ const kindsEn = (dongs: string[]) => {
       </div>
       <div class="d-body">
         <p class="lead">Gyeonggi-do surrounds Seoul. It has {si} cities (si) and {gun} counties (gun), 31 places in all. {withGu.length} of the cities, {listEn(withGu.map((it) => enNameOf(it.id)))}, have {guTotal} general districts (gu) in total. There are {all.length} towns (eup), townships (myeon) and neighborhoods (dong) in all: {k.읍} eup, {k.면} myeon and {k.동} dong (October 1, 2026 boundary data).</p>
-        <div class="d-acts"><a class="btn" href={href('/en/#/kr/gyeonggi/sgg/p1')}>Start with Gyeonggi lesson 1 <span aria-hidden="true">→</span></a></div>
+        <div class="d-acts"><a class="btn" href={href('/en/#/kr/gyeonggi/sgg/p1')}>Start with Gyeonggi lesson 1 <span aria-hidden="true">→</span></a><a class="btn2" href={href('/en/blank-map/gyeonggi/')}>Print a blank map</a></div>
       </div>
       <figure class="d-map">
         <RegionMap en region="gyeonggi" labels label="Map of Gyeonggi's 31 cities and counties" />

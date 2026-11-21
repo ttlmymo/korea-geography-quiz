@@ -1,11 +1,12 @@
 ---
-// 인쇄용 백지도 문서(R1): 번호가 붙은 문제지 1장 + 정답표 1장. 한국어·영어 쪽이 함께 쓴다.
-// 화면에서는 두 장이 카드로 보이고, 인쇄하면 A4 세로 두 장(문제지 → 정답표)이 된다. 머리글·바닥글·안내 글은 인쇄에 나오지 않는다.
-// 옵션(번호 표시·정답표 포함)은 JS 가 있을 때만 단추가 보이고, 없으면 모두 켠 채로 보인다.
+// 인쇄용 백지도 문서(R1 · 11-21 보완): 번호가 붙은 문제지 + 답 쓰는 칸 + 정답표. 한국어·영어 쪽이 함께 쓴다.
+// 지역 전체: 문제지 1장 → 답 쓰는 칸 1장 → 정답표 1장. 과 백지도(곳 8곳 이하): 문제지 아래 같은 쪽에 답 쓰는 칸 → 정답표 1장.
+// 과 백지도는 그 과 칸만 번호를 달고, 보이는 범위의 다른 칸은 회색(맥락)으로 그린다.
+// 옵션(번호 표시·답 쓰는 칸·정답표)은 JS 가 있을 때만 단추가 보이고, 없으면 모두 켠 채로 보인다. 번호를 끄면 답 쓰는 칸·정답표도 숨는다(번호가 없으면 짝이 없다).
 // 번호 글자 크기는 칸 안쪽 반지름에서 잰다(lib/print-core.ts numberPt) — 지도 SVG 의 폭을 mm 로 고정해 종이에서 1단위 = mm 가 되게 한다
 import type { PrintMap } from '../lib/print-core';
 import { PT_MM, HALO_MM, NUM_MIN_PT } from '../lib/print-core';
-import { PRINT_TEXT, boundarySourceRepo } from '../lib/print';
+import { PRINT_TEXT, BLANKS_INLINE_MAX, boundarySourceRepo } from '../lib/print';
 
 interface Props {
   lang: 'ko' | 'en';
@@ -24,11 +25,15 @@ const halo = ((2 * HALO_MM) / map.mm).toFixed(1);
 const nameOf = (c: (typeof map.cells)[number]) => (en ? c.en : c.ko);
 const full = (c: (typeof map.cells)[number]) => (c.full && !en ? ` (${c.full})` : '');
 const tight = map.tight.length > 0;
+const lesson = map.ctx.length > 0;
+const inlineBlanks = lesson && map.cells.length <= BLANKS_INLINE_MAX;
+const src = T.src(boundarySourceRepo());
 ---
-<div class="pdoc" data-numbers="1" data-answers="1">
+<div class="pdoc" data-numbers="1" data-blanks="1" data-answers="1">
   <div class="ptools" data-ptools hidden>
     <button class="btn" type="button" data-print>{T.print}</button>
     <label class="popt"><input type="checkbox" data-opt="numbers" checked /> {T.optNumbers}</label>
+    <label class="popt"><input type="checkbox" data-opt="blanks" checked /> {T.optBlanks}</label>
     <label class="popt"><input type="checkbox" data-opt="answers" checked /> {T.optAnswers}</label>
   </div>
 
@@ -38,18 +43,36 @@ const tight = map.tight.length > 0;
       <p class="who"><span>{T.who}</span><i class="blank"></i><span>{T.date}</span><i class="blank"></i></p>
     </header>
     <div class="mapscroll">
-      <svg class="pmap" viewBox={`0 0 ${map.w} ${map.h}`} style={`width:${(map.w * map.mm).toFixed(1)}mm`} role="img" aria-label={label} focusable="false">
+      <svg class="pmap" viewBox={map.vb.join(' ')} style={`width:${(map.w * map.mm).toFixed(1)}mm`} role="img" aria-label={label} focusable="false">
         {map.out && <path d={map.out} class="land" />}
         {map.water && <path d={map.water} class="water" />}
+        {map.ctx.map((c) => <path d={c.d} class="cell ctx" />)}
         {map.insets.map((b) => <rect x={b.x} y={b.y} width={b.w} height={b.h} class="inset" />)}
         <path d={allD} class="rim" />
         {map.cells.map((c) => <path d={c.d} class="cell" />)}
         {map.cells.map((c) => <text class="pn" x={c.lx} y={c.ly} dy="0.35em" text-anchor="middle" style={`font-size:${fs(c.pt)}px;stroke-width:${halo}px`}>{c.no}</text>)}
       </svg>
     </div>
-    <p class="note">{T.ctx}{map.insets.length > 0 && ` ${T.insetNote}`}{tight && ` ${T.tightNote}`}</p>
-    <p class="src">{T.src(boundarySourceRepo())}</p>
+    <p class="note">{lesson ? T.ctxLesson : T.ctx}{map.insets.length > 0 && ` ${T.insetNote}`}{tight && ` ${T.tightNote}`}</p>
+    {inlineBlanks && (
+      <div class="blanks-in">
+        <h3>{T.blanks}</h3>
+        <ol class="lines">{map.cells.map((c) => <li value={c.no}><b class="ano">{c.no}</b><i class="line"></i></li>)}</ol>
+      </div>
+    )}
+    <p class="src">{src}</p>
   </section>
+
+  {!inlineBlanks && (
+    <section class="sheet sheet-w" aria-label={`${sheetTitle} – ${T.blanks}`}>
+      <header class="sheet-h">
+        <h2>{sheetTitle} – {T.blanks}</h2>
+        <p class="who"><span>{T.who}</span><i class="blank"></i></p>
+      </header>
+      <ol class="lines">{map.cells.map((c) => <li value={c.no}><b class="ano">{c.no}</b><i class="line"></i></li>)}</ol>
+      <p class="src">{src}</p>
+    </section>
+  )}
 
   <section class="sheet sheet-a" aria-label={`${sheetTitle} – ${T.answerSuffix}`}>
     <header class="sheet-h">
@@ -58,7 +81,7 @@ const tight = map.tight.length > 0;
     <ol class="ans">
       {map.cells.map((c) => <li value={c.no}><b class="ano">{c.no}</b> <span>{nameOf(c)}{full(c)}</span></li>)}
     </ol>
-    <p class="src">{T.src(boundarySourceRepo())}</p>
+    <p class="src">{src}</p>
   </section>
 </div>
 
@@ -78,7 +101,7 @@ const tight = map.tight.length > 0;
 <style>
   .ptools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-6); }
   .popt { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--tap-min); font-size: var(--fs-16); cursor: pointer; }
-  .popt input { width: 20px; height: 20px; accent-color: var(--ink); }
+  .popt input { width: 24px; height: 24px; accent-color: var(--ink); }
 
   .pdoc { display: flex; flex-direction: column; gap: var(--sp-6); min-width: 0; }
   .sheet { background: #fff; color: #000; border: 1px solid var(--line); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; max-width: 200mm; }
@@ -93,30 +116,37 @@ const tight = map.tight.length > 0;
   .note, .src { margin: 0; font-size: var(--fs-14); line-height: 1.5; color: var(--ink-3); }
   .src { font-size: 12px; }
 
-  /* 그림: 흰 종이 · 먹색 가는 칸 선 · 굵은 바깥선 · 이웃 땅과 강은 연한 회색(흑백 인쇄에서도 구별) */
+  /* 그림: 흰 종이 · 먹색 가는 칸 선 · 굵은 바깥선 · 이웃 땅·강·이번 과 아닌 칸은 연한 회색(흑백 인쇄에서도 구별) */
   .land { fill: #E4E6E4; }
   .water { fill: #C9CED1; }
   .rim { fill: none; stroke: #000; stroke-width: 2.6px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
   .cell { fill: #fff; stroke: #000; stroke-width: 1px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .cell.ctx { fill: #EEF0EE; stroke: #9AA19D; }
   .inset { fill: #fff; stroke: #000; stroke-width: 1px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
   .pn { font-family: var(--font-ui); font-weight: 600; fill: #000; stroke: #fff; paint-order: stroke; stroke-linejoin: round; }
 
   .ans { margin: 0; padding: 0; list-style: none; columns: 3 11em; column-gap: var(--sp-6); font-size: var(--fs-16); line-height: 1.9; }
   .ans li { break-inside: avoid; display: flex; gap: var(--sp-2); }
   .ano { display: inline-block; min-width: 2em; text-align: right; font-variant-numeric: tabular-nums; }
+  /* 답 쓰는 칸: 번호 + 밑줄. 손글씨가 들어가게 줄 사이를 넉넉히 */
+  .blanks-in h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-16); }
+  .lines { margin: 0; padding: 0; list-style: none; columns: 2 14em; column-gap: var(--sp-8); }
+  .lines li { break-inside: avoid; display: flex; align-items: flex-end; gap: var(--sp-2); height: 2.6em; font-size: var(--fs-16); }
+  .line { flex: 1; border-bottom: 1px solid #000; height: 1.2em; }
 
   .ptools[hidden] { display: none; }
 
-  /* 옵션 */
+  /* 옵션: 번호가 없으면 답 쓰는 칸·정답표도 짝이 없어 숨긴다 */
   .pdoc[data-numbers='0'] .pn { display: none; }
-  .pdoc[data-answers='0'] .sheet-a { display: none; }
+  .pdoc[data-blanks='0'] :is(.sheet-w, .blanks-in), .pdoc[data-numbers='0'] :is(.sheet-w, .blanks-in) { display: none; }
+  .pdoc[data-answers='0'] .sheet-a, .pdoc[data-numbers='0'] .sheet-a { display: none; }
 
-  /* 인쇄: A4 세로 두 장(문제지 → 정답표). 단추·테두리는 빼고 선은 종이에서 보이는 굵기로 */
+  /* 인쇄: A4 세로(문제지 → 답 쓰는 칸 → 정답표). 단추·테두리는 빼고 선은 종이에서 보이는 굵기로 */
   @media print {
     .ptools { display: none !important; }
     .pdoc { gap: 0; }
     .sheet { border: 0; padding: 0; max-width: none; width: 180mm; gap: 3mm; }
-    .sheet-q { break-after: page; }
+    .sheet-q, .sheet-w { break-after: page; }
     .mapscroll { overflow: visible; }
     .pmap { min-width: 0; max-width: none; }
     .rim { stroke-width: 2.4px; }

@@ -140,6 +140,12 @@ const howSteps = () => `<ol class="h-steps">${L.howSteps.map(([a, b], i) => `<li
 
 /** 밑줄 글자 링크(폰은 54px 줄) */
 const lk = (href: string, text: string) => `<a class="h-link" href="${href}"><span>${esc(text)}</span> <i aria-hidden="true">→</i></a>`;
+/**
+ * 인쇄용 백지도 쪽이 있는 지역(정적 쪽 lib/print.ts printKeys 와 같은 규칙: 지역 표에 허브가 있고 곳 3곳 이상, 그리고 전국 시·도 korea).
+ * 동·일반구 단원(키에 '/')은 없다. 과 백지도는 korea 가 아닌 지역의 과만(printLessons)
+ */
+const blankOk = (r: Region) => r.key === 'korea' || (!r.key.includes('/') && r.items.length >= 3 && !!sidoOf(r.key)?.hub);
+const blankHref = (ctx: Ctx, key: string, no?: number) => `${ctx.base}${L.path(`blank-map/${key}/${no ? `${no}/` : ''}`)}`;
 
 /**
  * 과 카드 줄의 칸들(홈·단원 쪽): 칸 전체가 그 과의 시작 카드로 가는 링크. 꼬리표(✓ 끝 · 추천 · n/t 이어서) · 이름 · 짧은 곳 이름 · 네모 줄 · 상태 한 줄.
@@ -482,6 +488,8 @@ export function homePage(ctx: Ctx): Page {
     lk(link({ name: 'explore', region: r.key, slug: null }), L.namedMap(region)),
     lk(link({ name: 'check', region: r.key }), fresh ? L.knowIt(region) : L.checkGo(region)),
     ...(fresh ? [] : [lk(link({ name: 'mix', region: r.key }), L.mixGo(region))]),
+    // 종이로 익히기: 인쇄용 백지도(정적 쪽, 11-21)
+    ...(blankOk(r) ? [lk(blankHref(ctx, r.key), L.blankMap(region))] : []),
     // 일반구 공부하기(E7, 일반구 단원이 있는 지역 — 동보다 먼저, 계획서 N5)
     ...(guOf(reg, r.key) ? [guLink(guOf(reg, r.key)!)] : []),
     // 동까지 공부하기: 동 색인이 있는 지역은 구 고르기로, 없으면(동 공개 전) 서울에만 '준비 중'
@@ -724,6 +732,8 @@ export function unitPage(ctx: Ctx, regionKey: string): Page {
     // 동 단원: 다른 구 고르기 · 지역 과로 돌아가기. 과 없는 지역의 단원은 지역 과가 없어 다른 단원 고르기만(단원이 둘 이상일 때 — 지역 주소가 구 고르기다)
     ...(parent && !gu && !mainParent ? [lk(link({ name: 'emd', region: parent.key }), L.otherUnits(pickWord)), lk(link({ name: 'unit', region: parent.key }), L.toRegion(L.region(parent)))] : []),
     ...(mainParent && reg.emdUnits(parent!.key).length > 1 ? [lk(link({ name: 'unit', region: parent!.key }), L.otherUnits(pickWord))] : []),
+    // 종이로 익히기: 인쇄용 백지도(정적 쪽, 11-21). 단원(동·일반구) 화면에는 없다
+    ...(!parent && blankOk(r) ? [lk(blankHref(ctx, r.key), L.blankMap(region))] : []),
     // 일반구 공부하기(E7, 동보다 먼저 — 계획서 N5)
     ...(guR ? [guLink(guR)] : []),
     // 동까지 공부하기: 동 색인이 있으면 구 고르기로. 없으면(동 공개 전) 서울에만 '준비 중'(홈과 같이 맨 끝 — 누를 수 있는 링크 사이에 끼지 않게)
@@ -799,7 +809,7 @@ export function startPage(ctx: Ctx, regionKey: string, no: number): Page {
     // 영어 동은 지도에 짧은 이름(lessonMapName — 위 이름 줄은 전체 이름)
     maps: { start: { region: r.key, active: l.items, highlight: l.items, bold: l.items, ...lw.spec, zoom: l.fit, scaleBar: true, labels: l.items.map((id) => lessonMapLabel(ctx, id)), labelMode: 'must' } },
     html: `<div class="page">${backRow()}
-      <div class="h-main">${head}${names}<div class="h-acts">${acts}</div>${prog}${mapCol}</div></div>`,
+      <div class="h-main">${head}${names}<div class="h-acts">${acts}</div>${blankOk(r) && r.key !== 'korea' ? `<p class="h-print">${lk(blankHref(ctx, r.key, l.no), L.blankLesson)}</p>` : ''}${prog}${mapCol}</div></div>`,
   };
 }
 
@@ -822,7 +832,7 @@ export function summaryPage(ctx: Ctx, s: SummaryState): Page {
   const go = nl
     ? `<a class="btn h-go" href="${link({ name: 'lesson', region: r.key, no: nl.no })}">${esc(L.nextLesson(`${lessonNoText(nl.no)} ${L.lesson(nl)}`))} <span aria-hidden="true">→</span></a>`
     : `<a class="btn h-go" href="${link({ name: 'mix', region: r.key })}">${esc(L.nextMix(L.region(r)))} <span aria-hidden="true">→</span></a>`;
-  const acts = `<div class="h-acts">${go}<button class="btn2 h-go2" type="button" data-act="home">${esc(L.home)}</button></div>`;
+  const acts = `<div class="h-acts">${go}<button class="btn2 h-go2" type="button" data-act="home">${esc(L.home)}</button></div>${blankOk(r) && r.key !== 'korea' ? `<p class="h-print">${lk(blankHref(ctx, r.key, s.no), L.blankAfter)}</p>` : ''}`;
   // 헷갈린 곳: 기호 + 글(색 글자 없음)
   const conf = s.confused.length
     ? `<div class="h-ph"><h2 class="h-pt" id="pg-conf">${esc(L.confused)} <span class="num">${s.confused.length}</span></h2></div>

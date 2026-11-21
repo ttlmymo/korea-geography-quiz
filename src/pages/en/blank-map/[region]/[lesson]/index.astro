@@ -1,0 +1,37 @@
+---
+// English lesson blank map (/en/blank-map/{region}/{lesson}/): pair of the Korean page. noindex. No ads.
+import Base from '../../../../../layouts/Base.astro';
+import PrintDoc from '../../../../../components/PrintDoc.astro';
+import { href } from '../../../../../lib/paths';
+import { sidoOf } from '../../../../../app/sidos';
+import { KOREA_KEY, printKeys, printLessons, printMapOf } from '../../../../../lib/print';
+
+export function getStaticPaths() {
+  return printKeys().filter((k) => k !== KOREA_KEY).flatMap((key) => printLessons(key).map((l) => ({ params: { region: key, lesson: String(l.no) }, props: { key, no: l.no } })));
+}
+const { key, no } = Astro.props as { key: string; no: number };
+const row = sidoOf(key)!;
+const l = printLessons(key).find((x) => x.no === no)!;
+const map = printMapOf(key, no);
+const name = row.en;
+const h1 = `${name} lesson ${no} blank map: ${l.en}`;
+const sheetTitle = `${name} lesson ${no} · ${l.en} (${l.items.length} areas)`;
+const lessons = printLessons(key);
+---
+<Base lang="en" noindex alternate={{ ko: `/blank-map/${key}/${no}/`, en: `/en/blank-map/${key}/${no}/` }} title={`${h1} – Fill the Map`} description={`A printable blank map of the ${l.items.length} areas in ${name} lesson ${no} (${l.en}) of Fill the Map, with a numbered worksheet, answer lines and an answer key on A4 paper.`}>
+  <div class="wrap page pdoc-page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › <a href={href('/en/blank-map/')}>Blank maps</a> › <a href={href(`/en/blank-map/${key}/`)}>{name}</a> › Lesson {no}</nav>
+    <div class="d-head">
+      <h1 class="d-title">{h1}</h1>
+    </div>
+    <p class="lead">Only the {l.items.length} areas you learn in {name} lesson {no} of Fill the Map are numbered. Gray areas around them are not in this lesson. Study the lesson in the app, then try to recall it on paper.</p>
+
+    <PrintDoc lang="en" map={map} sheetTitle={sheetTitle} label={`Numbered map of ${name} lesson ${no}: ${l.en}`} />
+
+    <section class="d-sec pextra">
+      <h2>Other lessons</h2>
+      <ul>{lessons.map((x) => <li>{x.no === no ? <b>Lesson {x.no}: {x.en} ({x.items.length} areas)</b> : <a href={href(`/en/blank-map/${key}/${x.no}/`)}>Lesson {x.no}: {x.en} ({x.items.length} areas)</a>}</li>)}</ul>
+      <p><a href={href(`/en/blank-map/${key}/`)}>Whole {name} blank map</a> · <a href={href(`/en/#/kr/${key}/sgg/p${no}`)}>Study this lesson</a></p>
+    </section>
+  </div>
+</Base>

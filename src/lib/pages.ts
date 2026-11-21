@@ -6,6 +6,7 @@
 // '내용이 바뀌었는데 날짜 그대로'·'내용은 그대로인데 날짜만 바뀜'·'새 색인 쪽 5개 넘음'·'새 쪽 날짜가 기본값 그대로'를 잡는다.
 // 정적 쪽은 사람이 검수한 고유 본문이 있을 때만 새로 만든다(6절 W, 애드센스 '가치 없는 콘텐츠' 반려 이력).
 import { DEFAULT_UPDATED, PRIVACY_EFFECTIVE } from '../consts';
+import { printKeys } from './print';
 import { SEOUL_GU } from '../data/seoul';
 import { INTROS, introOf } from '../data/seoul-intro';
 import { visibleGuides } from '../guides/registry';
@@ -371,7 +372,9 @@ const CONTENT_REVISED_1120 = new Set<string>([
   '/en/contact/',
   '/en/sources/',
 ]);
-const at = (path: string, base = DEFAULT_UPDATED): IndexPage => ({ path, updated: later(later(base, UPDATED[path]), CONTENT_REVISED_1120.has(path) ? '2026-11-20' : null) });
+// 2026-11-21: 백지도 쪽이 있는 지역의 허브(한·영)에 '백지도 인쇄' 단추가 들어가 본문이 바뀐 날
+const BLANK_LINK_1121 = new Set(printKeys().filter((k) => k !== 'korea').flatMap((k) => [`/${k}/`, `/en/${k}/`]));
+const at = (path: string, base = DEFAULT_UPDATED): IndexPage => ({ path, updated: later(later(later(base, UPDATED[path]), CONTENT_REVISED_1120.has(path) ? '2026-11-20' : null), BLANK_LINK_1121.has(path) ? '2026-11-21' : null) });
 
 /** 허브 아래 곳 쪽(한·영 짝). 지금은 서울 25개 구뿐 — 새 지역의 곳 쪽(W3)은 애드센스 승인 뒤, 한 배포에 5쪽 이하로 */
 const PLACES: Record<string, () => IndexPage[]> = {

@@ -43,7 +43,7 @@ const SRC = {
       </div>
       <div class="d-body">
         <p class="lead">Incheon Metropolitan City is divided into 2 counties (gun), Ganghwa-gun and Ongjin-gun, and 9 districts (gu). In the reorganization of July 1, 2026, the old Jung-gu and Dong-gu became Jemulpo-gu and Yeongjong-gu, and the old Seo-gu became Seohae-gu and Geomdan-gu. There are {all.length} towns (eup), townships (myeon) and neighborhoods (dong) in all: {k.읍} eup, {k.면} myeon and {k.동} dong (October 1, 2026 boundary data).</p>
-        <div class="d-acts"><a class="btn" href={href('/en/#/kr/incheon/sgg/p1')}>Start with Incheon lesson 1 <span aria-hidden="true">→</span></a></div>
+        <div class="d-acts"><a class="btn" href={href('/en/#/kr/incheon/sgg/p1')}>Start with Incheon lesson 1 <span aria-hidden="true">→</span></a><a class="btn2" href={href('/en/blank-map/incheon/')}>Print a blank map</a></div>
       </div>
       <figure class="d-map">
         <RegionMap en region="incheon" labels alwaysLabel={rows.filter((it) => it.ko === '제물포구').map((it) => it.id)} highlight={rows.filter((it) => NEW.has(it.ko)).map((it) => it.id)} label="Map of Incheon's 2 counties and 9 districts: the 4 districts created or renamed in July 2026 are shaded yellow" />

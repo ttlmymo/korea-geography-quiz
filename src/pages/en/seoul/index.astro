@@ -23,7 +23,7 @@ const rows = [...r.items].sort((a, b) => Number(SEOUL_NORTH.has(b.id)) - Number(
       </div>
       <div class="d-body">
         <p class="lead">Seoul is divided into 25 autonomous districts (gu). The Hangang River runs through the city: 14 districts lie on its north side and 11 on its south side. Together they have {total} administrative neighborhoods (haengjeong-dong) in the October 1, 2026 boundary data.</p>
-        <div class="d-acts"><a class="btn" href={href('/en/#/kr/seoul/sgg/p1')}>Start with Seoul lesson 1 <span aria-hidden="true">→</span></a></div>
+        <div class="d-acts"><a class="btn" href={href('/en/#/kr/seoul/sgg/p1')}>Start with Seoul lesson 1 <span aria-hidden="true">→</span></a><a class="btn2" href={href('/en/blank-map/seoul/')}>Print a blank map</a></div>
       </div>
       <figure class="d-map">
         <RegionMap en region="seoul" tone={tone} labels label="Map of Seoul's 25 districts: the 14 north of the Hangang River are shaded" />

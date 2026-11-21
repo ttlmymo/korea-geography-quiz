@@ -16,9 +16,11 @@ export const NUM_MIN_PT = 5;
 export const HALO_MM = 0.5;
 
 /** 지도 한 단위(지도 폭 1000)가 종이에서 몇 mm 인가: 폭·높이 중 먼저 차는 쪽 */
-export function mmPerUnit(w: number, h: number): number {
-  return Math.min(MAP_W_MM / w, MAP_H_MM / h);
+export function mmPerUnit(w: number, h: number, maxH = MAP_H_MM): number {
+  return Math.min(MAP_W_MM / w, maxH / h);
 }
+/** 과 백지도(곳 8곳 이하)는 지도 아래 같은 쪽에 답 쓰는 칸을 두므로 지도 높이를 이만큼으로 줄인다 */
+export const MAP_H_LESSON_MM = 150;
 
 /**
  * 번호 글자 크기(pt). irMm = 칸 안에 들어가는 가장 큰 원의 반지름(mm), digits = 번호 자릿수.
@@ -48,7 +50,9 @@ export interface Inset { x: number; y: number; w: number; h: number }
 
 export interface PrintMap {
   key: string;
-  w: number; h: number;      // 지도 단위(폭 1000)
+  w: number; h: number;      // 보이는 범위의 폭·높이(지도 단위). 지역 전체면 데이터 범위(폭 1000) 그대로
+  vb: [number, number, number, number];   // SVG viewBox(지역 전체 = 0 0 w h, 과 백지도 = 그 과 칸 둘레 + 여백)
+  ctx: { id: string; d: string }[];       // 번호 없이 회색으로 그리는 칸(과 백지도에서 그 과가 아닌 칸)
   mm: number;                // 한 단위의 mm
   cells: PrintCell[];
   out: string;               // 이웃 땅 경로
@@ -73,25 +77,44 @@ const shift = (d: string, dx: number, dy: number) => d.replace(/(-?\d+) (-?\d+)/
 const pointsOf = (d: string): [number, number][] => [...d.matchAll(/(-?\d+) (-?\d+)/g)].map((m) => [+m[1], +m[2]]);
 const inRange = (x: number, y: number, w: number, h: number) => x >= 0 && x <= w && y >= 0 && y <= h;
 
+/** buildPrintMap 선택: clip = 데이터 범위 밖 섬 조각 빼기(지역 전체), focus = 번호를 붙일 곳(과 백지도 — 나머지는 회색 맥락), maxH = 지도 높이 상한(mm) */
+export interface BuildOpt { clip?: boolean; focus?: readonly string[]; maxH?: number }
+
 /**
  * 곳 목록과 지도 칸을 이어 번호를 붙인다. 번호 차례는 한국어 가나다(영어 쪽도 같은 번호 — 두 말 쪽이 같은 문제지가 되게).
  * 이름이 있는데 칸이 없거나(그 반대) 번호 점이 지도 밖이면서 옮겨 놓을 자리도 없으면 멈춘다 — 조용히 빠뜨리지 않는다.
- * 번호 점이 데이터 범위 밖인 곳(경북 울릉군: 울릉도·독도가 지도 틀 한참 밖)은 지도 모서리의 점선 상자 안에 옮겨 그린다
+ * 번호 점이 보이는 범위 밖인 곳(경북 울릉군: 울릉도·독도가 지도 틀 한참 밖)은 지도 모서리의 점선 상자 안에 옮겨 그린다.
+ * focus 가 있으면(과 백지도) 보이는 범위를 그 곳들 둘레(+8%)로 좁히고, 번호·정답은 그 곳들만, 범위 안의 다른 칸은 회색 맥락으로 그린다
  */
-export function buildPrintMap(key: string, size: { w: number; h: number }, items: SvgItemLike[], names: Named[], out: string, water: string, clip = true): PrintMap {
+export function buildPrintMap(key: string, size: { w: number; h: number }, items: SvgItemLike[], names: Named[], out: string, water: string, opt: boolean | BuildOpt = true): PrintMap {
+  const o: BuildOpt = typeof opt === 'boolean' ? { clip: opt } : opt;
   const byId = new Map(items.map((it) => [it.id, it]));
   if (byId.size !== items.length) throw new Error(`${key}: 칸 id 가 겹침`);
   const missing = names.filter((n) => !byId.has(n.id)).map((n) => n.id);
   const extra = items.filter((it) => !names.some((n) => n.id === it.id)).map((it) => it.id);
   if (missing.length || extra.length) throw new Error(`${key}: 이름과 칸이 어긋남 — 칸 없음 [${missing.join(', ')}], 이름 없음 [${extra.join(', ')}]`);
-  const mm = mmPerUnit(size.w, size.h);
-  const sorted = [...names].sort((a, b) => ko(a.ko, b.ko) || (a.id < b.id ? -1 : 1));
-  const far = new Set(items.filter((it) => !inRange(it.lx, it.ly, size.w, size.h)).map((it) => it.id));
-  // 지도 안 칸의 점(상자가 겹치는지 보는 데 쓴다)
-  const mainPts = items.filter((it) => !far.has(it.id)).flatMap((it) => pointsOf(it.d)).filter(([x, y]) => inRange(x, y, size.w, size.h));
-  const taken: Inset[] = [];
+  const focus = o.focus ? new Set(o.focus) : null;
+  if (focus) for (const id of focus) if (!byId.has(id)) throw new Error(`${key}: 번호를 붙일 곳 ${id} 의 칸이 없음`);
+  const isFocus = (id: string) => !focus || focus.has(id);
+  // 보이는 범위: 지역 전체 = 데이터 범위, 과 = 그 곳들의 (데이터 범위 안) 점 둘레 + 8%
+  let vb: [number, number, number, number] = [0, 0, size.w, size.h];
+  if (focus) {
+    const pts = [...focus].flatMap((id) => pointsOf(byId.get(id)!.d)).filter(([x, y]) => inRange(x, y, size.w, size.h));
+    if (!pts.length) throw new Error(`${key}: 과 곳들의 점이 데이터 범위 안에 없음`);
+    const b = [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))];
+    const pad = Math.max(20, Math.round(Math.max(b[2] - b[0], b[3] - b[1]) * 0.08));
+    vb = [b[0] - pad, b[1] - pad, b[2] - b[0] + 2 * pad, b[3] - b[1] + 2 * pad];
+  }
+  const [vx, vy, vw, vh] = vb;
+  const inView = (x: number, y: number) => x >= vx && x <= vx + vw && y >= vy && y <= vy + vh;
+  const mm = mmPerUnit(vw, vh, o.maxH);
+  const clip = (o.clip ?? true) && !focus;
+  const sorted = names.filter((n) => isFocus(n.id)).sort((a, b) => ko(a.ko, b.ko) || (a.id < b.id ? -1 : 1));
+  const far = new Set(sorted.map((n) => byId.get(n.id)!).filter((it) => !inView(it.lx, it.ly)).map((it) => it.id));
+  // 보이는 칸의 점(상자가 칸을 덮는지 보는 데 쓴다)
+  const mainPts = items.filter((it) => !far.has(it.id)).flatMap((it) => pointsOf(it.d)).filter(([x, y]) => inView(x, y));
   const insets: Inset[] = [];
-  const farCell = new Map<string, { d: string; lx: number; ly: number; inset: Inset }>();
+  const farCell = new Map<string, { d: string; lx: number; ly: number }>();
   for (const id of far) {
     const it = byId.get(id)!;
     const pts = pointsOf(it.d);
@@ -99,31 +122,32 @@ export function buildPrintMap(key: string, size: { w: number; h: number }, items
     const bx = [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))];
     const bw = Math.max(120, Math.ceil((bx[2] - bx[0]) * 1.3)), bh = Math.max(110, Math.ceil((bx[3] - bx[1]) * 1.3));
     const M = 10;
-    const corners: Inset[] = [{ x: M, y: M, w: bw, h: bh }, { x: M, y: size.h - bh - M, w: bw, h: bh }, { x: size.w - bw - M, y: M, w: bw, h: bh }, { x: size.w - bw - M, y: size.h - bh - M, w: bw, h: bh }];
-    const free = corners.find((c) => !mainPts.some(([x, y]) => x > c.x - 6 && x < c.x + c.w + 6 && y > c.y - 6 && y < c.y + c.h + 6) && !taken.some((t) => c.x < t.x + t.w && c.x + c.w > t.x && c.y < t.y + t.h && c.y + c.h > t.y));
+    const corners: Inset[] = [{ x: vx + M, y: vy + M, w: bw, h: bh }, { x: vx + M, y: vy + vh - bh - M, w: bw, h: bh }, { x: vx + vw - bw - M, y: vy + M, w: bw, h: bh }, { x: vx + vw - bw - M, y: vy + vh - bh - M, w: bw, h: bh }];
+    const free = corners.find((c) => !mainPts.some(([x, y]) => x > c.x - 6 && x < c.x + c.w + 6 && y > c.y - 6 && y < c.y + c.h + 6) && !insets.some((t) => c.x < t.x + t.w && c.x + c.w > t.x && c.y < t.y + t.h && c.y + c.h > t.y));
     if (!free) throw new Error(`${key}: ${id} 을 옮겨 놓을 빈 모서리가 없음`);
-    taken.push(free); insets.push(free);
-    // 상자 가운데에 상자 안 그림이 오도록 옮긴다
+    insets.push(free);
+    // 상자 가운데에 상자 안 그림이 오도록 옮긴다. 번호 점(가장 큰 조각의 점)도 같이 옮기면 상자 안에 든다
     const dx = Math.round(free.x + (free.w - (bx[2] - bx[0])) / 2 - bx[0]);
     const dy = Math.round(free.y + (free.h - (bx[3] - bx[1])) / 2 - bx[1]);
-    // 번호 점은 가장 큰 조각의 점(원래 lx,ly)이 아니라 옮긴 그림의 가운데 — 원래 점은 지도 밖이지만 옮기면 상자 안에 든다
-    farCell.set(id, { d: shift(it.d, dx, dy), lx: it.lx + dx, ly: it.ly + dy, inset: free });
+    farCell.set(id, { d: shift(it.d, dx, dy), lx: it.lx + dx, ly: it.ly + dy });
   }
+  const clipD = (d: string) => (clip ? clipToData(d, size.w, size.h) : d);
   const cells: PrintCell[] = sorted.map((n, i) => {
     const it = byId.get(n.id)!;
     const no = i + 1;
     const f = farCell.get(n.id);
     const ir = it.ir * mm;
     if (f) {
-      const { lx, ly } = f;
-      if (!inRange(lx, ly, size.w, size.h)) throw new Error(`${key}: ${n.id} 을 옮겼는데도 번호 점이 지도 밖 (${lx}, ${ly})`);
-      return { id: n.id, no, ko: n.ko, en: n.en, ...(n.full ? { full: n.full } : {}), d: f.d, lx, ly, pt: numberPt(ir, String(no).length), inset: true };
+      if (!inView(f.lx, f.ly)) throw new Error(`${key}: ${n.id} 을 옮겼는데도 번호 점이 지도 밖 (${f.lx}, ${f.ly})`);
+      return { id: n.id, no, ko: n.ko, en: n.en, ...(n.full ? { full: n.full } : {}), d: f.d, lx: f.lx, ly: f.ly, pt: numberPt(ir, String(no).length), inset: true };
     }
-    return { id: n.id, no, ko: n.ko, en: n.en, ...(n.full ? { full: n.full } : {}), d: clip ? clipToData(it.d, size.w, size.h) : it.d, lx: it.lx, ly: it.ly, pt: numberPt(ir, String(no).length) };
+    return { id: n.id, no, ko: n.ko, en: n.en, ...(n.full ? { full: n.full } : {}), d: clipD(it.d), lx: it.lx, ly: it.ly, pt: numberPt(ir, String(no).length) };
   });
+  // 회색 맥락 칸: 과 백지도에서 보이는 범위에 걸치는 다른 칸
+  const ctx = focus ? items.filter((it) => !focus.has(it.id) && pointsOf(it.d).some(([x, y]) => inView(x, y))).map((it) => ({ id: it.id, d: it.d })) : [];
   return {
-    key, w: size.w, h: size.h, mm, cells, insets,
-    out: clip ? clipToData(out, size.w, size.h) : out, water: clip ? clipToData(water, size.w, size.h) : water,
+    key, w: vw, h: vh, vb, ctx, mm, cells, insets,
+    out: clipD(out), water: clipD(water),
     tight: cells.filter((c) => c.pt === null).map((c) => c.id),
   };
 }

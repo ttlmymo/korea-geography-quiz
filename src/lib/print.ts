@@ -6,7 +6,7 @@ import path from 'node:path';
 import { DATA_VER } from '../consts';
 import { UNITS, region, svgOf, enNameOf } from './geo';
 import { SIDOS, sidoOf } from '../app/sidos';
-import { buildPrintMap, koreaSvg, type PrintMap, type SidoTopo } from './print-core';
+import { buildPrintMap, koreaSvg, MAP_H_LESSON_MM, type PrintMap, type SidoTopo } from './print-core';
 
 export const PRINT_MIN_ITEMS = 3;
 export const KOREA_KEY = 'korea';
@@ -20,7 +20,15 @@ export function printKeys(): string[] {
 const topoCache: { v?: SidoTopo } = {};
 const sidoTopo = (): SidoTopo => (topoCache.v ??= JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data/geo', DATA_VER, 'sido.topo.json'), 'utf8')));
 
-export function printMapOf(key: string): PrintMap {
+/** 과 백지도: 과가 있는 지역의 과(no·이름·곳). 앱의 과와 같은 묶음이라 '배운 과를 종이로 복습'이 된다 */
+export function printLessons(key: string): { no: number; title: string; en: string; items: string[] }[] {
+  if (key === KOREA_KEY) return [];
+  return region(key).lessons.map((l) => ({ no: l.no, title: l.title, en: l.en ?? l.title, items: l.items }));
+}
+/** 곳이 이만큼 이하면 답 쓰는 칸을 지도와 같은 쪽에 둔다(과 백지도) */
+export const BLANKS_INLINE_MAX = 8;
+
+export function printMapOf(key: string, lesson?: number): PrintMap {
   if (key === KOREA_KEY) {
     const sv = koreaSvg(sidoTopo());
     const names = sv.items.map((it) => {
@@ -33,20 +41,23 @@ export function printMapOf(key: string): PrintMap {
   const r = region(key);
   const svg = svgOf(key);
   const names = r.items.map((it) => ({ id: it.id, ko: it.ko, en: enNameOf(it.id) }));
-  return buildPrintMap(key, svg, svg.items, names, svg.out, svg.water);
+  if (lesson === undefined) return buildPrintMap(key, svg, svg.items, names, svg.out, svg.water);
+  const l = r.lessons.find((x) => x.no === lesson);
+  if (!l) throw new Error(`${key}: ${lesson}과가 없음`);
+  return buildPrintMap(`${key}/${lesson}`, svg, svg.items, names, svg.out, svg.water, { focus: l.items, ...(l.items.length <= BLANKS_INLINE_MAX ? { maxH: MAP_H_LESSON_MM } : {}) });
 }
 
 /** 정답표·화면에 쓰는 말 */
 export const PRINT_TEXT = {
   ko: {
-    print: '인쇄하기', optNumbers: '번호 표시', optAnswers: '정답표 포함',
+    print: '인쇄하기', optNumbers: '번호 표시', optAnswers: '정답표 포함', optBlanks: '답 쓰는 칸 포함', blanks: '답 쓰는 칸', lessonMaps: '과별 백지도', wholeMap: '지역 전체 백지도', ctxLesson: '회색 칸은 이번 과가 아닌 곳이에요.',
     who: '이름', date: '날짜', answers: '정답표', no: '번호', name: '이름',
     mapSuffix: '백지도', answerSuffix: '정답표',
     ctx: '회색 땅은 이웃 지역이에요.', insetNote: '점선 상자는 멀리 떨어진 섬을 옮겨 그린 거예요.', tightNote: '칸이 좁아 번호가 작게 들어간 곳이 있어요.',
     src: (repo: string) => `경계: 통계청 SGIS(공공누리 제1유형), ${repo}(CC BY 4.0) 정리본을 채움지도가 단순화함 · 2026년 10월 1일 기준 · chaeumjido.co.kr`,
   },
   en: {
-    print: 'Print', optNumbers: 'Show numbers', optAnswers: 'Include answer key',
+    print: 'Print', optNumbers: 'Show numbers', optAnswers: 'Include answer key', optBlanks: 'Include answer lines', blanks: 'Answer lines', lessonMaps: 'Blank maps by lesson', wholeMap: 'Blank map of the whole region', ctxLesson: 'Gray areas are not in this lesson.',
     who: 'Name', date: 'Date', answers: 'Answer key', no: 'No.', name: 'Name',
     mapSuffix: 'blank map', answerSuffix: 'answer key',
     ctx: 'Gray areas are neighboring regions.', insetNote: 'The dashed box shows a distant island moved next to the map.', tightNote: 'A few cells are small, so their numbers are printed smaller.',
