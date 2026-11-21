@@ -63,11 +63,14 @@ const adsOn = ads && import.meta.env.PUBLIC_ADS === 'on';
     <meta name="twitter:card" content="summary_large_image" />
     {analytics && <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>}
     {analytics && (
+      // define:vars 를 쓰면 Astro 가 이 글을 즉시 실행 함수로 감싼다 — 'function gtag' 로 두면 전역이 아니어서
+      // 앱의 측정(src/app/analytics.ts track → window.gtag)이 아무것도 보내지 못했다(2026-11-13 출시 ~ 11-21, 맞춤 이벤트 0).
+      // 그래서 window.gtag 에 직접 단다. tools/check.mjs 가 배포 빌드에서 이 줄이 있는지 본다
       <script is:inline define:vars={{ GA_ID }}>
         window.dataLayer = window.dataLayer || [];
-        function gtag(){ dataLayer.push(arguments); }
-        gtag('js', new Date());
-        gtag('config', GA_ID);
+        window.gtag = function gtag(){ window.dataLayer.push(arguments); };
+        window.gtag('js', new Date());
+        window.gtag('config', GA_ID);
       </script>
     )}
     {adsOn && <script is:inline async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ACCOUNT}`} crossorigin="anonymous"></script>}

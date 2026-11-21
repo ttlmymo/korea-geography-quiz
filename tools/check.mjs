@@ -230,6 +230,14 @@ else {
     + ` · 방침 시행일 ${policy.map((e) => e.lastmod).join('/') || '-'}(운영 ${POLICY_PATHS.map((p) => baseline.pages.find((x) => x.path === p)?.lastmod ?? '-').join('/')})${RELEASE ? ' · 배포 판정' : ''}`;
 }
 
+/* 측정: GA 스크립트가 실린 쪽(배포 빌드)은 gtag 를 전역(window.gtag)에 달아야 앱의 맞춤 이벤트가 나간다.
+   Astro define:vars 는 즉시 실행 함수로 감싸 'function gtag' 가 전역이 아니게 된다(2026-11-13~11-21 맞춤 이벤트 0 의 원인) */
+for (const f of htmls) {
+  const html = fs.readFileSync(f, 'utf8');
+  if (!html.includes('googletagmanager.com/gtag/js')) continue;
+  if (!/window\.gtag\s*=/.test(html)) err('측정', `${rel(f)}: GA 스크립트가 있는데 window.gtag 를 전역에 달지 않음 — 앱 이벤트가 GA 로 안 나간다`);
+}
+
 /* 금지 문자열 */
 for (const f of htmls) {
   const text = fs.readFileSync(f, 'utf8').replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ');
