@@ -333,6 +333,9 @@ export const UI_KO = {
   readMore: '자세히 읽기',
   /** 공부 카드·둘러보기의 이야기 한 줄 앞 꼬리표(app/story.ts) */
   storyTag: '역사',
+  /** 공부 화면 지도의 키보드 안내(aria-label)와 커서 칸 안내(읽기 자리) */
+  mapKeys: '지도 — 화살표 키로 칸을 옮기고 Enter 로 누르세요. H 는 힌트',
+  cursorAt: (k: number, n: number) => `고를 칸 ${n}곳 가운데 ${k}번째 칸`,
   // 지도 보기 화면 아래의 출처 줄('행정동 경계: 통계청 SGIS(공공누리 제1유형) · vuski/admdongkor(CC BY 4.0), 단순화·합침 가공')은 2026-11-18 사용자 결정으로 뺌
   // ('밑에 출처도 삭제 — 서울뿐 아니라 다른 도시도 전부'). 출처는 데이터 출처 쪽(/sources/)에만 둔다
   // 영어 동 단원 화면에 남겼던 이름 표기 안내('Neighborhood names: Revised Romanization of Korean (numbers as digits)')도 같은 날 사용자 결정으로 뺌
@@ -741,6 +744,8 @@ export const UI_EN: UI = {
   practice: (no: string) => `Practice ${no}, which has this place`,
   readMore: 'Read more',
   storyTag: 'History',
+  mapKeys: 'Map — move between areas with the arrow keys and press Enter to tap. H for a hint',
+  cursorAt: (k: number, n: number) => `Area ${k} of ${n}`,
   mapFail: "Couldn't load the map. Check your connection and reload",
   loadFail: ["Couldn't load the map", 'Check your connection and reload'],
   reviewEnd: "Today's review is done! Your filled places are stronger now",

@@ -11,6 +11,7 @@ import { step } from '../core/session.ts';
 import { wrongInfo, type Tap } from '../core/judge.ts';
 import { narrowCandidates, pickHintRef, seenInRound } from '../core/hint.ts';
 import { loadStories, storyOf } from '../story.ts';
+import { arrowOf, moveCursor, startCursor } from '../core/keynav.ts';
 import { boxOf, type Box } from '../map/project.ts';
 import type { Shapes } from '../map/shapes.ts';
 import { createSvgMap, type SvgMap } from '../map/svgmap.ts';
@@ -59,7 +60,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
       </div>
       <div class="play-right">
         <div class="pr-cap"><span class="pr-ct"></span><span class="legend pr-key" role="group" aria-label="${esc(L.legendAria)}"></span></div>
-        <div class="play-stage"><div class="play-map"></div>
+        <div class="play-stage"><div class="play-map" tabindex="0" role="group" aria-label="${esc(L.mapKeys)}"></div><p class="visually-hidden pl-sr" aria-live="polite"></p>
           <button class="map-reset" type="button" data-pact="reset" hidden>${esc(L.resetView)}</button>
           <div class="play-toast" role="status" hidden></div></div>
         <p class="pr-help"><span class="hm">${esc(L.mapHelp[0])}</span><span class="ht">${esc(L.mapHelp[1])}</span></p>
@@ -101,6 +102,8 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
   let hintLevel = 0;
   let hintText: { clue: string; ref: string } | null = null;
   const hintUsed = () => hintLevel > 0;
+  // 키보드 커서 칸(core/keynav.ts): 지도에 초점이 있을 때만 보인다. 문제가 바뀌면 처음 자리로
+  let cursor: string | null = null;
   let scope: string[] = [];
   let fitBox: Box | null = null;          // 지금 문제의 기본 보기(과·화면 범위)
   let screenKey: string | null = null;   // 지역 전체를 묻는 판에서 지금 보이는 화면
@@ -379,6 +382,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     picked = null;
     hintLevel = 0;
     hintText = null;
+    cursor = null;
     const place = ctx.reg.place(q.id)!;
     const wide = d.kind === 'mix' || d.kind === 'check' || (d.kind === 'review' && q.scope === 'wide');
     // 넓은 판은 그곳이 든 화면(경기 북서부 등)만 밝게, 과 판은 그 과만
@@ -400,11 +404,14 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     map.clearMarks();
     map.setHint(null);
     map.setRef(null);
+    map.setCursor(null);
     // 고를 칸 묶음(과·화면)만 밝고 둘레가 굵다. 나머지는 바탕색·옅은 선(지도가 알아서 그린다)
     map.setActive(scope);
     // 섬 상자(동 단원의 섬, 계획서 N8 · E5): 화면·과의 insets. 고를 칸이 모두 섬이면 상자 격자, 일부면 가장자리 줄(map/isles.ts)
     curIsles = (scr ? scr.insets : wide ? wholeView(place.region).isles : place.lesson.insets) ?? [];
     map.setIsles(curIsles);
+    // 키보드로 풀고 있으면(지도에 초점) 새 문제의 커서를 바로 보인다
+    if (document.activeElement === ui.mapHost) { cursor = placeCursor(); showCursor(true); }
     // 섬 상자 격자에서는 본 지도를 숨기고 끌기·확대를 막는다 — '끌어서 옮기고, 휠로 확대해요' 안내를 감춘다(자리는 두어 배치가 출렁이지 않게)
     ui.help.classList.toggle('off', map.isIsleGrid());
     // 이번 과 밖에서 이미 칠한 곳은 흐린 이름으로(길잡이). 지역 전체를 묻는 판에는 과 밖이 없다.
@@ -472,6 +479,19 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     ended = null;
     onEnd(e);
   }
+
+  /** 커서 처음 자리: 만나기는 테두리 친 칸, 그 밖은 범위 가운데쯤 */
+  const placeCursor = (): string | null => (q?.mode === 'meet' ? q.id : startCursor(ctx.reg, scope));
+  /** 커서 칸을 지도에 그리고(초점이 지도에 있을 때만) 읽기 자리에 몇 번째 칸인지 알린다 — 이름은 말하지 않는다(찾기 문제의 답이 되므로) */
+  function showCursor(announce: boolean) {
+    if (!map) return;
+    const on = document.activeElement === ui.mapHost && !!cursor;
+    map.setCursor(on ? cursor : null);
+    const sr = root.querySelector<HTMLElement>('.pl-sr');
+    if (on && announce && sr) sr.textContent = L.cursorAt(scope.indexOf(cursor!) + 1, scope.length);
+  }
+  ui.mapHost.addEventListener('focus', () => { if (!cursor) cursor = placeCursor(); showCursor(false); });
+  ui.mapHost.addEventListener('blur', () => map?.setCursor(null));
 
   /** 판정 뒤 이 칸들이 보이게(좁은 화면은 단추 띠가 늘어 지도 칸이 줄어든 뒤에 잰다) */
   const reveal = (ids: string[]) => afterLayout(() => map?.reveal(ids, pad()));
@@ -643,6 +663,18 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     key(e: KeyboardEvent): boolean {
       if (e.key === 'Escape') { if (ui.scrim.hidden) askExit(); else ui.scrim.hidden = true; return true; }
       if (!ui.scrim.hidden) return false;
+      // 지도에 초점: 화살표 = 커서 칸 옮기기, Enter·Space = 커서 칸 누르기(만나기는 테두리 친 칸에서 시작)
+      if (document.activeElement === ui.mapHost && q && map) {
+        const a = arrowOf(e.key);
+        if (a) { cursor = moveCursor(ctx.reg, cursor ?? placeCursor()!, scope, a); showCursor(true); return true; }
+        if ((e.key === 'Enter' || e.key === ' ') && !root.querySelector('[data-pact="next"]')) {
+          const id = cursor ?? placeCursor();
+          if (id) onTap({ type: 'cell', id });
+          return true;
+        }
+      }
+      // 만나기: 단추가 아닌 곳에서 Enter·Space = 테두리 친 칸 누르기(키보드만으로도 만나기가 넘어가게)
+      if ((e.key === 'Enter' || e.key === ' ') && q?.mode === 'meet' && phase === 'ask' && !(e.target as HTMLElement)?.closest?.('button, a, input')) { onTap({ type: 'cell', id: q.id }); return true; }
       const nb = root.querySelector<HTMLButtonElement>('[data-pact="next"]');
       if ((e.key === 'Enter' || e.key === ' ') && nb && !(e.target as HTMLElement)?.closest?.('button')) { next(); return true; }
       if (/^[1-4]$/.test(e.key) && q?.mode === 'choose' && phase === 'ask') { const o = q.options?.[Number(e.key) - 1]; if (o) choose(o); return true; }

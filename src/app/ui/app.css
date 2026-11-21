@@ -827,3 +827,8 @@ html[lang="en"] .rg-later b { min-width: 7.5em; }
 /* 이름 이야기 한 줄(app/story.ts): 공부 카드(.fb-story)·둘러보기(.x-story). 위치 한 줄보다 작은 보조 글, 앞에 '역사' 꼬리표 */
 .fb-story, .x-story { margin: 0; font-size: var(--fs-14); line-height: 1.55; color: var(--ink-2); max-width: 40em; }
 .st-tag { display: inline-block; margin-right: 6px; padding: 0 5px; border: 1px solid var(--line-mid); border-radius: 4px; font-size: 13px; font-weight: 600; line-height: 1.5; color: var(--ink); vertical-align: 1px; }
+
+/* 공부 화면 지도의 키보드 초점(play.ts — 화살표로 칸 옮기기, Enter 로 누르기): 지도 둘레에 파란 테두리 */
+/* 지도 칸 위의 상자·이름 층이 테두리를 덮으므로 테두리는 무대의 ::after(맨 위 층)에 그린다 */
+.play-map:focus { outline: none; }
+.play-stage:has(> .play-map:focus-visible)::after { border: 3px solid var(--focus-map); }
