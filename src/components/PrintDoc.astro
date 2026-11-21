@@ -1,0 +1,136 @@
+---
+// 인쇄용 백지도 문서(R1): 번호가 붙은 문제지 1장 + 정답표 1장. 한국어·영어 쪽이 함께 쓴다.
+// 화면에서는 두 장이 카드로 보이고, 인쇄하면 A4 세로 두 장(문제지 → 정답표)이 된다. 머리글·바닥글·안내 글은 인쇄에 나오지 않는다.
+// 옵션(번호 표시·정답표 포함)은 JS 가 있을 때만 단추가 보이고, 없으면 모두 켠 채로 보인다.
+// 번호 글자 크기는 칸 안쪽 반지름에서 잰다(lib/print-core.ts numberPt) — 지도 SVG 의 폭을 mm 로 고정해 종이에서 1단위 = mm 가 되게 한다
+import type { PrintMap } from '../lib/print-core';
+import { PT_MM, HALO_MM, NUM_MIN_PT } from '../lib/print-core';
+import { PRINT_TEXT, boundarySourceRepo } from '../lib/print';
+
+interface Props {
+  lang: 'ko' | 'en';
+  map: PrintMap;
+  /** 문제지 제목('서울특별시 25개 구 백지도') */
+  sheetTitle: string;
+  /** 지도 설명(aria-label) */
+  label: string;
+}
+const { lang, map, sheetTitle, label } = Astro.props;
+const T = PRINT_TEXT[lang];
+const en = lang === 'en';
+const allD = map.cells.map((c) => c.d).join('');
+const fs = (pt: number | null) => (((pt ?? NUM_MIN_PT) * PT_MM) / map.mm).toFixed(1);
+const halo = ((2 * HALO_MM) / map.mm).toFixed(1);
+const nameOf = (c: (typeof map.cells)[number]) => (en ? c.en : c.ko);
+const full = (c: (typeof map.cells)[number]) => (c.full && !en ? ` (${c.full})` : '');
+const tight = map.tight.length > 0;
+---
+<div class="pdoc" data-numbers="1" data-answers="1">
+  <div class="ptools" data-ptools hidden>
+    <button class="btn" type="button" data-print>{T.print}</button>
+    <label class="popt"><input type="checkbox" data-opt="numbers" checked /> {T.optNumbers}</label>
+    <label class="popt"><input type="checkbox" data-opt="answers" checked /> {T.optAnswers}</label>
+  </div>
+
+  <section class="sheet sheet-q" aria-label={sheetTitle}>
+    <header class="sheet-h">
+      <h2>{sheetTitle}</h2>
+      <p class="who"><span>{T.who}</span><i class="blank"></i><span>{T.date}</span><i class="blank"></i></p>
+    </header>
+    <div class="mapscroll">
+      <svg class="pmap" viewBox={`0 0 ${map.w} ${map.h}`} style={`width:${(map.w * map.mm).toFixed(1)}mm`} role="img" aria-label={label} focusable="false">
+        {map.out && <path d={map.out} class="land" />}
+        {map.water && <path d={map.water} class="water" />}
+        {map.insets.map((b) => <rect x={b.x} y={b.y} width={b.w} height={b.h} class="inset" />)}
+        <path d={allD} class="rim" />
+        {map.cells.map((c) => <path d={c.d} class="cell" />)}
+        {map.cells.map((c) => <text class="pn" x={c.lx} y={c.ly} dy="0.35em" text-anchor="middle" style={`font-size:${fs(c.pt)}px;stroke-width:${halo}px`}>{c.no}</text>)}
+      </svg>
+    </div>
+    <p class="note">{T.ctx}{map.insets.length > 0 && ` ${T.insetNote}`}{tight && ` ${T.tightNote}`}</p>
+    <p class="src">{T.src(boundarySourceRepo())}</p>
+  </section>
+
+  <section class="sheet sheet-a" aria-label={`${sheetTitle} – ${T.answerSuffix}`}>
+    <header class="sheet-h">
+      <h2>{sheetTitle} – {T.answers}</h2>
+    </header>
+    <ol class="ans">
+      {map.cells.map((c) => <li value={c.no}><b class="ano">{c.no}</b> <span>{nameOf(c)}{full(c)}</span></li>)}
+    </ol>
+    <p class="src">{T.src(boundarySourceRepo())}</p>
+  </section>
+</div>
+
+<script>
+  // 옵션 단추: JS 가 있을 때만 보인다
+  const tools = document.querySelector<HTMLElement>('[data-ptools]');
+  const doc = document.querySelector<HTMLElement>('.pdoc');
+  if (tools && doc) {
+    tools.hidden = false;
+    tools.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+    for (const box of tools.querySelectorAll<HTMLInputElement>('input[data-opt]')) {
+      box.addEventListener('change', () => { doc.dataset[box.dataset.opt!] = box.checked ? '1' : '0'; });
+    }
+  }
+</script>
+
+<style>
+  .ptools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-6); }
+  .popt { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--tap-min); font-size: var(--fs-16); cursor: pointer; }
+  .popt input { width: 20px; height: 20px; accent-color: var(--ink); }
+
+  .pdoc { display: flex; flex-direction: column; gap: var(--sp-6); min-width: 0; }
+  .sheet { background: #fff; color: #000; border: 1px solid var(--line); padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; max-width: 200mm; }
+  .sheet-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-2) var(--sp-6); }
+  .sheet-h h2 { font-size: var(--fs-18); margin: 0; }
+  .who { margin: 0; display: flex; align-items: baseline; gap: var(--sp-2); font-size: var(--fs-14); }
+  .blank { display: inline-block; width: 6em; border-bottom: 1px solid #000; height: 1em; }
+  .mapscroll { overflow-x: auto; }
+  /* 틀은 SVG 안의 선이 아니라 테두리로(안쪽에 걸쳐 가장자리가 잘리지 않게) */
+  .pmap { display: block; box-sizing: border-box; max-width: 100%; height: auto; background: #fff; border: 1px solid #000; }
+  @media (max-width: 640px) { .pmap { min-width: 520px; } }
+  .note, .src { margin: 0; font-size: var(--fs-14); line-height: 1.5; color: var(--ink-3); }
+  .src { font-size: 12px; }
+
+  /* 그림: 흰 종이 · 먹색 가는 칸 선 · 굵은 바깥선 · 이웃 땅과 강은 연한 회색(흑백 인쇄에서도 구별) */
+  .land { fill: #E4E6E4; }
+  .water { fill: #C9CED1; }
+  .rim { fill: none; stroke: #000; stroke-width: 2.6px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .cell { fill: #fff; stroke: #000; stroke-width: 1px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .inset { fill: #fff; stroke: #000; stroke-width: 1px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+  .pn { font-family: var(--font-ui); font-weight: 600; fill: #000; stroke: #fff; paint-order: stroke; stroke-linejoin: round; }
+
+  .ans { margin: 0; padding: 0; list-style: none; columns: 3 11em; column-gap: var(--sp-6); font-size: var(--fs-16); line-height: 1.9; }
+  .ans li { break-inside: avoid; display: flex; gap: var(--sp-2); }
+  .ano { display: inline-block; min-width: 2em; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .ptools[hidden] { display: none; }
+
+  /* 옵션 */
+  .pdoc[data-numbers='0'] .pn { display: none; }
+  .pdoc[data-answers='0'] .sheet-a { display: none; }
+
+  /* 인쇄: A4 세로 두 장(문제지 → 정답표). 단추·테두리는 빼고 선은 종이에서 보이는 굵기로 */
+  @media print {
+    .ptools { display: none !important; }
+    .pdoc { gap: 0; }
+    .sheet { border: 0; padding: 0; max-width: none; width: 180mm; gap: 3mm; }
+    .sheet-q { break-after: page; }
+    .mapscroll { overflow: visible; }
+    .pmap { min-width: 0; max-width: none; }
+    .rim { stroke-width: 2.4px; }
+    .cell { stroke-width: 1.2px; }
+    .note, .src { color: #000; }
+  }
+</style>
+
+<style is:global>
+  /* 인쇄 쪽 바깥(머리글·바닥글·안내 글)은 종이에 나오지 않는다. 종이는 A4 세로, 가장자리 15mm */
+  @page { size: A4 portrait; margin: 15mm; }
+  @media print {
+    body > header.hdr, body > footer.foot, .pdoc-page > .crumb, .pdoc-page > .d-head, .pdoc-page > .lead, .pdoc-page > .pextra { display: none !important; }
+    .wrap.pdoc-page { max-width: none; padding: 0; margin: 0; gap: 0; }
+    body { background: #fff; }
+  }
+</style>

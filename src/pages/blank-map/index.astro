@@ -1,0 +1,37 @@
+---
+// 백지도 인쇄 목록(/blank-map/, R1): 전국 시·도와 지역별 시·군·구 백지도로 가는 길. noindex(절충안 — 쪽마다 설명 글이 생기면 골라 색인으로 바꾼다)
+import Base from '../../layouts/Base.astro';
+import { href } from '../../lib/paths';
+import { region } from '../../lib/geo';
+import { byOpenOrder, sidoOf } from '../../app/sidos';
+import { KOREA_KEY, printKeys, printMapOf } from '../../lib/print';
+
+const keys = printKeys();
+const regions = byOpenOrder(keys.filter((k) => k !== KOREA_KEY), (k) => k);
+const nameOf = (k: string) => { const row = sidoOf(k)!; return row.parts ? row.full : row.ko; };
+const countOf = (k: string) => region(k).items.length;
+const koreaCount = printMapOf(KOREA_KEY).cells.length;
+---
+<Base noindex alternate={{ ko: '/blank-map/', en: '/en/blank-map/' }} title="백지도 인쇄 – 채움지도" description="전국 시·도와 지역별 시·군·구 백지도를 번호가 붙은 문제지와 정답표로 A4 세로에 인쇄할 수 있어요. 교실과 집에서 지도 공부 활동지로 쓰세요.">
+  <div class="wrap page">
+    <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › 백지도</nav>
+    <div class="d-head">
+      <h1 class="d-title">백지도 인쇄</h1>
+    </div>
+    <p class="lead">칸마다 번호를 붙인 문제지와 번호에 맞는 이름을 적은 정답표를 A4 세로 두 장으로 인쇄해요. 번호를 빼고 인쇄하면 이름을 써 넣는 백지도가 돼요.</p>
+    <section class="d-sec">
+      <h2>전국</h2>
+      <ul>
+        <li><a href={href(`/blank-map/${KOREA_KEY}/`)}>전국 시·도 백지도</a> — {koreaCount}곳</li>
+      </ul>
+    </section>
+    <section class="d-sec">
+      <h2>지역별 시·군·구</h2>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">지역</th><th scope="col">곳 수</th></tr></thead>
+        <tbody>{regions.map((k) => <tr><td><a href={href(`/blank-map/${k}/`)}>{nameOf(k)} 백지도</a></td><td>{countOf(k)}곳</td></tr>)}</tbody>
+      </table></div>
+      <p class="meta">세종(1곳)과 제주(2곳)는 시·군·구가 적어 백지도로 만들지 않았어요.</p>
+    </section>
+  </div>
+</Base>

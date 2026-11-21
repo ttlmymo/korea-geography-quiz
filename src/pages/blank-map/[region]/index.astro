@@ -1,0 +1,49 @@
+---
+// 인쇄용 백지도 쪽(/blank-map/{지역 키}/, R1 — docs/LEARNING_PLAN_DETAIL_2026-11-21.md 2절). 번호가 붙은 문제지 + 정답표를 A4 세로로 인쇄한다.
+// 처음에는 모두 noindex(사이트맵·색인 제외): 본문이 지도와 표 위주라 검색에 낼 만한 글이 아직 없다. 설명 글을 붙인 쪽부터 골라 색인으로 바꾼다(절충안, 사용자 결정 2026-11-21).
+import Base from '../../../layouts/Base.astro';
+import PrintDoc from '../../../components/PrintDoc.astro';
+import { href } from '../../../lib/paths';
+import { region } from '../../../lib/geo';
+import { sidoOf } from '../../../app/sidos';
+import { KOREA_KEY, printKeys, printMapOf } from '../../../lib/print';
+
+export function getStaticPaths() {
+  return printKeys().map((key) => ({ params: { region: key }, props: { key } }));
+}
+const { key } = Astro.props as { key: string };
+const korea = key === KOREA_KEY;
+const map = printMapOf(key);
+const row = korea ? null : sidoOf(key)!;
+const r = korea ? null : region(key);
+const n = (e: string) => (r ? r.items.filter((it) => it.ko.endsWith(e)).length : 0);
+const kinds = korea ? `${map.cells.length}개 시·도` : [n('구') && `${n('구')}개 구`, n('시') && `${n('시')}개 시`, n('군') && `${n('군')}개 군`].filter(Boolean).join(' · ');
+const nameShort = korea ? '전국' : (row!.parts ? row!.full : row!.ko);
+const nameFull = korea ? '대한민국' : r!.full;
+const unit = korea ? '시·도' : '시·군·구';
+const h1 = `${nameShort} ${unit} 백지도`;
+const sheetTitle = `${nameFull} ${kinds} 백지도`;
+const hub = !korea && row!.hub ? `/${key}/` : null;
+const appHref = korea ? '/#/kr/korea' : r!.layer === 'emd' ? `/#/kr/${key}/emd` : `/#/kr/${key}/sgg/p1`;
+---
+<Base noindex alternate={{ ko: `/blank-map/${key}/`, en: `/en/blank-map/${key}/` }} title={`${h1} 인쇄 – 채움지도`} description={`${nameFull}의 ${kinds} 백지도예요. 번호가 붙은 문제지와 정답표를 A4 세로로 인쇄할 수 있어요.`}>
+  <div class="wrap page pdoc-page">
+    <nav class="crumb" aria-label="현재 위치"><a href={href('/')}>홈</a> › <a href={href('/blank-map/')}>백지도</a> › {nameShort}</nav>
+    <div class="d-head">
+      <h1 class="d-title">{h1}</h1>
+    </div>
+    <p class="lead">{nameFull}의 {kinds}를 칸마다 번호로 나타낸 문제지 한 장과, 번호마다 이름을 적은 정답표 한 장이에요. 번호에 맞는 이름을 적어 본 뒤 정답표로 확인해 보세요. 번호를 빼고 인쇄하면 이름을 직접 써 넣는 백지도가 돼요.</p>
+
+    <PrintDoc lang="ko" map={map} sheetTitle={sheetTitle} label={`${nameFull} ${kinds} 번호 지도`} />
+
+    <section class="d-sec pextra">
+      <h2>인쇄하는 법</h2>
+      <ul>
+        <li>위의 [인쇄하기]를 누르고 용지를 A4 세로, 배율을 100%로 두세요. 문제지 한 장과 정답표 한 장이 나와요.</li>
+        <li>[번호 표시]를 끄면 번호 없는 백지도가 돼요. [정답표 포함]을 끄면 문제지만 인쇄해요.</li>
+        <li>경계는 2026년 10월 1일 기준이고, 종이에 맞게 단순하게 줄였어요. 정확한 경계가 아니라 익히기 위한 지도예요.</li>
+      </ul>
+      <p>지도를 직접 눌러 익히려면 <a href={href(appHref)}>채움지도에서 공부하기</a>{hub && <>, 이 지역이 어떤 곳인지 알아보려면 <a href={href(hub)}>지역 소개</a>를 보세요</>}.</p>
+    </section>
+  </div>
+</Base>

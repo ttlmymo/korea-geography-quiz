@@ -1,0 +1,35 @@
+---
+// English blank map list (/en/blank-map/, R1): pair of /blank-map/. noindex like the Korean page. No ads.
+import Base from '../../../layouts/Base.astro';
+import { href } from '../../../lib/paths';
+import { region } from '../../../lib/geo';
+import { byOpenOrder, sidoOf } from '../../../app/sidos';
+import { KOREA_KEY, printKeys, printMapOf } from '../../../lib/print';
+
+const keys = printKeys();
+const regions = byOpenOrder(keys.filter((k) => k !== KOREA_KEY), (k) => k);
+const koreaCount = printMapOf(KOREA_KEY).cells.length;
+---
+<Base lang="en" noindex alternate={{ ko: '/blank-map/', en: '/en/blank-map/' }} title="Blank maps to print – Fill the Map" description="Printable blank maps of Korea's provinces and of the cities, counties and districts in each region, with a numbered worksheet and an answer key on A4 paper.">
+  <div class="wrap page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › Blank maps</nav>
+    <div class="d-head">
+      <h1 class="d-title">Blank maps to print</h1>
+    </div>
+    <p class="lead">Each map comes as a numbered worksheet and an answer key on two A4 pages. Turn the numbers off to print a plain blank map you can write names on.</p>
+    <section class="d-sec">
+      <h2>Whole country</h2>
+      <ul>
+        <li><a href={href(`/en/blank-map/${KOREA_KEY}/`)}>Korea: provinces and metropolitan cities</a> — {koreaCount} areas</li>
+      </ul>
+    </section>
+    <section class="d-sec">
+      <h2>Cities, counties and districts by region</h2>
+      <div class="tbl"><table>
+        <thead><tr><th scope="col">Region</th><th scope="col">Areas</th></tr></thead>
+        <tbody>{regions.map((k) => <tr><td><a href={href(`/en/blank-map/${k}/`)}>{sidoOf(k)!.en} blank map</a></td><td>{region(k).items.length}</td></tr>)}</tbody>
+      </table></div>
+      <p class="meta">Sejong (1 area) and Jeju (2 areas) have too few cities, counties and districts to make a blank map.</p>
+    </section>
+  </div>
+</Base>

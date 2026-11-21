@@ -1,0 +1,49 @@
+---
+// English printable blank map (/en/blank-map/{region key}/, R1): pair of src/pages/blank-map/[region]/index.astro. noindex like the Korean page. No ads.
+import Base from '../../../../layouts/Base.astro';
+import PrintDoc from '../../../../components/PrintDoc.astro';
+import { href } from '../../../../lib/paths';
+import { region, listEn } from '../../../../lib/geo';
+import { sidoOf } from '../../../../app/sidos';
+import { KOREA_KEY, printKeys, printMapOf } from '../../../../lib/print';
+
+export function getStaticPaths() {
+  return printKeys().map((key) => ({ params: { region: key }, props: { key } }));
+}
+const { key } = Astro.props as { key: string };
+const korea = key === KOREA_KEY;
+const map = printMapOf(key);
+const row = korea ? null : sidoOf(key)!;
+const r = korea ? null : region(key);
+const n = (e: string) => (r ? r.items.filter((it) => it.ko.endsWith(e)).length : 0);
+const plural = (c: number, one: string, many: string) => `${c} ${c === 1 ? one : many}`;
+const kinds = korea
+  ? `${map.cells.length} provinces and metropolitan cities`
+  : listEn([n('구') && plural(n('구'), 'autonomous district (gu)', 'autonomous districts (gu)'), n('시') && plural(n('시'), 'city (si)', 'cities (si)'), n('군') && plural(n('군'), 'county (gun)', 'counties (gun)')].filter(Boolean) as string[]);
+const name = korea ? 'Korea' : row!.en;
+const h1 = korea ? 'Korea blank map: provinces and metropolitan cities' : `${name} blank map`;
+const sheetTitle = `${name}: ${kinds} – blank map`;
+const hub = !korea && row!.hub?.en ? `/en/${key}/` : null;
+const appHref = korea ? '/#/kr/korea' : r!.layer === 'emd' ? `/#/kr/${key}/emd` : `/#/kr/${key}/sgg/p1`;
+---
+<Base lang="en" noindex alternate={{ ko: `/blank-map/${key}/`, en: `/en/blank-map/${key}/` }} title={`${h1} – Fill the Map`} description={`A printable blank map of ${korea ? 'Korea' : name} with ${kinds}. Print a numbered worksheet and its answer key on A4 paper.`}>
+  <div class="wrap page pdoc-page">
+    <nav class="crumb" aria-label="Breadcrumb"><a href={href('/en/')}>Home</a> › <a href={href('/en/blank-map/')}>Blank maps</a> › {name}</nav>
+    <div class="d-head">
+      <h1 class="d-title">{h1}</h1>
+    </div>
+    <p class="lead">A numbered map of {korea ? 'Korea' : name} with {kinds}, plus an answer key that lists the name for each number. Write the name for each number, then check yourself with the key. Turn the numbers off before printing to get a plain blank map you can write on.</p>
+
+    <PrintDoc lang="en" map={map} sheetTitle={sheetTitle} label={`Numbered map of ${korea ? 'Korea' : name}: ${kinds}`} />
+
+    <section class="d-sec pextra">
+      <h2>How to print</h2>
+      <ul>
+        <li>Press Print above, then choose A4 portrait paper at 100% scale. You get one worksheet page and one answer key page.</li>
+        <li>Turn off Show numbers for a plain blank map. Turn off Include answer key to print only the worksheet.</li>
+        <li>Boundaries are as of October 1, 2026, and simplified to fit on paper. This map is for learning, not for exact boundaries.</li>
+      </ul>
+      <p>To learn by tapping the map, <a href={href(appHref)}>study in Fill the Map</a>{hub && <>, or read <a href={href(hub)}>about this region</a></>}.</p>
+    </section>
+  </div>
+</Base>
