@@ -9,6 +9,7 @@ import { get } from '../core/mastery.ts';
 import type { Question } from '../core/questions.ts';
 import { step } from '../core/session.ts';
 import { wrongInfo, type Tap } from '../core/judge.ts';
+import { narrowCandidates, pickHintRef, seenInRound } from '../core/hint.ts';
 import { boxOf, type Box } from '../map/project.ts';
 import type { Shapes } from '../map/shapes.ts';
 import { createSvgMap, type SvgMap } from '../map/svgmap.ts';
@@ -95,7 +96,10 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
   let qPos = 0, qTotal = 0;
   let phase: Phase = 'ask';
   let picked: string | null = null;
-  let hintUsed = false;
+  // 찾기 힌트(core/hint.ts): 0 = 안 씀, 1 = 기준 칸 + 방향 문장, 2 = 후보 좁히기. 한 번이라도 쓰면 맞혀도 상자를 올리지 않는다(전과 같음)
+  let hintLevel = 0;
+  let hintText: { clue: string; ref: string } | null = null;
+  const hintUsed = () => hintLevel > 0;
   let scope: string[] = [];
   let fitBox: Box | null = null;          // 지금 문제의 기본 보기(과·화면 범위)
   let screenKey: string | null = null;   // 지역 전체를 묻는 판에서 지금 보이는 화면
@@ -208,7 +212,11 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
       if (d.kind === 'check') return hintP(L.checkNote);
       if (q.pass) return hintP(L.quickNote);
       // 힌트 = 보조 단추(먹 테두리), 모르겠어요 = 밑줄 글자 단추(시안)
-      return `<div class="pl-btns"><button class="btn2 pl-hint" type="button" data-pact="hint" ${hintUsed ? 'disabled' : ''}>${esc(hintUsed ? L.hintUsed : L.hint)}</button><button class="btn-text pl-dk" type="button" data-pact="dk">${esc(L.dontKnowBtn)}</button></div>`;
+      // 힌트 글: 1단계 = 기준 칸에서 본 방향 + 점선 칸 이름, 2단계 = 밝게 남은 칸 안내를 덧붙인다
+      const clue = hintText ? `<p class="fb-hint pl-clue">${esc(hintText.clue)}</p>${hintText.ref ? `<p class="fb-note">${esc(hintText.ref)}</p>` : ''}` : '';
+      const narrow = hintLevel >= 2 ? `<p class="fb-note">${esc(L.hintNarrow)}</p>` : '';
+      const label = hintLevel === 0 ? L.hint : hintLevel === 1 ? L.hintMore : L.hintUsed;
+      return `${clue}${narrow}<div class="pl-btns"><button class="btn2 pl-hint" type="button" data-pact="hint" ${hintLevel >= 2 ? 'disabled' : ''}>${esc(label)}</button><button class="btn-text pl-dk" type="button" data-pact="dk">${esc(L.dontKnowBtn)}</button></div>`;
     }
     if (phase === 'tok') return title(`○ ${name}`);
     if (phase === 'tno') return title('✕');
@@ -364,7 +372,8 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     qTotal = p.total;
     phase = 'ask';
     picked = null;
-    hintUsed = false;
+    hintLevel = 0;
+    hintText = null;
     const place = ctx.reg.place(q.id)!;
     const wide = d.kind === 'mix' || d.kind === 'check' || (d.kind === 'review' && q.scope === 'wide');
     // 넓은 판은 그곳이 든 화면(경기 북서부 등)만 밝게, 과 판은 그 과만
@@ -385,6 +394,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     setAct(actHtml());
     map.clearMarks();
     map.setHint(null);
+    map.setRef(null);
     // 고를 칸 묶음(과·화면)만 밝고 둘레가 굵다. 나머지는 바탕색·옅은 선(지도가 알아서 그린다)
     map.setActive(scope);
     // 섬 상자(동 단원의 섬, 계획서 N8 · E5): 화면·과의 insets. 고를 칸이 모두 섬이면 상자 격자, 일부면 가장자리 줄(map/isles.ts)
@@ -423,7 +433,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     if (q0 && d.kind !== 'check') {
       track('practice_answer', {
         mode: q0.mode, ...gaArgs(ctx.reg, ctx.reg.place(q0.id)?.region.key ?? '', true), lesson: d.lesson ?? d.kind,
-        correct: a.result === 'correct', hint: !!a.hint, box: get(before, q0.id).box,
+        correct: a.result === 'correct', hint: a.hint ? hintLevel : 0, box: get(before, q0.id).box,
       });
     }
     const r = step(ctx.reg, d, ctx.mastery, ctx.daily, a, ctx.today(), ctx.dailyEmd);
@@ -487,8 +497,9 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     if (q.mode === 'choose') return toast(L.useOptions);
     const isCheck = d.kind === 'check';
     if (id === q.id) {
-      apply({ result: 'correct', hint: hintUsed });
+      apply({ result: 'correct', hint: hintUsed() });
       map.setHint(null);
+      map.setRef(null);
       map.mark({ ok: q.id, pencil: !isCheck });
       if (isCheck) { phase = 'tok'; setAct(actHtml()); return after(CHECK_MS); }
       phase = 'ok';
@@ -499,8 +510,9 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
       return;
     }
     picked = id;
-    apply({ result: 'wrong', tapped: id, hint: hintUsed });
+    apply({ result: 'wrong', tapped: id, hint: hintUsed() });
     map.setHint(null);
+    map.setRef(null);
     if (isCheck) { phase = 'tno'; map.mark({ no: id }); setAct(actHtml()); return after(CHECK_MS); }
     phase = 'wrong';
     map.mark({ ok: q.id, no: id, arrow: true });
@@ -528,15 +540,43 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     reveal(phase === 'cno' && scope.includes(opt) ? [opt, q.id] : [q.id]);
   }
 
+  /**
+   * 힌트 두 단계(HINT_PLAN 2026-11-16 · core/hint.ts). 1단계: 이미 아는 곳(이번 판에서 본 곳 → 잘 아는 곳 → 같은 과의 곳)을
+   * 점선으로 두르고 '정답은 그곳의 ○쪽 옆이에요'. 정답이 섬 상자에 있으면 방향 대신 '따로 그린 섬 상자에 있어요'.
+   * 2단계(한 번 더): 정답과 가까운 곳만 밝게 남긴다(범위가 3곳이면 2곳, 2곳 이하면 정답만). 기준을 못 고르면 바로 2단계
+   */
   function hint() {
-    if (!alive || !q || !map || hintUsed || phase !== 'ask') return;
+    if (!alive || !q || !map || hintLevel >= 2 || phase !== 'ask') return;
     // 시험과 바로 찾기(q.pass)에는 힌트 단추가 없다. H 키로도 켜지지 않게 같은 조건을 여기서 막는다
-    if (deckOf()?.kind === 'check' || q.pass) return;
-    hintUsed = true;
+    const d = deckOf();
+    if (!d || d.kind === 'check' || q.pass) return;
     const t = q.id;
-    const near = scope.filter((v) => v !== t).sort((a, b) => ctx.reg.dist(t, a) - ctx.reg.dist(t, b)).slice(0, 2);
-    map.setHint([t, ...near]);
+    if (hintLevel === 0) {
+      if (curIsles.includes(t)) {
+        hintLevel = 1;
+        hintText = { clue: L.isleWhere(ctx.reg, t, true), ref: '' };
+      } else {
+        const ref = pickHintRef(ctx.reg, t, scope, seenInRound(d.queue.slice(0, d.pos), d.log), (id) => get(ctx.mastery, id).box, new Set(curIsles));
+        if (ref) {
+          hintLevel = 1;
+          hintText = L.hintClue(ctx.reg, ref, t);
+          map.setRef(ref.ref);
+        }
+      }
+      if (hintLevel === 1) { hintKey(); setAct(actHtml()); return; }
+    }
+    hintLevel = 2;
+    map.setHint(narrowCandidates(ctx.reg, t, scope));
+    hintKey();
     setAct(actHtml());
+  }
+
+  /** 범례에 힌트 견본을 덧붙인다(기준 칸 점선 · 힌트로 뺀 칸). 문제가 바뀌면 paintKey 가 범례를 새로 쓰므로 지워진다 */
+  function hintKey() {
+    for (const e of ui.key.querySelectorAll('.k-hint')) e.remove();
+    const add = (s: string, t: string) => ui.key.insertAdjacentHTML('beforeend', `<span class="k-hint"><i class="sw s-${s}" aria-hidden="true"></i>${esc(t)}</span>`);
+    if (hintLevel >= 1 && hintText?.ref) add('hintref', L.playKey.hintRef);
+    if (hintLevel >= 2) add('hintoff', L.playKey.hintOff);
   }
 
   function dontKnow() {
@@ -544,6 +584,7 @@ export function mountPlay(root: HTMLElement, ctx: Ctx, slot: Slot, onEnd: (e: Pl
     apply({ result: 'dontknow' });
     phase = 'dk';
     map.setHint(null);
+    map.setRef(null);
     map.mark({ ok: q.id, blink: true });
     setAct(actHtml());
     reveal([q.id]);

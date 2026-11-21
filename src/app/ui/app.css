@@ -819,3 +819,7 @@ html[lang="en"] .rg-later b { min-width: 7.5em; }
   .x-body { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "band map" "band key"; }
   .x-band { min-height: 0; max-height: none; border-top: 0; border-right: 1px solid var(--ink); padding-right: var(--gutter); }
 }
+
+/* 힌트 견본(문제 화면 범례, play.ts hintKey): 기준 칸 = 굵은 점선 네모, 힌트로 뺀 칸 = 짙은 회색(지도 .cm-ref · .cm-cell.dim 과 같게) */
+.sw.s-hintref { background: var(--m0); border: 2px dashed var(--ink); }
+.sw.s-hintoff { background: var(--map-hint-dim); border-color: var(--line-mid); }

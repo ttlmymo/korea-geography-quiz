@@ -2,8 +2,9 @@
 // 위치 한 줄·가이드는 한국어만이라 영어 화면에는 위치 한 줄이 없다)
 import type { Dir8, Registry, UnitRef } from '../registry.ts';
 import type { Tap, Wrong } from '../core/judge.ts';
+import type { HintRef } from '../core/hint.ts';
 import type { CtxCell, Item, Lesson, Region, Screen } from '../types.ts';
-import { DIR_KO, TAP_KO, dontKnowKo, eulReul, eunNeun, guFirst, ieyo, koCount, meetKo, rightKo, unitKo, unitWordKo, wrongKo } from './ko.ts';
+import { DIR_KO, TAP_KO, dontKnowKo, eulReul, eunNeun, guFirst, ieyo, koCount, meetKo, rightKo, unitKo, unitWordKo, wrongKo, hintKo } from './ko.ts';
 import { SIDOS, partOf, sidoByCode } from '../sidos.ts';
 import { romaEmd } from '../../../tools/roma.mjs';
 import LINES_EN from '../../data/place-lines-en.json' with { type: 'json' };
@@ -90,7 +91,11 @@ export const UI_KO = {
   fixed: (reg: Registry, id: string) => `여기가 ${ieyo(reg.place(id)?.item.ko ?? '')}`,
   meetAct: '테두리 친 칸을 눌러 보세요',
   next: '다음',
-  hint: '힌트', hintUsed: '힌트 썼어요', dontKnowBtn: '모르겠어요',
+  hint: '힌트', hintMore: '힌트 하나 더', hintUsed: '힌트 다 썼어요', dontKnowBtn: '모르겠어요',
+  /** 찾기 힌트 1단계(기준 칸 + 방향) */
+  hintClue: (reg: Registry, h: HintRef, target: string) => hintKo(reg, h, target),
+  /** 찾기 힌트 2단계 */
+  hintNarrow: '밝게 남은 칸 가운데 정답이 있어요',
   checkNote: '힌트 없이 한 번에 판정해요',
   quickNote: '힌트 없이 찾아요. 맞힌 곳은 배우기를 건너뛰어요',
   autoNote: '잠시 뒤 다음 문제로 넘어가요',
@@ -126,7 +131,7 @@ export const UI_KO = {
   mapHelp: ['끌어서 옮기고, 휠로 확대해요', '끌어서 옮기고, 두 손가락으로 확대해요'],
   /** 문제 지도 범례(한강은 legendRiver) */
   /** ctxOther: 오늘 복습 판(과 범위 지도)의 바탕 칸 — 머리가 '오늘 복습'이라 '이번 과'가 무엇인지 맞지 않아서 */
-  playKey: { pick: '고를 칸', outlined: '테두리 친 칸', ctxLesson: '이번 과 아님', ctxScreen: '이번 화면 아님', ctxOther: '다른 과' },
+  playKey: { pick: '고를 칸', outlined: '테두리 친 칸', ctxLesson: '이번 과 아님', ctxScreen: '이번 화면 아님', ctxOther: '다른 과', hintOff: '힌트로 뺀 칸', hintRef: '힌트 기준 칸' },
   // 홈
   notes: { saved: '기록은 이 브라우저에만 저장돼요', noStore: '이 창에서는 기록이 저장되지 않아요. 창을 닫으면 처음으로 돌아가요', inApp: '앱 안에서 연 화면이에요. 기록은 이 앱 안에만 남아요 · 크롬·사파리 같은 브라우저로 열면 그 브라우저에 따로 쌓여요' },
   rangeMap: (r: string, no: string) => `${r} ${no} 범위 지도`,
@@ -539,7 +544,17 @@ export const UI_EN: UI = {
   fixed: (reg: Registry, id: string) => `This is ${enPlace(reg, id)}`,
   meetAct: 'Tap the outlined area',
   next: 'Next',
-  hint: 'Hint', hintUsed: 'Hint used', dontKnowBtn: "I don't know",
+  hint: 'Hint', hintMore: 'Another hint', hintUsed: 'No more hints', dontKnowBtn: "I don't know",
+  hintClue(reg: Registry, h: HintRef, target: string) {
+    const t = enPlace(reg, target), r = enPlace(reg, h.ref);
+    // 오답 문장(wrong where)과 같은 꼴·같은 방향 규칙: dir 은 기준 칸에서 본 정답 쪽
+    const tag = h.why === 'round' ? ' (seen this round)' : h.why === 'known' ? ' (one you know well)' : '';
+    return {
+      clue: h.adjacent ? `${t} borders ${r}${tag} on the ${DIR_EN[h.dir]}` : `${t} lies ${DIR_EN[h.dir]} of ${r}${tag}`,
+      ref: `The dashed outline is ${r}`,
+    };
+  },
+  hintNarrow: 'The answer is one of the areas still bright',
   checkNote: 'No hints. Each tap is final',
   quickNote: 'No hints. The places you get right skip the lesson',
   autoNote: 'Moving on in a moment',
@@ -567,7 +582,7 @@ export const UI_EN: UI = {
   stNow: 'Now',
   mapCap: (mode: string) => (mode === 'meet' ? 'Meet it by its label' : 'Map with names hidden'),
   mapHelp: ['Drag to move, scroll to zoom', 'Drag to move, pinch to zoom'],
-  playKey: { pick: 'Choices', outlined: 'Outlined', ctxLesson: 'Not this lesson', ctxScreen: 'Not on this screen', ctxOther: 'Other lessons' },
+  playKey: { pick: 'Choices', outlined: 'Outlined', ctxLesson: 'Not this lesson', ctxScreen: 'Not on this screen', ctxOther: 'Other lessons', hintOff: 'Ruled out by hint', hintRef: 'Hint landmark' },
   notes: { saved: 'Your progress is saved in this browser only', noStore: "This window can't save progress. Closing it starts over", inApp: 'You opened this inside an app. Progress stays in that app · A browser such as Chrome or Safari keeps its own record' },
   rangeMap: (r: string, no: string) => `Map of ${r} ${no}`,
   newSub: 'Meet the places one by one on the map, then find them with the names hidden',

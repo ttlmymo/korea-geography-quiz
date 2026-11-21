@@ -3,6 +3,7 @@ import type { Registry, Dir8 } from '../registry.ts';
 import type { Tap, Wrong } from '../core/judge.ts';
 import type { Question } from '../core/questions.ts';
 import type { Region } from '../types.ts';
+import type { HintRef } from '../core/hint.ts';
 import { SIDOS, sidoOf } from '../sidos.ts';
 
 /** 마지막 글자의 받침: 없으면 0, ㄹ 이면 8, 한글이 아니면 -1 */
@@ -119,4 +120,17 @@ export function wrongKo(reg: Registry, w: Wrong, chose = false): { title: string
 
 export function dontKnowKo(reg: Registry, id: string): { title: string; act: string } {
   return { title: `여기가 ${ieyo(nm(reg, id))}`, act: '한 번 눌러 보세요' };
+}
+
+/**
+ * 찾기 힌트 1단계 문장(core/hint.ts): 기준 칸에서 본 정답 쪽. 오답 문장(wrongKo where)과 같은 꼴 —
+ * '중구는 이번 판에서 본 종로구의 남쪽 옆이에요' · '중구는 용산구에서 북쪽 방향이에요'
+ */
+export function hintKo(reg: Registry, h: HintRef, target: string): { clue: string; ref: string } {
+  const t = nm(reg, target), r = nm(reg, h.ref);
+  const pre = h.why === 'round' ? '이번 판에서 본 ' : h.why === 'known' ? '잘 아는 ' : '';
+  return {
+    clue: h.adjacent ? `${eunNeun(t)} ${pre}${r}의 ${DIR_KO[h.dir]} 옆이에요` : `${eunNeun(t)} ${pre}${r}에서 ${DIR_KO[h.dir]} 방향이에요`,
+    ref: `점선으로 두른 칸이 ${ieyo(r)}`,
+  };
 }

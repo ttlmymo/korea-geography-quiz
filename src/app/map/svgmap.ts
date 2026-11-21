@@ -166,6 +166,8 @@ export interface SvgMap {
   setHighlight(ids: Iterable<string> | null): void;
   /** 힌트: 이 칸들만 남기고 흐리게. null 이면 풂 */
   setHint(ids: Iterable<string> | null): void;
+  /** 힌트 1단계의 기준 칸: 굵은 점선 테두리(문제 칸의 굵은 실선·노랑과 다른 모양). null 이면 풂. 섬 상자 칸은 기준으로 쓰지 않는다 */
+  setRef(id: string | null): void;
   /** 흐린 이름(이번 과 밖의 이미 칠한 곳). 글자가 칸 안에 들 때만 그린다 */
   setDimLabels(labels: { id: string; text: string }[]): void;
   /**
@@ -272,6 +274,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   const lessonBank = el('path', { d: '', class: 'cm-lesson-rim cm-set-bank' }, svg);
   const boldEl = el('path', { d: '', class: 'cm-bold' }, svg);
   const boldBank = el('path', { d: '', class: 'cm-bold cm-set-bank' }, svg);
+  const refEl = el('path', { d: '', class: 'cm-ref' }, svg);
   const gCtx = el('g', { class: 'cm-ctx' }, svg);
   const gLead = el('g', { class: 'cm-ctx cm-lead' }, svg);
   const gSea = el('g', { class: 'cm-ctx cm-sea' }, svg);
@@ -356,6 +359,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
   let active: Set<string> = new Set(S.ids);
   let fills: Record<string, number> | null = null;
   let hint: Set<string> | null = null;
+  let refId: string | null = null;
   let highlight: Set<string> | null = null;
   let bold: Set<string> | null = null;
   let rim: Set<string> | null = null;   // setRim 의 묶음(섬 상자가 바뀌면 본 지도 몫을 다시 긋는다)
@@ -683,6 +687,7 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     lessonBank.setAttribute('d', r?.size ? S.bankOf(r) : '');
     boldEl.setAttribute('d', b?.size ? S.outlineOf(b, { bank: false }) : '');
     boldBank.setAttribute('d', b?.size ? S.bankOf(b) : '');
+    refEl.setAttribute('d', refId && S.cells.has(refId) && !isleSet.has(refId) ? S.outlineOf(new Set([refId]), { bank: false }) : '');
   }
 
   function paintCells() {
@@ -1937,6 +1942,10 @@ export function createSvgMap(host: HTMLElement, opt: MapOptions): SvgMap {
     setHint(ids) {
       hint = ids ? new Set(ids) : null;
       paintCells();
+    },
+    setRef(id) {
+      refId = id;
+      drawRims();
     },
     setHighlight(ids) {
       highlight = ids ? new Set(ids) : null;

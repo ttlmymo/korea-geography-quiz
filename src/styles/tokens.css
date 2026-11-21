@@ -40,6 +40,7 @@
   --map-water: #BEDCF3;       /* 강 */
   --map-out: #EFF1EE;         /* 이웃 땅 */
   --map-ctx: #EFF1EE;         /* 이번 과가 아닌 칸 */
+  --map-hint-dim: #C3C9C5;    /* 힌트로 뺀 칸: 이번 과 아님보다 짙게(흰 칸과 1.6:1 — 글자가 아닌 면이라 대비 기준 밖, 위 먹 이름표는 12:1 넘음) */
   --map-ctx-edge: #C4CAC6;    /* 그 칸의 선 */
   --map-edge: #15191A;
   --map-edge-strong: #15191A;
